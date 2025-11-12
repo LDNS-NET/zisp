@@ -20,16 +20,13 @@ use App\Http\Controllers\Tenants\TenantHotspotSettingsController;
 use App\Http\Controllers\Tenants\TenantInvoiceController;
 use App\Http\Controllers\Tenants\TenantLeadController;
 use App\Http\Controllers\Tenants\TenantMikrotikController;
-use App\Http\Controllers\Tenants\TenantNotificationSettingsController;
 use App\Http\Controllers\Tenants\TenantPaymentController;
 use App\Http\Controllers\Tenants\TenantPaymentGatewayController;
-use App\Http\Controllers\Tenants\TenantPayoutSettingsController;
-use App\Http\Controllers\Tenants\TenantSettingsController;
 use App\Http\Controllers\Tenants\TenantSMSController;
+use App\Http\Controllers\Tenants\TenantSmsGatewayController;
 use App\Http\Controllers\Tenants\TenantSMSTemplateController;
 use App\Http\Controllers\Tenants\TenantTicketController;
 use App\Http\Controllers\Tenants\TenantUserController;
-use App\Http\Controllers\Tenants\TenantWhatsappGatewayController;
 use App\Http\Controllers\Tenants\VoucherController;
 
 /*
@@ -133,7 +130,7 @@ Route::middleware(['auth', 'verified', 'check.subscription'])
         Route::get('settings/sms', [TenantSmsGatewayController::class, 'edit'])->name('settings.sms.edit');
         Route::post('settings/sms', [TenantSmsGatewayController::class, 'update'])->name('settings.sms.update');
         Route::get('/settings/sms/show', [TenantSmsGatewayController::class, 'show'])->name('settings.sms.show');
-        Route::get('/settings/sms/json', [SmsGatewayController::class, 'getGateway'])->name('settings.sms.json');
+        Route::get('/settings/sms/json', [TenantSmsGatewayController::class, 'getGateway'])->name('settings.sms.json');
 
 
 
@@ -143,18 +140,7 @@ Route::middleware(['auth', 'verified', 'check.subscription'])
 
         //mikrotiks
         Route::resource('mikrotiks', TenantMikrotikController::class);
-        Route::get('mikrotiks/{mikrotik}/test-connection', [TenantMikrotikController::class, 'testConnection'])->name('mikrotiks.testConnection');
-        Route::get('mikrotiks/{mikrotik}/ping', [TenantMikrotikController::class, 'pingRouter'])->name('mikrotiks.ping');
-        Route::get('mikrotiks/{mikrotik}/status', [TenantMikrotikController::class, 'getStatus'])->name('mikrotiks.status');
-        Route::post('mikrotiks/{mikrotik}/set-ip', [TenantMikrotikController::class, 'setIp'])->name('mikrotiks.setIp');
-        Route::post('mikrotiks/validate', [TenantMikrotikController::class, 'validateRouter'])->name('mikrotiks.validate');
-        Route::get('mikrotiks/{mikrotik}/download-setup-script', [TenantMikrotikController::class, 'downloadSetupScript'])->name('mikrotiks.downloadSetupScript');
-        Route::get('mikrotiks/{mikrotik}/download-radius-script', [TenantMikrotikController::class, 'downloadRadiusScript'])->name('mikrotiks.downloadRadiusScript');
-        Route::get('mikrotiks/{mikrotik}/download-advanced-config', [TenantMikrotikController::class, 'downloadAdvancedConfig'])->name('mikrotiks.downloadAdvancedConfig');
-        Route::get('mikrotiks/{mikrotik}/remote-management', [TenantMikrotikController::class, 'remoteManagement'])->name('mikrotiks.remoteManagement');
-        Route::get('mikrotiks/{mikrotik}/ca.crt', [TenantMikrotikController::class, 'downloadCACert'])->name('mikrotiks.downloadCACert');
-        Route::get('mikrotiks/{mikrotik}/reprovision', [TenantMikrotikController::class, 'reprovision'])->name('mikrotiks.reprovision');
-        // Note: sync route is defined in Public Routes section above (no auth required)
+         // Note: sync route is defined in Public Routes section above (no auth required)
 
 
         //captive portal

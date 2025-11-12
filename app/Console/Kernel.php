@@ -12,10 +12,10 @@ class Kernel extends ConsoleKernel
         $schedule->command('sms:send-expiry-notifications')->everyFiveMinutes();
         
         // Check MikroTik router status every 3 minutes
-        $schedule->command('mikrotik:check-status')->everyThreeMinutes();
+        //$schedule->command('mikrotik:check-status')->everyThreeMinutes();
 
         // Sync WireGuard peers every minute to pick up new registrations quickly
-        $schedule->command('wireguard:sync-peers')->everyMinute();
+        //$schedule->command('wireguard:sync-peers')->everyMinute();
     }
 
     protected function commands(): void
