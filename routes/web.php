@@ -140,6 +140,12 @@ Route::middleware(['auth', 'verified', 'check.subscription'])
 
         //mikrotiks
         Route::resource('mikrotiks', TenantMikrotikController::class);
+        Route::get('/mikrotiks/{mikrotik}/download-script', [TenantMikrotikController::class, 'downloadScript'])->name('mikrotiks.download-script');
+        Route::post('/mikrotiks/{mikrotik}/regenerate-script', [TenantMikrotikController::class, 'regenerateScript'])->name('mikrotiks.regenerate-script');
+        Route::post('/mikrotiks/{mikrotik}/test-connection', [TenantMikrotikController::class, 'testConnection'])->name('mikrotiks.test-connection');
+        Route::get('/mikrotiks/{mikrotik}/status', [TenantMikrotikController::class, 'status'])->name('mikrotiks.status');
+        Route::post('/mikrotiks/{mikrotik}/mark-offline', [TenantMikrotikController::class, 'markOffline'])->name('mikrotiks.mark-offline');
+        Route::post('/mikrotiks/{mikrotik}/mark-online', [TenantMikrotikController::class, 'markOnline'])->name('mikrotiks.mark-online');
          // Note: sync route is defined in Public Routes section above (no auth required)
 
 

@@ -14,6 +14,8 @@ import {
     LogOut,
     Settings,
     SunIcon,
+    // Moon icon for theme toggle
+    Moon,
     FolderEdit,
     AlertCircleIcon,
     ReceiptCent,
@@ -28,17 +30,18 @@ import {
     SendIcon,
 } from 'lucide-vue-next';
 
-const { theme, applyTheme } = useTheme();
+const { theme, applyTheme, setTheme } = useTheme();
 const sidebarOpen = ref(false);
 
 onMounted(() => {
-    const savedTheme = localStorage.getItem('house_theme') || 'light';
+    // Use the same localStorage key as the composable (ldns_theme)
+    const savedTheme = localStorage.getItem('ldns_theme') || 'light';
     theme.value = savedTheme;
     applyTheme(savedTheme);
 });
 
 watch(theme, (val) => {
-    localStorage.setItem('house_theme', val);
+    localStorage.setItem('ldns_theme', val);
     applyTheme(val);
 });
 </script>
@@ -313,7 +316,22 @@ watch(theme, (val) => {
 
                     {{ $page.props.auth.user.name }}
                 </div>
-                <div class="ml-2 flex">
+                <div class="ml-2 flex items-center gap-2">
+                    <!-- Quick theme toggle button -->
+                    <button
+                        type="button"
+                        @click="setTheme(theme === 'dark' ? 'light' : 'dark')"
+                        class="inline-flex items-center rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-200"
+                        title="Toggle theme"
+                    >
+                        <template v-if="theme === 'dark'">
+                            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"></path></svg>
+                        </template>
+                        <template v-else>
+                            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="5"></circle></svg>
+                        </template>
+                    </button>
+
                     <Dropdown align="right" width="48">
                         <template #trigger>
                             <button
@@ -328,9 +346,7 @@ watch(theme, (val) => {
 
                         <template #content>
                             <DropdownLink
-                                @click="
-                                    theme = theme === 'dark' ? 'light' : 'dark'
-                                "
+                                @click.prevent="setTheme(theme === 'dark' ? 'light' : 'dark')"
                                 class="flex items-center rounded-full p-2 hover:bg-gray-100 dark:hover:bg-gray-700"
                             >
                                 <SunIcon class="mr-2 h-4 w-4" />
