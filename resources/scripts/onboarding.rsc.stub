@@ -43,11 +43,12 @@
 # ---------- Initial Registration ----------
 :put "Sending initial registration to ZiSP..."
 
-# collect basic info (v7 value-name syntax)
-:local deviceId [/system identity get value-name=name]
-:local boardName [/system routerboard get value-name=board-name]
-:local systemVersion [/system resource get value-name=version]
+# collect basic info (correct RouterOS v7 syntax)
+:local deviceId [/system identity get name]
+:local boardName [/system routerboard get board-name]
+:local systemVersion [/system resource get version]
 :local interfaceCount [/interface print count-only]
+
 
 # find a usable IP (non-loopback)
 :local routerIp ""
