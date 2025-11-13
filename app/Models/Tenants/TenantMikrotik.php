@@ -9,6 +9,7 @@ use Illuminate\Support\Str;
 class TenantMikrotik extends Model
 {
     protected $fillable = [
+        'tenant_id',
         'name',
         'hostname',
         'ip_address',
@@ -55,6 +56,13 @@ class TenantMikrotik extends Model
         static::creating(function ($model) {
             if (auth()->check() && empty($model->created_by)) {
                 $model->created_by = auth()->id();
+            }
+            // Set tenant_id if tenancy context is available
+            if (function_exists('tenant') && empty($model->tenant_id)) {
+                $tenantId = tenant('id');
+                if ($tenantId) {
+                    $model->tenant_id = $tenantId;
+                }
             }
             
             // Generate unique tokens

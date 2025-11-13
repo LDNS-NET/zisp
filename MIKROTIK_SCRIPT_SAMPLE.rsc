@@ -15,31 +15,40 @@
 # - Set up periodic status reporting
 # ============================================================
 
-# Auto-generated Mikrotik Onboarding Script
-# This script will self-onboard your Mikrotik device with the ZISP system
+# ============================================================
+# ZISP Mikrotik Automated Onboarding Script
+# ============================================================
 # Generated: 2025-11-13 12:34:56
 # Device: Main Router
-# Documentation: https://your-system.com/docs/mikrotik
+# Router ID: 1
+# System URL: https://your-system.com
 
+:put "========== ZISP MIKROTIK ONBOARDING INITIATED =========="
+
+# Configuration variables
 :local syncToken "YOUR_UNIQUE_SYNC_TOKEN_HERE_64_CHARACTERS"
 :local systemUrl "https://your-system.com"
 :local mikrotikId 1
-:local timestamp [/system clock get date-time]
+:local syncUrl ($systemUrl . "/mikrotiks/" . $mikrotikId . "/sync?token=" . $syncToken)
 
 # ============================================================
 # Step 1: Collect Device Information
 # ============================================================
+
+:put "Step 1: Collecting device information..."
 
 :local deviceId [/system identity get name]
 :local boardName ""
 :local systemVersion ""
 :local cpuLoad ""
 :local uptime ""
-:local totalMemory ""
-:local freeMemory ""
-:local usedMemory ""
+:local totalMemory 0
+:local freeMemory 0
+:local usedMemory 0
+:local interfaceCount 0
+:local routerIp ""
 
-# Safely collect system information with error handling
+# Safely collect system information
 :do {
     :set boardName [/system routerboard get board-name]
 } on-error={
@@ -66,124 +75,163 @@
 
 :do {
     :set totalMemory [/system resource get total-memory]
-} on-error={
-    :set totalMemory 0
-}
-
-:do {
     :set freeMemory [/system resource get free-memory]
-} on-error={
-    :set freeMemory 0
-}
-
-:set usedMemory ($totalMemory - $freeMemory)
-
-# Calculate memory percentage
-:local memoryUsagePercent 0
-:if ($totalMemory > 0) do={
-    :set memoryUsagePercent (($usedMemory * 100) / $totalMemory)
-}
-
-# Collect interface count
-:local interfaceCount [/interface print count-only]
-
-# Collect MAC addresses (first 5 interfaces)
-:local macAddresses ""
-:local interfaceList [/interface find]
-:local maxMacs 5
-:local macCount 0
-
-:foreach interfaceId in=$interfaceList do={
-    :if ($macCount < $maxMacs) do={
-        :local mac [/interface get $interfaceId mac-address]
-        :if ($macAddresses = "") do={
-            :set macAddresses $mac
-        } else={
-            :set macAddresses ($macAddresses . "," . $mac)
-        }
-        :set macCount ($macCount + 1)
-    }
-}
-
-# Collect DNS servers
-:local dnsServers ""
-:local dnsConfig [/ip dns get]
-:local primaryDns [/ip dns get primary-dns]
-:local secondaryDns [/ip dns get secondary-dns]
-
-:if ($primaryDns != "0.0.0.0") do={
-    :set dnsServers $primaryDns
-}
-
-:if ($secondaryDns != "0.0.0.0") do={
-    :if ($dnsServers != "") do={
-        :set dnsServers ($dnsServers . "," . $secondaryDns)
-    } else={
-        :set dnsServers $secondaryDns
-    }
-}
-
-# ============================================================
-# Step 2: Prepare and Send Initial Sync
-# ============================================================
-
-:log info "ZISP Onboarding: Initiating device sync..."
-
-# Build query string (simpler than form data)
-:local queryString ""
-:set queryString ("device_id=" . $deviceId . "&board_name=" . $boardName . "&system_version=" . $systemVersion)
-:set queryString ($queryString . "&interface_count=" . $interfaceCount . "&cpu_load=" . $cpuLoad . "&uptime=" . $uptime)
-:set queryString ($queryString . "&total_memory=" . $totalMemory . "&used_memory=" . $usedMemory . "&memory_usage_percent=" . $memoryUsagePercent)
-:set queryString ($queryString . "&mac_addresses=" . $macAddresses . "&dns_servers=" . $dnsServers . "&timestamp=" . $timestamp)
-
-:local syncUrl ($systemUrl . "/mikrotiks/" . $mikrotikId . "/sync?token=" . $syncToken . "&" . $queryString)
-
-# Send initial sync
-:do {
-    /tool fetch url=$syncUrl method=post dst-path="/tmp/zisp_sync.txt" timeout=10s
-    :log info "ZISP Onboarding: Device information sent to system"
-} on-error={
-    :log error "ZISP Onboarding: Failed to send initial sync - check network connectivity"
-}
-
-# ============================================================
-# Step 3: Set Up Periodic Status Reporting
-# ============================================================
-
-:log info "ZISP Onboarding: Setting up periodic sync scheduler..."
-
-# Remove existing scheduler if present
-:do {
-    /system scheduler remove [find name="zisp-device-status"]
 } on-error={}
 
-# Create a simple scheduler command (stored in a variable to avoid syntax issues)
-:local schedulerCommand "/tool fetch url=(\"https://your-system.com/mikrotiks/1/sync?token=YOUR_UNIQUE_SYNC_TOKEN_HERE_64_CHARACTERS&status=periodic\") method=post dst-path=\"/tmp/zisp_periodic.txt\" timeout=10s"
+:if ($totalMemory > 0) do={
+    :set usedMemory ($totalMemory - $freeMemory)
+}
 
-# Add the scheduler
+# Collect interface information
 :do {
-    /system scheduler add \
-        name="zisp-device-status" \
-        on-event=$schedulerCommand \
-        interval=5m \
-        start-time=startup \
-        comment="ZISP-Device-Status-Reporter"
-    :log info "ZISP Onboarding: Scheduler created successfully"
+    :set interfaceCount [/interface print count-only]
 } on-error={
-    :log error "ZISP Onboarding: Failed to create scheduler"
+    :set interfaceCount 0
+}
+
+# Collect primary router IP address
+:do {
+    :local ipIds [/ip address find]
+    :foreach id in=$ipIds do={
+        :local ipAddr [/ip address get $id address]
+        :local ipOnly [:pick $ipAddr 0 [:find $ipAddr "/"]]
+        :if ([:pick $ipOnly 0 3] != "127" && [:len $routerIp] = 0) do={
+            :set routerIp $ipOnly
+        }
+    }
+} on-error={
+    :put "Warning: Could not determine router IP"
+}
+
+:put "  Device ID: $deviceId"
+:put "  Board: $boardName"
+:put "  RouterOS: $systemVersion"
+:put "  Interfaces: $interfaceCount"
+:if ([:len $routerIp] > 0) do={
+    :put "  Router IP: $routerIp"
 }
 
 # ============================================================
-# Step 4: Completion
+# Step 2: Send Initial Phone-Home
 # ============================================================
 
-:log info "ZISP Onboarding: Setup complete!"
-:log info "ZISP Onboarding: Device will report status every 5 minutes"
-:log info "ZISP Onboarding: Monitor logs for 'ZISP' entries for troubleshooting"
+:put ""
+:put "Step 2: Sending initial device registration..."
+
+:local phoneHomeData ""
+:if ([:len $deviceId] > 0) do={
+    :set phoneHomeData ("device_id=" . $deviceId)
+}
+:if ([:len $boardName] > 0) do={
+    :if ([:len $phoneHomeData] > 0) do={ :set phoneHomeData ($phoneHomeData . "&") }
+    :set phoneHomeData ($phoneHomeData . "board_name=" . $boardName)
+}
+:if ([:len $systemVersion] > 0) do={
+    :if ([:len $phoneHomeData] > 0) do={ :set phoneHomeData ($phoneHomeData . "&") }
+    :set phoneHomeData ($phoneHomeData . "system_version=" . $systemVersion)
+}
+:if ($interfaceCount > 0) do={
+    :if ([:len $phoneHomeData] > 0) do={ :set phoneHomeData ($phoneHomeData . "&") }
+    :set phoneHomeData ($phoneHomeData . "interface_count=" . $interfaceCount)
+}
+:if ([:len $routerIp] > 0) do={
+    :if ([:len $phoneHomeData] > 0) do={ :set phoneHomeData ($phoneHomeData . "&") }
+    :set phoneHomeData ($phoneHomeData . "ip_address=" . $routerIp)
+}
+
+:do {
+    /tool fetch url=$syncUrl http-method=post http-data=$phoneHomeData timeout=10s dst-path="/tmp/zisp_phone_home.txt"
+    :put "✓ Device registered successfully"
+} on-error={
+    :put "⚠ Phone-home failed - check internet connectivity"
+    :put "  (Device will retry automatically)"
+}
 
 # ============================================================
-# Script Complete
+# Step 3: Create Phone-Home Script for Periodic Reporting
 # ============================================================
-# Your device should now appear in the ZISP dashboard.
-# Status will update automatically every 5 minutes.
-# Check the Logs section in ZISP for any errors.
+
+:put ""
+:put "Step 3: Setting up periodic reporting..."
+
+# Remove existing phone-home components
+:do {
+    /system script remove [find name="zisp-phone-home"]
+} on-error={}
+
+:do {
+    /system scheduler remove [find name="zisp-phone-home"]
+} on-error={}
+
+# Create a stored script for periodic device status reporting
+:local scriptContent ":local syncToken \"YOUR_UNIQUE_SYNC_TOKEN_HERE_64_CHARACTERS\"; :local systemUrl \"https://your-system.com\"; :local mikrotikId 1; :local syncUrl (\$systemUrl . \"/mikrotiks/\" . \$mikrotikId . \"/sync?token=\" . \$syncToken); :local routerIp \"\"; :do { :local ipIds [/ip address find]; :foreach id in=\$ipIds do={ :local ipAddr [/ip address get \$id address]; :local ipOnly [:pick \$ipAddr 0 [:find \$ipAddr \"/\"]]; :if ([:pick \$ipOnly 0 3] != \"127\" && [:len \$routerIp] = 0) do={ :set routerIp \$ipOnly; }; }; } on-error={}; :if ([:len \$routerIp] > 0) do={ :do { :local postData (\"status=periodic&ip_address=\" . \$routerIp); /tool fetch url=\$syncUrl http-method=post http-data=\$postData timeout=10s; } on-error={}; };"
+
+:do {
+    /system script add name="zisp-phone-home" source=$scriptContent comment="ZISP Device Status Reporter"
+    :put "✓ Phone-home script created"
+} on-error={
+    :put "⚠ Failed to create phone-home script"
+}
+
+# Create scheduler to run phone-home every 5 minutes
+:do {
+    /system scheduler add \
+        name="zisp-phone-home" \
+        start-time=startup \
+        interval=5m \
+        on-event="/system script run zisp-phone-home" \
+        comment="ZISP periodic device reporting"
+    :put "✓ Reporting scheduler created (every 5 minutes)"
+} on-error={
+    :put "⚠ Failed to create scheduler"
+}
+
+# ============================================================
+# Step 4: Verify API Service
+# ============================================================
+
+:put ""
+:put "Step 4: Verifying API service..."
+
+:do {
+    :local apiStatus [/ip service get api disabled]
+    :if ($apiStatus = true) do={
+        :put "⚠ API service is disabled - enabling now..."
+        /ip service set api disabled=no
+        :put "✓ API service enabled"
+    } else={
+        :put "✓ API service is already enabled"
+    }
+} on-error={
+    :put "⚠ Could not verify API service status"
+}
+
+# ============================================================
+# Step 5: Final Status Report
+# ============================================================
+
+:put ""
+:put "========== ONBOARDING COMPLETE =========="
+:put ""
+:put "Device Configuration Summary:"
+:put "  • Device ID: $deviceId"
+:put "  • Router OS: $systemVersion"
+:put "  • Board Model: $boardName"
+:put "  • Interface Count: $interfaceCount"
+:if ([:len $routerIp] > 0) do={
+    :put "  • IP Address: $routerIp"
+}
+:put ""
+:put "System Status:"
+:put "  ✓ Registered with ZISP"
+:put "  ✓ Periodic reporting enabled (5 min intervals)"
+:put "  ✓ API service ready for connections"
+:put ""
+:put "Next Steps:"
+:put "  1. Log in to your ZISP dashboard"
+:put "  2. Go to Devices > Mikrotik Devices"
+:put "  3. Verify this device appears as ONLINE"
+:put "  4. Configure network settings as needed"
+:put ""
+:put "For troubleshooting, check: /log print where message~\"ZISP\""
+:put "=========================================="

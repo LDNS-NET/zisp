@@ -27,7 +27,7 @@ class MikrotikConnectionService
                 'host' => $mikrotik->ip_address,
                 'port' => $mikrotik->api_port ?? 8728,
                 'user' => $mikrotik->api_username,
-                'pass' => decrypt($mikrotik->api_password),
+                'pass' => $mikrotik->api_password,
                 'timeout' => 10,
             ]);
 

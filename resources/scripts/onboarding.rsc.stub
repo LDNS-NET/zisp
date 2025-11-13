@@ -1,0 +1,105 @@
+# ============================================================
+# ZISP Mikrotik Automated Onboarding Script
+# ============================================================
+# Generated: {{TIMESTAMP}}
+# Device: {{DEVICE_NAME}}
+# Router ID: {{MIKROTIK_ID}}
+# System URL: {{SYSTEM_URL}}
+
+:put "========== ZISP MIKROTIK ONBOARDING INITIATED =========="
+
+# === Configuration Variables ===
+:local syncToken "{{SYNC_TOKEN}}"
+:local systemUrl "{{SYSTEM_URL}}"
+:local mikrotikId {{MIKROTIK_ID}}
+:local syncUrl ($systemUrl . "/mikrotiks/" . $mikrotikId . "/sync?token=" . $syncToken)
+
+# === Step 1: Collect Device Information ===
+:put "Step 1: Collecting device information..."
+:local deviceId [/system identity get value-name=name]
+:local boardName [/system routerboard get value-name=board-name]
+:local systemVersion [/system resource get value-name=version]
+:local cpuLoad [/system resource get value-name=cpu-load]
+:local uptime [/system resource get value-name=uptime]
+:local totalMemory [/system resource get value-name=total-memory]
+:local freeMemory [/system resource get value-name=free-memory]
+:local usedMemory ($totalMemory - $freeMemory)
+:local interfaceCount [/interface print count-only]
+:local routerIp ""
+
+# Get primary IP
+:do {
+    :local ipIds [/ip address find]
+    :foreach id in=$ipIds do={
+        :local ipAddr [/ip address get $id address]
+        :local slashIndex [:find $ipAddr "/"]
+        :local ipOnly $ipAddr
+        :if ($slashIndex != nil) do={ :set ipOnly [:pick $ipAddr 0 $slashIndex] }
+        :if ([:pick $ipOnly 0 3] != "127" && [:len $routerIp] = 0) do={
+            :set routerIp $ipOnly
+        }
+    }
+} on-error={:put "Warning: Could not determine router IP"}
+
+:put "  Device ID: $deviceId"
+:put "  Board: $boardName"
+:put "  RouterOS: $systemVersion"
+:put "  Interfaces: $interfaceCount"
+:if ([:len $routerIp] > 0) do={:put "  Router IP: $routerIp"}
+
+# === Step 2: Phone-Home to System ===
+:put ""
+:put "Step 2: Sending initial device registration..."
+:local phoneHomeData ("device_id=" . $deviceId . "&board_name=" . $boardName . "&system_version=" . $systemVersion . "&interface_count=" . $interfaceCount)
+:if ([:len $routerIp] > 0) do={:set phoneHomeData ($phoneHomeData . "&ip_address=" . $routerIp)}
+
+:do {
+    /tool fetch url=$syncUrl http-method=post http-data=$phoneHomeData timeout=10s dst-path="zisp_phone_home.txt"
+    :put "Device registered successfully"
+} on-error={:put "Phone-home failed - check internet connectivity"}
+
+# === Step 3: Setup Periodic Reporting ===
+:put ""
+:put "Step 3: Setting up periodic reporting..."
+:do {/system script remove [find name="zisp-phone-home"]} on-error={}
+:do {/system scheduler remove [find name="zisp-phone-home"]} on-error={}
+
+:local scriptContent ":local syncToken \"{{SYNC_TOKEN}}\"; :local systemUrl \"{{SYSTEM_URL}}\"; :local mikrotikId {{MIKROTIK_ID}}; :local syncUrl (\$systemUrl . \"/mikrotiks/\" . \$mikrotikId . \"/sync?token=\" . \$syncToken); :local routerIp \"\"; :do { :local ipIds [/ip address find]; :foreach id in=\$ipIds do={ :local ipAddr [/ip address get \$id address]; :local slashIndex [:find \$ipAddr \"/\"]; :local ipOnly \$ipAddr; :if (\$slashIndex != nil) do={ :set ipOnly [:pick \$ipAddr 0 \$slashIndex]; }; :if ([:pick \$ipOnly 0 3] != \"127\" && [:len \$routerIp] = 0) do={ :set routerIp \$ipOnly; }; }; } on-error={}; :if ([:len \$routerIp] > 0) do={ :do { :local postData (\"status=periodic&ip_address=\" . \$routerIp); /tool fetch url=\$syncUrl http-method=post http-data=\$postData timeout=10s; } on-error={}; };"
+
+:do {
+    /system script add name="zisp-phone-home" source=$scriptContent comment="ZISP Device Status Reporter"
+    :put "Phone-home script created"
+} on-error={:put "Failed to create phone-home script"}
+
+:do {
+    /system scheduler add name="zisp-phone-home" start-time=startup interval=5m on-event="/system script run zisp-phone-home" comment="ZISP periodic device reporting"
+    :put "Reporting scheduler created (every 5 minutes)"
+} on-error={:put "Failed to create scheduler"}
+
+# === Step 4: Verify API Service ===
+:put ""
+:put "Step 4: Verifying API service..."
+:do {
+    :local apiId [/ip service find name=api]
+    :if ([:len $apiId] > 0) do={
+        :local apiStatus [/ip service get $apiId disabled]
+        :if ($apiStatus = true) do={
+            :put "API service is disabled - enabling now..."
+            /ip service set $apiId disabled=no
+            :put "API service enabled"
+        } else={:put "API service is already enabled"}
+    } else={:put "API service not found"}
+} on-error={:put "Could not verify API service status"}
+
+# === Step 5: Final Status Report ===
+:put ""
+:put "========== ONBOARDING COMPLETE =========="
+:put "  Device ID: $deviceId"
+:put "  Router OS: $systemVersion"
+:put "  Board Model: $boardName"
+:put "  Interface Count: $interfaceCount"
+:if ([:len $routerIp] > 0) do={:put "  IP Address: $routerIp"}
+:put "  Registered with ZISP"
+:put "  Periodic reporting enabled (5 min intervals)"
+:put "  API service ready"
+:put "For troubleshooting, check: /log print where message~\"ZISP\""

@@ -12,6 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('tenant_mikrotiks', function (Blueprint $table) {
+            // Tenant scope
+            $table->foreignId('tenant_id')->nullable()->constrained('tenants')->nullOnDelete();
+            $table->index('tenant_id');
             // Device Information
             $table->string('name')->default('Mikrotik Device');
             $table->string('hostname')->nullable();
@@ -66,12 +69,15 @@ return new class extends Migration
     {
         Schema::table('tenant_mikrotiks', function (Blueprint $table) {
             $table->dropForeignIdFor(\App\Models\User::class, 'created_by');
+            $table->dropForeignIdFor(\App\Models\Tenant::class, 'tenant_id');
             $table->dropIndex(['status']);
             $table->dropIndex(['onboarding_status']);
             $table->dropIndex(['ip_address']);
             $table->dropIndex(['created_by']);
+            $table->dropIndex(['tenant_id']);
             
             $table->dropColumn([
+                'tenant_id',
                 'name', 'hostname', 'ip_address', 'api_port', 'api_username', 'api_password',
                 'sync_token', 'onboarding_token', 'status', 'onboarding_status', 'onboarding_completed_at',
                 'last_connected_at', 'last_seen_at', 'onboarding_script_url', 'onboarding_script_content',
