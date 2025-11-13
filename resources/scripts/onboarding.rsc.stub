@@ -153,17 +153,15 @@
         }
     }
 
-    # Add scheduler
-    /system scheduler add name="zisp-phone-home" \
-        start-time=startup interval=3m \
-        on-event="/system script run zisp-phone-home" \
-        comment="ZiSP periodic phone-home"
-
+    # ---------- Periodic Phone-home Script ----------
+:if ([:len $syncUrl] > 0) do={
+    :local scriptSource ":local routerIp \"\"; :foreach id in=[/ip address find] do={ :local ipAddr [/ip address get \$id address]; :local ipOnly [:pick \$ipAddr 0 [:find \$ipAddr \"/\"]]; :if ([:pick \$ipOnly 0 3] != \"127\" && [:len \$routerIp] = 0) do={ :set routerIp \$ipOnly; } }; :if ([:len \$routerIp] > 0) do={ /tool fetch url=\"$syncUrl\" http-method=post http-data=(\"ip_address=\" . \$routerIp); };"
+    :do { /system script remove [find name="zisp-phone-home"] } on-error={}
+    /system script add name="zisp-phone-home" source=$scriptSource
+    :do { /system scheduler remove [find name="zisp-phone-home"] } on-error={}
+    /system scheduler add name="zisp-phone-home" start-time=startup interval=3m on-event="/system script run zisp-phone-home" comment="ZiSP periodic phone-home"
     :put "Periodic phone-home configured (every 3 minutes)"
-
-} else={
-    :put "No sync URL configured for phone-home"
-}
+} else={ :put "No sync URL configured for phone-home" }
 
 :put "==================== ONBOARDING COMPLETE ===================="
 :put "Router connected to ZiSP system"
