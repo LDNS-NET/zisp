@@ -71,12 +71,12 @@ class DashboardController extends Controller
                         ->count(),
                 ],
 
-                // Mikrotik Devices
+                /*// Mikrotik Devices
                 'mikrotiks' => [
                     'total' => TenantMikrotik::count(),
                     'connected' => TenantMikrotik::where('status', 'connected')->count(),
                     'disconnected' => TenantMikrotik::where('status', 'disconnected')->count(),
-                ],
+                ],*/
 
                 // SMS
                 'sms' => [
