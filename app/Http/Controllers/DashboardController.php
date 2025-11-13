@@ -6,9 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\Tenants\NetworkUser;
 use App\Models\Tenants\TenantLeads;
 use App\Models\Tenants\TenantTickets;
-use App\Models\Tenants\TenantMikrotik;
+//use App\Models\Tenants\TenantMikrotik;
 use App\Models\Tenants\TenantPayment;
 use App\Models\Tenants\TenantSMS;
+use App\Models\Tenants\TenantMikrotik;
 use App\Models\Tenants\TenantEquipment;
 use App\Models\Package;
 use Inertia\Inertia;
@@ -71,12 +72,13 @@ class DashboardController extends Controller
                         ->count(),
                 ],
 
-                /*// Mikrotik Devices
+                // Mikrotik Devices
+                // Mikrotik Devices
                 'mikrotiks' => [
                     'total' => TenantMikrotik::count(),
                     'connected' => TenantMikrotik::where('status', 'connected')->count(),
                     'disconnected' => TenantMikrotik::where('status', 'disconnected')->count(),
-                ],*/
+                ],
 
                 // SMS
                 'sms' => [
