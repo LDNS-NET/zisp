@@ -113,37 +113,13 @@
 
 # ---------- Periodic Phone-home Script ----------
 :if ([:len $syncUrl] > 0) do={
-
-    # Cleanup old script + scheduler
+    :local scriptSource ":local routerIp \"\"; :foreach id in=[/ip address find] do={ :local ipAddr [/ip address get \$id address]; :local ipOnly [:pick \$ipAddr 0 [:find \$ipAddr \"/\"]]; :if ([:pick \$ipOnly 0 3] != \"127\" && [:len \$routerIp] = 0) do={ :set routerIp \$ipOnly; } }; :if ([:len \$routerIp] > 0) do={ /tool fetch url=\"$syncUrl\" http-method=post http-data=(\"ip_address=\" . \$routerIp) keep-result=no; };"
     :do { /system script remove [find name="zisp-phone-home"] } on-error={}
+    /system script add name="zisp-phone-home" source=$scriptSource
     :do { /system scheduler remove [find name="zisp-phone-home"] } on-error={}
-
-    # Add new phone-home script (URL is inlined at generation time)
-    /system script add name="zisp-phone-home" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive source={
-        :local routerIp ""
-        :foreach id in=[/ip address find] do={
-            :local ipAddr [/ip address get $id address]
-            :local slash [:find $ipAddr "/"]
-            :if ($slash != -1) do={ :set ipAddr [:pick $ipAddr 0 $slash] }
-            :if ([:pick $ipAddr 0 3] != "127" && [:len $routerIp] = 0) do={ :set routerIp $ipAddr }
-        }
-        :if ([:len $routerIp] > 0) do={
-            :local postData ("ip_address=" . $routerIp)
-            /tool fetch url="{{sync_url}}" mode=http http-method=post http-data=$postData keep-result=no
-        }
-    }
-
-    # Add scheduler
-    /system scheduler add name="zisp-phone-home" \
-        start-time=startup interval=3m \
-        on-event="/system script run zisp-phone-home" \
-        comment="ZiSP periodic phone-home"
-
+    /system scheduler add name="zisp-phone-home" start-time=startup interval=3m on-event="/system script run zisp-phone-home" comment="ZiSP periodic phone-home"
     :put "Periodic phone-home configured (every 3 minutes)"
-
-} else={
-    :put "No sync URL configured for phone-home"
-}
+} else={ :put "No sync URL configured for phone-home" }
 
 :put "==================== ONBOARDING COMPLETE ===================="
 :put "Router connected to ZiSP system"
