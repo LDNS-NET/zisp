@@ -17,9 +17,8 @@ return new class extends Migration {
             $table->integer('upload_speed')->comment('mbps');
             $table->integer('download_speed')->comment('mbps');
             $table->integer('burst_limit')->nullable()->comment('optional burst speed in kbps');
-            $table->unsignedBigInteger('created_by')->nullable();
+            $table->foreignId('created_by')->nullable()->constrained('users')->onDelete('cascade');
             $table->timestamps();
-            // This table is for tenant DB only, no tenant_id needed
         });
     }
 

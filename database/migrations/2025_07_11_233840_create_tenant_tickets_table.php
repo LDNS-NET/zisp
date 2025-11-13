@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('ticket_number')->unique();
             $table->enum('client_type', ['user', 'lead']);
-            $table->unsignedBigInteger('client_id')->unique();
+            $table->unsignedBigInteger('client_id');
             $table->unsignedBigInteger('created_by');
             $table->enum('status', ['open', 'closed'])->default('open');
             $table->enum('priority', ['low', 'medium', 'high'])->default('medium');
