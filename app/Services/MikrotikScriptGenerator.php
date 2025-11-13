@@ -27,11 +27,36 @@ class MikrotikScriptGenerator
             $template = ':put "ZISP fallback onboarding"';
         }
 
-        return str_replace(
-            ['{{TIMESTAMP}}', '{{DEVICE_NAME}}', '{{SYNC_TOKEN}}', '{{SYSTEM_URL}}', '{{MIKROTIK_ID}}'],
-            [now()->format('Y-m-d H:i:s'), $mikrotik->name, $syncToken, $systemUrl, $mikrotikId],
-            $template
-        );
+        $placeholders = [
+            '{{TIMESTAMP}}' => now()->format('Y-m-d H:i:s'),
+            '{{DEVICE_NAME}}' => (string) $mikrotik->name,
+            '{{SYNC_TOKEN}}' => (string) $syncToken,
+            '{{SYSTEM_URL}}' => (string) $systemUrl,
+            '{{MIKROTIK_ID}}' => (string) $mikrotikId,
+
+            // New v7+ script placeholders
+            '{{name}}' => (string) ($mikrotik->name ?? 'router'),
+            '{{router_id}}' => (string) $mikrotikId,
+            '{{username}}' => (string) ($mikrotik->api_username ?? 'admin'),
+            '{{router_password}}' => (string) ($mikrotik->api_password ?? ''),
+            '{{api_port}}' => (string) ($mikrotik->api_port ?? 8728),
+
+            '{{radius_secret}}' => (string) (config('radius.secret') ?? env('RADIUS_SECRET', '')),
+            '{{radius_ip}}' => (string) (config('radius.ip') ?? env('RADIUS_IP', '')),
+            '{{trusted_ip}}' => (string) (config('zisp.trusted_ip') ?? env('ZISP_TRUSTED_IP', '')), // optional
+
+            '{{wg_server_endpoint}}' => (string) (config('wireguard.server_endpoint') ?? env('WG_SERVER_ENDPOINT', '')),
+            '{{wg_server_pubkey}}' => (string) (config('wireguard.server_pubkey') ?? env('WG_SERVER_PUBKEY', '')),
+            '{{wg_subnet}}' => (string) (config('wireguard.subnet') ?? env('WG_SUBNET', '')),
+            '{{wg_port}}' => (string) (config('wireguard.port') ?? env('WG_PORT', '51820')),
+            '{{wg_client_ip}}' => (string) (config('wireguard.client_ip') ?? env('WG_CLIENT_IP', '')),
+            '{{wg_register_url}}' => (string) (config('wireguard.register_url') ?? env('WG_REGISTER_URL', '')),
+
+            // Build sync URL with token
+            '{{sync_url}}' => (string) ($systemUrl . '/mikrotiks/' . $mikrotikId . '/sync?token=' . $syncToken),
+        ];
+
+        return str_replace(array_keys($placeholders), array_values($placeholders), $template);
     }
 
     /**
