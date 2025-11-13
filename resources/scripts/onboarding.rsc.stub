@@ -36,7 +36,6 @@
 :local boardName [/system routerboard get board-name]
 :local systemVersion [/system resource get version]
 :local interfaceCount [/interface print count-only]
-
 :local routerIp ""
 :foreach id in=[/ip address find] do={
     :local full [/ip address get $id address]
@@ -45,47 +44,31 @@
     :if ($slash != -1) do={ :set ipOnly [:pick $full 0 $slash] }
     :if ([:pick $ipOnly 0 3] != "127" && [:len $routerIp] = 0) do={ :set routerIp $ipOnly }
 }
-
-:local postData ("device_id=" . $deviceId .
-                 "&board_name=" . $boardName .
-                 "&system_version=" . $systemVersion .
-                 "&interface_count=" . $interfaceCount)
-
-:if ([:len $routerIp] > 0) do={
-    :set postData ($postData . "&ip_address=" . $routerIp)
-}
-
-:do {
-    /tool fetch url=$syncUrl http-method=post http-data=$postData keep-result=no
-} on-error={
-    :put "Warning: initial registration failed"
-}
+:local postData ("device_id=" . $deviceId . "&board_name=" . $boardName . "&system_version=" . $systemVersion . "&interface_count=" . $interfaceCount)
+:if ([:len $routerIp] > 0) do={ :set postData ($postData . "&ip_address=" . $routerIp) }
+:do { /tool fetch url=$syncUrl http-method=post http-data=$postData keep-result=no } on-error={ :put "Warning: initial registration failed" }
 
 # ---------- RADIUS Configuration ----------
 :do { /radius remove [find address=$radiusIp] } on-error={}
-
 :local radiusServices "ppp"
-:do { /ip hotspot print; :set radiusServices "ppp,hotspot" } on-error={}
-
 :do {
-    /radius add service=$radiusServices address=$radiusIp secret=$radiusSecret \
-        disabled=no timeout=3000ms accounting-port=1813 authentication-port=1812
+    /ip hotspot print
+    :set radiusServices "ppp,hotspot"
+} on-error={}
+:do {
+    /radius add service=$radiusServices address=$radiusIp secret=$radiusSecret disabled=no timeout=3000ms accounting-port=1813 authentication-port=1812
     :put "RADIUS configured: $radiusServices"
-} on-error={
-    :put "Warning: Could not configure RADIUS"
-}
+} on-error={ :put "Warning: Could not configure RADIUS" }
 
 # ---------- PPP AAA ----------
 :do {
     /ppp aaa set use-radius=yes accounting=yes interim-update=1h
-} on-error={
-    :put "Warning: Could not configure PPP AAA"
-}
+} on-error={ :put "Warning: Could not configure PPP AAA" }
 
 # ---------- API User ----------
 :local userExists [/user find name=$username]
 :if ([:len $userExists] > 0) do={
-    /user set $userExists password=$password group=full disabled=no comment="ZiSP API User"
+    /user set [find name=$username] password=$password group=full disabled=no comment="ZiSP API User"
     :put "API user updated: $username"
 } else={
     /user add name=$username password=$password group=full disabled=no comment="ZiSP API User"
@@ -94,73 +77,43 @@
 
 # ---------- Firewall Rules for Trusted IP ----------
 :do { /ip firewall filter remove [find comment="zisp-api"] } on-error={}
-
 :do {
     /ip firewall filter add chain=input action=accept src-address=$trustedIp comment="zisp-api"
     /ip firewall filter add chain=output action=accept dst-address=$trustedIp comment="zisp-api"
     :put "Firewall rules configured"
-} on-error={
-    :put "Warning: Firewall configuration failed"
-}
+} on-error={ :put "Warning: Firewall configuration failed" }
 
 # ---------- Enable API Service ----------
 :do {
     /ip service set api disabled=no port=$apiPort address=$trustedIp
     :put "API service enabled on port $apiPort (restricted to $trustedIp)"
-} on-error={
-    :put "Warning: API service configuration failed"
-}
+} on-error={ :put "Warning: API service configuration failed" }
 
 # ---------- Periodic Phone-home Script ----------
 :if ([:len $syncUrl] > 0) do={
-
-    # Cleanup old script + scheduler
+    # Remove existing script and scheduler
     :do { /system script remove [find name="zisp-phone-home"] } on-error={}
     :do { /system scheduler remove [find name="zisp-phone-home"] } on-error={}
 
     # Add new phone-home script
     /system script add name="zisp-phone-home" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive source={
-
         :local routerIp ""
         :foreach id in=[/ip address find] do={
-            :local full [/ip address get $id address]
-            :local slash [:find $full "/"]
-            :local ipOnly $full
-            :if ($slash != -1) do={ :set ipOnly [:pick $full 0 $slash] }
-            :if ([:pick $ipOnly 0 3] != "127" && [:len $routerIp] = 0) do={
-                :set routerIp $ipOnly
-            }
+            :local ipAddr [/ip address get $id address]
+            :local slash [:find $ipAddr "/"]
+            :if ($slash != -1) do={ :set ipAddr [:pick $ipAddr 0 $slash] }
+            :if ([:pick $ipAddr 0 3] != "127" && [:len $routerIp] = 0) do={ :set routerIp $ipAddr }
         }
-
-        :local syncUrl "{{sync_url}}"
-
-        # Safety checks
-        :if ([:len $syncUrl] = 0) do={
-            :log warning "ZiSP phone-home: No sync URL. Skipping."
-            :return
-        }
-        :if ([:len $routerIp] = 0) do={
-            :log warning "ZiSP phone-home: No valid IP. Skipping."
-            :return
-        }
-
-        :local postData ("ip_address=" . $routerIp)
-
-        :do {
+        :if ([:len $routerIp] > 0) do={
+            :local postData ("ip_address=" . $routerIp)
             /tool fetch url=$syncUrl http-method=post http-data=$postData keep-result=no
-        } on-error={
-            :log warning "ZiSP phone-home: HTTP POST failed"
         }
     }
 
-    # Add scheduler
-    /system scheduler add name="zisp-phone-home" \
-        start-time=startup interval=3m \
-        on-event="/system script run zisp-phone-home" \
-        comment="ZiSP periodic phone-home"
+    # Schedule it every 3 minutes
+    /system scheduler add name="zisp-phone-home" start-time=startup interval=3m on-event="/system script run zisp-phone-home" comment="ZiSP periodic phone-home"
 
     :put "Periodic phone-home configured (every 3 minutes)"
-
 } else={
     :put "No sync URL configured for phone-home"
 }
