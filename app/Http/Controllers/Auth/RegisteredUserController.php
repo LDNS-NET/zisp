@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Models\Tenant;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -15,6 +14,7 @@ use Illuminate\Validation\Rules;
 use Inertia\Inertia;
 use Inertia\Response;
 use Illuminate\Support\Str;
+use Stancl\Tenancy\Database\Models\Domain;
 
 class RegisteredUserController extends Controller
 {
@@ -57,15 +57,36 @@ class RegisteredUserController extends Controller
 
             // Create tenant
             $tenantId = (string) Str::uuid();
+            // Generate a unique subdomain (slug from username or name)
+            $base = Str::slug($user->username ?? $user->name);
+            $subdomain = $base ?: 'tenant';
+            $counter = 0;
+            while (DB::table('tenants')->where('subdomain', $subdomain)->exists()) {
+                $counter++;
+                $subdomain = $base . '-' . $counter;
+            }
+
             DB::table('tenants')->insert([
                 'id' => $tenantId,
                 'name' => $user->name,
                 'email' => $user->email,
                 'phone' => $user->phone,
                 'username' => $user->username,
+                'subdomain' => $subdomain,
                 'data' => json_encode(['name' => $user->name]),
                 'created_at' => now(),
                 'updated_at' => now(),
+            ]);
+
+            // Also create a domain record for Stancl Tenancy so the tenant can be resolved by domain/subdomain.
+            // Build a full domain when possible (subdomain + host from APP_URL), otherwise store the subdomain alone.
+            $appUrlHost = parse_url(config('app.url') ?? env('APP_URL', ''), PHP_URL_HOST);
+            $fullDomain = $appUrlHost ? $subdomain . '.' . $appUrlHost : $subdomain;
+
+            // Use the tenancy Domain model so events / caches are handled by the package.
+            Domain::create([
+                'domain' => $fullDomain,
+                'tenant_id' => $tenantId,
             ]);
 
             // Associate user with tenant
@@ -76,8 +97,10 @@ class RegisteredUserController extends Controller
         event(new Registered($user));
         Auth::login($user);
 
-        // Redirect to tenant dashboard
-        return redirect()->route('dashboard', [], false);
+    // Redirect to tenant dashboard
+    // Previous code passed `false` as the third argument which becomes an invalid HTTP status (0).
+    // Use the normal redirect (default 302) or explicitly pass a valid status if needed.
+    return redirect()->route('dashboard');
 
 
     }
