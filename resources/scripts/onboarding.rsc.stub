@@ -7,7 +7,7 @@
 :local apiPort "{{api_port}}"
 :local radiusSecret "{{radius_secret}}"
 :local radiusIp "{{radius_ip}}"
-:local trustedIp "207.154.232.10"
+:local trustedIp "{{trusted_ip}}"
 :local syncUrl "{{sync_url}}"
 
 :put "==================== ZiSP MIKROTIK ONBOARDING ===================="
@@ -30,27 +30,13 @@
     :put " - $ipAddr"
 }
 
-# ---------- Ensure NAT (masquerade) for outbound connectivity ----------
-# Add a simple src-nat masquerade so router's own fetch requests NAT correctly
-:do {
-    /ip firewall nat remove [find comment="zisp-masquerade"]
-} on-error={}
-:do {
-    /ip firewall nat add chain=srcnat action=masquerade comment="zisp-masquerade"
-    :put "Added NAT masquerade for outbound connectivity"
-} on-error={ :put "Warning: Could not add NAT masquerade" }
-
 # ---------- Initial Registration ----------
 :put "Sending initial registration to ZiSP..."
-
-# collect basic info (correct RouterOS v7 syntax)
 :local deviceId [/system identity get name]
 :local boardName [/system routerboard get board-name]
 :local systemVersion [/system resource get version]
 :local interfaceCount [/interface print count-only]
 
-
-# find a usable IP (non-loopback)
 :local routerIp ""
 :foreach id in=[/ip address find] do={
     :local full [/ip address get $id address]
@@ -60,29 +46,27 @@
     :if ([:pick $ipOnly 0 3] != "127" && [:len $routerIp] = 0) do={ :set routerIp $ipOnly }
 }
 
-# build postData safely (stepwise)
-:local postData ("device_id=" . $deviceId)
-:set postData ($postData . "&board_name=" . $boardName)
-:set postData ($postData . "&system_version=" . $systemVersion)
-:set postData ($postData . "&interface_count=" . $interfaceCount)
-:if ([:len $routerIp] > 0) do={ :set postData ($postData . "&ip_address=" . $routerIp) }
+:local postData ("device_id=" . $deviceId .
+                 "&board_name=" . $boardName .
+                 "&system_version=" . $systemVersion .
+                 "&interface_count=" . $interfaceCount)
 
-# ensure syncUrl exists before attempting fetch
-:if ([:len $syncUrl] = 0) do={
-    :put "Warning: syncUrl not configured; skipping initial registration"
-} else={
-    :do {
-        /tool fetch url=$syncUrl http-method=post http-data=$postData keep-result=no
-        :put "✓ Initial registration sent"
-    } on-error={
-        :put "Warning: initial registration failed"
-    }
+:if ([:len $routerIp] > 0) do={
+    :set postData ($postData . "&ip_address=" . $routerIp)
+}
+
+:do {
+    /tool fetch url=$syncUrl http-method=post http-data=$postData keep-result=no
+} on-error={
+    :put "Warning: initial registration failed"
 }
 
 # ---------- RADIUS Configuration ----------
 :do { /radius remove [find address=$radiusIp] } on-error={}
+
 :local radiusServices "ppp"
 :do { /ip hotspot print; :set radiusServices "ppp,hotspot" } on-error={}
+
 :do {
     /radius add service=$radiusServices address=$radiusIp secret=$radiusSecret \
         disabled=no timeout=3000ms accounting-port=1813 authentication-port=1812
@@ -99,8 +83,9 @@
 }
 
 # ---------- API User ----------
-:if ([:len [/user find name=$username]] > 0) do={
-    /user set [find name=$username] password=$password group=full disabled=no comment="ZiSP API User"
+:local userExists [/user find name=$username]
+:if ([:len $userExists] > 0) do={
+    /user set $userExists password=$password group=full disabled=no comment="ZiSP API User"
     :put "API user updated: $username"
 } else={
     /user add name=$username password=$password group=full disabled=no comment="ZiSP API User"
@@ -108,33 +93,15 @@
 }
 
 # ---------- Firewall Rules for Trusted IP ----------
-# Remove any previous zisp-api rules to avoid duplicates
 :do { /ip firewall filter remove [find comment="zisp-api"] } on-error={}
 
-# Create an interface list 'LAN' only if a 'bridge' interface exists (safe approach)
-:if ([:len [/interface find name="bridge"]] > 0) do={
-    :do { /interface list add name=LAN } on-error={}
-    :do { /interface list member add list=LAN interface=bridge } on-error={}
-    :put "Interface list LAN configured (bridge present)"
-} else={
-    :put "No 'bridge' interface found — interface list LAN not modified"
-}
-
-# Add basic input/output allow rules for trusted IP and API port
 :do {
-    /ip firewall filter add chain=input action=accept connection-state=established,related comment="zisp-api-established"
     /ip firewall filter add chain=input action=accept src-address=$trustedIp comment="zisp-api"
     /ip firewall filter add chain=output action=accept dst-address=$trustedIp comment="zisp-api"
-    /ip firewall filter add chain=input action=accept protocol=tcp dst-port=$apiPort comment="zisp-api-port"
-    :put "Firewall rules configured for trusted IP / API port"
+    :put "Firewall rules configured"
 } on-error={
     :put "Warning: Firewall configuration failed"
 }
-
-# Optional: drop invalid/input extras (keep minimal to avoid breaking remote access)
-:do {
-    /ip firewall filter add chain=input connection-state=invalid action=drop comment="drop-invalid"
-} on-error={}
 
 # ---------- Enable API Service ----------
 :do {
@@ -147,14 +114,13 @@
 # ---------- Periodic Phone-home Script ----------
 :if ([:len $syncUrl] > 0) do={
 
-    # Cleanup existing script + scheduler
+    # Cleanup old script + scheduler
     :do { /system script remove [find name="zisp-phone-home"] } on-error={}
     :do { /system scheduler remove [find name="zisp-phone-home"] } on-error={}
 
-    # Add phone-home script (multiline source block). policy includes needed permissions for fetch.
+    # Add new phone-home script
     /system script add name="zisp-phone-home" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive source={
 
-        # find a usable (non-loopback) IP
         :local routerIp ""
         :foreach id in=[/ip address find] do={
             :local full [/ip address get $id address]
@@ -166,33 +132,32 @@
             }
         }
 
-        # local copy of syncUrl (injected by generator)
         :local syncUrl "{{sync_url}}"
 
         # Safety checks
         :if ([:len $syncUrl] = 0) do={
-            :log warning "ZiSP phone-home: syncUrl missing – skipping"
+            :log warning "ZiSP phone-home: No sync URL. Skipping."
             :return
         }
         :if ([:len $routerIp] = 0) do={
-            :log warning "ZiSP phone-home: No usable IP found – skipping"
+            :log warning "ZiSP phone-home: No valid IP. Skipping."
             :return
         }
 
-        # Build non-empty post body
         :local postData ("ip_address=" . $routerIp)
 
-        # Attempt POST
         :do {
             /tool fetch url=$syncUrl http-method=post http-data=$postData keep-result=no
-            :log info "ZiSP phone-home: POST successful"
         } on-error={
             :log warning "ZiSP phone-home: HTTP POST failed"
         }
     }
 
-    # schedule phone-home every 3 minutes
-    /system scheduler add name="zisp-phone-home" start-time=startup interval=3m on-event="/system script run zisp-phone-home" comment="ZiSP periodic phone-home"
+    # Add scheduler
+    /system scheduler add name="zisp-phone-home" \
+        start-time=startup interval=3m \
+        on-event="/system script run zisp-phone-home" \
+        comment="ZiSP periodic phone-home"
 
     :put "Periodic phone-home configured (every 3 minutes)"
 
