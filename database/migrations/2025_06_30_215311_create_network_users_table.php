@@ -16,12 +16,12 @@ return new class extends Migration
             $table->string('account_number', 10)->unique(); // System-wide unique account number, max 8 digits
             $table->string('full_name')->nullable();
             $table->string('username')->unique();
-            $table->string('password')->required();
+            $table->string('password');
             $table->string('phone')->nullable()->unique();
             $table->string('email')->nullable()->unique();
             $table->enum('status', ['active', 'inactive', 'suspended'])->default('active');
             $table->string('location')->nullable();
-            $table->unsignedBigInteger('created_by')->nullable();
+            $table->foreignId('created_by')->nullable()->constrained('users')->onDelete('cascade');
             $table->foreignId('package_id')->constrained()->cascadeOnDelete();
             $table->enum('type', ['hotspot', 'pppoe', 'static']);
             $table->timestamp('registered_at');
