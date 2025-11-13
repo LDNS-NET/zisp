@@ -83,7 +83,12 @@
 
 :log info "ZISP Onboarding: Setting up periodic sync scheduler..."
 /system scheduler remove [find comment="ZISP-Device-Status"]
-/system scheduler add name="zisp-device-status" on-event=(:local syncToken "YOUR_UNIQUE_SYNC_TOKEN_HERE_64_CHARACTERS"; :local systemUrl "https://your-system.com"; :local mikrotikId 1; /tool fetch url=($systemUrl . "/mikrotiks/" . $mikrotikId . "/sync?token=" . $syncToken) method=post http-header-field=("Content-Type: application/json") body=("{\"status\":\"online\"}") dst-path="/tmp/zisp_status.txt") interval=5m comment="ZISP-Device-Status"
+
+# Store the fetch command in a script file for the scheduler
+:local schedulerScript ""
+:set schedulerScript "/tool fetch url=(\"https://your-system.com/mikrotiks/1/sync?token=YOUR_UNIQUE_SYNC_TOKEN_HERE_64_CHARACTERS\") method=post dst-path=\"/tmp/zisp_status.txt\"; :log info \"ZISP: Device sync report sent.\""
+
+/system scheduler add name="zisp-device-status" on-event=$schedulerScript interval=5m comment="ZISP-Device-Status"
 
 :log info "ZISP Onboarding: Setup complete! Device will report status every 5 minutes."
 :log info "ZISP Onboarding: Check your ZISP dashboard for device status updates."

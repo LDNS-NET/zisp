@@ -1,6 +1,6 @@
 # 🚀 ZISP Mikrotik Automated Onboarding - Quick Start Guide
 
-## 5-Minute Setup
+## ⚡ 5-Minute Setup
 
 ### Step 1: Run Migration (30 seconds)
 ```bash
@@ -28,7 +28,7 @@ Navigate to: `http://your-system/mikrotiks`
 
 ---
 
-## User Workflow
+## 👥 User Workflow (Step-by-Step)
 
 ### 1️⃣ **Add Device** (10 seconds)
 - Click "+ Add Device"
@@ -38,16 +38,68 @@ Navigate to: `http://your-system/mikrotiks`
 ### 2️⃣ **Download Script** (5 seconds)
 - Click "📥 Download Onboarding Script"
 - File saves as `zisp_onboarding_Main_Router_1.rsc`
+- **Important:** This script is unique to your device
 
 ### 3️⃣ **Run on Mikrotik** (2 minutes)
 
-**Option A: Copy-Paste in Terminal**
-```
-SSH to Mikrotik:
+#### Option A: Copy-Paste in Terminal (Recommended)
+```bash
+# SSH to your Mikrotik
 ssh admin@192.168.1.1
 
-Paste the script content and press Enter
+# Then paste the ENTIRE script content and press Enter
+# Watch for success messages
 ```
+
+#### Option B: Import Script File
+```bash
+# After uploading the .rsc file via SFTP/SCP:
+/import file-name=zisp_onboarding_Main_Router_1.rsc
+
+# Wait for "Script file imported successfully" message
+```
+
+#### Option C: Winbox GUI
+1. Open Winbox, connect to router
+2. System > Scripts > Create New
+3. Paste the script content
+4. Click "Run"
+5. Watch Logs tab for output
+
+#### Option D: WebFig (Browser)
+1. Open `http://192.168.1.1/webfig`
+2. System > Scripts > Add New
+3. Paste script
+4. Save & Run
+
+### 4️⃣ **Verify Success** (30 seconds)
+
+Check Mikrotik logs:
+```bash
+/log print where message~"ZISP"
+```
+
+You should see:
+```
+ZISP Onboarding: Initiating device sync...
+ZISP Onboarding: Device information sent to system
+ZISP Onboarding: Setup complete!
+```
+
+Check scheduler is running:
+```bash
+/system scheduler print
+# Should show: zisp-device-status (interval=5m)
+```
+
+### 5️⃣ **Monitor Dashboard** (Automatic)
+
+1. Go back to dashboard
+2. Refresh page
+3. Device now shows:
+   - 🟢 Connected
+   - Onboarding Status: Completed
+   - Device info: board name, interfaces, version, etc.
 
 **Option B: Upload & Execute**
 ```

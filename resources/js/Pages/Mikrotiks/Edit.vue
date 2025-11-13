@@ -25,8 +25,7 @@ const loading = ref(false);
 
 const handleSubmit = () => {
     loading.value = true;
-    router.post(route('mikrotiks.update', props.mikrotik.id), form.value, {
-        method: 'patch',
+    router.patch(route('mikrotiks.update', props.mikrotik.id), form.value, {
         onFinish: () => {
             loading.value = false;
         },
