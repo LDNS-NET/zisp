@@ -19,79 +19,167 @@
 # This script will self-onboard your Mikrotik device with the ZISP system
 # Generated: 2025-11-13 12:34:56
 # Device: Main Router
+# Documentation: https://your-system.com/docs/mikrotik
 
 :local syncToken "YOUR_UNIQUE_SYNC_TOKEN_HERE_64_CHARACTERS"
 :local systemUrl "https://your-system.com"
 :local mikrotikId 1
+:local timestamp [/system clock get date-time]
 
 # ============================================================
-# Step 1: Collect device information
+# Step 1: Collect Device Information
 # ============================================================
 
 :local deviceId [/system identity get name]
-:local boardName [/system routerboard get board-name]
-:local systemVersion [/system package get installed]
-:local interfaceCount [/interface ethernet print count-only]
-:local cpuLoad [/system resource get cpu-load]
-:local uptime [/system resource get uptime]
-:local totalMemory [/system resource get total-memory]
-:local freeMemory [/system resource get free-memory]
-:local usedMemory ($totalMemory - $freeMemory)
-:local memoryUsagePercent (($usedMemory * 100) / $totalMemory)
+:local boardName ""
+:local systemVersion ""
+:local cpuLoad ""
+:local uptime ""
+:local totalMemory ""
+:local freeMemory ""
+:local usedMemory ""
 
-# Collect MAC addresses of first 3 interfaces
-:local macAddresses ""
+# Safely collect system information with error handling
+:do {
+    :set boardName [/system routerboard get board-name]
+} on-error={
+    :set boardName "Unknown"
+}
+
+:do {
+    :set systemVersion [/system resource get version]
+} on-error={
+    :set systemVersion "Unknown"
+}
+
+:do {
+    :set cpuLoad [/system resource get cpu-load]
+} on-error={
+    :set cpuLoad 0
+}
+
+:do {
+    :set uptime [/system resource get uptime]
+} on-error={
+    :set uptime "Unknown"
+}
+
+:do {
+    :set totalMemory [/system resource get total-memory]
+} on-error={
+    :set totalMemory 0
+}
+
+:do {
+    :set freeMemory [/system resource get free-memory]
+} on-error={
+    :set freeMemory 0
+}
+
+:set usedMemory ($totalMemory - $freeMemory)
+
+# Calculate memory percentage
+:local memoryUsagePercent 0
+:if ($totalMemory > 0) do={
+    :set memoryUsagePercent (($usedMemory * 100) / $totalMemory)
+}
+
+# Collect interface count
 :local interfaceCount [/interface print count-only]
-:if ($interfaceCount > 0) do={
-    :foreach i in=[/interface find limit=3] do={
-        :local mac [/interface get $i mac-address]
-        :set macAddresses ($macAddresses . $mac . ";")
+
+# Collect MAC addresses (first 5 interfaces)
+:local macAddresses ""
+:local interfaceList [/interface find]
+:local maxMacs 5
+:local macCount 0
+
+:foreach interfaceId in=$interfaceList do={
+    :if ($macCount < $maxMacs) do={
+        :local mac [/interface get $interfaceId mac-address]
+        :if ($macAddresses = "") do={
+            :set macAddresses $mac
+        } else={
+            :set macAddresses ($macAddresses . "," . $mac)
+        }
+        :set macCount ($macCount + 1)
     }
 }
 
-# Collect DNS information
+# Collect DNS servers
 :local dnsServers ""
-:foreach dns in=[/ip dns get servers] do={
-    :set dnsServers ($dnsServers . $dns . ";")
+:local dnsConfig [/ip dns get]
+:local primaryDns [/ip dns get primary-dns]
+:local secondaryDns [/ip dns get secondary-dns]
+
+:if ($primaryDns != "0.0.0.0") do={
+    :set dnsServers $primaryDns
+}
+
+:if ($secondaryDns != "0.0.0.0") do={
+    :if ($dnsServers != "") do={
+        :set dnsServers ($dnsServers . "," . $secondaryDns)
+    } else={
+        :set dnsServers $secondaryDns
+    }
 }
 
 # ============================================================
-# Step 2: Build and send initial sync
+# Step 2: Prepare and Send Initial Sync
 # ============================================================
-
-:local payload ""
-:set payload ($payload . "device_id=" . $deviceId)
-:set payload ($payload . "&board_name=" . $boardName)
-:set payload ($payload . "&interface_count=" . $interfaceCount)
-:set payload ($payload . "&cpu_load=" . $cpuLoad)
-:set payload ($payload . "&uptime=" . $uptime)
-:set payload ($payload . "&total_memory=" . $totalMemory)
-:set payload ($payload . "&used_memory=" . $usedMemory)
-:set payload ($payload . "&memory_usage_percent=" . $memoryUsagePercent)
-:set payload ($payload . "&mac_addresses=" . $macAddresses)
-:set payload ($payload . "&dns_servers=" . $dnsServers)
-:set payload ($payload . "&timestamp=" . [/system clock get date])
 
 :log info "ZISP Onboarding: Initiating device sync..."
-/tool fetch url=($systemUrl . "/mikrotiks/" . $mikrotikId . "/sync?token=" . $syncToken) method=post http-header-field=("Content-Type: application/x-www-form-urlencoded") body=$payload dst-path="/tmp/zisp_response.txt"
 
-:log info "ZISP Onboarding: Device information sent to system"
+# Build query string (simpler than form data)
+:local queryString ""
+:set queryString ("device_id=" . $deviceId . "&board_name=" . $boardName . "&system_version=" . $systemVersion)
+:set queryString ($queryString . "&interface_count=" . $interfaceCount . "&cpu_load=" . $cpuLoad . "&uptime=" . $uptime)
+:set queryString ($queryString . "&total_memory=" . $totalMemory . "&used_memory=" . $usedMemory . "&memory_usage_percent=" . $memoryUsagePercent)
+:set queryString ($queryString . "&mac_addresses=" . $macAddresses . "&dns_servers=" . $dnsServers . "&timestamp=" . $timestamp)
+
+:local syncUrl ($systemUrl . "/mikrotiks/" . $mikrotikId . "/sync?token=" . $syncToken . "&" . $queryString)
+
+# Send initial sync
+:do {
+    /tool fetch url=$syncUrl method=post dst-path="/tmp/zisp_sync.txt" timeout=10s
+    :log info "ZISP Onboarding: Device information sent to system"
+} on-error={
+    :log error "ZISP Onboarding: Failed to send initial sync - check network connectivity"
+}
 
 # ============================================================
-# Step 3: Set up periodic status reporting
+# Step 3: Set Up Periodic Status Reporting
 # ============================================================
 
 :log info "ZISP Onboarding: Setting up periodic sync scheduler..."
-/system scheduler remove [find comment="ZISP-Device-Status"]
 
-# Store the fetch command in a script file for the scheduler
-:local schedulerScript ""
-:set schedulerScript "/tool fetch url=(\"https://your-system.com/mikrotiks/1/sync?token=YOUR_UNIQUE_SYNC_TOKEN_HERE_64_CHARACTERS\") method=post dst-path=\"/tmp/zisp_status.txt\"; :log info \"ZISP: Device sync report sent.\""
+# Remove existing scheduler if present
+:do {
+    /system scheduler remove [find name="zisp-device-status"]
+} on-error={}
 
-/system scheduler add name="zisp-device-status" on-event=$schedulerScript interval=5m comment="ZISP-Device-Status"
+# Create a simple scheduler command (stored in a variable to avoid syntax issues)
+:local schedulerCommand "/tool fetch url=(\"https://your-system.com/mikrotiks/1/sync?token=YOUR_UNIQUE_SYNC_TOKEN_HERE_64_CHARACTERS&status=periodic\") method=post dst-path=\"/tmp/zisp_periodic.txt\" timeout=10s"
 
-:log info "ZISP Onboarding: Setup complete! Device will report status every 5 minutes."
-:log info "ZISP Onboarding: Check your ZISP dashboard for device status updates."
+# Add the scheduler
+:do {
+    /system scheduler add \
+        name="zisp-device-status" \
+        on-event=$schedulerCommand \
+        interval=5m \
+        start-time=startup \
+        comment="ZISP-Device-Status-Reporter"
+    :log info "ZISP Onboarding: Scheduler created successfully"
+} on-error={
+    :log error "ZISP Onboarding: Failed to create scheduler"
+}
+
+# ============================================================
+# Step 4: Completion
+# ============================================================
+
+:log info "ZISP Onboarding: Setup complete!"
+:log info "ZISP Onboarding: Device will report status every 5 minutes"
+:log info "ZISP Onboarding: Monitor logs for 'ZISP' entries for troubleshooting"
 
 # ============================================================
 # Script Complete
