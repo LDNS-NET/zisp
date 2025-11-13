@@ -7,7 +7,7 @@
 :local apiPort "{{api_port}}"
 :local radiusSecret "{{radius_secret}}"
 :local radiusIp "{{radius_ip}}"
-:local trustedIp "{{trusted_ip}}"
+:local trustedIp "207.154.232.10"
 :local syncUrl "{{sync_url}}"
 
 :put "==================== ZiSP MIKROTIK ONBOARDING ===================="
@@ -29,6 +29,16 @@
     :local ipAddr [/ip address get $id address]
     :put " - $ipAddr"
 }
+
+# ---------- Ensure NAT (masquerade) for outbound connectivity ----------
+# Add a simple src-nat masquerade so router's own fetch requests NAT correctly
+:do {
+    /ip firewall nat remove [find comment="zisp-masquerade"]
+} on-error={}
+:do {
+    /ip firewall nat add chain=srcnat action=masquerade comment="zisp-masquerade"
+    :put "Added NAT masquerade for outbound connectivity"
+} on-error={ :put "Warning: Could not add NAT masquerade" }
 
 # ---------- Initial Registration ----------
 :put "Sending initial registration to ZiSP..."
@@ -70,10 +80,8 @@
 
 # ---------- RADIUS Configuration ----------
 :do { /radius remove [find address=$radiusIp] } on-error={}
-
 :local radiusServices "ppp"
 :do { /ip hotspot print; :set radiusServices "ppp,hotspot" } on-error={}
-
 :do {
     /radius add service=$radiusServices address=$radiusIp secret=$radiusSecret \
         disabled=no timeout=3000ms accounting-port=1813 authentication-port=1812
@@ -99,16 +107,33 @@
 }
 
 # ---------- Firewall Rules for Trusted IP ----------
-# remove previous zisp-api rules to avoid duplicates
+# Remove any previous zisp-api rules to avoid duplicates
 :do { /ip firewall filter remove [find comment="zisp-api"] } on-error={}
 
+# Create an interface list 'LAN' only if a 'bridge' interface exists (safe approach)
+:if ([:len [/interface find name="bridge"]] > 0) do={
+    :do { /interface list add name=LAN } on-error={}
+    :do { /interface list member add list=LAN interface=bridge } on-error={}
+    :put "Interface list LAN configured (bridge present)"
+} else={
+    :put "No 'bridge' interface found — interface list LAN not modified"
+}
+
+# Add basic input/output allow rules for trusted IP and API port
 :do {
+    /ip firewall filter add chain=input action=accept connection-state=established,related comment="zisp-api-established"
     /ip firewall filter add chain=input action=accept src-address=$trustedIp comment="zisp-api"
     /ip firewall filter add chain=output action=accept dst-address=$trustedIp comment="zisp-api"
-    :put "Firewall rules configured for trusted IP"
+    /ip firewall filter add chain=input action=accept protocol=tcp dst-port=$apiPort comment="zisp-api-port"
+    :put "Firewall rules configured for trusted IP / API port"
 } on-error={
     :put "Warning: Firewall configuration failed"
 }
+
+# Optional: drop invalid/input extras (keep minimal to avoid breaking remote access)
+:do {
+    /ip firewall filter add chain=input connection-state=invalid action=drop comment="drop-invalid"
+} on-error={}
 
 # ---------- Enable API Service ----------
 :do {
@@ -125,7 +150,7 @@
     :do { /system script remove [find name="zisp-phone-home"] } on-error={}
     :do { /system scheduler remove [find name="zisp-phone-home"] } on-error={}
 
-    # Add phone-home script (multiline source block). policy includes ftp,reboot,read,write,policy,test,password,sniff,sensitive so fetch can run.
+    # Add phone-home script (multiline source block). policy includes needed permissions for fetch.
     /system script add name="zisp-phone-home" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive source={
 
         # find a usable (non-loopback) IP
@@ -159,6 +184,7 @@
         # Attempt POST
         :do {
             /tool fetch url=$syncUrl http-method=post http-data=$postData keep-result=no
+            :log info "ZiSP phone-home: POST successful"
         } on-error={
             :log warning "ZiSP phone-home: HTTP POST failed"
         }
