@@ -63,7 +63,6 @@ class RegisteredUserController extends Controller
                 'email' => $user->email,
                 'phone' => $user->phone,
                 'username' => $user->username,
-                'subdomain' => $subdomain,
                 'data' => json_encode(['name' => $user->name]),
                 'created_at' => now(),
                 'updated_at' => now(),
