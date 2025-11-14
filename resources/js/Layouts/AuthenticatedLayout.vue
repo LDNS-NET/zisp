@@ -48,46 +48,28 @@ watch(theme, (val) => {
 
 <template>
     <!-- Wrapper -->
-    <div
-        class="min-h-auto flex w-full bg-gray-50 text-black transition-colors duration-300 dark:bg-gray-900 dark:text-white"
-    >
+    <div :class="['min-h-screen flex w-full bg-white text-gray-900 transition-colors duration-300 dark:bg-slate-900 dark:text-gray-100', sidebarOpen ? 'overflow-hidden' : '']">
         <!-- Sidebar -->
         <aside
-            class="fixed inset-y-0 left-0 z-30 w-64 flex-shrink-0 transform bg-gray-200 shadow-lg transition-transform duration-200 ease-in-out lg:relative lg:translate-x-0 dark:bg-gray-800"
+            class="fixed inset-y-0 left-0 z-40 w-64 sm:w-72 md:w-64 flex-shrink-0 transform bg-white border-r border-gray-100 shadow-lg transition-transform duration-200 ease-in-out lg:relative lg:translate-x-0 dark:bg-gray-800 dark:border-gray-700"
             :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
+            role="navigation"
+            aria-label="Main sidebar"
+            :aria-hidden="!sidebarOpen"
         >
-            <!-- <div
-                class="flex items-center justify-between border-b border-gray-200 px-4 py-4 dark:border-gray-700"
-            >
-                <Link
-                    :href="route('dashboard')"
-                    class="flex items-center space-x-2"
-                >
-                   <ApplicationLogo class="h-8 w-auto" />
-                    <span
-                        class="text-lg font-semibold text-black dark:text-white"
-                        >ZiSP</span
-                    >
+            <!-- Mobile header inside aside: logo + close -->
+            <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100 lg:hidden">
+                <Link :href="route('dashboard')" class="flex items-center gap-2">
+                    <ApplicationLogo class="h-8 w-auto" />
+                    <span class="font-semibold text-gray-800 dark:text-white">ZiSP</span>
                 </Link>
-                <button
-                    @click="sidebarOpen = false"
-                    class="text-gray-500 hover:text-gray-700 lg:hidden dark:text-gray-300"
-                >
-                    <svg
-                        class="h-6 w-6"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                    >
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M6 18L18 6M6 6l12 12"
-                        />
+
+                <button @click="sidebarOpen = false" class="p-2 rounded-md text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700" aria-label="Close sidebar">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                 </button>
-            </div>-->
+            </div>
 
             <!-- Sidebar Links -->
             <nav class="h-[calc(100vh-4rem)] space-y-1 overflow-y-auto p-4">
@@ -283,45 +265,36 @@ watch(theme, (val) => {
         <div
             v-if="sidebarOpen"
             @click="sidebarOpen = false"
-            class="fixed inset-0 z-20 bg-black opacity-50 lg:hidden"
+            class="fixed inset-0 z-30 bg-black/40 lg:hidden"
         ></div>
 
         <!-- Main Section -->
-        <div
-            class="flex min-h-screen flex-1 flex-col bg-gray-50 transition-colors duration-300 dark:bg-gray-900"
-        >
+        <div class="flex flex-1 flex-col bg-gray-50 transition-colors duration-300 dark:bg-gray-900">
             <!-- Top Navbar -->
-            <nav
-                class="flex items-center justify-between border-b border-gray-200 bg-gray-300 px-4 py-3 shadow-sm dark:border-gray-700 dark:bg-gray-700"
-            >
-                <div class="items-left ml-2 flex gap-4 font-extrabold">
+            <nav class="sticky top-0 z-40 flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3 shadow-sm dark:border-gray-700 dark:bg-slate-800">
+                <div class="flex items-center gap-4">
                     <button
                         @click="sidebarOpen = true"
                         class="text-gray-900 focus:outline-none lg:hidden dark:text-white"
+                        aria-label="Open sidebar"
                     >
-                        <svg
-                            class="h-6 w-6"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M4 6h16M4 12h16M4 18h16"
-                            />
+                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                         </svg>
                     </button>
 
-                    {{ $page.props.auth.user.name }}
+                    <Link :href="route('dashboard')" class="flex items-center gap-2">
+                        <ApplicationLogo class="h-8 w-auto" />
+                        <span class="hidden font-semibold text-gray-800 dark:text-white sm:inline">ZiSP</span>
+                    </Link>
                 </div>
-                <div class="ml-2 flex items-center gap-2">
+
+                <div class="ml-2 flex items-center gap-3">
                     <!-- Quick theme toggle button -->
                     <button
                         type="button"
                         @click="setTheme(theme === 'dark' ? 'light' : 'dark')"
-                        class="inline-flex items-center rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-200"
+                        class="inline-flex items-center rounded-md p-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
                         title="Toggle theme"
                     >
                         <template v-if="theme === 'dark'">
@@ -336,58 +309,41 @@ watch(theme, (val) => {
                         <template #trigger>
                             <button
                                 type="button"
-                                class="inline-flex items-center rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-200"
+                                class="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
+                                aria-label="Open user menu"
                             >
-                                <Settings
-                                    class="ml-1 h-5 w-auto text-gray-900 dark:text-white"
-                                />
+                                <div class="h-8 w-8 overflow-hidden rounded-md bg-gray-100 dark:bg-gray-700">
+                                    <!-- simple avatar fallback -->
+                                    <img v-if="$page.props.auth.user.avatar" :src="$page.props.auth.user.avatar" alt="avatar" class="h-full w-full object-cover" />
+                                    <span v-else class="flex h-full w-full items-center justify-center text-sm font-semibold text-gray-700 dark:text-gray-200">{{ $page.props.auth.user.name ? $page.props.auth.user.name.split(' ').map(s => s[0]).slice(0,2).join('') : 'U' }}</span>
+                                </div>
+                                <span class="hidden sm:inline text-sm font-medium text-gray-800 dark:text-white">{{ $page.props.auth.user.name }}</span>
                             </button>
                         </template>
 
                         <template #content>
-                            <DropdownLink
-                                @click.prevent="setTheme(theme === 'dark' ? 'light' : 'dark')"
-                                class="flex items-center rounded-full p-2 hover:bg-gray-100 dark:hover:bg-gray-700"
-                            >
-                                <SunIcon class="mr-2 h-4 w-4" />
+                            <DropdownLink @click.prevent="setTheme(theme === 'dark' ? 'light' : 'dark')" class="flex items-center gap-2 rounded-md p-2 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <SunIcon class="h-4 w-4" />
                                 Theme
                             </DropdownLink>
 
-                            <DropdownLink
-                                :href="route('profile.edit')"
-                                class="flex"
-                            >
-                                <FolderEdit class="mr-2 h-4 w-4" />
+                            <DropdownLink :href="route('profile.edit')" class="flex items-center gap-2">
+                                <FolderEdit class="h-4 w-4" />
                                 Profile
                             </DropdownLink>
 
-                            <DropdownLink
-                                :href="route('settings.general.edit')"
-                                :active="
-                                    route().current('settings.general.edit')
-                                "
-                                class="flex"
-                            >
-                                <Settings class="mr-2 h-4 w-4" />
+                            <DropdownLink :href="route('settings.general.edit')" :active="route().current('settings.general.edit')" class="flex items-center gap-2">
+                                <Settings class="h-4 w-4" />
                                 Settings
                             </DropdownLink>
 
-                            <DropdownLink
-                                href="#"
-                                :active="route().current('referal.index')"
-                                class="flex"
-                            >
-                                <SendIcon class="mr-2 h-4 w-4" />
+                            <DropdownLink href="#" :active="route().current('referal.index')" class="flex items-center gap-2">
+                                <SendIcon class="h-4 w-4" />
                                 Refer an isp
                             </DropdownLink>
 
-                            <DropdownLink
-                                :href="route('logout')"
-                                method="post"
-                                as="button"
-                                class="flex items-center"
-                            >
-                                <LogOut class="mr-2 h-4 w-4 text-red-600" />
+                            <DropdownLink :href="route('logout')" method="post" as="button" class="flex items-center gap-2 text-red-600">
+                                <LogOut class="h-4 w-4" />
                                 Log Out
                             </DropdownLink>
                         </template>
@@ -396,23 +352,46 @@ watch(theme, (val) => {
             </nav>
 
             <!-- Header -->
-            <header
-                v-if="$slots.header"
-                class="border bg-cyan-100 transition-colors duration-300 dark:bg-cyan-900"
-            >
-                <div
-                    class="mx-auto max-w-7xl px-2 py-2 text-black sm:px-4 lg:px-6 dark:text-white"
-                >
+            <header v-if="$slots.header" class="border-b bg-cyan-50 transition-colors duration-300 dark:bg-cyan-900">
+                <div class="mx-auto max-w-7xl px-4 py-3 text-black sm:px-6 lg:px-8 dark:text-white">
                     <slot name="header" />
                 </div>
             </header>
 
             <!-- Main Content -->
-            <main
-                class="flex justify-center rounded-xl p-4 transition-colors duration-300 dark:bg-gray-900"
-            >
-                <slot />
-            </main>
+            <main class="flex-1 flex justify-center p-6 transition-colors duration-300 dark:bg-slate-900">
+                <div class="w-full max-w-7xl">
+                    <div class="bg-white dark:bg-slate-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-6">
+                         <slot />
+                     </div>
+                 </div>
+             </main>
+
+            <!-- Footer -->
+            <footer class="mt-auto border-t border-gray-200 bg-transparent px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
+                <div class="mx-auto max-w-7xl flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-4">
+                    <div class="text-center sm:text-left">© {{ new Date().getFullYear() }} <strong>ZiSP</strong>. All rights reserved.</div>
+                    <div class="flex items-center gap-4">
+                        <Link href="#" class="hover:text-gray-900 dark:hover:text-white">Help</Link>
+                        <Link href="#" class="hover:text-gray-900 dark:hover:text-white">Privacy</Link>
+                    </div>
+                </div>
+            </footer>
         </div>
     </div>
 </template>
+
+<style scoped>
+/* subtle improvements for avatar and transitions */
+img[alt="avatar"] { display: block; }
+button { transition: transform .06s ease, background-color .12s ease; }
+button:active { transform: translateY(1px); }
+/* make sure sidebar scroll region is comfortable */
+aside nav { -webkit-overflow-scrolling: touch; }
+
+/* tighten footer spacing on larger screens */
+footer { --footer-padding-y: 0.5rem; padding-top: var(--footer-padding-y); padding-bottom: var(--footer-padding-y); }
+@media (min-width: 1024px) {
+  footer { padding-top: 0.4rem; padding-bottom: 0.4rem; }
+}
+</style>
