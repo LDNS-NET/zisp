@@ -32,17 +32,26 @@ import {
 
 const { theme, applyTheme, setTheme } = useTheme();
 const sidebarOpen = ref(false);
+const collapsed = ref(false);
 
 onMounted(() => {
     // Use the same localStorage key as the composable (ldns_theme)
     const savedTheme = localStorage.getItem('ldns_theme') || 'light';
     theme.value = savedTheme;
     applyTheme(savedTheme);
+
+    // read persisted collapsed state (works after mount)
+    const savedCollapsed = localStorage.getItem('ldns_sidebar_collapsed');
+    if (savedCollapsed !== null) collapsed.value = savedCollapsed === 'true';
 });
 
 watch(theme, (val) => {
     localStorage.setItem('ldns_theme', val);
     applyTheme(val);
+});
+
+watch(collapsed, (val) => {
+    localStorage.setItem('ldns_sidebar_collapsed', val);
 });
 </script>
 
@@ -51,19 +60,15 @@ watch(theme, (val) => {
     <div :class="['min-h-screen flex w-full bg-white text-gray-900 transition-colors duration-300 dark:bg-slate-900 dark:text-gray-100', sidebarOpen ? 'overflow-hidden' : '']">
         <!-- Sidebar -->
         <aside
-            class="fixed inset-y-0 left-0 z-40 w-64 sm:w-72 md:w-64 flex-shrink-0 transform bg-white border-r border-gray-100 shadow-lg transition-transform duration-200 ease-in-out lg:relative lg:translate-x-0 dark:bg-gray-800 dark:border-gray-700"
-            :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
+            :class="['fixed inset-y-0 left-0 z-40 flex-shrink-0 transform bg-white border-r border-gray-100 shadow-lg transition-all duration-200 ease-in-out lg:relative lg:translate-x-0 dark:bg-gray-800 dark:border-gray-700', collapsed ? 'w-16 sm:w-20 md:w-20' : 'w-64 sm:w-72 md:w-64', sidebarOpen ? 'translate-x-0' : '-translate-x-full']"
             role="navigation"
             aria-label="Main sidebar"
             :aria-hidden="!sidebarOpen"
+            :data-collapsed="collapsed"
+            class="aside-root"
         >
             <!-- Mobile header inside aside: logo + close -->
             <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100 lg:hidden">
-                <Link :href="route('dashboard')" class="flex items-center gap-2">
-                    <ApplicationLogo class="h-8 w-auto" />
-                    <span class="font-semibold text-gray-800 dark:text-white">ZiSP</span>
-                </Link>
-
                 <button @click="sidebarOpen = false" class="p-2 rounded-md text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700" aria-label="Close sidebar">
                     <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -77,12 +82,10 @@ watch(theme, (val) => {
                     <NavLink
                         :href="route('dashboard')"
                         :active="route().current('dashboard')"
-                        class="flex items-center p-2 dark:text-white"
+                        class="flex items-center p-2 dark:text-white nav-link"
                     >
-                        <LayoutDashboard
-                            class="mr-2 h-4 w-4 text-blue-700 dark:text-blue-300"
-                        />
-                        Dashboard
+                        <span class="nav-label">Dashboard</span>
+                        <LayoutDashboard class="nav-icon h-4 w-4 text-blue-700 dark:text-blue-300" />
                     </NavLink>
                 </div>
 
@@ -90,10 +93,10 @@ watch(theme, (val) => {
                     <NavLink
                         :href="route('activeusers.index')"
                         :active="route().current('activeusers.index')"
-                        class="flex items-center p-2 dark:text-white"
+                        class="flex items-center p-2 dark:text-white nav-link"
                     >
-                        <Activity class="mr-2 h-4 w-4 text-purple-500" />
-                        Active Users
+                        <span class="nav-label">Active Users</span>
+                        <Activity class="nav-icon h-4 w-4 text-purple-500" />
                     </NavLink>
                 </div>
 
@@ -101,10 +104,10 @@ watch(theme, (val) => {
                     <NavLink
                         :href="route('users.index')"
                         :active="route().current('users.index')"
-                        class="flex items-center p-2 dark:text-white"
+                        class="flex items-center p-2 dark:text-white nav-link"
                     >
-                        <Users class="mr-2 h-4 w-4 text-purple-500" />
-                        Users
+                        <span class="nav-label">Users</span>
+                        <Users class="nav-icon h-4 w-4 text-purple-500" />
                     </NavLink>
                 </div>
 
@@ -112,10 +115,10 @@ watch(theme, (val) => {
                     <NavLink
                         :href="route('leads.index')"
                         :active="route().current('leads.index')"
-                        class="flex items-center p-2 dark:text-white"
+                        class="flex items-center p-2 dark:text-white nav-link"
                     >
-                        <Phone class="mr-2 h-4 w-4 text-purple-500" />
-                        Leads
+                        <span class="nav-label">Leads</span>
+                        <Phone class="nav-icon h-4 w-4 text-purple-500" />
                     </NavLink>
                 </div>
 
@@ -123,10 +126,10 @@ watch(theme, (val) => {
                     <NavLink
                         :href="route('tickets.index')"
                         :active="route().current('tickets.index')"
-                        class="flex items-center p-2 dark:text-white"
+                        class="flex items-center p-2 dark:text-white nav-link"
                     >
-                        <HelpCircle class="mr-2 h-4 w-4 text-purple-500" />
-                        Tickets
+                        <span class="nav-label">Tickets</span>
+                        <HelpCircle class="nav-icon h-4 w-4 text-purple-500" />
                     </NavLink>
                 </div>
 
@@ -134,10 +137,10 @@ watch(theme, (val) => {
                     <NavLink
                         :href="route('packages.index')"
                         :active="route().current('packages.index')"
-                        class="flex items-center p-2 dark:text-white"
+                        class="flex items-center p-2 dark:text-white nav-link"
                     >
-                        <MailCheck class="mr-2 h-4 w-4 text-purple-500" />
-                        Packages
+                        <span class="nav-label">Packages</span>
+                        <MailCheck class="nav-icon h-4 w-4 text-purple-500" />
                     </NavLink>
                 </div>
 
@@ -145,10 +148,10 @@ watch(theme, (val) => {
                     <NavLink
                         :href="route('vouchers.index')"
                         :active="route().current('vouchers.index')"
-                        class="flex items-center p-2 dark:text-white"
+                        class="flex items-center p-2 dark:text-white nav-link"
                     >
-                        <Gift class="mr-2 h-4 w-4 text-purple-500" />
-                        Vouchers
+                        <span class="nav-label">Vouchers</span>
+                        <Gift class="nav-icon h-4 w-4 text-purple-500" />
                     </NavLink>
                 </div>
 
@@ -156,10 +159,10 @@ watch(theme, (val) => {
                     <NavLink
                         :href="route('payments.index')"
                         :active="route().current('payments.index')"
-                        class="flex items-center p-2 dark:text-white"
+                        class="flex items-center p-2 dark:text-white nav-link"
                     >
-                        <Banknote class="mr-2 h-4 w-4 text-purple-500" />
-                        Payments
+                        <span class="nav-label">Payments</span>
+                        <Banknote class="nav-icon h-4 w-4 text-purple-500" />
                     </NavLink>
                 </div>
 
@@ -167,12 +170,10 @@ watch(theme, (val) => {
                     <NavLink
                         :href="route('invoices.index')"
                         :active="route().current('invoices.index')"
-                        class="flex items-center p-2 dark:text-white"
+                        class="flex items-center p-2 dark:text-white nav-link"
                     >
-                        <DoorClosedLockedIcon
-                            class="mr-2 h-4 w-4 text-purple-500"
-                        />
-                        Invoices
+                        <span class="nav-label">Invoices</span>
+                        <DoorClosedLockedIcon class="nav-icon h-4 w-4 text-purple-500" />
                     </NavLink>
                 </div>
 
@@ -180,10 +181,10 @@ watch(theme, (val) => {
                     <NavLink
                         :href="route('sms.index')"
                         :active="route().current('sms.index')"
-                        class="flex items-center p-2 dark:text-white"
+                        class="flex items-center p-2 dark:text-white nav-link"
                     >
-                        <MessageSquare class="mr-2 h-4 w-4 text-purple-500" />
-                        SMS
+                        <span class="nav-label">SMS</span>
+                        <MessageSquare class="nav-icon h-4 w-4 text-purple-500" />
                     </NavLink>
                 </div>
 
@@ -191,10 +192,10 @@ watch(theme, (val) => {
                     <NavLink
                         :href="route('smstemplates.index')"
                         :active="route().current('smstemplates.index')"
-                        class="flex items-center p-2 dark:text-white"
+                        class="flex items-center p-2 dark:text-white nav-link"
                     >
-                        <Phone class="mr-2 h-4 w-4 text-purple-500" />
-                        SMS Templates
+                        <span class="nav-label">SMS Templates</span>
+                        <Phone class="nav-icon h-4 w-4 text-purple-500" />
                     </NavLink>
                 </div>
 
@@ -202,61 +203,11 @@ watch(theme, (val) => {
                     <NavLink
                         :href="route('mikrotiks.index')"
                         :active="route().current('mikrotiks.index')"
-                        class="flex items-center p-2 dark:text-white"
+                        class="flex items-center p-2 dark:text-white nav-link"
                     >
-                        <NetworkIcon class="mr-2 h-4 w-4 text-purple-500" />
-                        Mikrotiks
+                        <span class="nav-label">Mikrotiks</span>
+                        <NetworkIcon class="nav-icon h-4 w-4 text-purple-500" />
                     </NavLink>
-                </div>
-
-                <div class="m-4 py-52 align-bottom">
-                    <h2 class="flex">
-                        <AlertCircleIcon class="mr-5 h-7 w-auto text-red-500" />
-                        <span>Coming soon</span>
-                    </h2>
-
-                    <div
-                        class="m-2 rounded-xl border bg-blue-400 py-2 text-black dark:bg-blue-700"
-                    >
-                        <div class="mb-2 px-2">
-                            <NavLink
-                                href="#"
-                                :active="route().current('invoices.index')"
-                                class="flex items-center p-2 dark:text-white"
-                            >
-                                <ReceiptCent
-                                    class="mr-2 h-4 w-4 text-blue-500"
-                                />
-                                Emails
-                            </NavLink>
-                        </div>
-
-                        <div class="mb-2 px-2">
-                            <NavLink
-                                href="#"
-                                :active="route().current('Tportal.index')"
-                                class="flex items-center p-2 dark:text-white"
-                            >
-                                <Link2Icon
-                                    class="mr-2 h-4 w-4 text-green-500"
-                                />
-                                Tenant portal
-                            </NavLink>
-                        </div>
-
-                        <div class="mb-2 px-2">
-                            <NavLink
-                                href="#"
-                                :active="route().current('Tportal.index')"
-                                class="flex items-center p-2 dark:text-white"
-                            >
-                                <NetworkIcon
-                                    class="mr-2 h-4 w-4 text-green-500"
-                                />
-                                Mikrotik Integration
-                            </NavLink>
-                        </div>
-                    </div>
                 </div>
             </nav>
         </aside>
@@ -281,6 +232,17 @@ watch(theme, (val) => {
                         <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                         </svg>
+                    </button>
+
+                    <!-- Collapse toggle: visible on lg and up, and also usable on smaller screens -->
+                    <button
+                        @click="collapsed = !collapsed"
+                        :title="collapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+                        class="hidden lg:inline-flex text-gray-700 hover:bg-gray-100 rounded-md p-2 dark:text-gray-200 dark:hover:bg-gray-700"
+                        aria-pressed="false"
+                    >
+                        <svg v-if="!collapsed" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14"></path></svg>
+                        <svg v-else class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14"></path></svg>
                     </button>
 
                     <Link :href="route('dashboard')" class="flex items-center gap-2">
@@ -394,4 +356,38 @@ footer { --footer-padding-y: 0.5rem; padding-top: var(--footer-padding-y); paddi
 @media (min-width: 1024px) {
   footer { padding-top: 0.4rem; padding-bottom: 0.4rem; }
 }
+
+/* nav link layout: keep icon aligned to far end and hide labels when collapsed */
+.nav-link { display: flex; align-items: center; gap: .5rem; }
+/* default: push icon to the far right */
+.nav-link .nav-icon { margin-left: auto; flex: none; }
+.nav-label { transition: opacity .15s ease, width .15s ease; white-space: nowrap; overflow: hidden; }
+
+/* when aside is collapsed: hide labels but keep icons visible and centered */
+aside[data-collapsed="true"] .nav-label {
+  opacity: 0;
+  width: 0;
+  visibility: hidden;
+  margin-right: 0;
+  pointer-events: none;
+}
+
+/* center icons when collapsed and remove the auto margin that pushed them right */
+aside[data-collapsed="true"] .nav-link {
+  justify-content: center;
+  padding-left: .5rem;
+  padding-right: .5rem;
+}
+aside[data-collapsed="true"] .nav-link .nav-icon,
+aside[data-collapsed="true"] .nav-icon {
+  margin-left: 0;
+  display: inline-block;
+}
+
+/* ensure collapsed width doesn't cause overflow */
+aside[data-collapsed="true"] { width: 4rem !important; }
+
+/* small tweak: slightly larger icons when collapsed for readability */
+aside[data-collapsed="true"] .nav-icon > * { width: 20px; height: 20px; }
+
 </style>
