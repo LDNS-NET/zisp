@@ -18,6 +18,8 @@ class Tenant extends BaseTenant
         'email',
         'phone',
         'username',
+        'subdomain',
+        'data',
     ];
 
     public function configure()
