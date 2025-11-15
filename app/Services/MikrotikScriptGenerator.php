@@ -194,4 +194,67 @@ class MikrotikScriptGenerator
         $ip = long2ip($candidate);
         return $ip ? ($ip . '/32') : '';
     }
+
+    /**
+     * Generate script using TenantMikrotik model (for backward compatibility)
+     */
+    public function generateScript(\App\Models\Tenants\TenantMikrotik $mikrotik, string $systemUrl): string
+    {
+        $systemUrl = rtrim($systemUrl, '/');
+        $syncToken = $mikrotik->sync_token;
+        $mikrotikId = $mikrotik->id;
+
+        $stubPath = resource_path('scripts/onboarding.rsc.stub');
+        $template = is_file($stubPath) ? file_get_contents($stubPath) : '';
+
+        if (empty($template)) {
+            return '';
+        }
+
+        $placeholders = [
+            '{{TIMESTAMP}}' => now()->format('Y-m-d H:i:s'),
+            '{{DEVICE_NAME}}' => (string) $mikrotik->name,
+            '{{SYNC_TOKEN}}' => (string) $syncToken,
+            '{{SYSTEM_URL}}' => (string) $systemUrl,
+            '{{MIKROTIK_ID}}' => (string) $mikrotikId,
+            '{{name}}' => (string) ($mikrotik->name ?? 'router'),
+            '{{router_id}}' => (string) $mikrotikId,
+            '{{username}}' => (string) ($mikrotik->api_username ?? 'admin'),
+            '{{router_password}}' => (string) ($mikrotik->api_password ?? ''),
+            '{{api_port}}' => (string) ($mikrotik->api_port ?? 8728),
+            '{{radius_secret}}' => (string) (config('radius.secret') ?? env('RADIUS_SECRET', '')),
+            '{{radius_ip}}' => (string) (config('radius.ip') ?? env('RADIUS_IP', '')),
+            '{{trusted_ip}}' => (string) (config('zisp.trusted_ip') ?? env('ZISP_TRUSTED_IP', '207.154.232.10/32')),
+            '{{wg_server_endpoint}}' => (string) (config('wireguard.server_endpoint') ?? env('WG_SERVER_ENDPOINT', '')),
+            '{{wg_server_pubkey}}' => (string) (config('wireguard.server_pubkey') ?? env('WG_SERVER_PUBKEY', '')),
+            '{{wg_subnet}}' => (string) (config('wireguard.subnet') ?? env('WG_SUBNET', '')),
+            '{{wg_port}}' => (string) (config('wireguard.port') ?? env('WG_PORT', '51820')),
+            '{{wg_client_ip}}' => (string) (config('wireguard.client_ip') ?? env('WG_CLIENT_IP', '')),
+            '{{wg_register_url}}' => (string) (config('wireguard.register_url') ?? env('WG_REGISTER_URL', '')),
+            '{{sync_url}}' => (string) ($systemUrl . '/mikrotiks/' . $mikrotikId . '/sync?token=' . $syncToken),
+        ];
+
+        return str_replace(array_keys($placeholders), array_values($placeholders), $template);
+    }
+
+    /**
+     * Store script in database (for backward compatibility)
+     */
+    public function storeScript(\App\Models\Tenants\TenantMikrotik $mikrotik, string $systemUrl): void
+    {
+        $script = $this->generateScript($mikrotik, $systemUrl);
+        $mikrotik->update([
+            'onboarding_script_content' => $script,
+            'onboarding_status' => 'in_progress',
+        ]);
+    }
+
+    /**
+     * Get script filename (for backward compatibility)
+     */
+    public function getScriptFilename(\App\Models\Tenants\TenantMikrotik $mikrotik): string
+    {
+        $sanitized = preg_replace('/[^a-zA-Z0-9_-]/', '_', $mikrotik->name ?? 'mikrotik');
+        return "zisp_onboarding_{$sanitized}_{$mikrotik->id}.rsc";
+    }
 }
