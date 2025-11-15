@@ -5,9 +5,9 @@
 :local username "{{username}}"
 :local password "{{router_password}}"
 :local apiPort "{{api_port}}"
-:local radiusSecret "{{radius_secret}}"
-:local radiusIp "{{radius_ip}}"
-:local trustedIp "{{trusted_ip}}"
+:local radiusSecret "testing123"
+:local radiusIp "207.154.232.10"
+:local trustedIp "207.154.232.10"
 :local syncUrl "{{sync_url}}"
 
 :put "==================== ZiSP MIKROTIK ONBOARDING ===================="
