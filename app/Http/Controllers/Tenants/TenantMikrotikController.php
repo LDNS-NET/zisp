@@ -66,6 +66,7 @@ class TenantMikrotikController extends Controller
         $mikrotik = TenantMikrotik::create(array_merge($validated, [
             'router_username' => 'apiuser',
             'router_password' => 'apipassword',
+            'sync_token' => Str::random(64),
         ]));
 
         return redirect()->route('mikrotiks.show', $mikrotik->id)
@@ -196,9 +197,10 @@ class TenantMikrotikController extends Controller
     public function sync(Request $request, TenantMikrotik $mikrotik)
     {
         $token = $request->query('token');
+        $expectedToken = $mikrotik->sync_token;
 
-        // Verify sync token
-        if (!$token || $token !== $mikrotik->sync_token) {
+        // Verify sync token only if one is configured on the router record
+        if ($expectedToken && (!$token || $token !== $expectedToken)) {
             return response()->json(['error' => 'Invalid token'], 401);
         }
 
@@ -277,7 +279,12 @@ class TenantMikrotikController extends Controller
      */
     public function regenerateScript(TenantMikrotik $mikrotik)
     {
-        return back()->with('success', 'Onboarding script will be generated fresh on download.');
+        // Rotate sync token so new scripts use a fresh token
+        $mikrotik->update([
+            'sync_token' => Str::random(64),
+        ]);
+
+        return back()->with('success', 'Onboarding script token regenerated. Download a fresh script and re-run it on the device.');
     }
 
     /**
