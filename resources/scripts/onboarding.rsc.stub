@@ -1,324 +1,202 @@
-# ZiSP MikroTik Onboarding Script
-# Generated for router: MikroTik1
-# Router ID: 6
+# ZiSP MikroTik Advanced Configuration Script
+# Generated for router: {{name}}
+# Router ID: {{router_id}}
+
+:put "==================== ZiSP ADVANCED CONFIGURATION ===================="
 
 # Configuration variables
-:local username "admin"
-:local password "4567"
-:local apiPort "8728"
-:local radiussecret "ZyraafSecret123"
-:local radiusip "207.154.204.144"
-:local trustedIp "207.154.204.144"
+:local radiusip "{{radius_ip}}"
+:local radiussecret "{{radius_secret}}"
+:local bridgeName "zisp_hotspot_pppoe_bridge"
+:local hotspotProfile "zisp_hs_prof"
+:local pppoeProfile "Z_INTERNET"
+:local snmpCommunity "{{snmp_community}}"
+:local snmpLocation "{{snmp_location}}"
+:local apiPort "{{api_port}}"
+:local apiUser "{{username}}"
+:local apiPassword "{{router_password}}"
+:local trustedIp "{{trusted_ip}}"
 
-:put "==================== ZiSP MIKROTIK ONBOARDING ===================="
+:put " =================== Starting advanced configuration =================== "
 
-# Check internet connectivity
-:if ([/ping 8.8.8.8 count=3] = 0) do={
-    :put "Warning: No internet connection"
-} else={
-    :put "Internet connectivity: OK"
-}
 
-# Set router identity
-/system identity set name="MikroTik1"
-:put "Router identity: MikroTik1"
-
-# Display router IP addresses
-:put "==================== ROUTER IP ADDRESSES ===================="
+:put " =================== Creating bridge =================== "
 :do {
-    :local ipIds [/ip address find]
-    :foreach id in=$ipIds do={
-        :local ipAddr [/ip address get $id address]
-        :if ([:len $ipAddr] > 0) do={
-            :put "  - $ipAddr"
-        }
-    }
-} on-error={
-    :put "  - Run: /ip address print to see IPs"
-}
-:put "=============================================================="
-
-# Remove existing RADIUS server
-:do {
-    /radius remove [find address=$radiusip]
+    /interface bridge remove [find name=$bridgeName]
 } on-error={}
+/interface bridge add name=$bridgeName
+:put " =================== Bridge created =================== "
 
-# Configure RADIUS (try with hotspot, fallback to ppp only)
-:local radiusServices "ppp"
+
+:put " =================== Configuring bridge address =================== "
 :do {
-    /ip hotspot print
-    :set radiusServices "ppp,hotspot"
+    /ip address remove [find interface=$bridgeName]
 } on-error={}
-:do {
-    /radius add service=$radiusServices address=$radiusip secret=$radiussecret disabled=no timeout=3000ms accounting-port=1813 authentication-port=1812
-    :put "RADIUS server configured"
-} on-error={
-    :do {
-        /radius add service=ppp address=$radiusip secret=$radiussecret disabled=no timeout=3000ms accounting-port=1813 authentication-port=1812
-        :put "RADIUS configured (PPPoE only)"
-    } on-error={
-        :put "Warning: RADIUS configuration failed"
-    }
-}
+/ip address add address=192.168.24.1/24 interface=$bridgeName
+:put " =================== Bridge address configured =================== "
 
-# Configure PPP AAA
+
+:put " =================== Creating hotspot IP pool =================== "
 :do {
-    /ppp aaa set use-radius=yes accounting=yes interim-update=1h
+    /ip pool remove [find name="zisp_hs_pool"]
 } on-error={}
+/ip pool add name=zisp_hs_pool ranges=192.168.24.100-192.168.24.254
+:put " =================== Hotspot IP pool created =================== "
 
-# Create or update API user
-:local userExists [/user find name=$username]
-:if ([:len $userExists] > 0) do={
-    :do {
-        /user set [find name=$username] password=$password group=full disabled=no comment="ZiSP API User"
-        :put "API user updated"
-    } on-error={
-        :local fullUsers [/user find group=full]
-        :if ([:len $fullUsers] > 1) do={
-            /user remove [find name=$username]
-            /user add name=$username password=$password group=full disabled=no comment="ZiSP API User"
-        } else={
-            /user set [find name=$username] password=$password comment="ZiSP API User"
-        }
-        :put "API user updated"
-    }
-} else={
-    /user add name=$username password=$password group=full disabled=no comment="ZiSP API User"
-    :put "API user created"
-}
 
-# Configure firewall rules for trusted IP
+:put " =================== Creating DHCP server =================== "
 :do {
-    /ip firewall filter remove [find comment="zisp-api"]
+    /ip dhcp-server remove [find interface=$bridgeName]
 } on-error={}
+/ip dhcp-server add address-pool=zisp_hs_pool disabled=no interface=$bridgeName lease-time=00:10:00 name=zisp_hs_dhcp
+:put " =================== DHCP server created =================== "
+
+
+:put " =================== Configuring DHCP network =================== "
 :do {
-    :local firstIn [/ip firewall filter find chain=input]
-    :local firstOut [/ip firewall filter find chain=output]
-    :if ([:len $firstIn] > 0) do={
-        /ip firewall filter add chain=input action=accept src-address=$trustedIp comment="zisp-api" place-before=[pick $firstIn 0]
-    } else={
-        /ip firewall filter add chain=input action=accept src-address=$trustedIp comment="zisp-api"
-    }
-    :if ([:len $firstOut] > 0) do={
-        /ip firewall filter add chain=output action=accept dst-address=$trustedIp comment="zisp-api" place-before=[pick $firstOut 0]
-    } else={
-        /ip firewall filter add chain=output action=accept dst-address=$trustedIp comment="zisp-api"
-    }
-    :put "Firewall rules configured"
-} on-error={
-    :put "Warning: Firewall configuration failed"
-}
+    /ip dhcp-server network remove [find address=192.168.24.0/24]
+} on-error={}
+/ip dhcp-server network add address=192.168.24.0/24 comment="zisp_hs_network" gateway=192.168.24.1
+:put " =================== DHCP network configured =================== "
 
-# Enable API service (allow from any IP for initial setup, can be restricted later)
+
+:put " =================== Creating hotspot profile =================== "
 :do {
-    /ip service set api disabled=no port=$apiPort address=0.0.0.0/0
-    :put "API service enabled on port $apiPort (accessible from any IP)"
+    /ip hotspot profile remove [find name=$hotspotProfile]
+} on-error={}
+/ip hotspot profile add hotspot-address=192.168.24.1 login-by=cookie,http-chap,http-pap,mac-cookie name=$hotspotProfile use-radius=yes radius-interim-update=00:10:00
+:put " =================== Hotspot profile created =================== "
+
+
+:put " =================== Creating hotspot server =================== "
+:do {
+    /ip hotspot remove [find interface=$bridgeName]
+} on-error={}
+/ip hotspot add address-pool=zisp_hs_pool addresses-per-mac=1 disabled=no idle-timeout=1m interface=$bridgeName name=$bridgeName profile=$hotspotProfile
+:put " =================== Hotspot server created =================== "
+
+
+:put " =================== Configuring hotspot masquerade =================== "
+:do {
+    /ip firewall nat remove [find comment="masquerade hotspot network"]
+} on-error={}
+/ip firewall nat add action=masquerade chain=srcnat comment="masquerade hotspot network" src-address=192.168.24.0/24
+:put " =================== Hotspot masquerade configured =================== "
+
+
+:put " =================== Disabling fasttrack =================== "
+:do {
+    /ip firewall filter disable [find where comment="defconf: fasttrack"]
+    :put "Fasttrack disabled"
 } on-error={
-    :put "Warning: API service configuration failed"
-    :do {
-        # Fallback: try to enable without address restriction
-        /ip service set api disabled=no port=$apiPort
-        :put "API service enabled on port $apiPort (fallback)"
-    } on-error={
-        :put "Error: Could not enable API service"
-    }
+    :put " =================== No fasttrack rules found =================== "
 }
 
-# === WireGuard onboarding (automated) ===
-# This block will attempt to create a WireGuard interface, generate a keypair,
-# optionally request or set a tunnel IP, add the server peer and phone-home with
-# the WG public key so the cloud application can register this peer.
-# Placeholders available from server: 207.154.204.144, NhWrJXk6bbNwkpJLDd6Tt5yC1of7/Z2f8djko/YBEyk=, 10.10.0.0/24, 51820, and https://zyraaf.cloud/mikrotiks/6/sync?token=DJE0bbPX0HF4pCSXPJpowIrcFcb6NmSDbPu14O2j
+# ============================================================================
 
-:put "==================== WIREGUARD ONBOARDING ===================="
-:if ([:len "NhWrJXk6bbNwkpJLDd6Tt5yC1of7/Z2f8djko/YBEyk="] > 0 && [:len "207.154.204.144"] > 0) do={
-    :put "WireGuard server info present, attempting automated WireGuard setup..."
-    
-    # Remove existing wg interface named zisp-wg if present
-    :do {
-        /interface wireguard remove [find name="zisp-wg"]
-    } on-error={}
+:put "==================== Creating PPPoE IP pool ==================="
+:do {
+    /ip pool remove [find name="pppoe_pool"]
+} on-error={}
+/ip pool add name=pppoe_pool range=192.25.0.2-192.25.255.254
+:put " =================== PPPoE IP pool created ==================="
 
-    # Generate private key locally and derive public key
-    :local tmpPriv ""
-    :local tmpPub ""
-    :do {
-        /tool fetch url="https://api.ipify.org" mode=http keep-result=no
-        # RouterOS doesn't have native wg key gen in older versions; try to use built-in if present
-    } on-error={}
 
-    # Create WireGuard interface and let RouterOS generate a key if supported
-    :do {
-        /interface wireguard add name="zisp-wg" listen-port=0 disabled=no
-        :put "WireGuard interface created: zisp-wg"
-    } on-error={
-        :put "Warning: Could not create WireGuard interface on this RouterOS version"
-    }
+:put " =================== Creating PPPoE profile =================== "
+:do {
+    /ppp profile remove [find name=$pppoeProfile]
+} on-error={}
+/ppp profile add dns-server=8.8.8.8,8.8.4.4 local-address=pppoe_pool name=$pppoeProfile remote-address=pppoe_pool
+:put " =================== PPPoE profile created =================== "
 
-    # Try to read generated private/public key (RouterOS v7 stores private-key property)
-    :do {
-        :set tmpPriv [/interface wireguard get [find name="zisp-wg"] private-key]
-    } on-error={:set tmpPriv ""}
 
-    # If private-key isn't available (older RouterOS), attempt to generate an ephemeral keypair using /system script (best effort)
-    :if ([:len $tmpPriv] = 0) do={
-        :put "RouterOS did not expose private-key property; attempting fallback key generation (may not work on older RouterOS)"
-        :do {
-            # Fallback: attempt to use /system script to call openssl if available (very rare) - this is non-guaranteed
-            # Leave tmpPub empty if not possible; cloud can still assign an IP and operator can manually configure later.
-            :put "Fallback key generation skipped"
-        } on-error={}
-    }
+:put " =================== Creating PPPoE server =================== "
+:do {
+    /interface pppoe-server server remove [find interface=$bridgeName]
+} on-error={}
+/interface pppoe-server server add authentication=pap default-profile=default disabled=no interface=$bridgeName one-session-per-host=yes keepalive-timeout=10
+:put " =================== PPPoE server created =================== "
 
-    # If we have a private key read, derive public key and post it
-    :if ([:len $tmpPriv] > 0) do={
-        # Derive public key using built-in command if available
-        :do {
-            :set tmpPub [/interface wireguard get [find name="zisp-wg"] public-key]
-        } on-error={:set tmpPub ""}
-    }
 
-    # Assign a tentative tunnel IP from the suggested subnet if provided
-    :local requestedIp ""
-    :if ([:len "10.10.0.0/24"] > 0) do={
-        # Expect subnet like 10.254.0.0/16 -> assign a /32 by using router ID low bits as host if possible
-        # Simpler: leave empty and let cloud assign a specific /32; we'll still phone-home and include local IPs
-        :set requestedIp ""
-    }
+:put " =================== Configuring RADIUS authentication =================== "
+/ppp aaa set use-radius=yes interim-update=00:10:00
+:put " =================== RADIUS authentication enabled =================== "
 
-    # Add server peer (server public key and endpoint)
-    :if ([:len "NhWrJXk6bbNwkpJLDd6Tt5yC1of7/Z2f8djko/YBEyk="] > 0) do={
-        :do {
-            /interface wireguard peers add interface="zisp-wg" public-key="NhWrJXk6bbNwkpJLDd6Tt5yC1of7/Z2f8djko/YBEyk=" endpoint-address="207.154.204.144" endpoint-port="51820" allowed-address="10.10.0.0/24" persistent-keepalive=25
-            :put "Added peer to server 207.154.204.144:51820"
-        } on-error={
-            :put "Warning: Failed to add server peer; please verify RouterOS WireGuard support and syntax"
-        }
-    } else={
-        :put "Server public key not provided; skipping peer addition"
-    }
-
-    # Gather local tunnel IP (if any) and network interfaces to include in phone-home
-    :local localWgIp ""
-    :do {
-        :local ids [/ip address find]
-        :foreach id in=$ids do={
-            :local ipAddr [/ip address get $id address]
-            :if ([:find $ipAddr "::"] = -1) do={
-                :local ipOnly [:pick $ipAddr 0 [:find $ipAddr "/"]]
-                :if ([:pick $ipOnly 0 3] != "127" && [:len $localWgIp] = 0) do={
-                    :set localWgIp $ipOnly
-                }
-            }
-        }
-    } on-error={}
-
-    # Phone-home with WG public key and local tunnel IP (if available)
-    :if ([:len "https://zyraaf.cloud/mikrotiks/6/sync?token=DJE0bbPX0HF4pCSXPJpowIrcFcb6NmSDbPu14O2j"] > 0) do={
-        :local syncUrl "https://zyraaf.cloud/mikrotiks/6/sync?token=DJE0bbPX0HF4pCSXPJpowIrcFcb6NmSDbPu14O2j"
-        :local postData ""
-        :if ([:len $tmpPub] > 0) do={
-            :set postData ($postData . "wg_public_key=" . $tmpPub)
-        }
-        :if ([:len $localWgIp] > 0) do={
-            :if ([:len $postData] > 0) do={ :set postData ($postData . "&") } on-error={}
-            :set postData ($postData . "wg_address=" . $localWgIp)
-        }
-        :if ([:len $postData] = 0) do={
-            # Fallback to regular ip_address phone-home
-            :local ipIds [/ip address find]
-            :local routerIp ""
-            :foreach id in=$ipIds do={
-                :local ipAddr [/ip address get $id address]
-                :local ipOnly [:pick $ipAddr 0 [:find $ipAddr "/"]]
-                :if ([:pick $ipOnly 0 3] != "127" && [:len $routerIp] = 0) do={ :set routerIp $ipOnly }
-            }
-            :if ([:len $routerIp] > 0) do={ :set postData ("ip_address=" . $routerIp) }
-        }
-
-        :do {
-            /tool fetch url=$syncUrl http-method=post http-data=$postData
-            :put "WireGuard phone-home successful"
-        } on-error={
-            :put "WireGuard phone-home failed (non-critical)"
-        }
-    } else={
-        :put "No sync URL configured for WireGuard phone-home"
-    }
-} else={
-    :put "WireGuard server info missing; skipping automated WireGuard setup"
+:put " =================== Configuring API access =================== "
+:do {
+    /user remove [find name=$apiUser]
+} on-error={}
+/user add name=$apiUser password=$apiPassword group=full comment="ZiSP API User"
+:do {
+    /ip firewall filter remove [find comment="zisp-api-allow"]
+} on-error={}
+/ip firewall filter add chain=input action=accept protocol=tcp dst-port=$apiPort src-address=$trustedIp comment="zisp-api-allow"
+:do {
+    /ip service set api disabled=no port=$apiPort address=$trustedIp
+    :put " =================== API service configured =================== "
+} on-error={
+    :put "Warning: Failed to configure API service"
 }
+:put " =================== API access configured =================== "
 
-:put "==================== CONTINUING STANDARD ONBOARDING ===================="
 
-# Phone-home notification (existing logic preserved)
-:if ([:len "https://zyraaf.cloud/mikrotiks/6/sync?token=DJE0bbPX0HF4pCSXPJpowIrcFcb6NmSDbPu14O2j"] > 0) do={
-    :local syncUrl "https://zyraaf.cloud/mikrotiks/6/sync?token=DJE0bbPX0HF4pCSXPJpowIrcFcb6NmSDbPu14O2j"
-    :put "Sending initial phone-home notification..."
-    :local routerIp ""
-    :do {
-        :local ipIds [/ip address find]
-        :foreach id in=$ipIds do={
-            :local ipAddr [/ip address get $id address]
-            :local ipOnly [:pick $ipAddr 0 [:find $ipAddr "/"]]
-            :if ([:pick $ipOnly 0 3] != "127" && [:len $routerIp] = 0) do={
-                :set routerIp $ipOnly
-            }
-        }
-    } on-error={}
-    :delay 2s
-    :do {
-        :local postData ""
-        :if ([:len $routerIp] > 0) do={
-            :set postData "ip_address=$routerIp"
-        }
-        /tool fetch url=$syncUrl http-method=post http-data=$postData
-        :put "Phone-home successful"
-        :if ([:len $routerIp] > 0) do={
-            :put "Router IP: $routerIp"
-        }
-    } on-error={
-        :put "Phone-home failed (non-critical)"
-        :if ([:len $routerIp] > 0) do={
-            :put "Router IP: $routerIp (enter manually)"
-        }
-    }
-    
-    # Remove existing phone-home scheduler and script if they exist
-    :do {
-        /system scheduler remove [find name="zisp-phone-home"]
-    } on-error={}
-    :do {
-        /system script remove [find name="zisp-phone-home"]
-    } on-error={}
-    
-    # Create a stored script for periodic phone-home
-    # The script will get the router's IP and send it to the sync URL
-    :do {
-        :local scriptSource ":local routerIp \"\"; :do { :local ipIds [/ip address find]; :foreach id in=\$ipIds do={ :local ipAddr [/ip address get \$id address]; :local ipOnly [:pick \$ipAddr 0 [:find \$ipAddr \"/\"]]; :if ([:pick \$ipOnly 0 3] != \"127\" && [:len \$routerIp] = 0) do={ :set routerIp \$ipOnly; }; }; } on-error={}; :if ([:len \$routerIp] > 0) do={ :do { :local postData (\"ip_address=\" . \$routerIp); /tool fetch url=\"$syncUrl\" http-method=post http-data=\$postData; } on-error={}; };"
-        /system script add name="zisp-phone-home" source=$scriptSource
-        :put "Phone-home script created"
-    } on-error={
-        :put "Warning: Failed to create phone-home script"
-    }
-    
-    # Create scheduler to run the script every 3 minutes
-    :do {
-        /system scheduler add name="zisp-phone-home" start-time=startup interval=3m on-event="/system script run zisp-phone-home" comment="ZiSP periodic phone-home"
-        :put "Periodic phone-home scheduler configured (every 3 minutes)"
-    } on-error={
-        :put "Warning: Failed to create phone-home scheduler"
-    }
-} else={
-    :put "No sync URL configured"
-}
+:put " =================== Configuring PPPoE masquerade =================== "
+:do {
+    /ip firewall nat remove [find comment="masquerade pppoe network"]
+} on-error={}
+/ip firewall nat add action=masquerade chain=srcnat comment="masquerade pppoe network" out-interface=ether1
+:put " =================== PPPoE masquerade configured =================== "
 
-:put "==================== ONBOARDING COMPLETE ===================="
-:put "Router connected to ZiSP system"
-:put "API User: $username"
-:put "API Port: $apiPort"
-:put "API Service: Enabled (accessible from any IP)"
-:put "=============================================================="
-:put "IMPORTANT: Copy one of the IP addresses shown above"
-:put "and paste it in the system to complete onboarding."
+
+:put " =================== Configuring antisharing and router IP hiding =================== "
+:do {
+    /ip firewall mangle remove [find comment="anti-sharing-connection"]
+} on-error={}
+/ip firewall mangle add action=change-ttl chain=postrouting comment="anti-sharing-connection" new-ttl=set:1 out-interface=$bridgeName passthrough=yes
+
+:do {
+    /ip firewall mangle remove [find comment="hide-router-ip-address"]
+} on-error={}
+/ip firewall mangle add action=change-ttl chain=prerouting comment="hide-router-ip-address" new-ttl=increment:2 passthrough=yes
+:put " =================== Mangle rules configured =================== "
+
+
+:put " =================== Configuring SNMP =================== "
+:do {
+    :local existingCommunities [/snmp community find name=$snmpCommunity]
+    :if ([:len $existingCommunities] > 0) do={
+        /snmp community remove [find name=$snmpCommunity]
+        :put " =================== Previous SNMP community with the same name removed =================== "
+    }
+} on-error={}
+/snmp community add name=$snmpCommunity addresses=207.154.204.144 read-access=yes write-access=yes comment="ZiSP SNMP Community"
+/snmp set enabled=yes location=$snmpLocation contact="ZiSP Management"
+:put " =================== SNMP configured =================== "
+
+
+:put " =================== Configuring walled garden =================== "
+:do {
+    /ip hotspot walled-garden remove [find comment="zisp-walled-garden"]
+} on-error={}
+/ip hotspot walled-garden add action=allow dst-host=*.google.com comment="zisp-walled-garden"
+/ip hotspot walled-garden add action=allow dst-host=*.googleapis.com comment="zisp-walled-garden"
+/ip hotspot walled-garden add action=allow dst-host=*.gstatic.com comment="zisp-walled-garden"
+/ip hotspot walled-garden add action=allow dst-host=*.mikrotik.com comment="zisp-walled-garden"
+:put " =================== Walled garden configured =================== "
+
+
+:put " =================== Creating reboot scheduler =================== "
+:do {
+    /system scheduler remove [find name="zisp-reboot-3am"]
+} on-error={}
+/system scheduler add name="zisp-reboot-3am" start-time=03:00:00 interval=1d on-event="/system reboot" comment="ZiSP Daily Reboot at 3AM"
+:put " =================== Reboot scheduler created =================== "
+
+:put "<<<<======= CONFIGURATION COMPLETE =============>>>>>"
+:put "Bridge: $bridgeName"
+:put "Hotspot: Enabled on bridge"
+:put "PPPoE: Enabled on bridge"
+:put "RADIUS: Enabled"
+:put "SNMP: Enabled"
+:put "Reboot: 3AM daily"
 :put "=============================================================="
