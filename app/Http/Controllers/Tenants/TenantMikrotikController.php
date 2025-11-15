@@ -206,9 +206,15 @@ class TenantMikrotikController extends Controller
 
         try {
             $data = $request->all();
-            
+
+            // Safely extract expected keys (may be missing in minimal payloads)
+            $deviceId = $data['device_id'] ?? null;
+            $boardName = $data['board_name'] ?? null;
+            $systemVersion = $data['system_version'] ?? null;
+            $ipAddress = $data['ip_address'] ?? null;
+
             // Check if this is a phone-home ping (minimal data) or full sync
-            $isPhoneHome = empty($data['device_id']) && empty($data['board_name']) && !isset($data['system_version']);
+            $isPhoneHome = empty($deviceId) && empty($boardName) && $systemVersion === null;
 
             if ($isPhoneHome) {
                 // Phone-home: Just update status to keep device online
@@ -228,8 +234,8 @@ class TenantMikrotikController extends Controller
 
             // Full sync: Update device information from sync payload
             $updates = [
-                'device_id' => $data['device_id'] ?? null,
-                'board_name' => $data['board_name'] ?? null,
+                'device_id' => $deviceId,
+                'board_name' => $boardName,
                 'interface_count' => $data['interface_count'] ?? null,
                 'sync_attempts' => ($mikrotik->sync_attempts ?? 0) + 1,
                 'last_seen_at' => now(),
@@ -237,12 +243,12 @@ class TenantMikrotikController extends Controller
                 'last_error' => null,
             ];
 
-            if (isset($data['system_version'])) {
-                $updates['system_version'] = $data['system_version'];
+            if ($systemVersion !== null) {
+                $updates['system_version'] = $systemVersion;
             }
 
-            if (isset($data['ip_address'])) {
-                $updates['ip_address'] = $data['ip_address'];
+            if ($ipAddress !== null) {
+                $updates['ip_address'] = $ipAddress;
             }
 
             $mikrotik->update($updates);
@@ -253,7 +259,7 @@ class TenantMikrotikController extends Controller
             }
 
             // Check if all required data is present for completion
-            if ($data['device_id'] && $data['board_name']) {
+            if (!empty($deviceId) && !empty($boardName)) {
                 $mikrotik->completeOnboarding();
             }
 
