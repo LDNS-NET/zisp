@@ -14,7 +14,6 @@ import {
     LogOut,
     Settings,
     SunIcon,
-    // Moon icon for theme toggle
     Moon,
     FolderEdit,
     AlertCircleIcon,
@@ -78,15 +77,31 @@ watch(collapsed, (val) => {
 
             <!-- Sidebar Links -->
             <nav class="h-[calc(100vh-4rem)] space-y-1 overflow-y-auto p-4">
+                <div>
+                    <!-- Collapse toggle: visible on lg and up, and also usable on smaller screens -->
+                    <button
+                        @click="collapsed = !collapsed"
+                        :title="collapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+                        class="hidden lg:inline-flex text-gray-700 hover:bg-gray-100 rounded-md p-2 dark:text-gray-200 dark:hover:bg-gray-700"
+                        aria-pressed="false"
+                    >
+                        <svg v-if="!collapsed" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14"></path></svg>
+                        <svg v-else class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14"></path></svg>
+                    </button>
+                </div>
                 <div class="mb-4 px-3">
                     <NavLink
                         :href="route('dashboard')"
                         :active="route().current('dashboard')"
                         class="flex items-center p-2 dark:text-white nav-link"
                     >
-                        <span class="nav-label">Dashboard</span>
                         <LayoutDashboard class="nav-icon h-4 w-4 text-blue-700 dark:text-blue-300" />
+                        <span class="nav-label">Dashboard</span>
                     </NavLink>
+                </div>
+
+                <div class="mb-4 px-3 text-gray-500 uppercase font-semibold text-xs dark:text-gray-400">
+                    Users
                 </div>
 
                 <div class="mb-4 px-3">
@@ -95,8 +110,8 @@ watch(collapsed, (val) => {
                         :active="route().current('activeusers.index')"
                         class="flex items-center p-2 dark:text-white nav-link"
                     >
-                        <span class="nav-label">Active Users</span>
                         <Activity class="nav-icon h-4 w-4 text-purple-500" />
+                        <span class="nav-label">Active Users</span>
                     </NavLink>
                 </div>
 
@@ -106,8 +121,8 @@ watch(collapsed, (val) => {
                         :active="route().current('users.index')"
                         class="flex items-center p-2 dark:text-white nav-link"
                     >
-                        <span class="nav-label">Users</span>
                         <Users class="nav-icon h-4 w-4 text-purple-500" />
+                        <span class="nav-label">Users</span>
                     </NavLink>
                 </div>
 
@@ -117,8 +132,8 @@ watch(collapsed, (val) => {
                         :active="route().current('leads.index')"
                         class="flex items-center p-2 dark:text-white nav-link"
                     >
-                        <span class="nav-label">Leads</span>
                         <Phone class="nav-icon h-4 w-4 text-purple-500" />
+                        <span class="nav-label">Leads</span>
                     </NavLink>
                 </div>
 
@@ -128,9 +143,12 @@ watch(collapsed, (val) => {
                         :active="route().current('tickets.index')"
                         class="flex items-center p-2 dark:text-white nav-link"
                     >
-                        <span class="nav-label">Tickets</span>
                         <HelpCircle class="nav-icon h-4 w-4 text-purple-500" />
+                        <span class="nav-label">Tickets</span>
                     </NavLink>
+                </div>
+                <div class="mb-4 px-3 text-gray-500 uppercase font-semibold text-xs dark:text-gray-400">
+                    Billing
                 </div>
 
                 <div class="mb-4 px-3">
@@ -139,8 +157,8 @@ watch(collapsed, (val) => {
                         :active="route().current('packages.index')"
                         class="flex items-center p-2 dark:text-white nav-link"
                     >
-                        <span class="nav-label">Packages</span>
                         <MailCheck class="nav-icon h-4 w-4 text-purple-500" />
+                        <span class="nav-label">Packages</span>
                     </NavLink>
                 </div>
 
@@ -150,8 +168,8 @@ watch(collapsed, (val) => {
                         :active="route().current('vouchers.index')"
                         class="flex items-center p-2 dark:text-white nav-link"
                     >
-                        <span class="nav-label">Vouchers</span>
                         <Gift class="nav-icon h-4 w-4 text-purple-500" />
+                        <span class="nav-label">Vouchers</span>
                     </NavLink>
                 </div>
 
@@ -161,8 +179,8 @@ watch(collapsed, (val) => {
                         :active="route().current('payments.index')"
                         class="flex items-center p-2 dark:text-white nav-link"
                     >
-                        <span class="nav-label">Payments</span>
                         <Banknote class="nav-icon h-4 w-4 text-purple-500" />
+                        <span class="nav-label">Payments</span>
                     </NavLink>
                 </div>
 
@@ -172,9 +190,13 @@ watch(collapsed, (val) => {
                         :active="route().current('invoices.index')"
                         class="flex items-center p-2 dark:text-white nav-link"
                     >
-                        <span class="nav-label">Invoices</span>
                         <DoorClosedLockedIcon class="nav-icon h-4 w-4 text-purple-500" />
+                        <span class="nav-label">Invoices</span>
                     </NavLink>
+                </div>
+
+                <div class="mb-4 px-3 text-gray-500 uppercase font-semibold text-xs dark:text-gray-400">
+                    Communication
                 </div>
 
                 <div class="mb-4 px-3">
@@ -183,8 +205,8 @@ watch(collapsed, (val) => {
                         :active="route().current('sms.index')"
                         class="flex items-center p-2 dark:text-white nav-link"
                     >
-                        <span class="nav-label">SMS</span>
                         <MessageSquare class="nav-icon h-4 w-4 text-purple-500" />
+                        <span class="nav-label">SMS</span>
                     </NavLink>
                 </div>
 
@@ -194,9 +216,12 @@ watch(collapsed, (val) => {
                         :active="route().current('smstemplates.index')"
                         class="flex items-center p-2 dark:text-white nav-link"
                     >
-                        <span class="nav-label">SMS Templates</span>
                         <Phone class="nav-icon h-4 w-4 text-purple-500" />
+                        <span class="nav-label">SMS Templates</span>
                     </NavLink>
+                </div>
+                <div class="mb-4 px-3 text-gray-500 uppercase font-semibold text-xs dark:text-gray-400">
+                    Network
                 </div>
 
                 <div class="mb-4 px-3">
@@ -205,8 +230,8 @@ watch(collapsed, (val) => {
                         :active="route().current('mikrotiks.index')"
                         class="flex items-center p-2 dark:text-white nav-link"
                     >
-                        <span class="nav-label">Mikrotiks</span>
                         <NetworkIcon class="nav-icon h-4 w-4 text-purple-500" />
+                        <span class="nav-label">Mikrotiks</span>
                     </NavLink>
                 </div>
             </nav>
@@ -233,22 +258,6 @@ watch(collapsed, (val) => {
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                         </svg>
                     </button>
-
-                    <!-- Collapse toggle: visible on lg and up, and also usable on smaller screens -->
-                    <button
-                        @click="collapsed = !collapsed"
-                        :title="collapsed ? 'Expand sidebar' : 'Collapse sidebar'"
-                        class="hidden lg:inline-flex text-gray-700 hover:bg-gray-100 rounded-md p-2 dark:text-gray-200 dark:hover:bg-gray-700"
-                        aria-pressed="false"
-                    >
-                        <svg v-if="!collapsed" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14"></path></svg>
-                        <svg v-else class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14"></path></svg>
-                    </button>
-
-                    <Link :href="route('dashboard')" class="flex items-center gap-2">
-                        <ApplicationLogo class="h-8 w-auto" />
-                        <span class="hidden font-semibold text-gray-800 dark:text-white sm:inline">ZiSP</span>
-                    </Link>
                 </div>
 
                 <div class="ml-2 flex items-center gap-3">
@@ -357,10 +366,10 @@ footer { --footer-padding-y: 0.5rem; padding-top: var(--footer-padding-y); paddi
   footer { padding-top: 0.4rem; padding-bottom: 0.4rem; }
 }
 
-/* nav link layout: keep icon aligned to far end and hide labels when collapsed */
-.nav-link { display: flex; align-items: center; gap: .5rem; }
-/* default: push icon to the far right */
-.nav-link .nav-icon { margin-left: auto; flex: none; }
+/* nav link layout: show icon on the left and hide labels when collapsed */
+.nav-link { display: flex; align-items: center; gap: .5rem; justify-content: flex-start; flex-direction: row; }
+/* default: keep icon inline (no auto margin) */
+.nav-link .nav-icon { margin-left: 0; flex: none; }
 .nav-label { transition: opacity .15s ease, width .15s ease; white-space: nowrap; overflow: hidden; }
 
 /* when aside is collapsed: hide labels but keep icons visible and centered */
@@ -372,11 +381,12 @@ aside[data-collapsed="true"] .nav-label {
   pointer-events: none;
 }
 
-/* center icons when collapsed and remove the auto margin that pushed them right */
+/* center icons when collapsed and remove any offsets */
 aside[data-collapsed="true"] .nav-link {
   justify-content: center;
   padding-left: .5rem;
   padding-right: .5rem;
+  flex-direction: row; /* keep icon left for consistency */
 }
 aside[data-collapsed="true"] .nav-link .nav-icon,
 aside[data-collapsed="true"] .nav-icon {
