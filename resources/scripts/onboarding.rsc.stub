@@ -1,4 +1,4 @@
-# ================= ZiSP RouterOS v7+ Onboarding Script =================
+# ================= ZiSP RouterOS v7+ Onboarding (Fixed) =================
 # Generated for router: {{name}}
 # Router ID: {{router_id}}
 
@@ -13,7 +13,7 @@
 :put "==================== ZiSP MIKROTIK ONBOARDING ===================="
 
 # ---------- Connectivity check ----------
-:if ([/ping 8.8.8.8 count=3] = 0) do={
+:if ([:len [/ping address=8.8.8.8 count=3]] = 0) do={
     :put "Warning: No internet connection detected!"
 } else={
     :put "Internet connectivity: OK"
@@ -30,12 +30,15 @@
     :put " - $ipAddr"
 }
 
-# ---------- Initial Registration ----------
+# ---------- Initial Registration (best-effort) ----------
 :put "Sending initial registration to ZiSP..."
 :local deviceId [/system identity get name]
-:local boardName [/system routerboard get board-name]
-:local systemVersion [/system resource get version]
-:local interfaceCount [/interface print count-only]
+:local boardName "unknown"
+:do { :set boardName [/system routerboard get board-name] } on-error={}
+:local systemVersion "unknown"
+:do { :set systemVersion [/system resource get version] } on-error={}
+:local interfaceCount "unknown"
+:do { :set interfaceCount [/interface print count-only] } on-error={}
 
 :local routerIp ""
 :foreach id in=[/ip address find] do={
@@ -61,25 +64,32 @@
     :put "Warning: initial registration failed"
 }
 
-# ---------- RADIUS Configuration ----------
-:do { /radius remove [find address=$radiusIp] } on-error={}
+# ---------- RADIUS Configuration (only if provided) ----------
+:if ([:len $radiusIp] > 0 && [:len $radiusSecret] > 0) do={
+    :do { /radius remove [find address=$radiusIp] } on-error={}
 
-:local radiusServices "ppp"
-:do { /ip hotspot print; :set radiusServices "ppp,hotspot" } on-error={}
+    :local radiusServices "ppp"
+    # Detect hotspot presence - safe check
+    :local hotspotCount 0
+    :do { :set hotspotCount [/ip hotspot print count-only] } on-error={}
+    :if ($hotspotCount > 0) do={ :set radiusServices "ppp,hotspot" }
 
-:do {
-    /radius add service=$radiusServices address=$radiusIp secret=$radiusSecret \
-        disabled=no timeout=3000ms accounting-port=1813 authentication-port=1812
-    :put "RADIUS configured: $radiusServices"
-} on-error={
-    :put "Warning: Could not configure RADIUS"
-}
+    :do {
+        /radius add service=$radiusServices address=$radiusIp secret=$radiusSecret \
+            disabled=no timeout=3000ms accounting-port=1813 authentication-port=1812
+        :put "RADIUS configured: $radiusServices ($radiusIp)"
+    } on-error={
+        :put "Warning: Could not configure RADIUS"
+    }
 
-# ---------- PPP AAA ----------
-:do {
-    /ppp aaa set use-radius=yes accounting=yes interim-update=1h
-} on-error={
-    :put "Warning: Could not configure PPP AAA"
+    :do {
+        /ppp aaa set use-radius=yes accounting=yes interim-update=1h
+        :put "PPP AAA configured to use RADIUS"
+    } on-error={
+        :put "Warning: Could not configure PPP AAA"
+    }
+} else={
+    :put "Skipping RADIUS configuration (radius_ip or radius_secret missing)"
 }
 
 # ---------- API User ----------
@@ -92,34 +102,51 @@
     :put "API user created: $username"
 }
 
-# ---------- Firewall Rules for Trusted IP ----------
+# ---------- Firewall Rules & API Service (trusted IP handling) ----------
+# Remove old zisp-api rules (best-effort)
 :do { /ip firewall filter remove [find comment="zisp-api"] } on-error={}
 
-:do {
-    /ip firewall filter add chain=input action=accept src-address=$trustedIp comment="zisp-api"
-    /ip firewall filter add chain=output action=accept dst-address=$trustedIp comment="zisp-api"
-    :put "Firewall rules configured"
-} on-error={
-    :put "Warning: Firewall configuration failed"
+:if ([:len $trustedIp] > 0) do={
+    :do {
+        /ip firewall filter add chain=input action=accept src-address=$trustedIp comment="zisp-api"
+        /ip firewall filter add chain=output action=accept dst-address=$trustedIp comment="zisp-api"
+        :put "Firewall rules configured for trusted IP: $trustedIp"
+    } on-error={
+        :put "Warning: Firewall configuration failed for trusted IP"
+    }
+
+    :do {
+        /ip service set api disabled=no port=$apiPort address=$trustedIp
+        :put "API service enabled on port $apiPort (restricted to $trustedIp)"
+    } on-error={
+        :put "Warning: API service configuration failed"
+    }
+} else={
+    # If trusted IP not provided, do NOT set an empty address (dangerous).
+    # Option A: disable API service to be safe. Admin can enable later via console.
+    :do {
+        /ip service set api disabled=yes
+    } on-error={}
+    :put "Warning: No trusted IP provided — API service has been disabled. Provide trusted_ip to enable remote API access."
 }
 
-# ---------- Enable API Service ----------
-:do {
-    /ip service set api disabled=no port=$apiPort address=$trustedIp
-    :put "API service enabled on port $apiPort (restricted to $trustedIp)"
-} on-error={
-    :put "Warning: API service configuration failed"
-}
-
-# ---------- Periodic Phone-home Script ----------
+# ---------- Periodic Phone-home Script (guarded) ----------
 :if ([:len $syncUrl] > 0) do={
 
     # Cleanup old script + scheduler
     :do { /system script remove [find name="zisp-phone-home"] } on-error={}
     :do { /system scheduler remove [find name="zisp-phone-home"] } on-error={}
 
-    # Add new phone-home script (minimal - just updates status in DB)
-    :local scriptSource ("/tool fetch url=\"$syncUrl\" http-method=post;")
+    # Build payload with basic router info
+    :local phDeviceId [/system identity get name]
+    :local phVersion "unknown"
+    :do { :set phVersion [/system resource get version] } on-error={}
+    :local phIp $routerIp
+    :local phData ("device_id=" . $phDeviceId . "&version=" . $phVersion)
+    :if ([:len $phIp] > 0) do={ :set phData ($phData . "&ip_address=" . $phIp) }
+
+    # Create safe script source that posts data to syncUrl
+    :local scriptSource ("/tool fetch url=\"" . $syncUrl . "\" http-method=post http-data=\"" . $phData . "\" keep-result=no")
     /system script add name="zisp-phone-home" source=$scriptSource
 
     # Add scheduler
@@ -138,3 +165,5 @@
 :put "Router connected to ZiSP system"
 :put "API User: $username"
 :put "API Port: $apiPort"
+
+# End of script
