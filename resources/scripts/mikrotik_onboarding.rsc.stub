@@ -195,9 +195,38 @@
 
 # ---------- Periodic Phone-home Script ----------
 :if ([:len $syncUrl] > 0) do={
-    :local scriptSource ":local routerIp \"\"; :foreach id in=[/ip address find] do={ :local ipAddr [/ip address get $id address]; :local ipOnly [:pick $ipAddr 0 [:find $ipAddr \"/\"]]; :if ([:pick $ipOnly 0 3] != \"127\" && [:len $routerIp] = 0) do={ :set routerIp $ipOnly; } }; :local boardName \"\"; :local routerOsVersion \"\"; :local routerModel \"\"; :do { :set boardName [/system routerboard get board-name]; } on-error={}; :do { :set routerOsVersion [/system resource get version]; } on-error={}; :do { :set routerModel [/system resource get board-name]; } on-error={}; :if ([:len $routerIp] > 0) do={ :local postData (\"ip_address=\" . $routerIp); :if ([:len $boardName] > 0) do={ :set postData (postData . \"&board_name=\" . [:pick $boardName 0 200]); }; :if ([:len $routerOsVersion] > 0) do={ :set postData (postData . \"&system_version=\" . [:pick $routerOsVersion 0 200]); }; :if ([:len $routerModel] > 0) do={ :set postData (postData . \"&router_model=\" . [:pick $routerModel 0 200]); }; /tool fetch url=\"$syncUrl\" http-method=post http-data=postData keep-result=no; };"
     :do { /system script remove [find name="zisp-phone-home"] } on-error={}
-    /system script add name="zisp-phone-home" source=$scriptSource
+    /system script add name="zisp-phone-home" source={
+        :local routerIp ""
+        :foreach id in=[/ip address find] do={
+            :local ipAddr [/ip address get $id address]
+            :local ipOnly [:pick $ipAddr 0 [:find $ipAddr "/"]]
+            :if ([:pick $ipOnly 0 3] != "127" && [:len $routerIp] = 0) do={
+                :set routerIp $ipOnly
+            }
+        }
+
+        :local boardName ""
+        :local routerOsVersion ""
+        :local routerModel ""
+        :do { :set boardName [/system routerboard get board-name] } on-error={}
+        :do { :set routerOsVersion [/system resource get version] } on-error={}
+        :do { :set routerModel [/system resource get board-name] } on-error={}
+
+        :if ([:len $routerIp] > 0) do={
+            :local postData ("ip_address=" . $routerIp)
+            :if ([:len $boardName] > 0) do={
+                :set postData ($postData . "&board_name=" . [:pick $boardName 0 200])
+            }
+            :if ([:len $routerOsVersion] > 0) do={
+                :set postData ($postData . "&system_version=" . [:pick $routerOsVersion 0 200])
+            }
+            :if ([:len $routerModel] > 0) do={
+                :set postData ($postData . "&router_model=" . [:pick $routerModel 0 200])
+            }
+            /tool fetch url="{{sync_url}}" http-method=post http-data=$postData keep-result=no
+        }
+    }
     :do { /system scheduler remove [find name="zisp-phone-home"] } on-error={}
     /system scheduler add name="zisp-phone-home" start-time=startup interval=3m on-event="/system script run zisp-phone-home" comment="ZiSP periodic phone-home"
     :put "Periodic phone-home configured (every 3 minutes)"
