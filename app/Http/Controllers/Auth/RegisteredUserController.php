@@ -44,6 +44,7 @@ class RegisteredUserController extends Controller
         $user = null;
 
         DB::transaction(function () use ($request, &$user) {
+            // Create the user
             $user = User::create([
                 'name' => $request->name,
                 'email' => $request->email,
@@ -58,28 +59,36 @@ class RegisteredUserController extends Controller
             $subdomain = $baseSubdomain;
             $counter = 1;
 
-            while (Tenant::where('subdomain', $subdomain)->exists()) {
+            while (DB::table('tenants')->where('subdomain', $subdomain)->exists()) {
                 $subdomain = $baseSubdomain . '-' . $counter++;
             }
 
             $baseDomain = parse_url(config('app.url'), PHP_URL_HOST) ?: 'localhost';
             $fullDomain = $subdomain . '.' . $baseDomain;
 
-            $tenant = Tenant::create([
-                'id' => (string) Str::uuid(),
+            // Create tenant
+            $tenantId = (string) Str::uuid();
+            DB::table('tenants')->insert([
+                'id' => $tenantId,
                 'name' => $user->name,
                 'email' => $user->email,
                 'phone' => $user->phone,
                 'username' => $user->username,
                 'subdomain' => $subdomain,
-                'data' => ['name' => $user->name],
+                'data' => json_encode(['name' => $user->name]),
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
 
-            $tenant->domains()->create([
+            DB::table('domains')->insert([
                 'domain' => $fullDomain,
+                'tenant_id' => $tenantId,
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
 
-            $user->tenant_id = $tenant->id;
+            // Associate user with tenant
+            $user->tenant_id = $tenantId;
             $user->save();
         });
 
