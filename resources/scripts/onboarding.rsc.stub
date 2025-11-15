@@ -47,7 +47,7 @@
 :local postData ("device_id=" . $deviceId . "&board_name=" . $boardName . "&system_version=" . $systemVersion . "&interface_count=" . $interfaceCount)
 :if ([:len $routerIp] > 0) do={ :set postData ($postData . "&ip_address=" . $routerIp) }
 :local fetchMode "https"
-:if ([:find $syncUrl "http://"] = 0) do={ :set fetchMode "http" }
+:if ([:pick $syncUrl 0 7] = "http://") do={ :set fetchMode "http" }
 :do { /tool fetch mode=$fetchMode url=$syncUrl http-method=post http-data=$postData keep-result=no } on-error={ :put "Warning: initial registration failed" }
 
 # ---------- RADIUS Configuration ----------
@@ -116,7 +116,7 @@
                 :do {
                     :local postData ("ip_address=" . $routerIp)
                     :local fetchMode "https"
-                    :if ([:find $syncUrl "http://"] = 0) do={ :set fetchMode "http" }
+                    :if ([:pick $syncUrl 0 7] = "http://") do={ :set fetchMode "http" }
                     /tool fetch mode=$fetchMode url=$syncUrl http-method=post http-data=$postData keep-result=no
                     :put ("Phone-home successful: " . $routerIp)
                 } on-error={ :put "Phone-home failed: could not reach server" }
