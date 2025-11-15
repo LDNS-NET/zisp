@@ -403,6 +403,11 @@ class TenantMikrotikController extends Controller
 
             // Get router IP from request (if provided) or use client IP
             $routerIp = $request->input('ip_address') ?? $request->ip();
+
+            // Optional hardware/OS details from phone-home
+            $boardName     = $request->input('board_name');
+            $systemVersion = $request->input('system_version');
+            $routerModel   = $request->input('router_model');
             
             // Validate IP address
             if ($routerIp && !filter_var($routerIp, FILTER_VALIDATE_IP)) {
@@ -414,13 +419,25 @@ class TenantMikrotikController extends Controller
             }
             
             $updateData = [
-                'status' => 'online',
+                'status'       => 'online',
                 'last_seen_at' => now(),
             ];
             
             // Update IP address if provided and different (or if not set)
             if ($routerIp && ($routerIp !== $router->ip_address || !$router->ip_address)) {
                 $updateData['ip_address'] = $routerIp;
+            }
+
+            // Persist board/model/version info when provided
+            if ($boardName) {
+                $updateData['board_name'] = $boardName;
+            }
+            if ($systemVersion) {
+                $updateData['system_version'] = $systemVersion;
+                $updateData['os_version']     = $systemVersion;
+            }
+            if ($routerModel) {
+                $updateData['model'] = $routerModel;
             }
 
             $router->update($updateData);
