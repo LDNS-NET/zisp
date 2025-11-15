@@ -11,6 +11,7 @@ import TextArea from '@/Components/TextArea.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import DangerButton from '@/Components/DangerButton.vue';
 import InputError from '@/Components/InputError.vue';
+import { useToast } from 'vue-toastification';
 import {
     Plus,
     Edit,
@@ -24,6 +25,8 @@ import {
     TestTube,
     RotateCcw,
 } from 'lucide-vue-next';
+
+const toast = useToast();
 
 const props = defineProps({
     routers: Array,
@@ -106,11 +109,12 @@ function closeModal() {
 async function submitForm() {
     await form.post(route('mikrotiks.store'), {
         onSuccess: () => {
-            // Do not close the modal here; let Inertia handle the redirect to SetupScript.vue
-            // closeModal() removed
+            toast.success('Router added successfully');
+            closeModal();
+            Inertia.visit(route('mikrotiks.index'));
         },
         onError: (errors) => {
-            const errorMessage = 'Error adding router: ' + Object.values(errors).flat().join(', ');
+            toast.error('Error adding router');
             formError.value = errorMessage;
             window.toast?.error(errorMessage) || console.error(errorMessage);
         },
@@ -121,6 +125,7 @@ function editForm() {
     if (selectedRouter.value) {
         form.put(route('mikrotiks.update', selectedRouter.value.id), {
             onSuccess: () => {
+                toast.success('Router updated successfully');
                 closeModal();
                 Inertia.reload({ 
                     only: ['routers'], 
@@ -131,9 +136,7 @@ function editForm() {
                 });
             },
             onError: (errors) => {
-                formError.value =
-                    'Error updating router: ' +
-                    Object.values(errors).flat().join(', ');
+                toast.error('Error updating router');
             },
         });
     }
@@ -161,8 +164,9 @@ function viewRouter(router) {
 
 function deleteRouter(mikrotik) {
     if (confirm('Delete this router?')) {
-        Inertia.delete(route('mikrotiks.destroy', mikrotik.id), {
+        router.delete(route('mikrotiks.destroy', mikrotik.id), {
             onSuccess: () => {
+                toast.success('Router deleted successfully');
                 // Remove from local list
                 routersList.value = routersList.value.filter(r => r.id !== mikrotik.id);
             },
@@ -179,7 +183,8 @@ async function pingRouter(router) {
         const data = await response.json();
 
         if (!response.ok) {
-            throw new Error(data.message || 'Failed to reach router.');
+            toast.error('Error pinging router');
+            return;
         }
 
         router.status = data.status;
@@ -194,8 +199,7 @@ async function pingRouter(router) {
         // Use a nicer non-blocking feedback
         window.toast?.success(data.message) || console.log(data.message);
     } catch (err) {
-        formError.value = `Error pinging router: ${err.message}`;
-        window.toast?.error(formError.value) || console.error(formError.value);
+        toast.error('Error pinging router');
     } finally {
         pinging.value[router.id] = false;
     }
@@ -211,7 +215,8 @@ async function testRouterConnection(router) {
         const data = await response.json();
 
         if (!response.ok) {
-            throw new Error(data.message || 'Failed to test connection.');
+            toast.error('Error testing connection');
+            return;
         }
 
         // Update router status in the UI
@@ -227,8 +232,7 @@ async function testRouterConnection(router) {
         // Use toast notification if available, otherwise console
         window.toast?.success(data.message) || console.log(data.message);
     } catch (err) {
-        formError.value = `Error testing connection: ${err.message}`;
-        window.toast?.error(formError.value) || console.error(formError.value);
+        toast.error('Error testing connection');
     } finally {
         testing.value[router.id] = false;
     }
@@ -239,8 +243,8 @@ function showRemote(router) {
     fetch(route('mikrotiks.remoteManagement', router.id))
         .then(async (res) => {
             if (!res.ok) {
-                const data = await res.json();
-                throw new Error(data.message || 'Unknown error');
+                toast.error('Error loading remote management links');
+                return;
             }
             return res.json();
         })
@@ -249,8 +253,7 @@ function showRemote(router) {
             showRemoteModal.value = true;
         })
         .catch((err) => {
-            formError.value =
-                'Error loading remote management links: ' + err.message;
+            toast.error('Error loading remote management links');
         });
 }
 
@@ -278,27 +281,25 @@ function downloadAdvancedConfig(router) {
         const url = route('mikrotiks.downloadAdvancedConfig', router.id);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `advanced_config_router_${router.id}.rsc`;
+        link.download = `pppoe_hotspot_${router.id}.rsc`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
         
-        window.toast?.success('Advanced configuration script download started') || 
-            console.log('Advanced configuration script download started');
+        toast.success('Advanced configuration script download started');
     } catch (err) {
-        formError.value = `Error downloading advanced config: ${err.message}`;
-        window.toast?.error(formError.value) || console.error(formError.value);
+        toast.error('Error downloading advanced config');
     }
 }
 
-/*// Status polling functions
+// Status polling functions
 function startStatusPolling() {
-    // Poll every 30 seconds to get updated router status
+    // Poll every 4 minutes to get updated router status
     // This matches the backend's 3-minute check cycle (we poll more frequently for better UX)
     statusPollInterval = setInterval(() => {
         refreshRouterStatus();
-    }, 30000); // 30 seconds
-}*/
+    }, 400000); // 4 minutes
+}
 
 function stopStatusPolling() {
     if (statusPollInterval) {
@@ -319,6 +320,7 @@ async function refreshRouterStatus() {
         routersList.value = props.routers || [];
     } catch (err) {
         // Silently fail - don't interrupt user experience
+        toast.error('Error refreshing router status');
         console.debug('Status refresh failed:', err);
     }
 }

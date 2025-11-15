@@ -55,6 +55,17 @@ class RegisteredUserController extends Controller
                 'is_suspended' => false,
             ]);
 
+            $baseSubdomain = Str::slug($request->username);
+            $subdomain = $baseSubdomain;
+            $counter = 1;
+
+            while (DB::table('tenants')->where('subdomain', $subdomain)->exists()) {
+                $subdomain = $baseSubdomain . '-' . $counter++;
+            }
+
+            $baseDomain = parse_url(config('app.url'), PHP_URL_HOST) ?: 'localhost';
+            $fullDomain = $subdomain . '.' . $baseDomain;
+
             // Create tenant
             $tenantId = (string) Str::uuid();
             DB::table('tenants')->insert([
@@ -65,6 +76,13 @@ class RegisteredUserController extends Controller
                 'username' => $user->username,
                 'subdomain' => $subdomain,
                 'data' => json_encode(['name' => $user->name]),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            DB::table('domains')->insert([
+                'domain' => $fullDomain,
+                'tenant_id' => $tenantId,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);

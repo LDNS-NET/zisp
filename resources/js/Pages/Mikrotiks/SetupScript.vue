@@ -42,7 +42,7 @@ function downloadScript() {
     const a = document.createElement('a');
     a.href = url;
     // use .rsc.txt to make it openable on Windows
-    a.download = `setup_router_${props.router.id}.rsc.txt`;
+    a.download = `onboard_${props.router.id}.rsc`;
     a.click();
     URL.revokeObjectURL(url);
 }
