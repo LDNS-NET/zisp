@@ -170,7 +170,7 @@ class TenantMikrotikController extends Controller
     }
 
     /**
-     * Public sync endpoint - called by the onboarding script
+     * Public sync endpoint - called by the onboarding script and phone-home scheduler
      * Token-based authentication (no session required)
      */
     public function sync(Request $request, TenantMikrotik $mikrotik)
@@ -183,20 +183,44 @@ class TenantMikrotikController extends Controller
         }
 
         try {
-            // Update device information from sync payload
             $data = $request->all();
+            
+            // Check if this is a phone-home ping (minimal data) or full sync
+            $isPhoneHome = empty($data['device_id']) && empty($data['board_name']) && !isset($data['system_version']);
 
+            if ($isPhoneHome) {
+                // Phone-home: Just update status to keep device online
+                $mikrotik->update([
+                    'last_seen_at' => now(),
+                    'status' => 'connected',
+                    'last_error' => null,
+                ]);
+
+                \Log::debug("Mikrotik phone-home ping for device {$mikrotik->id}");
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Status updated',
+                ]);
+            }
+
+            // Full sync: Update device information from sync payload
             $updates = [
                 'device_id' => $data['device_id'] ?? null,
                 'board_name' => $data['board_name'] ?? null,
                 'interface_count' => $data['interface_count'] ?? null,
                 'sync_attempts' => ($mikrotik->sync_attempts ?? 0) + 1,
                 'last_seen_at' => now(),
+                'status' => 'connected',
                 'last_error' => null,
             ];
 
             if (isset($data['system_version'])) {
                 $updates['system_version'] = $data['system_version'];
+            }
+
+            if (isset($data['ip_address'])) {
+                $updates['ip_address'] = $data['ip_address'];
             }
 
             $mikrotik->update($updates);
