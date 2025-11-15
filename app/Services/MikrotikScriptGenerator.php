@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\Route;
+
 class MikrotikScriptGenerator
 {
     /**
@@ -31,7 +33,8 @@ class MikrotikScriptGenerator
         $tenant_id = $options['tenant_id'] ?? 'TENANT_ID';
         $ca_url = $options['ca_url'] ?? null;
 
-        if (!$ca_url && !empty($router_id)) {
+        // Try to build CA URL from a named route if it exists, otherwise fall back to a default URL
+        if (!$ca_url && !empty($router_id) && Route::has('mikrotiks.downloadCACert')) {
             $ca_url = route('mikrotiks.downloadCACert', ['mikrotik' => $router_id]);
         }
         if (!$ca_url) {

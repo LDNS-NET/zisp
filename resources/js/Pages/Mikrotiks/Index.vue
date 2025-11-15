@@ -20,9 +20,9 @@ const loading = ref(false);
 const devices = computed(() => {
     return props.mikrotiks.map(m => ({
         ...m,
-        status_badge: m.status === 'connected' ? 'bg-green-100 text-green-800' : 
-                     m.status === 'disconnected' ? 'bg-red-100 text-red-800' : 
-                     m.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+        status_badge: (m.status === 'connected' || m.status === 'online') ? 'bg-green-100 text-green-800' : 
+                     (m.status === 'disconnected' || m.status === 'offline') ? 'bg-red-100 text-red-800' : 
+                     (m.status === 'pending' || m.status === 'pending_onboard') ? 'bg-yellow-100 text-yellow-800' :
                      'bg-gray-100 text-gray-800',
         onboarding_badge: m.onboarding_status === 'completed' ? 'bg-green-100 text-green-800' :
                          m.onboarding_status === 'in_progress' ? 'bg-blue-100 text-blue-800' :

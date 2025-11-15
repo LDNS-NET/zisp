@@ -23,8 +23,7 @@ class TenantMikrotikController extends Controller
      */
     public function index()
     {
-        $tenantMikrotiks = TenantMikrotik::with('creator')
-            ->get()
+        $tenantMikrotiks = TenantMikrotik::get()
             ->map(function ($mikrotik) {
                 return [
                     'id' => $mikrotik->id,
@@ -63,11 +62,11 @@ class TenantMikrotikController extends Controller
             'hostname' => 'nullable|string|max:255',
         ]);
 
-        $mikrotik = TenantMikrotik::create($validated);
-
-        // Generate and store the onboarding script
-        $systemUrl = config('app.url');
-        $this->scriptGenerator->storeScript($mikrotik, $systemUrl);
+        // Provide sensible defaults for required fields not captured in the simple create form
+        $mikrotik = TenantMikrotik::create(array_merge($validated, [
+            'router_username' => 'apiuser',
+            'router_password' => 'apipassword',
+        ]));
 
         return redirect()->route('mikrotiks.show', $mikrotik->id)
             ->with('success', 'Device created. Download the onboarding script to begin setup.');
@@ -85,6 +84,8 @@ class TenantMikrotikController extends Controller
                 'hostname' => $mikrotik->hostname,
                 'ip_address' => $mikrotik->ip_address,
                 'api_port' => $mikrotik->api_port,
+                'connection_type' => $mikrotik->connection_type,
+                'ssh_port' => $mikrotik->ssh_port,
                 'status' => $mikrotik->status,
                 'onboarding_status' => $mikrotik->onboarding_status,
                 'last_seen_at' => $mikrotik->last_seen_at,
@@ -93,11 +94,21 @@ class TenantMikrotikController extends Controller
                 'board_name' => $mikrotik->board_name,
                 'system_version' => $mikrotik->system_version,
                 'interface_count' => $mikrotik->interface_count,
+                'uptime' => $mikrotik->uptime,
+                'cpu_usage' => $mikrotik->cpu_usage,
+                'memory_usage' => $mikrotik->memory_usage,
+                'temperature' => $mikrotik->temperature,
                 'sync_token' => $mikrotik->sync_token,
                 'onboarding_token' => $mikrotik->onboarding_token,
                 'sync_attempts' => $mikrotik->sync_attempts,
                 'connection_failures' => $mikrotik->connection_failures,
                 'last_error' => $mikrotik->last_error,
+                'wireguard_public_key' => $mikrotik->wireguard_public_key,
+                'wireguard_allowed_ips' => $mikrotik->wireguard_allowed_ips,
+                'wireguard_address' => $mikrotik->wireguard_address,
+                'wireguard_port' => $mikrotik->wireguard_port,
+                'wireguard_status' => $mikrotik->wireguard_status,
+                'wireguard_last_handshake' => $mikrotik->wireguard_last_handshake,
                 'is_online' => $mikrotik->isOnline(),
                 'download_script_url' => route('mikrotiks.download-script', $mikrotik->id),
                 'created_at' => $mikrotik->created_at,
@@ -159,14 +170,23 @@ class TenantMikrotikController extends Controller
      */
     public function downloadScript(TenantMikrotik $mikrotik)
     {
-        if (!$mikrotik->onboarding_script_content) {
-            $systemUrl = config('app.url');
-            $this->scriptGenerator->storeScript($mikrotik, $systemUrl);
-        }
+        $tenant = tenant();
 
-        return response($mikrotik->onboarding_script_content)
+        $script = $this->scriptGenerator->generate([
+            'name' => $mikrotik->name,
+            'username' => $mikrotik->router_username ?? 'apiuser',
+            'router_password' => $mikrotik->router_password ?? 'apipassword',
+            'router_id' => $mikrotik->id,
+            'tenant_id' => $tenant?->id,
+            'api_port' => $mikrotik->api_port,
+            'sync_token' => $mikrotik->sync_token,
+        ]);
+
+        $filename = 'mikrotik_onboarding_router_' . $mikrotik->id . '.rsc';
+
+        return response($script)
             ->header('Content-Type', 'text/plain')
-            ->header('Content-Disposition', 'attachment; filename="' . $this->scriptGenerator->getScriptFilename($mikrotik) . '"');
+            ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
     }
 
     /**
@@ -257,11 +277,7 @@ class TenantMikrotikController extends Controller
      */
     public function regenerateScript(TenantMikrotik $mikrotik)
     {
-        $mikrotik->regenerateTokens();
-        $systemUrl = config('app.url');
-        $this->scriptGenerator->storeScript($mikrotik, $systemUrl);
-
-        return back()->with('success', 'Onboarding script regenerated. Device must run the new script to reconnect.');
+        return back()->with('success', 'Onboarding script will be generated fresh on download.');
     }
 
     /**

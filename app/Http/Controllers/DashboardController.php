@@ -49,7 +49,8 @@ class DashboardController extends Controller
                     'hotspot' => NetworkUser::where('type', 'hotspot')->count(),
                     'pppoe' => NetworkUser::where('type', 'pppoe')->count(),
                     'static' => NetworkUser::where('type', 'static')->count(),
-                    'activeUsers' => NetworkUser::where('online', true)
+                    // Align key with frontend expectation (stats.users.active)
+                    'active' => NetworkUser::where('online', true)
                         ->where('created_by', $userId)
                         ->count(),
                     'expired' => NetworkUser::whereDate('expires_at', '<', now())->count(),
@@ -73,12 +74,11 @@ class DashboardController extends Controller
                 ],
 
                 // Mikrotik Devices
-                // Mikrotik Devices
-                /*'mikrotiks' => [
+                'mikrotiks' => [
                     'total' => TenantMikrotik::count(),
                     'connected' => TenantMikrotik::where('status', 'connected')->count(),
                     'disconnected' => TenantMikrotik::where('status', 'disconnected')->count(),
-                ],*/
+                ],
 
                 // SMS
                 'sms' => [

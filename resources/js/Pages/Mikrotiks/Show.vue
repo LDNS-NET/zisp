@@ -12,9 +12,35 @@ const props = defineProps({
 
 const showScript = ref(false);
 const loading = ref(false);
+const loadingScript = ref(false);
+const scriptContent = ref(null);
 
 const downloadScript = () => {
     window.location.href = props.mikrotik.download_script_url;
+};
+
+const fetchScriptContent = async () => {
+    if (scriptContent.value) {
+        showScript.value = !showScript.value;
+        return;
+    }
+
+    loadingScript.value = true;
+    try {
+        const res = await fetch(props.mikrotik.download_script_url, { credentials: 'same-origin' });
+        if (!res.ok) {
+            alert('Failed to fetch onboarding script');
+            return;
+        }
+
+        scriptContent.value = await res.text();
+        showScript.value = true;
+    } catch (e) {
+        console.error(e);
+        alert('Error fetching script');
+    } finally {
+        loadingScript.value = false;
+    }
 };
 
 const regenerateScript = () => {
@@ -127,6 +153,72 @@ const formatDate = (date) => {
                             <p class="text-gray-600 text-sm">IP Address</p>
                             <p class="font-mono">{{ mikrotik.ip_address || 'Not set' }}</p>
                         </div>
+                        <div>
+                            <p class="text-gray-600 text-sm">Connection Type</p>
+                            <p>{{ mikrotik.connection_type || 'Not set' }}</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-600 text-sm">SSH Port</p>
+                            <p>{{ mikrotik.ssh_port || '-' }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Health & Performance -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Health &amp; Performance</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-gray-600 text-sm">Uptime (seconds)</p>
+                            <p>{{ mikrotik.uptime ?? 'Unknown' }}</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-600 text-sm">CPU Usage (%)</p>
+                            <p>{{ mikrotik.cpu_usage ?? '-' }}</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-600 text-sm">Memory Usage (%)</p>
+                            <p>{{ mikrotik.memory_usage ?? '-' }}</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-600 text-sm">Temperature (°C)</p>
+                            <p>{{ mikrotik.temperature ?? '-' }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- WireGuard Configuration -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">WireGuard Configuration</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-gray-600 text-sm mb-2">Public Key</p>
+                            <code class="bg-gray-100 dark:bg-slate-900 p-2 rounded text-xs block overflow-auto min-h-[2.5rem]">
+                                {{ mikrotik.wireguard_public_key || 'Not configured' }}
+                            </code>
+                        </div>
+                        <div>
+                            <p class="text-gray-600 text-sm mb-2">Allowed IPs</p>
+                            <code class="bg-gray-100 dark:bg-slate-900 p-2 rounded text-xs block overflow-auto min-h-[2.5rem]">
+                                {{ mikrotik.wireguard_allowed_ips || 'Not configured' }}
+                            </code>
+                        </div>
+                        <div>
+                            <p class="text-gray-600 text-sm">WireGuard Address</p>
+                            <p class="font-mono">{{ mikrotik.wireguard_address || 'Not set' }}</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-600 text-sm">WireGuard Port</p>
+                            <p>{{ mikrotik.wireguard_port || '-' }}</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-600 text-sm">WireGuard Status</p>
+                            <p>{{ mikrotik.wireguard_status || 'Unknown' }}</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-600 text-sm">Last Handshake</p>
+                            <p>{{ mikrotik.wireguard_last_handshake ? formatDate(mikrotik.wireguard_last_handshake) : 'Never' }}</p>
+                        </div>
                     </div>
                 </div>
 
@@ -161,13 +253,13 @@ const formatDate = (date) => {
                         <PrimaryButton @click="downloadScript">
                             📥 Download Script
                         </PrimaryButton>
-                        <SecondaryButton @click="showScript = !showScript">
-                            {{ showScript ? 'Hide' : 'View' }} Script
+                        <SecondaryButton @click="fetchScriptContent" :disabled="loadingScript">
+                            {{ loadingScript ? 'Loading…' : (showScript ? 'Hide' : 'View') + ' Script' }}
                         </SecondaryButton>
                     </div>
 
                     <div v-if="showScript" class="bg-gray-900 text-green-400 p-4 rounded font-mono text-xs overflow-auto max-h-96">
-                        <pre>{{ mikrotik.onboarding_script_content }}</pre>
+                        <pre>{{ scriptContent || 'No script available. Use Download to fetch the file.' }}</pre>
                     </div>
                 </div>
 
