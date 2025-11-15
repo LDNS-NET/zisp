@@ -164,8 +164,9 @@ class FixMikrotikPhoneHome extends Command
                 // Ignore if doesn't exist
             }
 
-            // Create script
-            $scriptSource = ':local syncUrl "' . $syncUrl . '"; :local routerIp ""; :do { :foreach id in=[/ip address find] do={ :local ipAddr [/ip address get $id address]; :local slash [:find $ipAddr "/"]; :local ipOnly $ipAddr; :if ($slash != -1) do={ :set ipOnly [:pick $ipAddr 0 $slash] }; :if ([:pick $ipOnly 0 3] != "127" && [:len $routerIp] = 0) do={ :set routerIp $ipOnly }; }; } on-error={ :put "Error getting IP addresses" }; :if ([:len $routerIp] > 0) do={ :do { :local postData ("ip_address=" . $routerIp); /tool fetch url=$syncUrl http-method=post http-data=$postData keep-result=no; :put ("Phone-home successful: " . $routerIp); } on-error={ :put "Phone-home failed: could not reach server" }; } else={ :put "Phone-home skipped: no router IP found" };';
+            // Create script with mode parameter for RouterOS v7+
+            $fetchMode = strpos($syncUrl, 'https://') === 0 ? 'https' : 'http';
+            $scriptSource = ':local syncUrl "' . $syncUrl . '"; :local routerIp ""; :do { :foreach id in=[/ip address find] do={ :local ipAddr [/ip address get $id address]; :local slash [:find $ipAddr "/"]; :local ipOnly $ipAddr; :if ($slash != -1) do={ :set ipOnly [:pick $ipAddr 0 $slash] }; :if ([:pick $ipOnly 0 3] != "127" && [:len $routerIp] = 0) do={ :set routerIp $ipOnly }; }; } on-error={ :put "Error getting IP addresses" }; :if ([:len $routerIp] > 0) do={ :do { :local postData ("ip_address=" . $routerIp); :local fetchMode "' . $fetchMode . '"; /tool fetch mode=$fetchMode url=$syncUrl http-method=post http-data=$postData keep-result=no; :put ("Phone-home successful: " . $routerIp); } on-error={ :put "Phone-home failed: could not reach server" }; } else={ :put "Phone-home skipped: no router IP found" };';
 
             $query = new Query('/system/script/add');
             $query->equal('name', 'zisp-phone-home');
