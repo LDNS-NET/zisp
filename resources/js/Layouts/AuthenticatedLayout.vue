@@ -62,7 +62,6 @@ watch(collapsed, (val) => {
             :class="['fixed inset-y-0 left-0 z-40 flex-shrink-0 transform bg-white border-r border-gray-100 shadow-lg transition-all duration-200 ease-in-out lg:relative lg:translate-x-0 dark:bg-gray-800 dark:border-gray-700', collapsed ? 'w-16 sm:w-20 md:w-20' : 'w-64 sm:w-72 md:w-64', sidebarOpen ? 'translate-x-0' : '-translate-x-full']"
             role="navigation"
             aria-label="Main sidebar"
-            :aria-hidden="!sidebarOpen"
             :data-collapsed="collapsed"
             class="aside-root"
         >
