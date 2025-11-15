@@ -291,14 +291,14 @@ function downloadAdvancedConfig(router) {
     }
 }
 
-// Status polling functions
+/*// Status polling functions
 function startStatusPolling() {
     // Poll every 30 seconds to get updated router status
     // This matches the backend's 3-minute check cycle (we poll more frequently for better UX)
     statusPollInterval = setInterval(() => {
         refreshRouterStatus();
     }, 30000); // 30 seconds
-}
+}*/
 
 function stopStatusPolling() {
     if (statusPollInterval) {
