@@ -14,6 +14,7 @@ use App\Models\Tenants\{
 };
 use App\Services\{MikrotikService, MikrotikScriptGenerator};
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 
@@ -140,6 +141,8 @@ class TenantMikrotikController extends Controller
             'radius_secret' => 'ZyraafSecret123', // TODO: Get from tenant settings
         ]);
         
+        $this->registerRadiusNas($router);
+
         // Log the created router details for debugging
         Log::info('MikroTik router created', [
             'router_id' => $router->id,
@@ -242,6 +245,8 @@ class TenantMikrotikController extends Controller
         $oldIp = $router->ip_address;
         $router->ip_address = $ip;
         $router->save();
+
+        $this->registerRadiusNas($router);
 
         Log::info('Router IP address set', [
             'router_id' => $router->id,
@@ -441,6 +446,8 @@ class TenantMikrotikController extends Controller
             }
 
             $router->update($updateData);
+
+            $this->registerRadiusNas($router);
 
             // Log the sync
             $router->logs()->create([
@@ -854,6 +861,39 @@ class TenantMikrotikController extends Controller
         return response($script)
             ->header('Content-Type', 'text/plain')
             ->header('Content-Disposition', "attachment; filename=advanced_config_router_{$router->id}.rsc");
+    }
+
+    private function registerRadiusNas(TenantMikrotik $router): void
+    {
+        if (!$router->ip_address) {
+            return;
+        }
+
+        $nasIp = $router->ip_address;
+
+        $exists = DB::connection('mysql_radius')
+            ->table('nas')
+            ->where('nasname', $nasIp)
+            ->exists();
+
+        if ($exists) {
+            return;
+        }
+
+        $shortname = 'mtk-' . $router->id;
+
+        DB::connection('mysql_radius')
+            ->table('nas')
+            ->insert([
+                'nasname' => $nasIp,
+                'shortname' => $shortname,
+                'type' => 'mikrotik',
+                'secret' => env('RADIUS_SECRET', 'testing123'),
+                'server' => '127.0.0.1',
+                'ports' => null,
+                'community' => null,
+                'description' => 'Tenant router ' . $router->id,
+            ]);
     }
 
     /**
