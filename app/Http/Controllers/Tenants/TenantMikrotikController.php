@@ -327,7 +327,7 @@ class TenantMikrotikController extends Controller
             : null;
 
         // Get server IP (trusted IP) - use config or request IP
-        $trustedIp = config('app.server_ip') ?? request()->server('SERVER_ADDR') ?? '207.154.204.144';
+        $trustedIp = config('app.server_ip') ?? request()->server('SERVER_ADDR') ?? '207.154.232.10';
         
         $script = $scriptGenerator->generate([
             'name' => $router->name,
@@ -365,7 +365,7 @@ class TenantMikrotikController extends Controller
             : null;
 
         // Get server IP (trusted IP) - use config or request IP
-        $trustedIp = config('app.server_ip') ?? request()->server('SERVER_ADDR') ?? '207.154.204.144';
+        $trustedIp = config('app.server_ip') ?? request()->server('SERVER_ADDR') ?? '207.154.232.10';
         
         $script = $scriptGenerator->generate([
             'name' => $router->name,
@@ -376,8 +376,8 @@ class TenantMikrotikController extends Controller
             'ca_url' => $caUrl,
             'api_port' => $router->api_port ?? 8728,
             'trusted_ip' => $trustedIp,
-            'radius_ip' => '207.154.204.144', // TODO: Get from tenant settings
-            'radius_secret' => 'ZyraafSecret123', // TODO: Get from tenant settings
+            'radius_ip' => env('RADIUS_IP', '207.154.232.10'), // TODO: Get from tenant settings
+            'radius_secret' => env('RADIUS_SECRET', 'testing123'), // TODO: Get from tenant settings
         ]);
 
         return Inertia::render('Mikrotiks/SetupScript', compact('router', 'script'));
