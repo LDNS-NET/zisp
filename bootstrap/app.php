@@ -24,5 +24,8 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->renderable(function (\Stancl\Tenancy\Exceptions\TenantCouldNotBeIdentifiedException $e, \Illuminate\Http\Request $request) {
+            $centralRegisterUrl = rtrim(config('app.url'), '/') . '/register';
+            return redirect()->away($centralRegisterUrl);
+        });
     })->create();

@@ -23,7 +23,26 @@ class EnsureTenantDomain
 {
     public function handle(Request $request, Closure $next): Response
     {
+        $host = $request->getHost();
+        $centralDomains = config('tenancy.central_domains', []);
+        $centralRegisterUrl = rtrim(config('app.url'), '/') . '/register';
+
+        // 1. If host is a central domain, simply proceed.
+        if (in_array($host, $centralDomains, true)) {
+            return $next($request);
+        }
+
+        // 2. Check if this host exists in `domains` table. If not → redirect to central registration.
+        if (! \Stancl\Tenancy\Database\Models\Domain::where('domain', $host)->exists()) {
+            return redirect()->away($centralRegisterUrl);
+        }
+
+        // 3. If guest (unauthenticated) and not already on /login → redirect to tenant login.
         if (!Auth::check()) {
+            if (!$request->is('login', 'login/*')) {
+                return redirect()->to('/login');
+            }
+            // Already on login -> let it through
             return $next($request);
         }
 
