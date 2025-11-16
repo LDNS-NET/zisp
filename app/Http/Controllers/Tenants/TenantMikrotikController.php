@@ -12,7 +12,7 @@ use App\Models\Tenants\{
     TenantActiveSession,
     TenantRouterAlert
 };
-use App\Services\{MikrotikService, MikrotikScriptGenerator};
+use App\Services\{MikrotikService, MikrotikScriptGenerator, TenantHotspotService};
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -123,7 +123,7 @@ class TenantMikrotikController extends Controller
             : null;
 
         // Get server IP (trusted IP) - use config or request IP
-        $trustedIp = config('app.server_ip') ?? request()->server('SERVER_ADDR') ?? '207.154.204.144';
+        $trustedIp = config('app.server_ip') ?? request()->server('SERVER_ADDR') ?? '207.154.232.10';
         
         // Ensure API port is set (should already be set in create, but double-check)
         $apiPort = $router->api_port ?? 8728;
@@ -861,6 +861,42 @@ class TenantMikrotikController extends Controller
         return response($script)
             ->header('Content-Type', 'text/plain')
             ->header('Content-Disposition', "attachment; filename=advanced_config_router_{$router->id}.rsc");
+    }
+
+    /**
+     * Provision MikroTik hotspot profile + server for this tenant on the given router.
+     */
+    public function provisionHotspot($id, TenantHotspotService $hotspotService)
+    {
+        $router = TenantMikrotik::findOrFail($id);
+
+        try {
+            $hotspotService->provisionHotspotOnRouter($router);
+
+            $router->logs()->create([
+                'action' => 'provision_hotspot',
+                'message' => 'Hotspot profile and server provisioned on MikroTik.',
+                'status' => 'success',
+            ]);
+
+            return redirect()->route('mikrotiks.index')
+                ->with('success', 'Hotspot provisioned on router.');
+        } catch (\Throwable $e) {
+            Log::error('Failed to provision hotspot on MikroTik', [
+                'router_id' => $router->id,
+                'router_ip' => $router->ip_address,
+                'error' => $e->getMessage(),
+            ]);
+
+            $router->logs()->create([
+                'action' => 'provision_hotspot',
+                'message' => 'Failed to provision hotspot: ' . $e->getMessage(),
+                'status' => 'failed',
+            ]);
+
+            return redirect()->route('mikrotiks.index')
+                ->with('error', 'Failed to provision hotspot on router.');
+        }
     }
 
     private function registerRadiusNas(TenantMikrotik $router, ?string $publicIp = null): void

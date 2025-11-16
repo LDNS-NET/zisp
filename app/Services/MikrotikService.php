@@ -165,9 +165,13 @@ class MikrotikService
     }
 
     /**
-     * Get the RouterOS client instance
+     * Get the RouterOS client instance.
+     *
+     * This is public so that higher-level services (e.g. TenantHotspotService)
+     * can run advanced RouterOS commands while still reusing the connection
+     * handling and error logging in this service.
      */
-    protected function getClient()
+    public function getClient()
     {
         if (!$this->client) {
             if (!$this->connection) {

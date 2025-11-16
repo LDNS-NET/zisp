@@ -164,7 +164,7 @@ function viewRouter(router) {
 
 function deleteRouter(mikrotik) {
     if (confirm('Delete this router?')) {
-        router.delete(route('mikrotiks.destroy', mikrotik.id), {
+        Inertia.delete(route('mikrotiks.destroy', mikrotik.id), {
             onSuccess: () => {
                 toast.success('Router deleted successfully');
                 // Remove from local list
@@ -290,6 +290,18 @@ function downloadAdvancedConfig(router) {
     } catch (err) {
         toast.error('Error downloading advanced config');
     }
+}
+
+function provisionHotspot(router) {
+    formError.value = '';
+    Inertia.post(route('mikrotiks.provisionHotspot', router.id), {}, {
+        onSuccess: () => {
+            toast.success('Hotspot provisioned on router');
+        },
+        onError: () => {
+            toast.error('Failed to provision hotspot on router');
+        },
+    });
 }
 
 // Status polling functions
@@ -557,6 +569,20 @@ async function refreshRouterStatus() {
                                                         >
                                                             <ExternalLink
                                                                 class="h-5 w-5 text-purple-600"
+                                                            />
+                                                        </button>
+                                                        <button
+                                                            @click="
+                                                                provisionHotspot(
+                                                                    router,
+                                                                );
+                                                                closeAllActions();
+                                                            "
+                                                            title="Provision Hotspot"
+                                                            class="rounded p-2 hover:bg-gray-100"
+                                                        >
+                                                            <Wifi
+                                                                class="h-5 w-5 text-pink-600"
                                                             />
                                                         </button>
                                                         <button

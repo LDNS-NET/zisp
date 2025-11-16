@@ -41,7 +41,7 @@ const fetchPackages = async () => {
 const loginUser = async () => {
     try {
         const { data } = await axios.post(
-            '/api/captive-portal/login',
+            '/hotspot/login',
             loginForm.value,
         );
         if (data.success && data.user) {
@@ -59,7 +59,7 @@ const loginUser = async () => {
 
 const submitVoucher = async () => {
     try {
-        const { data } = await axios.post('/api/captive-portal/voucher', {
+        const { data } = await axios.post('/hotspot/voucher', {
             voucher_code: voucherCode.value,
         });
         if (data.success) {
