@@ -447,7 +447,7 @@ class TenantMikrotikController extends Controller
 
             $router->update($updateData);
 
-            $this->registerRadiusNas($router);
+            $this->registerRadiusNas($router, $request->ip());
 
             // Log the sync
             $router->logs()->create([
@@ -863,37 +863,104 @@ class TenantMikrotikController extends Controller
             ->header('Content-Disposition', "attachment; filename=advanced_config_router_{$router->id}.rsc");
     }
 
-    private function registerRadiusNas(TenantMikrotik $router): void
+    private function registerRadiusNas(TenantMikrotik $router, ?string $publicIp = null): void
     {
-        if (!$router->ip_address) {
+        if (!$router->ip_address && !$publicIp) {
             return;
         }
 
-        $nasIp = $router->ip_address;
+        $internalIp = $router->ip_address;
+        $nasIp = $publicIp ?: $internalIp;
 
-        $exists = DB::connection('mysql_radius')
-            ->table('nas')
-            ->where('nasname', $nasIp)
-            ->exists();
-
-        if ($exists) {
+        if (!$nasIp) {
             return;
         }
 
         $shortname = 'mtk-' . $router->id;
 
-        DB::connection('mysql_radius')
-            ->table('nas')
-            ->insert([
+        $dynamic = ($publicIp && $internalIp && $publicIp !== $internalIp) ? 'yes' : 'no';
+
+        $connection = DB::connection('mysql_radius');
+        $nasTable = $connection->table('nas');
+
+        $existing = $nasTable
+            ->where('shortname', $shortname)
+            ->first();
+
+        $secret = env('RADIUS_SECRET', 'testing123');
+
+        if ($existing) {
+            $updates = [];
+
+            if ($existing->nasname !== $nasIp) {
+                $updates['nasname'] = $nasIp;
+            }
+
+            if (property_exists($existing, 'dynamic') && $existing->dynamic !== $dynamic) {
+                $updates['dynamic'] = $dynamic;
+            }
+
+            if ($existing->secret !== $secret) {
+                $updates['secret'] = $secret;
+            }
+
+            if (!empty($updates)) {
+                $nasTable->where('id', $existing->id)->update($updates);
+
+                Log::info('RADIUS NAS entry updated for router', [
+                    'router_id' => $router->id,
+                    'shortname' => $shortname,
+                    'old_nasname' => $existing->nasname,
+                    'new_nasname' => $updates['nasname'] ?? $existing->nasname,
+                    'dynamic' => $updates['dynamic'] ?? ($existing->dynamic ?? null),
+                ]);
+
+                $router->logs()->create([
+                    'action' => 'radius_nas_update',
+                    'message' => 'RADIUS NAS entry updated',
+                    'status' => 'success',
+                    'response_data' => [
+                        'nasname' => $nasIp,
+                        'dynamic' => $dynamic,
+                        'public_ip' => $publicIp,
+                        'internal_ip' => $internalIp,
+                    ],
+                ]);
+            }
+
+            return;
+        }
+
+        $nasTable->insert([
+            'nasname' => $nasIp,
+            'shortname' => $shortname,
+            'type' => 'mikrotik',
+            'secret' => $secret,
+            'server' => '127.0.0.1',
+            'ports' => null,
+            'community' => null,
+            'description' => 'Tenant router ' . $router->id,
+            'dynamic' => $dynamic,
+        ]);
+
+        Log::info('RADIUS NAS entry created for router', [
+            'router_id' => $router->id,
+            'shortname' => $shortname,
+            'nasname' => $nasIp,
+            'dynamic' => $dynamic,
+        ]);
+
+        $router->logs()->create([
+            'action' => 'radius_nas_create',
+            'message' => 'RADIUS NAS entry created',
+            'status' => 'success',
+            'response_data' => [
                 'nasname' => $nasIp,
-                'shortname' => $shortname,
-                'type' => 'mikrotik',
-                'secret' => env('RADIUS_SECRET', 'testing123'),
-                'server' => '127.0.0.1',
-                'ports' => null,
-                'community' => null,
-                'description' => 'Tenant router ' . $router->id,
-            ]);
+                'dynamic' => $dynamic,
+                'public_ip' => $publicIp,
+                'internal_ip' => $internalIp,
+            ],
+        ]);
     }
 
     /**
