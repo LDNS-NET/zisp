@@ -25,7 +25,7 @@ Route::middleware([
     PreventAccessFromCentralDomains::class,
 ])->group(function () {
     Route::get('/', function () {
-        return 'This is your multi-tenant application. The id of the current tenant is ' . tenant('id');
+        return redirect()->route('tenants.hotspot.show');
     });
 
     // Tenant hotspot landing page (external URL used by MikroTik hotspot login-page)
