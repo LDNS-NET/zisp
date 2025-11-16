@@ -6,6 +6,7 @@ use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
+use Stancl\Tenancy\Contracts\Tenancy;
 
 /**
  * Ensure that an authenticated tenant user is always accessing the app
@@ -33,7 +34,23 @@ class EnsureTenantDomain
         }
 
         // 2. Check if this host exists in `domains` table. If not → redirect to central registration.
-        if (! \Stancl\Tenancy\Database\Models\Domain::where('domain', $host)->exists()) {
+        $domain = \Stancl\Tenancy\Database\Models\Domain::where('domain', $host)->first();
+        if (!$domain) {
+            return redirect()->away($centralRegisterUrl);
+        }
+
+        // 2b. A valid tenant domain was found – bootstrap tenancy early so that subsequent
+        //     code (e.g. Breeze login pages) runs in the correct tenant context. This is
+        //     important because the /login routes live outside the dedicated tenant route
+        //     file and therefore don't have the InitializeTenancyByDomain middleware.
+        try {
+            if (! app(Tenancy::class)->initialized) {
+                tenancy()->initialize($domain->tenant);
+            }
+        } catch (\Throwable $e) {
+            // If tenancy is already initialised we can safely ignore the exception.
+            // For any other error, fall back to central registration to avoid a 500.
+            report($e);
             return redirect()->away($centralRegisterUrl);
         }
 
