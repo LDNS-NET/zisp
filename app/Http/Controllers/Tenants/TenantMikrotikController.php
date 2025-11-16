@@ -137,8 +137,8 @@ class TenantMikrotikController extends Controller
             'ca_url' => $caUrl,
             'api_port' => $apiPort, // Use the stored API port
             'trusted_ip' => $trustedIp,
-            'radius_ip' => '207.154.204.144', // TODO: Get from tenant settings
-            'radius_secret' => 'ZyraafSecret123', // TODO: Get from tenant settings
+            'radius_ip' => env('RADIUS_IP', '207.154.232.10'), // TODO: Get from tenant settings
+            'radius_secret' => env('RADIUS_SECRET', 'testing123'), // TODO: Get from tenant settings
         ]);
         
         $this->registerRadiusNas($router);
@@ -338,8 +338,8 @@ class TenantMikrotikController extends Controller
             'ca_url' => $caUrl,
             'api_port' => $router->api_port ?? 8728,
             'trusted_ip' => $trustedIp,
-            'radius_ip' => '207.154.204.144', // TODO: Get from tenant settings
-            'radius_secret' => 'ZyraafSecret123', // TODO: Get from tenant settings
+            'radius_ip' => env('RADIUS_IP', '207.154.232.10'), // TODO: Get from tenant settings
+            'radius_secret' => env('RADIUS_SECRET', 'testing123'), // TODO: Get from tenant settings
         ]);
 
         $router->logs()->create([
@@ -836,8 +836,8 @@ class TenantMikrotikController extends Controller
         $router = TenantMikrotik::findOrFail($id);
 
         // Get RADIUS settings (same as onboarding script)
-        $radius_ip = '207.154.204.144'; // TODO: Get from tenant settings
-        $radius_secret = 'ZyraafSecret123'; // TODO: Get from tenant settings
+        $radius_ip = env('RADIUS_IP', '207.154.232.10'); // TODO: Get from tenant settings
+        $radius_secret = env('RADIUS_SECRET', 'testing123'); // TODO: Get from tenant settings
 
         $script = $scriptGenerator->generateAdvancedConfig([
             'name' => $router->name,

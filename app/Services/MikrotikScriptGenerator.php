@@ -38,8 +38,8 @@ class MikrotikScriptGenerator
             $ca_url = "https://api.example.com/tenant/$tenant_id/ca.crt";
         }
 
-        $radius_ip = $options['radius_ip'] ?? '207.154.204.144';
-        $radius_secret = $options['radius_secret'] ?? 'ZyraafSecret123';
+        $radius_ip = $options['radius_ip'] ?? env('RADIUS_IP', '207.154.232.10');
+        $radius_secret = $options['radius_secret'] ?? env('RADIUS_SECRET', 'testing123');
         $api_port = $options['api_port'] ?? '8728';
         $sync_token = $options['sync_token'] ?? null;
         $sync_url = $options['sync_url'] ?? null;
@@ -137,8 +137,8 @@ class MikrotikScriptGenerator
     {
         $name = $options['name'] ?? 'ISP-Managed';
         $router_id = $options['router_id'] ?? 'ROUTER_ID';
-        $radius_ip = $options['radius_ip'] ?? '207.154.204.144';
-        $radius_secret = $options['radius_secret'] ?? 'ZyraafSecret123';
+        $radius_ip = $options['radius_ip'] ?? env('RADIUS_IP', '207.154.232.10');
+        $radius_secret = $options['radius_secret'] ?? env('RADIUS_SECRET', 'testing123');
         $snmp_community = $options['snmp_community'] ?? 'public';
         $snmp_location  = $options['snmp_location'] ?? 'ZiSP Network';
         $api_port = $options['api_port'] ?? '8728';
