@@ -33,6 +33,25 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        $user = $request->user();
+
+        if ($user && $user->tenant_id && !$user->is_super_admin) {
+            $host = $request->getHost();
+            $centralDomains = config('tenancy.central_domains', []);
+
+            $tenant = $user->tenant;
+            $tenantDomain = $tenant ? optional($tenant->domains()->first())->domain : null;
+
+            if ($tenantDomain && (in_array($host, $centralDomains, true) || $host !== $tenantDomain)) {
+                Auth::guard('web')->logout();
+
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+
+                return redirect()->away('https://' . $tenantDomain . '/login');
+            }
+        }
+
         return redirect()->intended(route('dashboard', absolute: false));
     }
 
