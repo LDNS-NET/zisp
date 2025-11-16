@@ -44,7 +44,7 @@ class EnsureTenantDomain
         //     important because the /login routes live outside the dedicated tenant route
         //     file and therefore don't have the InitializeTenancyByDomain middleware.
         try {
-            if (! app(Tenancy::class)->initialized) {
+            if (! tenancy()->initialized) {
                 tenancy()->initialize($domain->tenant);
             }
         } catch (\Throwable $e) {
