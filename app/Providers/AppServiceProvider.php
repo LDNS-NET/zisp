@@ -35,6 +35,8 @@ class AppServiceProvider extends ServiceProvider
        Route::aliasMiddleware('check.subscription', CheckSubscription::class);
        // Register the SuperAdmin middleware globally
        Route::aliasMiddleware('superadmin', SuperAdminMiddleware::class);
+       // Central-domain only restrictions (welcome & registration)
+       Route::aliasMiddleware('central', \App\Http\Middleware\CentralDomainOnly::class);
        // Register the Tenant middleware globally
 
        Relation::enforceMorphMap([

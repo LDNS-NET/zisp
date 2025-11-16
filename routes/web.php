@@ -37,13 +37,15 @@ use App\Http\Controllers\Tenants\VoucherController;
 | Public Routes
 |--------------------------------------------------------------------------
 */
-Route::get('/', function () {
+Route::middleware('central')->group(function () {
+    Route::get('/', function () {
     return Inertia::render('Welcome', [
         'canLogin' => Route::has('login'),
         'canRegister' => Route::has('register'),
         'laravelVersion' => Application::VERSION,
         'phpVersion' => PHP_VERSION,
     ]);
+});
 });
 
 /*
