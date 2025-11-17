@@ -421,21 +421,34 @@ class TenantMikrotikController extends Controller
      */
     public function reprovision($id, MikrotikScriptGenerator $scriptGenerator)
     {
+        \DB::beginTransaction();
+        
         try {
-            $router = TenantMikrotik::findOrFail($id);
+            Log::info('Starting router reprovision', ['router_id' => $id]);
+            
+            // Find the router with necessary relationships
+            $router = TenantMikrotik::with(['openvpnProfile'])->findOrFail($id);
+            Log::info('Router found', ['router_id' => $id, 'name' => $router->name]);
 
-            $caUrl = optional($router->openvpnProfile)->ca_cert_path
-                ? route('mikrotiks.downloadCACert', $router->id)
-                : null;
+            // Get CA URL if OpenVPN profile exists
+            $caUrl = null;
+            if ($router->openvpnProfile && $router->openvpnProfile->ca_cert_path) {
+                $caUrl = route('mikrotiks.downloadCACert', $router->id);
+                Log::debug('Using OpenVPN CA URL', ['caUrl' => $caUrl]);
+            }
 
-            // Get server IP (trusted IP) - use config or request IP
+            // Get trusted IP for firewall rules
             $trustedIp = $this->getTrustedIpForScripts();
+            Log::debug('Using trusted IP', ['trustedIp' => $trustedIp]);
             
-            // Generate new sync token
+            // Generate and save new sync token
             $newSyncToken = Str::random(40);
-            $router->update(['sync_token' => $newSyncToken]);
+            $router->sync_token = $newSyncToken;
+            $router->save();
+            Log::info('Generated new sync token', ['router_id' => $id]);
             
-            $script = $scriptGenerator->generate([
+            // Prepare script parameters
+            $scriptParams = [
                 'name' => $router->name,
                 'username' => $router->router_username,
                 'router_password' => $router->router_password,
@@ -447,19 +460,42 @@ class TenantMikrotikController extends Controller
                 'api_addresses' => $trustedIp,
                 'trusted_ip' => $trustedIp,
                 'trusted_networks' => [$trustedIp],
-                'radius_ip' => env('RADIUS_IP', '207.154.232.10'),
-                'radius_secret' => env('RADIUS_SECRET', 'testing123'),
+                'radius_ip' => config('services.radius.ip', env('RADIUS_IP', '207.154.232.10')),
+                'radius_secret' => config('services.radius.secret', env('RADIUS_SECRET', 'testing123')),
                 'radius_timeout' => '3000ms',
                 'radius_accounting' => true,
-            ]);
+            ];
+            
+            Log::debug('Script parameters prepared', array_merge($scriptParams, ['router_password' => '***']));
+            
+            // Generate the router configuration script
+            $script = $scriptGenerator->generate($scriptParams);
+            
+            if (empty($script)) {
+                throw new \RuntimeException('Failed to generate router configuration script');
+            }
+            
+            Log::debug('Script generated successfully', ['script_length' => strlen($script)]);
 
-            // Log the reprovisioning
-            $router->logs()->create([
+            // Log the successful reprovisioning
+            $log = $router->logs()->create([
                 'action' => 'reprovision',
                 'message' => 'Router reprovisioned with new sync token',
                 'status' => 'success',
                 'ip_address' => request()->ip(),
+                'response_data' => [
+                    'script_generated' => !empty($script),
+                    'script_length' => strlen($script),
+                    'trusted_ip' => $trustedIp,
+                ]
             ]);
+            
+            Log::info('Router reprovisioned successfully', [
+                'router_id' => $id,
+                'log_id' => $log->id,
+            ]);
+            
+            \DB::commit();
 
             // Return appropriate response based on request type
             if (request()->wantsJson() || request()->is('api/*')) {
@@ -477,16 +513,43 @@ class TenantMikrotikController extends Controller
             ]);
             
         } catch (\Exception $e) {
-            Log::error('Router reprovision failed', [
+            \DB::rollBack();
+            
+            $errorContext = [
                 'router_id' => $id,
                 'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
                 'trace' => $e->getTraceAsString(),
-            ]);
+                'request_data' => request()->all(),
+            ];
+            
+            Log::error('Router reprovision failed', $errorContext);
+            
+            // Log the failed attempt
+            if (isset($router)) {
+                $router->logs()->create([
+                    'action' => 'reprovision',
+                    'message' => 'Failed to reprovision router: ' . $e->getMessage(),
+                    'status' => 'failed',
+                    'ip_address' => request()->ip(),
+                    'response_data' => [
+                        'error' => $e->getMessage(),
+                        'file' => $e->getFile(),
+                        'line' => $e->getLine(),
+                    ]
+                ]);
+            }
             
             if (request()->wantsJson() || request()->is('api/*')) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Failed to reprovision router: ' . $e->getMessage(),
+                    'error_details' => config('app.debug') ? [
+                        'message' => $e->getMessage(),
+                        'file' => $e->getFile(),
+                        'line' => $e->getLine(),
+                    ] : null,
                 ], 500);
             }
             
