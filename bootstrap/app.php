@@ -15,19 +15,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             \App\Http\Middleware\HandleInertiaRequests::class,
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
-        ]);
-
-        // Register custom middleware aliases
-        $middleware->alias([
-            'central' => \App\Http\Middleware\CentralDomainOnly::class,
-            'tenant.domain' => \App\Http\Middleware\EnsureTenantDomain::class,
-            'tenant.auth' => \App\Http\Middleware\TenantAuth::class,
+            \App\Http\Middleware\EnsureTenantDomain::class,
         ]);
 
         // Exempt sync endpoint from CSRF (uses token-based auth)
         $middleware->validateCsrfTokens(except: [
             'mikrotiks/*/sync',
-            'mikrotiks/*/register-wireguard',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

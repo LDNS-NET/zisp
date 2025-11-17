@@ -34,57 +34,168 @@ use App\Http\Controllers\Tenants\VoucherController;
 
 /*
 |--------------------------------------------------------------------------
-| Central Domain Routes (zyraaf.cloud)
-|--------------------------------------------------------------------------
-| These routes are ONLY accessible on central domains:
-| - Welcome/Landing page
-| - Registration pages  
-| - Central authentication
-| - Marketing pages
-| - Public API endpoints
-*/
-
-/*
-|--------------------------------------------------------------------------
-| Public Landing Page (Central Domain Only)
+| Public Routes
 |--------------------------------------------------------------------------
 */
-Route::middleware(['web', 'tenant.domain', 'central'])->group(function () {
+Route::middleware('central')->group(function () {
     Route::get('/', function () {
-        return Inertia::render('Welcome', [
-            'canLogin' => Route::has('login'),
-            'canRegister' => Route::has('register'),
-            'laravelVersion' => Application::VERSION,
-            'phpVersion' => PHP_VERSION,
-        ]);
-    })->name('welcome');
+    return Inertia::render('Welcome', [
+        'canLogin' => Route::has('login'),
+        'canRegister' => Route::has('register'),
+        'laravelVersion' => Application::VERSION,
+        'phpVersion' => PHP_VERSION,
+    ]);
+});
 });
 
 /*
 |--------------------------------------------------------------------------
-| Public API Endpoints (Token-based authentication)
+| Public MikroTik Sync Endpoint (Token-based authentication)
 |--------------------------------------------------------------------------
-| These endpoints are called by MikroTik routers and use token-based auth
-| They are accessible from any domain but require valid sync tokens
+| This endpoint is called by MikroTik routers after running the onboarding script.
+| It uses token-based authentication (sync_token) instead of session auth.
 */
-Route::post('mikrotiks/{mikrotik}/sync', [\App\Http\Controllers\Tenants\TenantMikrotikController::class, 'sync'])->name('mikrotiks.sync');
+Route::post('mikrotiks/{mikrotik}/sync', [TenantMikrotikController::class, 'sync'])->name('mikrotiks.sync');
+
+// WireGuard registration endpoint (public, token-authenticated)
 Route::post('mikrotiks/{mikrotik}/register-wireguard', [\App\Http\Controllers\Tenants\TenantMikrotikController::class, 'registerWireguard'])->name('mikrotiks.registerWireguard');
 
 /*
 |--------------------------------------------------------------------------
-| Central Authentication Routes
+| Authenticated + Subscription Checked Routes (Tenants)
 |--------------------------------------------------------------------------
-| Standard Laravel authentication routes - only accessible on central domains
 */
-Route::middleware(['web', 'tenant.domain'])->group(function () {
-    require __DIR__.'/auth.php';
-});
+
+Route::middleware(['auth', 'verified', 'check.subscription'])
+    ->group(function () {
+
+
+        // Dashboard
+        Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+        Route::get('/dashboard/data', [DashboardController::class, 'data'])->name('dashboard.data');
+
+     //Active Users
+        Route::resource('activeusers', TenantActiveUsersController::class);
+
+        //tenants packages
+        Route::resource('packages', PackageController::class)->except(['show']);
+        Route::delete('/packages/bulk-delete', [PackageController::class, 'bulkDelete'])->name('packages.bulk-delete');
+
+        //network users( tenants )
+        Route::resource('users', TenantUserController::class);
+        Route::delete('/users/bulk-delete', [TenantUserController::class, 'bulkDelete'])->name('users.bulk-delete');
+        Route::post('users/details', [TenantUserController::class, 'update'])->name('users.details.update');
+    
+
+        //Leads
+        Route::resource('leads', TenantLeadController::class)->only(['index', 'store', 'update', 'destroy']);
+        Route::delete('leads/bulk-delete', [TenantLeadController::class, 'bulkDelete'])->name('leads.bulk-delete');
+
+        //tickets
+        Route::resource('tickets', TenantTicketController::class)->only(['index', 'store', 'update', 'destroy']);
+        Route::delete('tickets/bulk-delete', [TenantTicketController::class, 'bulkDelete'])->name('tickets.bulk-delete');
+        Route::put('/tickets/{ticket}/resolve', [TenantTicketController::class, 'resolve'])->name('tickets.resolve');
+
+        //Equipment
+        Route::resource('equipment', TenantEquipmentController::class)->only(['index', 'store', 'update', 'destroy']);
+        Route::delete('/equipment/bulk-delete', [TenantEquipmentController::class, 'bulkDelete' ])->name('equipment.bulk-delete');
+        
+        //vouchers
+        Route::resource('vouchers', VoucherController::class);
+        Route::post('/vouchers/{voucher}/send', [VoucherController::class, 'send'])->name('vouchers.send');
+        Route::delete('/vouchers/bulk-delete', [VoucherController::class, 'bulkDelete'])->name('vouchers.bulk-delete');
+
+        //Payments
+        Route::resource('payments', TenantPaymentController::class)->only(['index', 'store', 'update', 'destroy']);
+        Route::delete('/payments/bulk-delete', [TenantPaymentController::class, 'bulkDelete' ])->name('payments.bulk-delete');
+
+        //Invoices
+        Route::resource('invoices', TenantInvoiceController::class)->only(['index', 'store', 'update', 'destroy']);
+        Route::delete('/invoices/bulk-delete', [TenantInvoiceController::class, 'bulkDelete'])->name('invoices.bulk-delete');
+
+        //Expenses
+        Route::resource('expenses', TenantExpensesController::class)->only(['index', 'store', 'update', 'destroy']);
+        Route::delete('/expenses/bulk-delete', [TenantExpensesController::class, 'bulkDelete' ])->name('expenses.bulk-delete');
+        
+        //SMS
+        Route::resource('sms', TenantSMSController::class)->only(['index','create', 'store', 'destroy']);
+
+        // SMS Templates
+        Route::resource('smstemplates', TenantSMSTemplateController::class)->only(['index', 'create','update', 'store', 'destroy']);
+
+        //Hotspot Settings
+        Route::get('settings/hotspot', [TenantHotspotSettingsController::class, 'edit'])->name('settings.hotspot.edit');
+        Route::post('settings/hotspot', [TenantHotspotSettingsController::class, 'update'])->name('settings.hotspot.update');
+
+        //payment gateways settings
+        Route::get('settings/payment', [TenantPaymentGatewayController::class, 'edit'])->name('settings.payment.edit');
+        Route::post('settings/payment', [TenantPaymentGatewayController::class, 'update'])->name('settings.payment.update');
+
+        //sms gateway settings
+        Route::get('settings/sms', [TenantSmsGatewayController::class, 'edit'])->name('settings.sms.edit');
+        Route::post('settings/sms', [TenantSmsGatewayController::class, 'update'])->name('settings.sms.update');
+        Route::get('/settings/sms/show', [TenantSmsGatewayController::class, 'show'])->name('settings.sms.show');
+        Route::get('/settings/sms/json', [SmsGatewayController::class, 'getGateway'])->name('settings.sms.json');
+
+
+
+        //general settings
+        Route::get('settings/general', [TenantGeneralSettingsController::class, 'edit'])->name('settings.general.edit');
+        Route::post('settings/general', [TenantGeneralSettingsController::class, 'update'])->name('settings.general.update');
+
+        //mikrotiks
+        Route::resource('mikrotiks', TenantMikrotikController::class);
+        Route::get('mikrotiks/{mikrotik}/test-connection', [TenantMikrotikController::class, 'testConnection'])->name('mikrotiks.testConnection');
+        Route::get('mikrotiks/{mikrotik}/ping', [TenantMikrotikController::class, 'pingRouter'])->name('mikrotiks.ping');
+        Route::get('mikrotiks/{mikrotik}/status', [TenantMikrotikController::class, 'getStatus'])->name('mikrotiks.status');
+        Route::post('mikrotiks/{mikrotik}/set-ip', [TenantMikrotikController::class, 'setIp'])->name('mikrotiks.setIp');
+        Route::post('mikrotiks/validate', [TenantMikrotikController::class, 'validateRouter'])->name('mikrotiks.validate');
+        Route::get('mikrotiks/{mikrotik}/download-setup-script', [TenantMikrotikController::class, 'downloadSetupScript'])->name('mikrotiks.downloadSetupScript');
+        Route::get('mikrotiks/{mikrotik}/download-radius-script', [TenantMikrotikController::class, 'downloadRadiusScript'])->name('mikrotiks.downloadRadiusScript');
+        Route::get('mikrotiks/{mikrotik}/download-advanced-config', [TenantMikrotikController::class, 'downloadAdvancedConfig'])->name('mikrotiks.downloadAdvancedConfig');
+        Route::get('mikrotiks/{mikrotik}/remote-management', [TenantMikrotikController::class, 'remoteManagement'])->name('mikrotiks.remoteManagement');
+        Route::get('mikrotiks/{mikrotik}/ca.crt', [TenantMikrotikController::class, 'downloadCACert'])->name('mikrotiks.downloadCACert');
+        Route::get('mikrotiks/{mikrotik}/reprovision', [TenantMikrotikController::class, 'reprovision'])->name('mikrotiks.reprovision');
+        Route::post('mikrotiks/{mikrotik}/provision-hotspot', [TenantMikrotikController::class, 'provisionHotspot'])->name('mikrotiks.provisionHotspot');
+        // Note: sync route is defined in Public Routes section above (no auth required)
+
+
+        //captive portal
+        Route::get('/captive-portal', function () {
+        return Inertia::render('CaptivePortal/Index');
+        })->name('captive-portal');
+
+        // Fetch available hotspot packages
+        Route::get('/hotspot/packages', [CaptivePortalController::class, 'packages']);
+
+        // Login with username & password (Hotspot)
+        Route::post('/hotspot/login', [CaptivePortalController::class, 'login']);
+
+        // Login using a voucher
+        Route::post('/hotspot/voucher', [CaptivePortalController::class, 'voucher']);
+
+        // Pay for access
+        Route::post('/hotspot/pay', [CaptivePortalController::class, 'pay']);
+
+        // Callback from IntaSend after payment
+        Route::post('/hotspot/payment/callback', [CaptivePortalController::class, 'paymentCallback']);
+
+
+        // Tenant settings routes
+
+        
+
+    });
+
+
+
+
+
 
 /*
 |--------------------------------------------------------------------------
-| Payment Success Callback (Public)
+| Payment Success Callback | Works for system renewals
 |--------------------------------------------------------------------------
-| Works for system renewals - accessible from any domain
 */
 Route::get('/payment/success', function () {
     $user = auth()->user();
@@ -94,14 +205,22 @@ Route::get('/payment/success', function () {
             'is_suspended' => false,
         ]);
     }
-    return redirect()->route('dashboard');
-})->name('payment.success');
+    return redirect()->route('dashboard');})->name('payment.success');
+
+
+
+
+
+
+
+
+
+
 
 /*
 |--------------------------------------------------------------------------
-| Profile Routes (Authenticated Users)
+| Profile Routes
 |--------------------------------------------------------------------------
-| User profile management - accessible from any valid domain context
 */
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -109,17 +228,28 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
+
+
+
+
+
+
+
+
+
 /*
 |--------------------------------------------------------------------------
-| SuperAdmin Routes (Central Domain Only)
+| SuperAdmin Routes
 |--------------------------------------------------------------------------
-| Super admin functionality - restricted to central domains only
 */
-Route::middleware(['auth', 'superadmin', 'tenant.domain', 'central'])
+Route::middleware(['auth', 'superadmin'])
     ->prefix('superadmin')
     ->name('superadmin.')
     ->group(function () {
+        // Dashboard
         Route::get('/dashboard', [SuperAdminController::class, 'dashboard'])->name('dashboard');
-        
-        // Additional superadmin routes can be added here
+
+        // other superadmin routes
     });
+
+require __DIR__.'/auth.php';
