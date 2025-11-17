@@ -28,11 +28,6 @@ Route::middleware([
     PreventAccessFromCentralDomains::class,
 ])->group(function () {
     
-    // Tenant root - redirect to hotspot landing page
-    Route::get('/', function () {
-        return redirect()->route('tenants.hotspot.show');
-    });
-
     // Tenant hotspot landing page (external URL used by MikroTik hotspot login-page)
     Route::get('/hotspot', [CaptivePortalController::class, 'show'])
         ->name('tenants.hotspot.show');

@@ -27,6 +27,7 @@ use App\Http\Controllers\Tenants\TenantPayoutSettingsController;
 use App\Http\Controllers\Tenants\TenantSettingsController;
 use App\Http\Controllers\Tenants\TenantSMSController;
 use App\Http\Controllers\Tenants\TenantSMSTemplateController;
+use App\Http\Controllers\Tenants\TenantSmsGatewayController;
 use App\Http\Controllers\Tenants\TenantTicketController;
 use App\Http\Controllers\Tenants\TenantUserController;
 use App\Http\Controllers\Tenants\TenantWhatsappGatewayController;
@@ -37,15 +38,13 @@ use App\Http\Controllers\Tenants\VoucherController;
 | Public Routes
 |--------------------------------------------------------------------------
 */
-Route::middleware('central')->group(function () {
-    Route::get('/', function () {
+Route::get('/', function () {
     return Inertia::render('Welcome', [
         'canLogin' => Route::has('login'),
         'canRegister' => Route::has('register'),
         'laravelVersion' => Application::VERSION,
         'phpVersion' => PHP_VERSION,
     ]);
-});
 });
 
 /*
@@ -135,7 +134,7 @@ Route::middleware(['auth', 'verified', 'check.subscription', 'tenant.domain'])
         Route::get('settings/sms', [TenantSmsGatewayController::class, 'edit'])->name('settings.sms.edit');
         Route::post('settings/sms', [TenantSmsGatewayController::class, 'update'])->name('settings.sms.update');
         Route::get('/settings/sms/show', [TenantSmsGatewayController::class, 'show'])->name('settings.sms.show');
-        Route::get('/settings/sms/json', [SmsGatewayController::class, 'getGateway'])->name('settings.sms.json');
+        Route::get('/settings/sms/json', [TenantSmsGatewayController::class, 'getGateway'])->name('settings.sms.json');
 
 
 
