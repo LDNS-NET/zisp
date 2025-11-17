@@ -85,19 +85,7 @@ class EnsureTenantDomain
             return redirect()->away($centralRegisterUrl);
         }
 
-        // 3. Initialize tenant context for this subdomain
-        // This ensures we're working with the correct tenant data
-        try {
-            $tenant = \Stancl\Tenancy\Tenancy::initialize(tenant: \Stancl\Tenancy\Database\Models\Domain::where('domain', $host)->first()->tenant);
-        } catch (\Exception $e) {
-            \Log::error('Failed to initialize tenant', [
-                'domain' => $host,
-                'error' => $e->getMessage(),
-            ]);
-            return redirect()->away($centralRegisterUrl);
-        }
-
-        // 4. If guest (unauthenticated) and not already on login routes → redirect to tenant login.
+        // 3. If guest (unauthenticated) and not already on login routes → redirect to tenant login.
         if (!Auth::check()) {
             // Allow access to login and related auth routes
             $allowedAuthRoutes = ['login', 'login/*', 'register', 'register/*', 'password/*', 'forgot-password'];
@@ -112,19 +100,22 @@ class EnsureTenantDomain
 
         $user = $request->user();
 
-        // 5. Super-admins are not restricted to a subdomain
+        // 4. Super-admins are not restricted to a subdomain
         if ($user->is_super_admin ?? false) {
             return $next($request);
         }
 
-        // 6. Verify that authenticated user belongs to this tenant
+        // 5. Verify that authenticated user belongs to this tenant
+        // Note: tenant() is available because InitializeTenancyByDomain middleware runs before this
         if ($user->tenant_id) {
+            $currentTenant = tenant();
+            
             // Ensure the user's tenant matches the current tenant
-            if ($user->tenant_id !== $tenant->id) {
+            if ($currentTenant && $user->tenant_id !== $currentTenant->id) {
                 \Log::warning('User accessing wrong tenant domain', [
                     'user_id' => $user->id,
                     'user_tenant_id' => $user->tenant_id,
-                    'current_tenant_id' => $tenant->id,
+                    'current_tenant_id' => $currentTenant->id,
                     'current_domain' => $host,
                 ]);
                 
