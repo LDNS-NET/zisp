@@ -60,6 +60,39 @@ class Handler extends ExceptionHandler
             return redirect()->guest('/login');
         });
 
+        // 2.5️⃣ Handle tenant users trying to access central domains
+        $this->renderable(function (\Illuminate\Auth\Access\AuthorizationException $e, Request $request) {
+            $host = $request->getHost();
+            $centralDomains = config('tenancy.central_domains', []);
+
+            // If this is a central domain and user is a tenant, redirect to their subdomain
+            if (in_array($host, $centralDomains, true) && auth()->check()) {
+                $user = auth()->user();
+                
+                if ($user->tenant_id && !($user->is_super_admin ?? false)) {
+                    $tenant = $user->tenant;
+                    if ($tenant) {
+                        $tenantDomain = optional($tenant->domains()->first())->domain;
+                        if ($tenantDomain) {
+                            \Log::info('Tenant user blocked from central domain, redirecting', [
+                                'user_id' => $user->id,
+                                'tenant_id' => $user->tenant_id,
+                                'central_host' => $host,
+                                'tenant_domain' => $tenantDomain,
+                            ]);
+                            
+                            // Logout and redirect to tenant subdomain
+                            auth()->logout();
+                            $request->session()->invalidate();
+                            $request->session()->regenerateToken();
+                            
+                            return redirect()->away("https://{$tenantDomain}/login");
+                        }
+                    }
+                }
+            }
+        });
+
         // 3️⃣ Handle 404 errors on tenant domains → redirect appropriately
         $this->renderable(function (NotFoundHttpException $e, Request $request) {
             $host = $request->getHost();

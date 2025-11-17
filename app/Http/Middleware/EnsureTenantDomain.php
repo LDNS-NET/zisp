@@ -28,8 +28,53 @@ class EnsureTenantDomain
         $centralDomains = config('tenancy.central_domains', []);
         $centralRegisterUrl = rtrim(config('app.url'), '/') . '/register';
 
-        // 1. If host is a central domain, simply proceed (central routes)
+        // 1. If host is a central domain, check if user is authenticated
         if (in_array($host, $centralDomains, true)) {
+            // If user is authenticated and is a tenant (not super admin), redirect to their subdomain
+            if (Auth::check()) {
+                $user = $request->user();
+                
+                // Check if this is a tenant user (has tenant_id and not super admin)
+                if ($user->tenant_id && !($user->is_super_admin ?? false)) {
+                    $tenant = $user->tenant;
+                    if ($tenant) {
+                        $tenantDomain = optional($tenant->domains()->first())->domain;
+                        if ($tenantDomain) {
+                            // Log the redirect for debugging
+                            \Log::info('Tenant user accessing central domain, redirecting to subdomain', [
+                                'user_id' => $user->id,
+                                'tenant_id' => $user->tenant_id,
+                                'central_host' => $host,
+                                'tenant_domain' => $tenantDomain,
+                                'requested_path' => $request->path(),
+                            ]);
+                            
+
+                            // Force logout from central domain and redirect to tenant subdomain
+                            Auth::guard('web')->logout();
+                            $request->session()->invalidate();
+                            $request->session()->regenerateToken();
+                            
+
+                            return redirect()->away("https://{$tenantDomain}/login");
+                        }
+                    }
+                    
+                    // User has tenant_id but no domain assigned - logout and redirect to registration
+                    \Log::warning('Tenant user has no domain assigned', [
+                        'user_id' => $user->id,
+                        'tenant_id' => $user->tenant_id,
+                    ]);
+                    
+                    Auth::guard('web')->logout();
+                    $request->session()->invalidate();
+                    $request->session()->regenerateToken();
+                    
+                    return redirect()->away($centralRegisterUrl);
+                }
+            }
+            
+            // Central domain - allow access (for guests, super admins, or central-only users)
             return $next($request);
         }
 
@@ -40,46 +85,65 @@ class EnsureTenantDomain
             return redirect()->away($centralRegisterUrl);
         }
 
-        // 3. If guest (unauthenticated) and not already on login routes → redirect to tenant login.
+        // 3. Initialize tenant context for this subdomain
+        // This ensures we're working with the correct tenant data
+        try {
+            $tenant = \Stancl\Tenancy\Tenancy::initialize(tenant: \Stancl\Tenancy\Database\Models\Domain::where('domain', $host)->first()->tenant);
+        } catch (\Exception $e) {
+            \Log::error('Failed to initialize tenant', [
+                'domain' => $host,
+                'error' => $e->getMessage(),
+            ]);
+            return redirect()->away($centralRegisterUrl);
+        }
+
+        // 4. If guest (unauthenticated) and not already on login routes → redirect to tenant login.
         if (!Auth::check()) {
             // Allow access to login and related auth routes
             $allowedAuthRoutes = ['login', 'login/*', 'register', 'register/*', 'password/*', 'forgot-password'];
-            
+
             if (!$this->requestMatchesPatterns($request, $allowedAuthRoutes)) {
                 return redirect()->to('/login');
             }
-            
+
             // Already on auth route -> let it through
             return $next($request);
         }
 
         $user = $request->user();
 
-        // Super-admins are not restricted to a subdomain
+        // 5. Super-admins are not restricted to a subdomain
         if ($user->is_super_admin ?? false) {
             return $next($request);
         }
 
-        // 4. Tenant users should always access through their correct subdomain
+        // 6. Verify that authenticated user belongs to this tenant
         if ($user->tenant_id) {
-            $tenant = $user->tenant;
-            if ($tenant) {
-                $tenantDomain = optional($tenant->domains()->first())->domain;
+            // Ensure the user's tenant matches the current tenant
+            if ($user->tenant_id !== $tenant->id) {
+                \Log::warning('User accessing wrong tenant domain', [
+                    'user_id' => $user->id,
+                    'user_tenant_id' => $user->tenant_id,
+                    'current_tenant_id' => $tenant->id,
+                    'current_domain' => $host,
+                ]);
                 
-                // If user is accessing from wrong subdomain, redirect to correct one
-                if ($tenantDomain && $host !== $tenantDomain) {
-                    return $this->forceLogoutToTenantDomain($request, $user, $tenantDomain);
-                }
-                
-                // If tenant exists but user has no valid tenant domain, logout
-                if (!$tenantDomain) {
-                    \Log::warning('User has tenant_id but no domain assigned', [
-                        'user_id' => $user->id, 
-                        'tenant_id' => $user->tenant_id
-                    ]);
-                    return $this->forceLogoutToTenantDomain($request, $user);
-                }
+                // Force logout and redirect to correct tenant domain
+                return $this->forceLogoutToCorrectTenantDomain($request, $user);
             }
+        } else {
+            // User is authenticated but has no tenant_id - shouldn't happen on tenant domain
+            \Log::warning('Non-tenant user accessing tenant domain', [
+                'user_id' => $user->id,
+                'domain' => $host,
+            ]);
+            
+            // Logout and redirect to central login
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+            
+            return redirect()->away(rtrim(config('app.url'), '/') . '/login');
         }
 
         return $next($request);
@@ -128,5 +192,35 @@ class EnsureTenantDomain
         $target = $tenantDomain ? 'https://' . $tenantDomain . '/login' : route('login');
 
         return redirect()->away($target);
+    }
+
+    /**
+     * Force logout user and redirect to their correct tenant domain
+     */
+    protected function forceLogoutToCorrectTenantDomain(Request $request, $user): Response
+    {
+        Auth::guard('web')->logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        // Get the user's correct tenant domain
+        if ($user->tenant) {
+            $tenantDomain = optional($user->tenant->domains()->first())->domain;
+            if ($tenantDomain) {
+                \Log::info('Redirecting user to correct tenant domain', [
+                    'user_id' => $user->id,
+                    'correct_domain' => $tenantDomain,
+                ]);
+                return redirect()->away("https://{$tenantDomain}/login");
+            }
+        }
+
+        // Fallback to central registration if no domain found
+        \Log::warning('No tenant domain found for user', [
+            'user_id' => $user->id,
+            'tenant_id' => $user->tenant_id,
+        ]);
+        
+        return redirect()->away(rtrim(config('app.url'), '/') . '/register');
     }
 }
