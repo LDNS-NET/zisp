@@ -1,13 +1,19 @@
-# ================= ZiSP RouterOS v7+ Onboarding Script =================
+# ==================== ZiSP RouterOS v7+ Onboarding Script ====================
 # Generated for router: {{name}}
 # Router ID: {{router_id}}
+# Generated on: [/system clock get date] at [/system clock get time]
 
+# ==================== Configuration ====================
 :local username "{{username}}"
 :local password "{{router_password}}"
 :local apiPort "{{api_port}}"
+:local apiSSL "{{api_ssl}}"
+:local apiAddresses "{{api_addresses}}"
 :local radiusSecret "{{radius_secret}}"
 :local radiusIp "{{radius_ip}}"
-:local trustedIp "{{trusted_ip}}"
+:local radiusTimeout "{{radius_timeout}}"
+:local radiusAccounting "{{radius_accounting}}"
+:local trustedIps "{{trusted_ips}}"
 :local wgServerEndpoint "{{wg_server_endpoint}}"
 :local wgServerPubKey "{{wg_server_pubkey}}"
 :local wgSubnet "{{wg_subnet}}"
@@ -36,28 +42,58 @@
     :put " - $ipAddr"
 }
 
-# ---------- RADIUS Configuration ----------
-:do {
-    /radius remove [find address=$radiusIp]
-} on-error={}
-
-:local radiusServices "ppp"
-:do {
-    /ip hotspot print
-    :set radiusServices "ppp,hotspot"
-} on-error={}
+# ==================== RADIUS Configuration ====================
 
 :do {
-    /radius add service=$radiusServices address=$radiusIp secret=$radiusSecret disabled=no timeout=3000ms accounting-port=1813 authentication-port=1812
-    :put "RADIUS configured: $radiusServices"
+    # Remove any existing RADIUS configurations
+    /radius remove [find]
+    
+    # Configure RADIUS for PPP
+    :do {
+        /radius add service=ppp address=$radiusIp secret=$radiusSecret \
+            timeout=$radiusTimeout disabled=no \
+            authentication-port=1812 accounting-port=1813 \
+            accounting=$radiusAccounting \
+            comment="ZiSP PPP RADIUS"
+        :put "RADIUS configured for PPP"
+    } on-error={
+        :put "Warning: Could not configure RADIUS for PPP"
+    }
+    
+    # Configure RADIUS for Hotspot if available
+    :do {
+        /ip hotspot print
+        /radius add service=hotspot address=$radiusIp secret=$radiusSecret \
+            timeout=$radiusTimeout disabled=no \
+            authentication-port=1812 accounting-port=1813 \
+            accounting=$radiusAccounting \
+            comment="ZiSP Hotspot RADIUS"
+        :put "RADIUS configured for Hotspot"
+    } on-error={
+        :put "Info: Hotspot not configured, skipping Hotspot RADIUS"
+    }
+    
+    # Configure RADIUS for User Manager if available
+    :do {
+        /radius add service=user-manager address=$radiusIp secret=$radiusSecret \
+            timeout=$radiusTimeout disabled=no \
+            authentication-port=1812 accounting-port=1813 \
+            accounting=$radiusAccounting \
+            comment="ZiSP User Manager RADIUS"
+        :put "RADIUS configured for User Manager"
+    } on-error={
+        :put "Info: Could not configure RADIUS for User Manager"
+    }
 } on-error={
-    :put "Warning: Could not configure RADIUS"
+    :put "Warning: Failed to configure RADIUS services"
 }
 
 # ---------- PPP AAA ----------
 :do {
     /ppp aaa set use-radius=yes accounting=yes interim-update=1h
 } on-error={:put "Warning: Could not configure PPP AAA"}
+
+# ==================== API Configuration ====================
 
 # ---------- API User ----------
 :local userExists [/user find name=$username]
@@ -69,23 +105,78 @@
     :put "API user created: $username"
 }
 
-# ---------- Firewall Rules for Trusted IP ----------
+# ---------- Enable API Service ----------
 :do {
-    /ip firewall filter remove [find comment="zisp-api"]
-} on-error={}
+    # Disable all API services first
+    /ip service disable [find where name~"api"]
+    
+    # Configure API service with SSL if enabled
+    :if ($apiSSL = "yes") do={
+        /ip service set [find name="api-ssl"] disabled=no port=$apiPort address=$apiAddresses
+        :put "API SSL service enabled on port $apiPort"
+    } else={
+        /ip service set [find name="api"] disabled=no port=$apiPort address=$apiAddresses
+        :put "API service enabled on port $apiPort"
+    }
+} on-error={
+    :put "Warning: API service configuration failed"
+}
+
+# ==================== Firewall Configuration ====================
+
 :do {
-    :local firstIn [/ip firewall filter find chain=input]
-    :local firstOut [/ip firewall filter find chain=output]
-    :if ([:len $firstIn] > 0) do={
-        /ip firewall filter add chain=input action=accept src-address=$trustedIp comment="zisp-api" place-before=[pick $firstIn 0]
-    } else={
-        /ip firewall filter add chain=input action=accept src-address=$trustedIp comment="zisp-api"
+    # Remove any existing zisp firewall rules
+    /ip firewall filter remove [find comment~"zisp-"]
+    
+    # Get the position of the first non-zisp rule
+    :local firstRule [/ip firewall filter find comment!~"zisp-" limit=1]
+    
+    # Allow established/related connections
+    /ip firewall filter add chain=input action=accept connection-state=established,related \
+        comment="zisp-allow-established" place-before=$firstRule
+    
+    # Allow ICMP (ping)
+    /ip firewall filter add chain=input action=accept protocol=icmp \
+        comment="zisp-allow-icmp" place-before=$firstRule
+    
+    # Allow trusted IPs for management (SSH, Winbox, API, etc.)
+    :foreach ip in=[:toarray [:parse "return {$trustedIps}"]] do={
+        /ip firewall filter add chain=input action=accept src-address=$ip \
+            dst-port=22,8291,8728,8729 \
+            protocol=tcp \
+            comment="zisp-trusted-ip-$ip" \
+            place-before=$firstRule
     }
-    :if ([:len $firstOut] > 0) do={
-        /ip firewall filter add chain=output action=accept dst-address=$trustedIp comment="zisp-api" place-before=[pick $firstOut 0]
-    } else={
-        /ip firewall filter add chain=output action=accept dst-address=$trustedIp comment="zisp-api"
-    }
+    
+    # Allow RADIUS traffic
+    /ip firewall filter add chain=output action=accept dst-address=$radiusIp \
+        dst-port=1812-1813 \
+        protocol=udp \
+        comment="zisp-radius-out" \
+        place-before=$firstRule
+        
+    /ip firewall filter add chain=input action=accept src-address=$radiusIp \
+        src-port=1812-1813 \
+        protocol=udp \
+        comment="zisp-radius-in" \
+        place-before=$firstRule
+    
+    # Allow DNS
+    /ip firewall filter add chain=output action=accept dst-port=53 protocol=udp \
+        comment="zisp-dns-out" \
+        place-before=$firstRule
+    
+    # Allow NTP
+    /ip firewall filter add chain=output action=accept dst-port=123 protocol=udp \
+        comment="zisp-ntp-out" \
+        place-before=$firstRule
+    
+    # Drop everything else in input chain (except established/related which we allowed earlier)
+    /ip firewall filter add chain=input action=drop \
+        comment="zisp-drop-all" \
+        place-before=$firstRule
+    
+    :put "Firewall rules configured"
 
     # Remove previous WireGuard-related rules to avoid duplicates
     :do { /ip firewall filter remove [find comment="zisp-wg"] } on-error={}
@@ -112,12 +203,41 @@
     :put "Warning: Firewall configuration failed"
 }
 
-# ---------- Enable API Service ----------
+# ==================== Security Hardening ====================
+
+# Disable unused services
 :do {
-    /ip service set api disabled=no port=$apiPort address=$trustedIp
-    :put "API service enabled on port $apiPort (restricted to $trustedIp)"
+    :local servicesToDisable ["api", "api-ssl", "ftp", "telnet", "www", "www-ssl", "ssh", "winbox"]
+    :foreach service in=$servicesToDisable do={
+        :if ([/ip service find name=$service] != "") do={
+            /ip service disable $service
+            :put "Disabled unused service: $service"
+        }
+    }
+    
+    # Enable and secure SSH
+    :if ([/ip service find name=ssh] != "") do={
+        /ip service set ssh port=22 address=$trustedIps disabled=no
+        :put "SSH service secured on port 22"
+    }
+    
+    # Enable and secure Winbox
+    :if ([/ip service find name=winbox] != "") do={
+        /ip service set winbox port=8291 address=$trustedIps disabled=no
+        :put "Winbox service secured on port 8291"
+    }
+    
+    # Enable and secure API
+    :if ($apiSSL = "yes") do={
+        /ip service set api-ssl port=$apiPort address=$apiAddresses disabled=no
+        :put "API SSL service enabled on port $apiPort"
+    } else={
+        /ip service set api port=$apiPort address=$apiAddresses disabled=no
+        :put "API service enabled on port $apiPort"
+    }
+    
 } on-error={
-    :put "Warning: API service configuration failed"
+    :put "Warning: Service configuration failed"
 }
 
 # ---------- WireGuard Setup ----------

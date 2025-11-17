@@ -30,6 +30,25 @@ class MikrotikScriptGenerator
         $router_id = $options['router_id'] ?? 'ROUTER_ID';
         $tenant_id = $options['tenant_id'] ?? 'TENANT_ID';
         $ca_url = $options['ca_url'] ?? null;
+        
+        // API configuration
+        $api_port = $options['api_port'] ?? '8728';
+        $api_ssl = $options['api_ssl'] ?? false;
+        $api_addresses = $options['api_addresses'] ?? '0.0.0.0/0';
+        
+        // RADIUS configuration
+        $radius_ip = $options['radius_ip'] ?? env('RADIUS_IP', '207.154.232.10');
+        $radius_secret = $options['radius_secret'] ?? env('RADIUS_SECRET', 'testing123');
+        $radius_timeout = $options['radius_timeout'] ?? '3000ms';
+        $radius_accounting = $options['radius_accounting'] ?? true;
+        
+        // Firewall configuration
+        $trusted_networks = $options['trusted_networks'] ?? [];
+        if (empty($trusted_networks)) {
+            $trusted_networks = [
+                $options['trusted_ip'] ?? (request()->server('SERVER_ADDR') ?: '207.154.204.144')
+            ];
+        }
 
         if (!$ca_url && !empty($router_id)) {
             $ca_url = route('mikrotiks.downloadCACert', ['mikrotik' => $router_id]);
@@ -38,9 +57,6 @@ class MikrotikScriptGenerator
             $ca_url = "https://api.example.com/tenant/$tenant_id/ca.crt";
         }
 
-        $radius_ip = $options['radius_ip'] ?? env('RADIUS_IP', '207.154.232.10');
-        $radius_secret = $options['radius_secret'] ?? env('RADIUS_SECRET', 'testing123');
-        $api_port = $options['api_port'] ?? '8728';
         $sync_token = $options['sync_token'] ?? null;
         $sync_url = $options['sync_url'] ?? null;
 
@@ -81,10 +97,15 @@ class MikrotikScriptGenerator
             }
         }
 
-        $trusted_ip = $options['trusted_ip'] ?? (request()->server('SERVER_ADDR') ?: '207.154.204.144');
-        if (is_string($trusted_ip) && strpos($trusted_ip, '/') === false && filter_var($trusted_ip, FILTER_VALIDATE_IP)) {
-            $trusted_ip .= '/32';
+        // Process trusted networks
+        $trusted_ips_processed = [];
+        foreach ($trusted_networks as $network) {
+            if (is_string($network) && strpos($network, '/') === false && filter_var($network, FILTER_VALIDATE_IP)) {
+                $network .= '/32';
+            }
+            $trusted_ips_processed[] = $network;
         }
+        $trusted_ips = implode(',', $trusted_ips_processed);
 
         $wg_server_endpoint = $options['wg_server_endpoint'] ?? config('wireguard.server_endpoint') ?? env('WG_SERVER_ENDPOINT', '');
         $wg_server_pubkey  = $options['wg_server_pubkey'] ?? config('wireguard.server_public_key') ?? env('WG_SERVER_PUBLIC_KEY', '');
