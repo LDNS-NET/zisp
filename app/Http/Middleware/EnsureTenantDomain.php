@@ -6,18 +6,19 @@ use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
+use Stancl\Tenancy\Database\Models\Domain;
 
 /**
- * Ensure that an authenticated tenant user is always accessing the app
- * through their own assigned tenant subdomain.
- *
- * Behaviour:
- *  - If the user is not authenticated → passthrough.
- *  - If the user is a super-admin (is_super_admin === true) → passthrough
- *  - Otherwise, compare the current request host with the first domain
- *    attached to the user's tenant. If they don't match OR if the host is in
- *    central_domains, log the user out and redirect them to their correct
- *    subdomain.
+ * Ensure Tenant Domain middleware handles:
+ * 1. Tenant domain validation against domains table
+ * 2. Session validation and proper redirects
+ * 3. Graceful handling of invalid subdomains
+ * 
+ * Behavior:
+ * - Valid tenant subdomain + active session → allow access
+ * - Valid tenant subdomain + no session → redirect to tenant login
+ * - Invalid subdomain → redirect to central registration
+ * - Central domains → passthrough
  */
 class EnsureTenantDomain
 {
@@ -27,22 +28,28 @@ class EnsureTenantDomain
         $centralDomains = config('tenancy.central_domains', []);
         $centralRegisterUrl = rtrim(config('app.url'), '/') . '/register';
 
-        // 1. If host is a central domain, simply proceed.
+        // 1. If host is a central domain, simply proceed (central routes)
         if (in_array($host, $centralDomains, true)) {
             return $next($request);
         }
 
         // 2. Check if this host exists in `domains` table. If not → redirect to central registration.
-        if (! \Stancl\Tenancy\Database\Models\Domain::where('domain', $host)->exists()) {
+        if (!Domain::where('domain', $host)->exists()) {
+            // Log the invalid domain attempt for debugging
+            \Log::info('Invalid tenant domain attempted', ['domain' => $host, 'ip' => $request->ip()]);
             return redirect()->away($centralRegisterUrl);
         }
 
-        // 3. If guest (unauthenticated) and not already on /login → redirect to tenant login.
+        // 3. If guest (unauthenticated) and not already on login routes → redirect to tenant login.
         if (!Auth::check()) {
-            if (!$request->is('login', 'login/*')) {
+            // Allow access to login and related auth routes
+            $allowedAuthRoutes = ['login', 'login/*', 'register', 'register/*', 'password/*', 'forgot-password'];
+            
+            if (!$this->requestMatchesPatterns($request, $allowedAuthRoutes)) {
                 return redirect()->to('/login');
             }
-            // Already on login -> let it through
+            
+            // Already on auth route -> let it through
             return $next($request);
         }
 
@@ -53,21 +60,24 @@ class EnsureTenantDomain
             return $next($request);
         }
 
-        // Tenant users should always have tenant_id
+        // 4. Tenant users should always access through their correct subdomain
         if ($user->tenant_id) {
-            $host = $request->getHost();
-            $centralDomains = config('tenancy.central_domains', []);
-
-            // If the request host is a central domain, always redirect
-            if (in_array($host, $centralDomains, true)) {
-                return $this->forceLogoutToTenantDomain($request, $user);
-            }
-
             $tenant = $user->tenant;
             if ($tenant) {
                 $tenantDomain = optional($tenant->domains()->first())->domain;
+                
+                // If user is accessing from wrong subdomain, redirect to correct one
                 if ($tenantDomain && $host !== $tenantDomain) {
                     return $this->forceLogoutToTenantDomain($request, $user, $tenantDomain);
+                }
+                
+                // If tenant exists but user has no valid tenant domain, logout
+                if (!$tenantDomain) {
+                    \Log::warning('User has tenant_id but no domain assigned', [
+                        'user_id' => $user->id, 
+                        'tenant_id' => $user->tenant_id
+                    ]);
+                    return $this->forceLogoutToTenantDomain($request, $user);
                 }
             }
         }
@@ -76,7 +86,33 @@ class EnsureTenantDomain
     }
 
     /**
-     * Log the user out and redirect to their tenant domain (or home page if unknown).
+     * Check if current request matches any of the given patterns
+     */
+    protected function requestMatchesPatterns(Request $request, array $patterns): bool
+    {
+        $path = $request->path();
+        
+        foreach ($patterns as $pattern) {
+            if ($this->patternMatches($pattern, $path)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * Simple pattern matching for route patterns (supports wildcards)
+     */
+    protected function patternMatches(string $pattern, string $path): bool
+    {
+        // Convert pattern to regex
+        $regex = str_replace('*', '.*', preg_quote($pattern, '/'));
+        return preg_match("/^{$regex}$/", $path);
+    }
+
+    /**
+     * Log the user out and redirect to their tenant domain (or central login if unknown).
      */
     protected function forceLogoutToTenantDomain(Request $request, $user, string $tenantDomain = null): Response
     {

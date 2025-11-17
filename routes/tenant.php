@@ -15,16 +15,20 @@ use App\Http\Controllers\Tenants\CaptivePortalController;
 | Here you can register the tenant routes for your application.
 | These routes are loaded by the TenantRouteServiceProvider.
 |
-| Feel free to customize them however you want. Good luck!
+| These routes are automatically wrapped with tenant-specific middleware:
+| - InitializeTenancyByDomain: Sets up tenant context
+| - PreventAccessFromCentralDomains: Prevents central domain access
+| - tenant.domain: Validates domain and handles authentication redirects
 |
 */
 
 Route::middleware([
     'web',
-    'tenant.domain', // Ensure tenant domain exists & handle unauthenticated redirects
     InitializeTenancyByDomain::class,
     PreventAccessFromCentralDomains::class,
 ])->group(function () {
+    
+    // Tenant root - redirect to hotspot landing page
     Route::get('/', function () {
         return redirect()->route('tenants.hotspot.show');
     });
@@ -34,10 +38,22 @@ Route::middleware([
         ->name('tenants.hotspot.show');
 
     // Public captive portal APIs, all scoped to the current tenant via Stancl tenancy
-    Route::get('/captive-portal/tenant', [CaptivePortalController::class, 'tenant']);
-    Route::get('/hotspot/packages', [CaptivePortalController::class, 'packages']);
-    Route::post('/hotspot/login', [CaptivePortalController::class, 'login']);
-    Route::post('/hotspot/voucher', [CaptivePortalController::class, 'voucher']);
-    Route::post('/hotspot/pay', [CaptivePortalController::class, 'pay']);
-    Route::post('/hotspot/payment/callback', [CaptivePortalController::class, 'paymentCallback']);
+    // These endpoints should be accessible without authentication for hotspot functionality
+    Route::prefix('captive-portal')->group(function () {
+        Route::get('/tenant', [CaptivePortalController::class, 'tenant']);
+        Route::get('/packages', [CaptivePortalController::class, 'packages']);
+        Route::post('/login', [CaptivePortalController::class, 'login']);
+        Route::post('/voucher', [CaptivePortalController::class, 'voucher']);
+        Route::post('/pay', [CaptivePortalController::class, 'pay']);
+        Route::post('/payment/callback', [CaptivePortalController::class, 'paymentCallback']);
+    });
+
+    // Legacy hotspot routes (maintained for backward compatibility)
+    Route::prefix('hotspot')->group(function () {
+        Route::get('/packages', [CaptivePortalController::class, 'packages']);
+        Route::post('/login', [CaptivePortalController::class, 'login']);
+        Route::post('/voucher', [CaptivePortalController::class, 'voucher']);
+        Route::post('/pay', [CaptivePortalController::class, 'pay']);
+        Route::post('/payment/callback', [CaptivePortalController::class, 'paymentCallback']);
+    });
 });
