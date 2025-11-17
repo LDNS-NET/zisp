@@ -1,7 +1,9 @@
-# ================= ZiSP RouterOS v7+ Onboarding Script =================
+# ==================== ZiSP RouterOS v7+ Onboarding Script ====================
 # Generated for router: {{name}}
 # Router ID: {{router_id}}
+# Last Updated: 2025-11-17
 
+# ==================== Configuration Variables ====================
 :local username "{{username}}"
 :local password "{{router_password}}"
 :local apiPort "{{api_port}}"
@@ -15,6 +17,11 @@
 :local wgClientIp "{{wg_client_ip}}"
 :local syncUrl "{{sync_url}}"
 :local wgRegisterUrl "{{wg_register_url}}"
+
+# Internal variables
+:local bridgeName "zisp-bridge"
+:local hotspotProfile "zisp-hs-profile"
+:local pppoeProfile "Z_INTERNET"
 
 :put "==================== ZiSP MIKROTIK ONBOARDING ===================="
 
@@ -36,68 +43,118 @@
     :put " - $ipAddr"
 }
 
-# ---------- RADIUS Configuration ----------
-:do {
-    /radius remove [find address=$radiusIp]
-} on-error={}
+# ==================== RADIUS Configuration ====================
+:put "[RADIUS] Configuring RADIUS settings..."
 
+# Remove existing RADIUS configurations for this IP
+:do { /radius remove [find address=$radiusIp] } on-error={}
+
+# Determine which services need RADIUS
 :local radiusServices "ppp"
 :do {
     /ip hotspot print
     :set radiusServices "ppp,hotspot"
-} on-error={}
+    :put "[RADIUS] Hotspot service detected, enabling RADIUS for $radiusServices"
+} on-error={ :put "[RADIUS] No Hotspot service detected, using RADIUS for PPP only" }
 
+# Configure RADIUS server
 :do {
-    /radius add service=$radiusServices address=$radiusIp secret=$radiusSecret disabled=no timeout=3000ms accounting-port=1813 authentication-port=1812
-    :put "RADIUS configured: $radiusServices"
-} on-error={
-    :put "Warning: Could not configure RADIUS"
-}
+    /radius add service=$radiusServices address=$radiusIp secret=$radiusSecret \
+        disabled=no timeout=3000ms accounting-port=1813 authentication-port=1812 \
+        comment="ZiSP RADIUS Configuration"
+    :put "[RADIUS] Successfully configured for services: $radiusServices"
+} on-error={ :put "[ERROR] Failed to configure RADIUS: $error" }
+
+# Enable RADIUS in PPP AAA
+:do {
+    /ppp aaa set use-radius=yes accounting=yes interim-update=1h
+    :put "[RADIUS] PPP AAA configured to use RADIUS"
+} on-error={ :put "[WARNING] Could not configure PPP AAA" }
 
 # ---------- PPP AAA ----------
 :do {
     /ppp aaa set use-radius=yes accounting=yes interim-update=1h
 } on-error={:put "Warning: Could not configure PPP AAA"}
 
-# ---------- API User ----------
-:local userExists [/user find name=$username]
-:if ([:len $userExists] > 0) do={
-    /user set [find name=$username] password=$password group=full disabled=no comment="ZiSP API User"
-    :put "API user updated: $username"
-} else={
-    /user add name=$username password=$password group=full disabled=no comment="ZiSP API User"
-    :put "API user created: $username"
+# ==================== API Configuration ====================
+:put "[API] Configuring API access..."
+
+# Configure API user with secure permissions
+:do {
+    :local userExists [/user find name=$username]
+    :if ([:len $userExists] > 0) do={
+        /user set [find name=$username] password=$password group=full disabled=no \
+            comment="ZiSP API User" address=$trustedIp
+        :put "[API] Updated existing API user: $username"
+    } else={
+        /user add name=$username password=$password group=full disabled=no \
+            comment="ZiSP API User" address=$trustedIp
+        :put "[API] Created new API user: $username"
+    }
+    
+    # Enable API service with secure settings
+    /ip service set api disabled=no port=$apiPort address=$trustedIp certificate=none \
+        tls-version=only-1.2
+    :put "[API] API service configured on port $apiPort for $trustedIp"
+    
+} on-error={ :put "[ERROR] Failed to configure API: $error" }
+
+# ==================== Firewall Configuration ====================
+:put "[FIREWALL] Configuring firewall rules..."
+
+# Remove any existing rules from previous runs
+:do { /ip firewall filter remove [find comment~"zisp-"] } on-error={}
+:do { /ip firewall nat remove [find comment~"zisp-"] } on-error={}
+
+# ==================== Filter Rules ====================
+# Allow established/related connections
+/ip firewall filter add chain=input action=accept connection-state=established,related comment="zisp-allow-established"
+/ip firewall filter add chain=forward action=accept connection-state=established,related comment="zisp-allow-established"
+
+# Allow ICMP (ping)
+/ip firewall filter add chain=input action=accept protocol=icmp comment="zisp-allow-icmp"
+
+# Allow SSH, Winbox, and API from trusted IP
+:if ([:len $trustedIp] > 0) do={
+    /ip firewall filter add chain=input action=accept protocol=tcp \
+        src-address=$trustedIp dst-port=22,8291,$apiPort \
+        comment="zisp-allow-admin"
 }
 
-# ---------- Firewall Rules for Trusted IP ----------
-:do {
-    /ip firewall filter remove [find comment="zisp-api"]
-} on-error={}
-:do {
-    :local firstIn [/ip firewall filter find chain=input]
-    :local firstOut [/ip firewall filter find chain=output]
-    :if ([:len $firstIn] > 0) do={
-        /ip firewall filter add chain=input action=accept src-address=$trustedIp comment="zisp-api" place-before=[pick $firstIn 0]
-    } else={
-        /ip firewall filter add chain=input action=accept src-address=$trustedIp comment="zisp-api"
-    }
-    :if ([:len $firstOut] > 0) do={
-        /ip firewall filter add chain=output action=accept dst-address=$trustedIp comment="zisp-api" place-before=[pick $firstOut 0]
-    } else={
-        /ip firewall filter add chain=output action=accept dst-address=$trustedIp comment="zisp-api"
-    }
+# Allow RADIUS traffic
+:if ([:len $radiusIp] > 0) do={
+    /ip firewall filter add chain=output action=accept protocol=udp \
+        dst-address=$radiusIp dst-port=1812-1813 \
+        comment="zisp-allow-radius"
+}
 
-    # Remove previous WireGuard-related rules to avoid duplicates
-    :do { /ip firewall filter remove [find comment="zisp-wg"] } on-error={}
-
-    # Resolve WG server endpoint to IP (if hostname provided)
-    :local wgServerIp ""
+# Allow WireGuard traffic
+:local wgServerIp ""
+:if ([:len $wgServerEndpoint] > 0) do={
     :do { :set wgServerIp [:resolve $wgServerEndpoint] } on-error={}
-
-    # Allow outgoing UDP to WireGuard server (if IP resolved), otherwise allow by port only
     :if ([:len $wgServerIp] > 0) do={
-        /ip firewall filter add chain=output action=accept protocol=udp dst-address=$wgServerIp dst-port=$wgPort comment="zisp-wg"
-        /ip firewall filter add chain=input action=accept protocol=udp src-address=$wgServerIp dst-port=$wgPort comment="zisp-wg"
+        /ip firewall filter add chain=output action=accept protocol=udp \
+            dst-address=$wgServerIp dst-port=$wgPort \
+            comment="zisp-allow-wireguard"
+    }
+}
+
+# Drop invalid connections
+/ip firewall filter add chain=input action=drop connection-state=invalid comment="zisp-drop-invalid"
+/ip firewall filter add chain=forward action=drop connection-state=invalid comment="zisp-drop-invalid"
+
+# Default drop rules (must be last)
+/ip firewall filter add chain=input action=drop comment="zisp-drop-all-other"
+/ip firewall filter add chain=forward action=drop comment="zisp-drop-all-other"
+
+:put "[FIREWALL] Filter rules configured"
+
+# ==================== NAT Configuration ====================
+# Masquerade local networks (adjust interface as needed)
+/ip firewall nat add chain=srcnat action=masquerade out-interface=ether1 \
+    comment="zisp-masquerade"
+
+:put "[FIREWALL] NAT rules configured"
     } else={
         /ip firewall filter add chain=output action=accept protocol=udp dst-port=$wgPort comment="zisp-wg"
         /ip firewall filter add chain=input action=accept protocol=udp dst-port=$wgPort comment="zisp-wg"
