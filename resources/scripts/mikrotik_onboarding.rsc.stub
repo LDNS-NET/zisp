@@ -56,9 +56,7 @@
 
 # Add RADIUS server configuration
 :do {
-    /radius add service=$radiusServices address=$radiusIp secret=$radiusSecret \
-        timeout=3000ms accounting-port=1813 authentication-port=1812 \
-        use-ipv6=no disabled=no
+    /radius add service=$radiusServices address=$radiusIp secret=$radiusSecret timeout=3000ms accounting-port=1813 authentication-port=1812 use-ipv6=no disabled=no
     :put "RADIUS server configured for services: $radiusServices"
 } on-error={
     :put "Warning: Could not configure RADIUS server"
