@@ -49,7 +49,7 @@ use App\Http\Controllers\Tenants\VoucherController;
 | Public Landing Page (Central Domain Only)
 |--------------------------------------------------------------------------
 */
-Route::middleware(['web', 'central'])->group(function () {
+Route::middleware(['web', 'tenant.domain', 'central'])->group(function () {
     Route::get('/', function () {
         return Inertia::render('Welcome', [
             'canLogin' => Route::has('login'),
@@ -76,7 +76,9 @@ Route::post('mikrotiks/{mikrotik}/register-wireguard', [\App\Http\Controllers\Te
 |--------------------------------------------------------------------------
 | Standard Laravel authentication routes - only accessible on central domains
 */
-require __DIR__.'/auth.php';
+Route::middleware(['web', 'tenant.domain'])->group(function () {
+    require __DIR__.'/auth.php';
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -113,7 +115,7 @@ Route::middleware('auth')->group(function () {
 |--------------------------------------------------------------------------
 | Super admin functionality - restricted to central domains only
 */
-Route::middleware(['auth', 'superadmin', 'central'])
+Route::middleware(['auth', 'superadmin', 'tenant.domain', 'central'])
     ->prefix('superadmin')
     ->name('superadmin.')
     ->group(function () {
