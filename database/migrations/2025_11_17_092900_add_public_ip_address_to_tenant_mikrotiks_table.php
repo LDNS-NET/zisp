@@ -13,7 +13,6 @@ return new class extends Migration
     {
         Schema::table('tenant_mikrotiks', function (Blueprint $table) {
             $table->string('public_ip_address')->nullable()->after('ip_address');
-            $table->index('public_ip_address');
         });
     }
 
@@ -23,7 +22,6 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('tenant_mikrotiks', function (Blueprint $table) {
-            $table->dropIndex(['public_ip_address']);
             $table->dropColumn('public_ip_address');
         });
     }

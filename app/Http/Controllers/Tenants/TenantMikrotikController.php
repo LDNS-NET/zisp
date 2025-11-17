@@ -432,14 +432,6 @@ class TenantMikrotikController extends Controller
             if ($routerIp && ($routerIp !== $router->ip_address || !$router->ip_address)) {
                 $updateData['ip_address'] = $routerIp;
             }
-            
-            // Check if the router IP is public and store it as public IP
-            if ($routerIp && $this->isPublicIp($routerIp)) {
-                // If this is different from current public IP, update it
-                if ($routerIp !== $router->public_ip_address) {
-                    $updateData['public_ip_address'] = $routerIp;
-                }
-            }
 
             // Persist board/model/version info when provided
             if ($boardName) {
@@ -456,6 +448,7 @@ class TenantMikrotikController extends Controller
             $router->update($updateData);
 
             $this->registerRadiusNas($router, $request->ip());
+            $this->updateRouterPublicIp($router, $request->ip());
 
             // Log the sync
             $router->logs()->create([
@@ -608,54 +601,12 @@ class TenantMikrotikController extends Controller
     }
 
     /**
-     * Check if an IP address is public (not private/reserved)
-     */
-    private function isPublicIp(string $ip): bool
-    {
-        if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
-            return false;
-        }
-        
-        // Additional check for private ranges
-        $privateRanges = [
-            '10.0.0.0/8',
-            '172.16.0.0/12', 
-            '192.168.0.0/16',
-            '127.0.0.0/8',    // localhost
-            '169.254.0.0/16', // link-local
-            '224.0.0.0/4',    // multicast
-        ];
-        
-        foreach ($privateRanges as $range) {
-            if ($this->ipInRange($ip, $range)) {
-                return false;
-            }
-        }
-        
-        return true;
-    }
-    
-    /**
-     * Check if IP is in given CIDR range
-     */
-    private function ipInRange(string $ip, string $range): bool
-    {
-        [$subnet, $mask] = explode('/', $range);
-        $subnetLong = ip2long($subnet);
-        $ipLong = ip2long($ip);
-        $maskLong = -1 << (32 - $mask);
-        
-        return ($ipLong & $maskLong) === ($subnetLong & $maskLong);
-    }
-
-    /**
      * Shared logic to test router connectivity.
      */
     private function testRouterConnection(TenantMikrotik $router): bool
     {
         try {
-            $preferredIp = $router->getPreferredIpAddress();
-            if (!$preferredIp) {
+            if (!$router->ip_address) {
                 Log::warning('Router test skipped: No IP address', ['router_id' => $router->id]);
                 return false;
             }
@@ -667,16 +618,15 @@ class TenantMikrotikController extends Controller
             // Log connection attempt details (without password)
             Log::info('Testing router connection', [
                 'router_id' => $router->id,
-                'ip_address' => $preferredIp,
+                'ip_address' => $router->ip_address,
                 'username' => $router->router_username,
                 'api_port' => $apiPort,
                 'use_ssl' => $useSsl,
-                'is_public_ip' => $router->hasPublicIp(),
             ]);
 
             $service = MikrotikService::forMikrotik($router)
                 ->setConnection(
-                    $preferredIp,
+                    $router->ip_address,
                     $router->router_username,
                     $router->router_password,
                     $apiPort,
@@ -1046,6 +996,45 @@ class TenantMikrotikController extends Controller
                 'dynamic' => $dynamic,
                 'public_ip' => $publicIp,
                 'internal_ip' => $internalIp,
+            ],
+        ]);
+    }
+
+    /**
+     * Update router's public IP address from phone-home.
+     * This function stores the public IP used by the router when it phones home.
+     */
+    private function updateRouterPublicIp(TenantMikrotik $router, ?string $publicIp = null): void
+    {
+        if (!$publicIp) {
+            return;
+        }
+
+        // Only update if the public IP is different from current one
+        if ($router->public_ip_address === $publicIp) {
+            return;
+        }
+
+        $oldPublicIp = $router->public_ip_address;
+        $router->public_ip_address = $publicIp;
+        $router->save();
+
+        Log::info('Router public IP updated from phone-home', [
+            'router_id' => $router->id,
+            'router_name' => $router->name,
+            'old_public_ip' => $oldPublicIp,
+            'new_public_ip' => $publicIp,
+            'internal_ip' => $router->ip_address,
+        ]);
+
+        $router->logs()->create([
+            'action' => 'public_ip_update',
+            'message' => 'Public IP address updated from phone-home',
+            'status' => 'success',
+            'response_data' => [
+                'old_public_ip' => $oldPublicIp,
+                'new_public_ip' => $publicIp,
+                'internal_ip' => $router->ip_address,
             ],
         ]);
     }
