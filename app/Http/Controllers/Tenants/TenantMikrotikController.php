@@ -208,20 +208,76 @@ class TenantMikrotikController extends Controller
     }
 
     /**
-     * Check router connectivity.
+     * Test API connection to router with detailed response.
+     * 
+     * @param int $id Router ID
+     * @return \Illuminate\Http\JsonResponse
      */
     public function testConnection($id)
     {
-        $router = TenantMikrotik::findOrFail($id);
-
-        $isOnline = $this->testRouterConnection($router);
-
-        return response()->json([
-            'success' => $isOnline,
-            'message' => $isOnline ? 'Router is online.' : 'Router is offline.',
-            'status' => $router->status,
-            'last_seen_at' => $router->last_seen_at,
-        ]);
+        try {
+            $router = TenantMikrotik::findOrFail($id);
+            
+            // Check if required fields are present
+            if (empty($router->ip_address) || empty($router->router_username) || empty($router->router_password)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Incomplete router configuration. Please check IP address, username, and password.',
+                    'details' => [
+                        'ip_address' => !empty($router->ip_address),
+                        'username' => !empty($router->router_username),
+                        'password' => !empty($router->router_password),
+                    ]
+                ], 422);
+            }
+            
+            // Test the router connection
+            $isOnline = $this->testRouterConnection($router);
+            
+            // Get updated router data
+            $router->refresh();
+            
+            // Prepare response data
+            $response = [
+                'success' => $isOnline,
+                'message' => $isOnline ? 'Successfully connected to the router.' : 'Failed to connect to the router.',
+                'router_identity' => [
+                    'name' => $router->name,
+                    'model' => $router->model,
+                    'os_version' => $router->os_version,
+                    'ip_address' => $router->ip_address,
+                ],
+                'system_resources' => [
+                    'uptime' => $router->uptime,
+                    'cpu_usage' => $router->cpu_usage,
+                    'memory_usage' => $router->memory_usage,
+                    'last_seen_at' => $router->last_seen_at?->toIso8601String(),
+                ],
+                'status' => $router->status,
+                'last_test_at' => now()->toIso8601String(),
+            ];
+            
+            // Add requirements check if connection was successful
+            if ($isOnline) {
+                $requirements = $this->checkRouterRequirements($router);
+                $response['requirements'] = $requirements;
+                $response['all_requirements_met'] = !in_array(false, $requirements, true);
+            }
+            
+            return response()->json($response);
+            
+        } catch (\Exception $e) {
+            Log::error('API connection test failed', [
+                'router_id' => $id ?? 'unknown',
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while testing the connection: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
@@ -595,16 +651,86 @@ class TenantMikrotikController extends Controller
      * @param TenantMikrotik $router
      * @return bool
      */
-    private function isRouterStale(TenantMikrotik $router): bool
+    protected function isRouterStale(TenantMikrotik $router): bool
     {
-        if (!$router->last_seen_at) {
-            // If never seen, consider it stale if status is online
-            return $router->status === 'online';
-        }
+        return $router->last_seen_at && $router->last_seen_at->diffInMinutes(now()) > 4;
+    }
 
-        // Check if last_seen_at is more than 4 minutes ago
-        $fourMinutesAgo = now()->subMinutes(4);
-        return $router->last_seen_at->lt($fourMinutesAgo);
+    /**
+     * Check router requirements and configuration.
+     * 
+     * @param TenantMikrotik $router
+     * @return array
+     */
+    protected function checkRouterRequirements(TenantMikrotik $router): array
+    {
+        $requirements = [
+            'api_enabled' => false,
+            'firewall_open' => false,
+            'radius_configured' => false,
+            'hotspot_profile_ok' => false,
+        ];
+
+        try {
+            // Initialize MikrotikService
+            $service = MikrotikService::forMikrotik($router)
+                ->setConnection(
+                    $router->ip_address,
+                    $router->router_username,
+                    $router->router_password,
+                    $router->api_port ?? 8728,
+                    $router->use_ssl ?? false
+                );
+
+            // 1. Check if API service is enabled
+            $apiServices = $service->getIpServicePrint();
+            $apiEnabled = collect($apiServices)->contains(function ($service) {
+                return isset($service['name']) && 
+                       strtolower($service['name']) === 'api' && 
+                       isset($service['disabled']) && 
+                       $service['disabled'] === 'false';
+            });
+            $requirements['api_enabled'] = $apiEnabled;
+
+            // 2. Check if firewall allows API connections
+            $firewallRules = $service->getFirewallFilterPrint();
+            $firewallOpen = collect($firewallRules)->contains(function ($rule) use ($router) {
+                $dstPort = $rule['dst-port'] ?? '';
+                $action = $rule['action'] ?? '';
+                $disabled = $rule['disabled'] ?? 'true';
+                $chain = $rule['chain'] ?? '';
+                
+                return $chain === 'input' && 
+                       str_contains($dstPort, (string)($router->api_port ?? 8728)) && 
+                       strtolower($action) === 'accept' && 
+                       strtolower($disabled) === 'false';
+            });
+            $requirements['firewall_open'] = $firewallOpen;
+
+            // 3. Check if RADIUS is configured
+            $radiusConfigs = $service->getRadiusPrint();
+            $radiusConfigured = collect($radiusConfigs)->isNotEmpty();
+            $requirements['radius_configured'] = $radiusConfigured;
+
+            // 4. Check if hotspot profile has RADIUS enabled
+            $hotspotProfiles = $service->getHotspotProfilePrint();
+            $hotspotProfileOk = collect($hotspotProfiles)->contains(function ($profile) {
+                return isset($profile['use-radius']) && 
+                       strtolower($profile['use-radius']) === 'yes';
+            });
+            $requirements['hotspot_profile_ok'] = $hotspotProfileOk;
+
+            return $requirements;
+
+        } catch (\Exception $e) {
+            Log::error('Error checking router requirements', [
+                'router_id' => $router->id,
+                'error' => $e->getMessage(),
+            ]);
+            
+            // Return all false if there's an error checking requirements
+            return array_map(fn() => false, $requirements);
+        }
     }
 
     /**
