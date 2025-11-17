@@ -11,33 +11,18 @@ use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use Illuminate\Support\Facades\Route;
 
-/*
-|--------------------------------------------------------------------------
-| Guest Authentication Routes
-|--------------------------------------------------------------------------
-| These routes are for unauthenticated users
-| - Registration: Only on central domains
-| - Login: Works on both central and tenant domains (but with different behavior)
-| - Password reset: Works on both domains
-*/
-
 Route::middleware('guest')->group(function () {
-    // Registration - ONLY allowed on central domains
     Route::get('register', [RegisteredUserController::class, 'create'])
         ->middleware('central')
         ->name('register');
 
-    Route::post('register', [RegisteredUserController::class, 'store'])
-        ->middleware('central');
+    Route::post('register', [RegisteredUserController::class, 'store'])->middleware('central');
 
-    // Login - Works on both central and tenant domains
-    // The EnsureTenantDomain middleware will handle proper redirection
     Route::get('login', [AuthenticatedSessionController::class, 'create'])
         ->name('login');
 
     Route::post('login', [AuthenticatedSessionController::class, 'store']);
 
-    // Password reset - Works on both domains
     Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
         ->name('password.request');
 
@@ -50,16 +35,6 @@ Route::middleware('guest')->group(function () {
     Route::post('reset-password', [NewPasswordController::class, 'store'])
         ->name('password.store');
 });
-
-/*
-|--------------------------------------------------------------------------
-| Authenticated User Routes
-|--------------------------------------------------------------------------
-| These routes are for authenticated users
-| - Email verification: Works on both domains
-| - Password confirmation: Works on both domains
-| - Logout: Works on both domains but redirects appropriately
-*/
 
 Route::middleware('auth')->group(function () {
     Route::get('verify-email', EmailVerificationPromptController::class)
@@ -80,7 +55,6 @@ Route::middleware('auth')->group(function () {
 
     Route::put('password', [PasswordController::class, 'update'])->name('password.update');
 
-    // Logout - Works on both domains but redirects appropriately
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
         ->name('logout');
 });
