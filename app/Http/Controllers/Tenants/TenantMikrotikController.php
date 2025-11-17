@@ -15,15 +15,8 @@ use App\Models\Tenants\{
 use App\Services\{MikrotikService, MikrotikScriptGenerator, TenantHotspotService};
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
-use RouterOS\Client;
-use RouterOS\Query;
-use RouterOS\Exceptions\BadCredentialsException;
-use RouterOS\Exceptions\ConnectException;
-use RouterOS\Exceptions\QueryException;
-use RouterOS\Exceptions\ConfigException;
 
 class TenantMikrotikController extends Controller
 {
@@ -208,76 +201,20 @@ class TenantMikrotikController extends Controller
     }
 
     /**
-     * Test API connection to router with detailed response.
-     * 
-     * @param int $id Router ID
-     * @return \Illuminate\Http\JsonResponse
+     * Check router connectivity.
      */
     public function testConnection($id)
     {
-        try {
-            $router = TenantMikrotik::findOrFail($id);
-            
-            // Check if required fields are present
-            if (empty($router->ip_address) || empty($router->router_username) || empty($router->router_password)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Incomplete router configuration. Please check IP address, username, and password.',
-                    'details' => [
-                        'ip_address' => !empty($router->ip_address),
-                        'username' => !empty($router->router_username),
-                        'password' => !empty($router->router_password),
-                    ]
-                ], 422);
-            }
-            
-            // Test the router connection
-            $isOnline = $this->testRouterConnection($router);
-            
-            // Get updated router data
-            $router->refresh();
-            
-            // Prepare response data
-            $response = [
-                'success' => $isOnline,
-                'message' => $isOnline ? 'Successfully connected to the router.' : 'Failed to connect to the router.',
-                'router_identity' => [
-                    'name' => $router->name,
-                    'model' => $router->model,
-                    'os_version' => $router->os_version,
-                    'ip_address' => $router->ip_address,
-                ],
-                'system_resources' => [
-                    'uptime' => $router->uptime,
-                    'cpu_usage' => $router->cpu_usage,
-                    'memory_usage' => $router->memory_usage,
-                    'last_seen_at' => $router->last_seen_at?->toIso8601String(),
-                ],
-                'status' => $router->status,
-                'last_test_at' => now()->toIso8601String(),
-            ];
-            
-            // Add requirements check if connection was successful
-            if ($isOnline) {
-                $requirements = $this->checkRouterRequirements($router);
-                $response['requirements'] = $requirements;
-                $response['all_requirements_met'] = !in_array(false, $requirements, true);
-            }
-            
-            return response()->json($response);
-            
-        } catch (\Exception $e) {
-            Log::error('API connection test failed', [
-                'router_id' => $id ?? 'unknown',
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'An error occurred while testing the connection: ' . $e->getMessage(),
-            ], 500);
-        }
+        $router = TenantMikrotik::findOrFail($id);
+
+        $isOnline = $this->testRouterConnection($router);
+
+        return response()->json([
+            'success' => $isOnline,
+            'message' => $isOnline ? 'Router is online.' : 'Router is offline.',
+            'status' => $router->status,
+            'last_seen_at' => $router->last_seen_at,
+        ]);
     }
 
     /**
@@ -421,140 +358,29 @@ class TenantMikrotikController extends Controller
      */
     public function reprovision($id, MikrotikScriptGenerator $scriptGenerator)
     {
-        \DB::beginTransaction();
+        $router = TenantMikrotik::findOrFail($id);
+
+        $caUrl = optional($router->openvpnProfile)->ca_cert_path
+            ? route('mikrotiks.downloadCACert', $router->id)
+            : null;
+
+        // Get server IP (trusted IP) - use config or request IP
+        $trustedIp = config('app.server_ip') ?? request()->server('SERVER_ADDR') ?? '207.154.232.10';
         
-        try {
-            Log::info('Starting router reprovision', ['router_id' => $id]);
-            
-            // Find the router with necessary relationships
-            $router = TenantMikrotik::with(['openvpnProfile'])->findOrFail($id);
-            Log::info('Router found', ['router_id' => $id, 'name' => $router->name]);
+        $script = $scriptGenerator->generate([
+            'name' => $router->name,
+            'username' => $router->router_username,
+            'router_password' => $router->router_password,
+            'router_id' => $router->id,
+            'sync_token' => $router->sync_token,
+            'ca_url' => $caUrl,
+            'api_port' => $router->api_port ?? 8728,
+            'trusted_ip' => $trustedIp,
+            'radius_ip' => env('RADIUS_IP', '207.154.232.10'), // TODO: Get from tenant settings
+            'radius_secret' => env('RADIUS_SECRET', 'testing123'), // TODO: Get from tenant settings
+        ]);
 
-            // Get CA URL if OpenVPN profile exists
-            $caUrl = null;
-            if ($router->openvpnProfile && $router->openvpnProfile->ca_cert_path) {
-                $caUrl = route('mikrotiks.downloadCACert', $router->id);
-                Log::debug('Using OpenVPN CA URL', ['caUrl' => $caUrl]);
-            }
-
-            // Get trusted IP for firewall rules
-            $trustedIp = $this->getTrustedIpForScripts();
-            Log::debug('Using trusted IP', ['trustedIp' => $trustedIp]);
-            
-            // Generate and save new sync token
-            $newSyncToken = Str::random(40);
-            $router->sync_token = $newSyncToken;
-            $router->save();
-            Log::info('Generated new sync token', ['router_id' => $id]);
-            
-            // Prepare script parameters
-            $scriptParams = [
-                'name' => $router->name,
-                'username' => $router->router_username,
-                'router_password' => $router->router_password,
-                'router_id' => $router->id,
-                'sync_token' => $newSyncToken,
-                'ca_url' => $caUrl,
-                'api_port' => $router->api_port ?? 8728,
-                'api_ssl' => $router->use_ssl ?? false,
-                'api_addresses' => $trustedIp,
-                'trusted_ip' => $trustedIp,
-                'trusted_networks' => [$trustedIp],
-                'radius_ip' => config('services.radius.ip', env('RADIUS_IP', '207.154.232.10')),
-                'radius_secret' => config('services.radius.secret', env('RADIUS_SECRET', 'testing123')),
-                'radius_timeout' => '3000ms',
-                'radius_accounting' => true,
-            ];
-            
-            Log::debug('Script parameters prepared', array_merge($scriptParams, ['router_password' => '***']));
-            
-            // Generate the router configuration script
-            $script = $scriptGenerator->generate($scriptParams);
-            
-            if (empty($script)) {
-                throw new \RuntimeException('Failed to generate router configuration script');
-            }
-            
-            Log::debug('Script generated successfully', ['script_length' => strlen($script)]);
-
-            // Log the successful reprovisioning
-            $log = $router->logs()->create([
-                'action' => 'reprovision',
-                'message' => 'Router reprovisioned with new sync token',
-                'status' => 'success',
-                'ip_address' => request()->ip(),
-                'response_data' => [
-                    'script_generated' => !empty($script),
-                    'script_length' => strlen($script),
-                    'trusted_ip' => $trustedIp,
-                ]
-            ]);
-            
-            Log::info('Router reprovisioned successfully', [
-                'router_id' => $id,
-                'log_id' => $log->id,
-            ]);
-            
-            \DB::commit();
-
-            // Return appropriate response based on request type
-            if (request()->wantsJson() || request()->is('api/*')) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Router reprovisioned successfully',
-                    'script' => $script,
-                    'router' => $router->only(['id', 'name', 'ip_address', 'api_port', 'sync_token']),
-                ]);
-            }
-
-            return Inertia::render('Mikrotiks/SetupScript', [
-                'router' => $router,
-                'script' => $script,
-            ]);
-            
-        } catch (\Exception $e) {
-            \DB::rollBack();
-            
-            $errorContext = [
-                'router_id' => $id,
-                'error' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'trace' => $e->getTraceAsString(),
-                'request_data' => request()->all(),
-            ];
-            
-            Log::error('Router reprovision failed', $errorContext);
-            
-            // Log the failed attempt
-            if (isset($router)) {
-                $router->logs()->create([
-                    'action' => 'reprovision',
-                    'message' => 'Failed to reprovision router: ' . $e->getMessage(),
-                    'status' => 'failed',
-                    'ip_address' => request()->ip(),
-                    'response_data' => [
-                        'error' => $e->getMessage(),
-                        'file' => $e->getFile(),
-                        'line' => $e->getLine(),
-                    ]
-                ]);
-            }
-            
-            if (request()->wantsJson() || request()->is('api/*')) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Failed to reprovision router: ' . $e->getMessage(),
-                    'error_details' => config('app.debug') ? [
-                        'message' => $e->getMessage(),
-                        'file' => $e->getFile(),
-                        'line' => $e->getLine(),
-                    ] : null,
-                ], 500);
-            }
-            
-            return back()->with('error', 'Failed to reprovision router: ' . $e->getMessage());
-        }
+        return Inertia::render('Mikrotiks/SetupScript', compact('router', 'script'));
     }
 
     /**
@@ -762,86 +588,16 @@ class TenantMikrotikController extends Controller
      * @param TenantMikrotik $router
      * @return bool
      */
-    protected function isRouterStale(TenantMikrotik $router): bool
+    private function isRouterStale(TenantMikrotik $router): bool
     {
-        return $router->last_seen_at && $router->last_seen_at->diffInMinutes(now()) > 4;
-    }
-
-    /**
-     * Check router requirements and configuration.
-     * 
-     * @param TenantMikrotik $router
-     * @return array
-     */
-    protected function checkRouterRequirements(TenantMikrotik $router): array
-    {
-        $requirements = [
-            'api_enabled' => false,
-            'firewall_open' => false,
-            'radius_configured' => false,
-            'hotspot_profile_ok' => false,
-        ];
-
-        try {
-            // Initialize MikrotikService
-            $service = MikrotikService::forMikrotik($router)
-                ->setConnection(
-                    $router->ip_address,
-                    $router->router_username,
-                    $router->router_password,
-                    $router->api_port ?? 8728,
-                    $router->use_ssl ?? false
-                );
-
-            // 1. Check if API service is enabled
-            $apiServices = $service->getIpServicePrint();
-            $apiEnabled = collect($apiServices)->contains(function ($service) {
-                return isset($service['name']) && 
-                       strtolower($service['name']) === 'api' && 
-                       isset($service['disabled']) && 
-                       $service['disabled'] === 'false';
-            });
-            $requirements['api_enabled'] = $apiEnabled;
-
-            // 2. Check if firewall allows API connections
-            $firewallRules = $service->getFirewallFilterPrint();
-            $firewallOpen = collect($firewallRules)->contains(function ($rule) use ($router) {
-                $dstPort = $rule['dst-port'] ?? '';
-                $action = $rule['action'] ?? '';
-                $disabled = $rule['disabled'] ?? 'true';
-                $chain = $rule['chain'] ?? '';
-                
-                return $chain === 'input' && 
-                       str_contains($dstPort, (string)($router->api_port ?? 8728)) && 
-                       strtolower($action) === 'accept' && 
-                       strtolower($disabled) === 'false';
-            });
-            $requirements['firewall_open'] = $firewallOpen;
-
-            // 3. Check if RADIUS is configured
-            $radiusConfigs = $service->getRadiusPrint();
-            $radiusConfigured = collect($radiusConfigs)->isNotEmpty();
-            $requirements['radius_configured'] = $radiusConfigured;
-
-            // 4. Check if hotspot profile has RADIUS enabled
-            $hotspotProfiles = $service->getHotspotProfilePrint();
-            $hotspotProfileOk = collect($hotspotProfiles)->contains(function ($profile) {
-                return isset($profile['use-radius']) && 
-                       strtolower($profile['use-radius']) === 'yes';
-            });
-            $requirements['hotspot_profile_ok'] = $hotspotProfileOk;
-
-            return $requirements;
-
-        } catch (\Exception $e) {
-            Log::error('Error checking router requirements', [
-                'router_id' => $router->id,
-                'error' => $e->getMessage(),
-            ]);
-            
-            // Return all false if there's an error checking requirements
-            return array_map(fn() => false, $requirements);
+        if (!$router->last_seen_at) {
+            // If never seen, consider it stale if status is online
+            return $router->status === 'online';
         }
+
+        // Check if last_seen_at is more than 4 minutes ago
+        $fourMinutesAgo = now()->subMinutes(4);
+        return $router->last_seen_at->lt($fourMinutesAgo);
     }
 
     /**

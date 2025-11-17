@@ -67,6 +67,8 @@ Route::post('mikrotiks/{mikrotik}/register-wireguard', [\App\Http\Controllers\Te
 
 Route::middleware(['auth', 'verified', 'check.subscription', 'tenant.domain'])
     ->group(function () {
+
+
         // Dashboard
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
         Route::get('/dashboard/data', [DashboardController::class, 'data'])->name('dashboard.data');
@@ -77,11 +79,6 @@ Route::middleware(['auth', 'verified', 'check.subscription', 'tenant.domain'])
         //tenants packages
         Route::resource('packages', PackageController::class)->except(['show']);
         Route::delete('/packages/bulk-delete', [PackageController::class, 'bulkDelete'])->name('packages.bulk-delete');
-        
-        // Mikrotik API Test Connection
-        Route::post('/mikrotik/test-connection', [TenantMikrotikController::class, 'testConnection'])
-            ->name('tenant.mikrotik.test')
-            ->middleware('throttle:5,1'); // Rate limiting: 5 requests per minute per IP
 
         //network users( tenants )
         Route::resource('users', TenantUserController::class);

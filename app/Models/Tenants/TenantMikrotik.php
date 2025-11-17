@@ -20,9 +20,6 @@ class TenantMikrotik extends Model
         'router_password',
         'connection_type',
         'last_seen_at',
-        'last_test_at',
-        'last_status',
-        'last_message',
         'status',
         'model',
         'os_version',
@@ -44,7 +41,6 @@ class TenantMikrotik extends Model
 
     protected $casts = [
         'last_seen_at' => 'datetime',
-        'last_test_at' => 'datetime',
         'uptime' => 'integer',
         'cpu_usage' => 'decimal:2',
         'memory_usage' => 'decimal:2',

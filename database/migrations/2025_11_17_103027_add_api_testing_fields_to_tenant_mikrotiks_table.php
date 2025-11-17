@@ -12,9 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('tenant_mikrotiks', function (Blueprint $table) {
-            $table->timestamp('last_test_at')->nullable()->after('last_seen_at');
-            $table->string('last_status', 20)->nullable()->after('last_test_at');
-            $table->text('last_message')->nullable()->after('last_status');
+            //
         });
     }
 
@@ -24,7 +22,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('tenant_mikrotiks', function (Blueprint $table) {
-            $table->dropColumn(['last_test_at', 'last_status', 'last_message']);
+            //
         });
     }
 };

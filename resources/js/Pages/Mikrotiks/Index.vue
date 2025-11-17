@@ -34,17 +34,13 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
-    selectedRouter: {
-        type: Object,
-        default: null,
-    },
 });
 
 const showAddModal = ref(false);
 const showEditModal = ref(false);
 const showDetails = ref(false);
 const showRemoteModal = ref(false);
-const selectedRouter = ref(props.selectedRouter || null);
+const selectedRouter = ref(null);
 const remoteLinks = ref({});
 const pinging = ref({});
 const testing = ref({});
@@ -211,102 +207,32 @@ async function pingRouter(router) {
 
 
 async function testRouterConnection(router) {
-    if (testing.value[router.id]) return;
-    
     testing.value[router.id] = true;
     formError.value = '';
-    
+
     try {
-        // Call the test connection endpoint with router ID
-        const response = await fetch(route('tenant.mikrotik.test', { mikrotik: router.id }), {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                'X-Requested-With': 'XMLHttpRequest',
-                'Accept': 'application/json',
-            },
-        });
-        
+        const response = await fetch(route('mikrotiks.testConnection', router.id));
         const data = await response.json();
-        
+
         if (!response.ok) {
-            throw new Error(data.message || 'Failed to test connection');
+            toast.error('Error testing connection');
+            return;
         }
+
+        // Update router status in the UI
+        router.status = data.status;
+        router.last_seen_at = data.last_seen_at;
         
-        // Update the router's data in the UI
-        const routerIndex = routersList.value.findIndex(r => r.id === router.id);
-        if (routerIndex !== -1) {
-            routersList.value[routerIndex] = {
-                ...routersList.value[routerIndex],
-                ...data.router_identity,
-                status: data.status || 'offline',
-                last_seen_at: data.system_resources?.last_seen_at || new Date().toISOString(),
-                cpu_usage: data.system_resources?.cpu_usage,
-                memory_usage: data.system_resources?.memory_usage,
-                uptime: data.system_resources?.uptime,
-                last_test_at: data.last_test_at,
-            };
+        // Update the routers list to reflect the change
+        const index = routersList.value.findIndex(r => r.id === router.id);
+        if (index !== -1) {
+            routersList.value[index] = { ...router };
         }
-        
-        // Show appropriate message based on connection status
-        if (data.success) {
-            // Show requirements check results if available
-            if (data.requirements) {
-                const requirementsList = Object.entries(data.requirements)
-                    .map(([key, value]) => {
-                        const label = key.split('_')
-                            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                            .join(' ');
-                        return `• ${label}: ${value ? '✅' : '❌'}`;
-                    })
-                    .join('\n');
-                
-                const statusMessage = data.all_requirements_met 
-                    ? '✅ All requirements met!'
-                    : '⚠️ Some requirements are not met';
-                
-                toast.success(
-                    `${statusMessage}\n\n${data.message || 'Connection successful'}\n\nRequirements Check:\n${requirementsList}`, 
-                    {
-                        timeout: 10000,
-                        closeOnClick: false,
-                        pauseOnFocusLoss: true,
-                        pauseOnHover: true,
-                    }
-                );
-            } else {
-                toast.success(data.message || 'Connection test successful');
-            }
-        } else {
-            // Show detailed error message if available
-            if (data.details) {
-                const details = typeof data.details === 'object' 
-                    ? Object.entries(data.details)
-                        .map(([key, value]) => `• ${key}: ${value ? '✅' : '❌'}`)
-                        .join('\n')
-                    : data.details;
-                
-                toast.error(
-                    `❌ ${data.message || 'Connection failed'}\n\n${details}`,
-                    {
-                        timeout: 10000,
-                        closeOnClick: false,
-                        pauseOnFocusLoss: true,
-                        pauseOnHover: true,
-                    }
-                );
-            } else {
-                toast.error(data.message || 'Connection test failed');
-            }
-        }
-        
-        return data.success;
-        
-    } catch (error) {
-        console.error('Error testing connection:', error);
-        toast.error(error.message || 'An error occurred while testing the connection');
-        return false;
+
+        // Use toast notification if available, otherwise console
+        window.toast?.success(data.message) || console.log(data.message);
+    } catch (err) {
+        toast.error('Error testing connection');
     } finally {
         testing.value[router.id] = false;
     }
@@ -721,11 +647,6 @@ async function refreshRouterStatus() {
                             </table>
                         </div>
                     </div>
-                </div>
-                
-                <!-- API Tester Component -->
-                <div v-if="selectedRouter" class="mt-6">
-                    <ApiTester :router-data="selectedRouter" />
                 </div>
             </div>
         </div>
