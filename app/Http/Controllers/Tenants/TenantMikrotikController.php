@@ -432,6 +432,14 @@ class TenantMikrotikController extends Controller
             if ($routerIp && ($routerIp !== $router->ip_address || !$router->ip_address)) {
                 $updateData['ip_address'] = $routerIp;
             }
+            
+            // Check if the router IP is public and store it as public IP
+            if ($routerIp && $this->isPublicIp($routerIp)) {
+                // If this is different from current public IP, update it
+                if ($routerIp !== $router->public_ip_address) {
+                    $updateData['public_ip_address'] = $routerIp;
+                }
+            }
 
             // Persist board/model/version info when provided
             if ($boardName) {
@@ -600,12 +608,54 @@ class TenantMikrotikController extends Controller
     }
 
     /**
+     * Check if an IP address is public (not private/reserved)
+     */
+    private function isPublicIp(string $ip): bool
+    {
+        if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+            return false;
+        }
+        
+        // Additional check for private ranges
+        $privateRanges = [
+            '10.0.0.0/8',
+            '172.16.0.0/12', 
+            '192.168.0.0/16',
+            '127.0.0.0/8',    // localhost
+            '169.254.0.0/16', // link-local
+            '224.0.0.0/4',    // multicast
+        ];
+        
+        foreach ($privateRanges as $range) {
+            if ($this->ipInRange($ip, $range)) {
+                return false;
+            }
+        }
+        
+        return true;
+    }
+    
+    /**
+     * Check if IP is in given CIDR range
+     */
+    private function ipInRange(string $ip, string $range): bool
+    {
+        [$subnet, $mask] = explode('/', $range);
+        $subnetLong = ip2long($subnet);
+        $ipLong = ip2long($ip);
+        $maskLong = -1 << (32 - $mask);
+        
+        return ($ipLong & $maskLong) === ($subnetLong & $maskLong);
+    }
+
+    /**
      * Shared logic to test router connectivity.
      */
     private function testRouterConnection(TenantMikrotik $router): bool
     {
         try {
-            if (!$router->ip_address) {
+            $preferredIp = $router->getPreferredIpAddress();
+            if (!$preferredIp) {
                 Log::warning('Router test skipped: No IP address', ['router_id' => $router->id]);
                 return false;
             }
@@ -617,15 +667,16 @@ class TenantMikrotikController extends Controller
             // Log connection attempt details (without password)
             Log::info('Testing router connection', [
                 'router_id' => $router->id,
-                'ip_address' => $router->ip_address,
+                'ip_address' => $preferredIp,
                 'username' => $router->router_username,
                 'api_port' => $apiPort,
                 'use_ssl' => $useSsl,
+                'is_public_ip' => $router->hasPublicIp(),
             ]);
 
             $service = MikrotikService::forMikrotik($router)
                 ->setConnection(
-                    $router->ip_address,
+                    $preferredIp,
                     $router->router_username,
                     $router->router_password,
                     $apiPort,

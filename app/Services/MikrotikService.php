@@ -180,7 +180,7 @@ class MikrotikService
                 }
                 
                 // Ensure we have all required connection parameters
-                if (!$this->mikrotik->ip_address) {
+                if (!$this->mikrotik->getPreferredIpAddress()) {
                     throw new Exception('Router IP address is not set.');
                 }
                 
@@ -193,7 +193,7 @@ class MikrotikService
                 }
                 
                 $this->connection = [
-                    'host' => $this->mikrotik->ip_address,
+                    'host' => $this->mikrotik->getPreferredIpAddress(),
                     'user' => $this->mikrotik->router_username,
                     'pass' => $this->mikrotik->router_password,
                     'port' => $this->mikrotik->api_port ?? 8728,
@@ -253,7 +253,7 @@ class MikrotikService
             $errorMessage = $e->getMessage();
             Log::error('Mikrotik testConnection error', [
                 'mikrotik_id' => $this->mikrotik->id ?? null,
-                'host' => $this->connection['host'] ?? $this->mikrotik->ip_address ?? null,
+                'host' => $this->connection['host'] ?? $this->mikrotik->getPreferredIpAddress() ?? null,
                 'port' => $this->connection['port'] ?? $this->mikrotik->api_port ?? 8728,
                 'username' => $this->connection['user'] ?? $this->mikrotik->router_username ?? null,
                 'error' => $errorMessage,

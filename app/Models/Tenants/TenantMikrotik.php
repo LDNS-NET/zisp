@@ -12,6 +12,7 @@ class TenantMikrotik extends Model
     protected $fillable = [
         'name',
         'ip_address',
+        'public_ip_address',
         'api_port',
         'ssh_port',
         'openvpn_profile_id',
@@ -120,16 +121,35 @@ class TenantMikrotik extends Model
 
     public function getConnectionUrl(): string
     {
+        $ip = $this->getPreferredIpAddress();
+        
         switch ($this->connection_type) {
             case 'api':
-                return "http://{$this->ip_address}:{$this->api_port}";
+                return "http://{$ip}:{$this->api_port}";
             case 'ssh':
-                return "ssh://{$this->ip_address}:{$this->ssh_port}";
+                return "ssh://{$ip}:{$this->ssh_port}";
             case 'ovpn':
-                return "ovpn://{$this->ip_address}";
+                return "ovpn://{$ip}";
             default:
-                return $this->ip_address;
+                return $ip;
         }
+    }
+
+    /**
+     * Get the preferred IP address for connecting to the router
+     * Returns public IP if available, otherwise falls back to private IP
+     */
+    public function getPreferredIpAddress(): string
+    {
+        return $this->public_ip_address ?: $this->ip_address;
+    }
+
+    /**
+     * Check if the router has a public IP address configured
+     */
+    public function hasPublicIp(): bool
+    {
+        return !empty($this->public_ip_address);
     }
 
     protected static function booted()
