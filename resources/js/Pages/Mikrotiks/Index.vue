@@ -11,6 +11,7 @@ import TextArea from '@/Components/TextArea.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import DangerButton from '@/Components/DangerButton.vue';
 import InputError from '@/Components/InputError.vue';
+import ApiTester from '@/Components/Mikrotik/ApiTester.vue';
 import { useToast } from 'vue-toastification';
 import {
     Plus,
@@ -34,13 +35,17 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    selectedRouter: {
+        type: Object,
+        default: null,
+    },
 });
 
 const showAddModal = ref(false);
 const showEditModal = ref(false);
 const showDetails = ref(false);
 const showRemoteModal = ref(false);
-const selectedRouter = ref(null);
+const selectedRouter = ref(props.selectedRouter || null);
 const remoteLinks = ref({});
 const pinging = ref({});
 const testing = ref({});
@@ -647,6 +652,11 @@ async function refreshRouterStatus() {
                             </table>
                         </div>
                     </div>
+                </div>
+                
+                <!-- API Tester Component -->
+                <div v-if="selectedRouter" class="mt-6">
+                    <ApiTester :router-data="selectedRouter" />
                 </div>
             </div>
         </div>

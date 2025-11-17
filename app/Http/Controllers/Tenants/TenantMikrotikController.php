@@ -15,8 +15,15 @@ use App\Models\Tenants\{
 use App\Services\{MikrotikService, MikrotikScriptGenerator, TenantHotspotService};
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
+use RouterOS\Client;
+use RouterOS\Query;
+use RouterOS\Exceptions\BadCredentialsException;
+use RouterOS\Exceptions\ConnectException;
+use RouterOS\Exceptions\QueryException;
+use RouterOS\Exceptions\ConfigException;
 
 class TenantMikrotikController extends Controller
 {
