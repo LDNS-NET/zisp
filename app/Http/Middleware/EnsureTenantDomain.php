@@ -27,19 +27,14 @@ class EnsureTenantDomain
         $centralDomains = config('tenancy.central_domains', []);
         $centralRegisterUrl = rtrim(config('app.url'), '/') . '/register';
 
-        // 1. If host is a central domain, simply proceed.
-        if (in_array($host, $centralDomains, true)) {
-            return $next($request);
-        }
-
-        // 2. Check if this host exists in `domains` table. If not → redirect to central registration.
-        if (! \Stancl\Tenancy\Database\Models\Domain::where('domain', $host)->exists()) {
-            return redirect()->away($centralRegisterUrl);
-        }
-
-        // 3. If guest (unauthenticated) and not already on /login → redirect to tenant login.
+        // 1. If guest (unauthenticated) and not already on /login → redirect to login.
         if (!Auth::check()) {
             if (!$request->is('login', 'login/*')) {
+                // If on central domain, redirect to central login
+                if (in_array($host, $centralDomains, true)) {
+                    return redirect()->to('/login');
+                }
+                // If on tenant domain, redirect to tenant login
                 return redirect()->to('/login');
             }
             // Already on login -> let it through
@@ -53,16 +48,23 @@ class EnsureTenantDomain
             return $next($request);
         }
 
-        // Tenant users should always have tenant_id
-        if ($user->tenant_id) {
-            $host = $request->getHost();
-            $centralDomains = config('tenancy.central_domains', []);
-
-            // If the request host is a central domain, always redirect
-            if (in_array($host, $centralDomains, true)) {
+        // 2. If host is a central domain and user is not super admin, check if they're a tenant
+        if (in_array($host, $centralDomains, true)) {
+            // Tenant users should not access tenant routes from central domains
+            if ($user->tenant_id) {
                 return $this->forceLogoutToTenantDomain($request, $user);
             }
+            // Non-tenant users on central domain can proceed
+            return $next($request);
+        }
 
+        // 3. Check if this host exists in `domains` table. If not → redirect to central registration.
+        if (! \Stancl\Tenancy\Database\Models\Domain::where('domain', $host)->exists()) {
+            return redirect()->away($centralRegisterUrl);
+        }
+
+        // 4. Tenant users should always have tenant_id and be on their correct domain
+        if ($user->tenant_id) {
             $tenant = $user->tenant;
             if ($tenant) {
                 $tenantDomain = optional($tenant->domains()->first())->domain;
