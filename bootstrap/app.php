@@ -18,9 +18,17 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\EnsureTenantDomain::class,
         ]);
 
+        // Register custom middleware aliases
+        $middleware->alias([
+            'central' => \App\Http\Middleware\CentralDomainOnly::class,
+            'tenant.domain' => \App\Http\Middleware\EnsureTenantDomain::class,
+            'tenant.auth' => \App\Http\Middleware\TenantAuth::class,
+        ]);
+
         // Exempt sync endpoint from CSRF (uses token-based auth)
         $middleware->validateCsrfTokens(except: [
             'mikrotiks/*/sync',
+            'mikrotiks/*/register-wireguard',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

@@ -4,36 +4,57 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Stancl\Tenancy\Database\Models\Domain;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Restrict certain routes so they are accessible only on the landlord / central
- * domain (e.g. zyraaf.cloud, www.zyraaf.cloud). If accessed from a tenant
- * sub-domain it redirects to an appropriate page.
+ * CentralDomainOnly middleware ensures that specific routes
+ * are only accessible on central domains (zyraaf.cloud)
+ * 
+ * Behavior:
+ * - Central domain access → allow
+ * - Valid tenant subdomain → redirect to tenant login
+ * - Invalid subdomain → redirect to central registration
  */
 class CentralDomainOnly
 {
-    public function handle(Request $request, Closure $next)
+    /**
+     * Handle an incoming request.
+     */
+    public function handle(Request $request, Closure $next): Response
     {
-        $host           = $request->getHost();
+        $host = $request->getHost();
         $centralDomains = config('tenancy.central_domains', []);
+        $centralRegisterUrl = rtrim(config('app.url'), '/') . '/register';
 
-        // If we are on a central domain, allow the request.
-        if (in_array($host, $centralDomains, true)) {
-            return $next($request);
-        }
+        // Check if the request is coming from a central domain
+        if (!in_array($host, $centralDomains, true)) {
+            // Log the attempt to access central domain route from tenant domain
+            \Log::info('Central domain route accessed from tenant domain', [
+                'host' => $host,
+                'path' => $request->path(),
+                'ip' => $request->ip(),
+            ]);
 
-        // If host matches a tenant domain, send user to that tenant's login.
-        if (Domain::where('domain', $host)->exists()) {
-            // Avoid redirect loop when already on /login or any auth posting.
-            if ($request->is('login', 'login/*')) {
-                return $next($request);
+            // Check if this is a valid tenant domain
+            $domain = \Stancl\Tenancy\Database\Models\Domain::where('domain', $host)->first();
+            
+            if ($domain) {
+                // Redirect to tenant login page with a message
+                \Log::info('Redirecting to tenant login from central domain route', [
+                    'tenant_domain' => $host,
+                    'requested_path' => $request->path(),
+                ]);
+                return redirect()->away("https://{$host}/login");
             }
 
-            return redirect()->to('/login');
+            // Invalid domain - redirect to central registration
+            \Log::info('Invalid domain accessing central route, redirecting to registration', [
+                'invalid_domain' => $host,
+                'requested_path' => $request->path(),
+            ]);
+            return redirect()->away($centralRegisterUrl);
         }
 
-        // Unknown host – bounce to landlord registration page.
-        return redirect()->away(rtrim(config('app.url'), '/') . '/register');
+        return $next($request);
     }
 }
