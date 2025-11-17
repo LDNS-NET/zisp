@@ -421,29 +421,77 @@ class TenantMikrotikController extends Controller
      */
     public function reprovision($id, MikrotikScriptGenerator $scriptGenerator)
     {
-        $router = TenantMikrotik::findOrFail($id);
+        try {
+            $router = TenantMikrotik::findOrFail($id);
 
-        $caUrl = optional($router->openvpnProfile)->ca_cert_path
-            ? route('mikrotiks.downloadCACert', $router->id)
-            : null;
+            $caUrl = optional($router->openvpnProfile)->ca_cert_path
+                ? route('mikrotiks.downloadCACert', $router->id)
+                : null;
 
-        // Get server IP (trusted IP) - use config or request IP
-        $trustedIp = config('app.server_ip') ?? request()->server('SERVER_ADDR') ?? '207.154.232.10';
-        
-        $script = $scriptGenerator->generate([
-            'name' => $router->name,
-            'username' => $router->router_username,
-            'router_password' => $router->router_password,
-            'router_id' => $router->id,
-            'sync_token' => $router->sync_token,
-            'ca_url' => $caUrl,
-            'api_port' => $router->api_port ?? 8728,
-            'trusted_ip' => $trustedIp,
-            'radius_ip' => env('RADIUS_IP', '207.154.232.10'), // TODO: Get from tenant settings
-            'radius_secret' => env('RADIUS_SECRET', 'testing123'), // TODO: Get from tenant settings
-        ]);
+            // Get server IP (trusted IP) - use config or request IP
+            $trustedIp = $this->getTrustedIpForScripts();
+            
+            // Generate new sync token
+            $newSyncToken = Str::random(40);
+            $router->update(['sync_token' => $newSyncToken]);
+            
+            $script = $scriptGenerator->generate([
+                'name' => $router->name,
+                'username' => $router->router_username,
+                'router_password' => $router->router_password,
+                'router_id' => $router->id,
+                'sync_token' => $newSyncToken,
+                'ca_url' => $caUrl,
+                'api_port' => $router->api_port ?? 8728,
+                'api_ssl' => $router->use_ssl ?? false,
+                'api_addresses' => $trustedIp,
+                'trusted_ip' => $trustedIp,
+                'trusted_networks' => [$trustedIp],
+                'radius_ip' => env('RADIUS_IP', '207.154.232.10'),
+                'radius_secret' => env('RADIUS_SECRET', 'testing123'),
+                'radius_timeout' => '3000ms',
+                'radius_accounting' => true,
+            ]);
 
-        return Inertia::render('Mikrotiks/SetupScript', compact('router', 'script'));
+            // Log the reprovisioning
+            $router->logs()->create([
+                'action' => 'reprovision',
+                'message' => 'Router reprovisioned with new sync token',
+                'status' => 'success',
+                'ip_address' => request()->ip(),
+            ]);
+
+            // Return appropriate response based on request type
+            if (request()->wantsJson() || request()->is('api/*')) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Router reprovisioned successfully',
+                    'script' => $script,
+                    'router' => $router->only(['id', 'name', 'ip_address', 'api_port', 'sync_token']),
+                ]);
+            }
+
+            return Inertia::render('Mikrotiks/SetupScript', [
+                'router' => $router,
+                'script' => $script,
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Router reprovision failed', [
+                'router_id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            
+            if (request()->wantsJson() || request()->is('api/*')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to reprovision router: ' . $e->getMessage(),
+                ], 500);
+            }
+            
+            return back()->with('error', 'Failed to reprovision router: ' . $e->getMessage());
+        }
     }
 
     /**
