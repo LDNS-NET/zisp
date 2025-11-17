@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 use App\Http\Middleware\CheckSubscription;
 use Illuminate\Support\Facades\Route;
+use App\Http\Middleware\EnsureTenantDomain;
 use App\Http\Middleware\SuperAdminMiddleware;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use App\Models\Tenants\TenantLeads;
@@ -38,6 +39,7 @@ class AppServiceProvider extends ServiceProvider
        // Central-domain only restrictions (welcome & registration)
        Route::aliasMiddleware('central', \App\Http\Middleware\CentralDomainOnly::class);
        // Register the Tenant middleware globally
+       Route::aliasMiddleware('tenant.domain', EnsureTenantDomain::class);
 
        Relation::enforceMorphMap([
         'lead' => TenantLeads::class,

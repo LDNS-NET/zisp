@@ -21,6 +21,7 @@ use App\Http\Controllers\Tenants\CaptivePortalController;
 
 Route::middleware([
     'web',
+    'tenant.domain', // Ensure tenant domain exists & handle unauthenticated redirects
     InitializeTenancyByDomain::class,
     PreventAccessFromCentralDomains::class,
 ])->group(function () {
