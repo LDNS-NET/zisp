@@ -141,7 +141,8 @@ class TenantMikrotikController extends Controller
             'radius_secret' => env('RADIUS_SECRET', 'testing123'), // TODO: Get from tenant settings
         ]);
         
-        $this->registerRadiusNas($router);
+        // Don't register NAS yet - router has no IP at creation time
+        // NAS will be registered when IP is set during onboarding or update
 
         // Log the created router details for debugging
         Log::info('MikroTik router created', [
@@ -179,6 +180,11 @@ class TenantMikrotikController extends Controller
 
         if (empty($data['router_password'])) unset($data['router_password']);
         $router->update($data);
+
+        // Register/Update RADIUS NAS entry when IP address is updated
+        if (isset($data['ip_address'])) {
+            $this->registerRadiusNas($router);
+        }
 
         $isOnline = $this->testRouterConnection($router);
         $router->status = $isOnline ? 'online' : 'offline';
@@ -902,102 +908,128 @@ class TenantMikrotikController extends Controller
 
     private function registerRadiusNas(TenantMikrotik $router, ?string $publicIp = null): void
     {
-        if (!$router->ip_address && !$publicIp) {
-            return;
-        }
-
-        $internalIp = $router->ip_address;
-        $nasIp = $publicIp ?: $internalIp;
-
-        if (!$nasIp) {
-            return;
-        }
-
-        $shortname = 'mtk-' . $router->id;
-
-        $dynamic = ($publicIp && $internalIp && $publicIp !== $internalIp) ? 'yes' : 'no';
-
-        $connection = DB::connection('mysql_radius');
-        $nasTable = $connection->table('nas');
-
-        $existing = $nasTable
-            ->where('shortname', $shortname)
-            ->first();
-
-        $secret = env('RADIUS_SECRET', 'testing123');
-
-        if ($existing) {
-            $updates = [];
-
-            if ($existing->nasname !== $nasIp) {
-                $updates['nasname'] = $nasIp;
-            }
-
-            if (property_exists($existing, 'dynamic') && $existing->dynamic !== $dynamic) {
-                $updates['dynamic'] = $dynamic;
-            }
-
-            if ($existing->secret !== $secret) {
-                $updates['secret'] = $secret;
-            }
-
-            if (!empty($updates)) {
-                $nasTable->where('id', $existing->id)->update($updates);
-
-                Log::info('RADIUS NAS entry updated for router', [
+        try {
+            if (!$router->ip_address && !$publicIp) {
+                Log::warning('RADIUS NAS registration skipped: No IP address available', [
                     'router_id' => $router->id,
-                    'shortname' => $shortname,
-                    'old_nasname' => $existing->nasname,
-                    'new_nasname' => $updates['nasname'] ?? $existing->nasname,
-                    'dynamic' => $updates['dynamic'] ?? ($existing->dynamic ?? null),
+                    'router_name' => $router->name,
                 ]);
-
-                $router->logs()->create([
-                    'action' => 'radius_nas_update',
-                    'message' => 'RADIUS NAS entry updated',
-                    'status' => 'success',
-                    'response_data' => [
-                        'nasname' => $nasIp,
-                        'dynamic' => $dynamic,
-                        'public_ip' => $publicIp,
-                        'internal_ip' => $internalIp,
-                    ],
-                ]);
+                return;
             }
 
-            return;
-        }
+            $internalIp = $router->ip_address;
+            $nasIp = $publicIp ?: $internalIp;
 
-        $nasTable->insert([
-            'nasname' => $nasIp,
-            'shortname' => $shortname,
-            'type' => 'mikrotik',
-            'secret' => $secret,
-            'server' => '127.0.0.1',
-            'ports' => null,
-            'community' => null,
-            'description' => 'Tenant router ' . $router->id,
-            'dynamic' => $dynamic,
-        ]);
+            if (!$nasIp) {
+                Log::warning('RADIUS NAS registration skipped: No valid IP address', [
+                    'router_id' => $router->id,
+                    'router_name' => $router->name,
+                    'internal_ip' => $internalIp,
+                    'public_ip' => $publicIp,
+                ]);
+                return;
+            }
 
-        Log::info('RADIUS NAS entry created for router', [
-            'router_id' => $router->id,
-            'shortname' => $shortname,
-            'nasname' => $nasIp,
-            'dynamic' => $dynamic,
-        ]);
+            $shortname = 'mtk-' . $router->id;
+            $dynamic = ($publicIp && $internalIp && $publicIp !== $internalIp) ? 'yes' : 'no';
 
-        $router->logs()->create([
-            'action' => 'radius_nas_create',
-            'message' => 'RADIUS NAS entry created',
-            'status' => 'success',
-            'response_data' => [
+            // Use 'radius' connection as configured in database.php
+            $connection = DB::connection('radius');
+            $nasTable = $connection->table('nas');
+
+            $existing = $nasTable
+                ->where('shortname', $shortname)
+                ->first();
+
+            $secret = env('RADIUS_SECRET', 'testing123');
+
+            if ($existing) {
+                $updates = [];
+
+                if ($existing->nasname !== $nasIp) {
+                    $updates['nasname'] = $nasIp;
+                }
+
+                if (property_exists($existing, 'dynamic') && $existing->dynamic !== $dynamic) {
+                    $updates['dynamic'] = $dynamic;
+                }
+
+                if ($existing->secret !== $secret) {
+                    $updates['secret'] = $secret;
+                }
+
+                if (!empty($updates)) {
+                    $nasTable->where('id', $existing->id)->update($updates);
+
+                    Log::info('RADIUS NAS entry updated for router', [
+                        'router_id' => $router->id,
+                        'shortname' => $shortname,
+                        'old_nasname' => $existing->nasname,
+                        'new_nasname' => $updates['nasname'] ?? $existing->nasname,
+                        'dynamic' => $updates['dynamic'] ?? ($existing->dynamic ?? null),
+                    ]);
+
+                    $router->logs()->create([
+                        'action' => 'radius_nas_update',
+                        'message' => 'RADIUS NAS entry updated',
+                        'status' => 'success',
+                        'response_data' => [
+                            'nasname' => $nasIp,
+                            'dynamic' => $dynamic,
+                            'public_ip' => $publicIp,
+                            'internal_ip' => $internalIp,
+                        ],
+                    ]);
+                }
+
+                return;
+            }
+
+            $nasTable->insert([
+                'nasname' => $nasIp,
+                'shortname' => $shortname,
+                'type' => 'mikrotik',
+                'secret' => $secret,
+                'server' => '127.0.0.1',
+                'ports' => null,
+                'community' => null,
+                'description' => 'Tenant router ' . $router->id . ' - ' . $router->name,
+                'dynamic' => $dynamic,
+            ]);
+
+            Log::info('RADIUS NAS entry created for router', [
+                'router_id' => $router->id,
+                'shortname' => $shortname,
                 'nasname' => $nasIp,
                 'dynamic' => $dynamic,
-                'public_ip' => $publicIp,
-                'internal_ip' => $internalIp,
-            ],
-        ]);
+            ]);
+
+            $router->logs()->create([
+                'action' => 'radius_nas_create',
+                'message' => 'RADIUS NAS entry created',
+                'status' => 'success',
+                'response_data' => [
+                    'nasname' => $nasIp,
+                    'dynamic' => $dynamic,
+                    'public_ip' => $publicIp,
+                    'internal_ip' => $internalIp,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to register RADIUS NAS entry', [
+                'router_id' => $router->id,
+                'router_name' => $router->name,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            // Don't re-throw - allow router creation/update to continue
+            $router->logs()->create([
+                'action' => 'radius_nas_error',
+                'message' => 'Failed to create/update RADIUS NAS entry: ' . $e->getMessage(),
+                'status' => 'failed',
+            ]);
+        }
     }
 
     /**
