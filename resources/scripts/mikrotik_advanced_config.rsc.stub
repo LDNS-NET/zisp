@@ -101,9 +101,15 @@
 :put " =================== Mangle rules configured =================== "
 
 # =================== Configuring SNMP =================== 
-:do { :local existingCommunities [/snmp community find name=$snmpCommunity] :if ([:len $existingCommunities] > 0) do={ /snmp community remove [find name=$snmpCommunity] :put " =================== Previous SNMP community with the same name removed =================== " } } on-error={}
- /snmp community add name=$snmpCommunity addresses=207.154.204.144 read-access=yes write-access=yes comment="ZiSP SNMP Community"
- /snmp set enabled=yes location=$snmpLocation contact="ZiSP Management"
+:do {
+    :local existingCommunities [/snmp community find name=$snmpCommunity]
+    :if ([:len $existingCommunities] > 0) do={
+        /snmp community remove [find name=$snmpCommunity]
+        :put " =================== Previous SNMP community with the same name removed =================== "
+    }
+} on-error={}
+/snmp community add name=$snmpCommunity addresses=207.154.204.144 read-access=yes write-access=yes comment="ZiSP SNMP Community"
+/snmp set enabled=yes location=$snmpLocation contact="ZiSP Management"
 :put " =================== SNMP configured =================== "
 
 # =================== Configuring walled garden =================== 
