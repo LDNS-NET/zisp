@@ -19,177 +19,104 @@
 
 :put " =================== Starting advanced configuration =================== "
 
-
-:put " =================== Creating bridge =================== "
-:do {
-    /interface bridge remove [find name=$bridgeName]
-} on-error={}
-/interface bridge add name=$bridgeName
+# =================== Creating bridge =================== 
+:do { /interface bridge remove [find name=$bridgeName] } on-error={}
+ /interface bridge add name=$bridgeName
 :put " =================== Bridge created =================== "
 
-
-:put " =================== Configuring bridge address =================== "
-:do {
-    /ip address remove [find interface=$bridgeName]
-} on-error={}
-/ip address add address=192.168.24.1/24 interface=$bridgeName
+# =================== Configuring bridge address =================== 
+:do { /ip address remove [find interface=$bridgeName] } on-error={}
+ /ip address add address=192.168.24.1/24 interface=$bridgeName
 :put " =================== Bridge address configured =================== "
 
-
-:put " =================== Creating hotspot IP pool =================== "
-:do {
-    /ip pool remove [find name="zisp_hs_pool"]
-} on-error={}
-/ip pool add name=zisp_hs_pool ranges=192.168.24.100-192.168.24.254
+# =================== Creating hotspot IP pool =================== 
+:do { /ip pool remove [find name="zisp_hs_pool"] } on-error={}
+ /ip pool add name=zisp_hs_pool ranges=192.168.24.100-192.168.24.254
 :put " =================== Hotspot IP pool created =================== "
 
-
-:put " =================== Creating DHCP server =================== "
-:do {
-    /ip dhcp-server remove [find interface=$bridgeName]
-} on-error={}
-/ip dhcp-server add address-pool=zisp_hs_pool disabled=no interface=$bridgeName lease-time=00:10:00 name=zisp_hs_dhcp
+# =================== Creating DHCP server =================== 
+:do { /ip dhcp-server remove [find interface=$bridgeName] } on-error={}
+ /ip dhcp-server add address-pool=zisp_hs_pool disabled=no interface=$bridgeName lease-time=00:10:00 name=zisp_hs_dhcp
 :put " =================== DHCP server created =================== "
 
-
-:put " =================== Configuring DHCP network =================== "
-:do {
-    /ip dhcp-server network remove [find address=192.168.24.0/24]
-} on-error={}
-/ip dhcp-server network add address=192.168.24.0/24 comment="zisp_hs_network" gateway=192.168.24.1
+# =================== Configuring DHCP network =================== 
+:do { /ip dhcp-server network remove [find address=192.168.24.0/24] } on-error={}
+ /ip dhcp-server network add address=192.168.24.0/24 comment="zisp_hs_network" gateway=192.168.24.1
 :put " =================== DHCP network configured =================== "
 
-
-:put " =================== Creating hotspot profile =================== "
-:do {
-    /ip hotspot profile remove [find name=$hotspotProfile]
-} on-error={}
-/ip hotspot profile add hotspot-address=192.168.24.1 login-by=cookie,http-chap,http-pap,mac-cookie name=$hotspotProfile use-radius=yes radius-interim-update=00:10:00
+# =================== Creating hotspot profile =================== 
+:do { /ip hotspot profile remove [find name=$hotspotProfile] } on-error={}
+ /ip hotspot profile add hotspot-address=192.168.24.1 login-by=cookie,http-chap,http-pap,mac-cookie name=$hotspotProfile use-radius=yes radius-interim-update=00:10:00
 :put " =================== Hotspot profile created =================== "
 
-
-:put " =================== Creating hotspot server =================== "
-:do {
-    /ip hotspot remove [find interface=$bridgeName]
-} on-error={}
-/ip hotspot add address-pool=zisp_hs_pool addresses-per-mac=1 disabled=no idle-timeout=1m interface=$bridgeName name=$bridgeName profile=$hotspotProfile
+# =================== Creating hotspot server =================== 
+:do { /ip hotspot remove [find interface=$bridgeName] } on-error={}
+ /ip hotspot add address-pool=zisp_hs_pool addresses-per-mac=1 disabled=no idle-timeout=1m interface=$bridgeName name=$bridgeName profile=$hotspotProfile
 :put " =================== Hotspot server created =================== "
 
-
-:put " =================== Configuring hotspot masquerade =================== "
-:do {
-    /ip firewall nat remove [find comment="masquerade hotspot network"]
-} on-error={}
-/ip firewall nat add action=masquerade chain=srcnat comment="masquerade hotspot network" src-address=192.168.24.0/24
+# =================== Configuring hotspot masquerade =================== 
+:do { /ip firewall nat remove [find comment="masquerade hotspot network"] } on-error={}
+ /ip firewall nat add action=masquerade chain=srcnat comment="masquerade hotspot network" src-address=192.168.24.0/24
 :put " =================== Hotspot masquerade configured =================== "
 
+# =================== Disabling fasttrack =================== 
+:do { /ip firewall filter disable [find where comment="defconf: fasttrack"] :put "Fasttrack disabled" } on-error={:put " =================== No fasttrack rules found =================== "}
 
-:put " =================== Disabling fasttrack =================== "
-:do {
-    /ip firewall filter disable [find where comment="defconf: fasttrack"]
-    :put "Fasttrack disabled"
-} on-error={
-    :put " =================== No fasttrack rules found =================== "
-}
+# =================== Creating PPPoE IP pool =================== 
+:do { /ip pool remove [find name="pppoe_pool"] } on-error={}
+ /ip pool add name=pppoe_pool range=192.25.0.2-192.25.255.254
+:put " =================== PPPoE IP pool created =================== "
 
-# ============================================================================
-
-:put "==================== Creating PPPoE IP pool ==================="
-:do {
-    /ip pool remove [find name="pppoe_pool"]
-} on-error={}
-/ip pool add name=pppoe_pool range=192.25.0.2-192.25.255.254
-:put " =================== PPPoE IP pool created ==================="
-
-
-:put " =================== Creating PPPoE profile =================== "
-:do {
-    /ppp profile remove [find name=$pppoeProfile]
-} on-error={}
-/ppp profile add dns-server=8.8.8.8,8.8.4.4 local-address=pppoe_pool name=$pppoeProfile remote-address=pppoe_pool
+# =================== Creating PPPoE profile =================== 
+:do { /ppp profile remove [find name=$pppoeProfile] } on-error={}
+ /ppp profile add dns-server=8.8.8.8,8.8.4.4 local-address=pppoe_pool name=$pppoeProfile remote-address=pppoe_pool
 :put " =================== PPPoE profile created =================== "
 
-
-:put " =================== Creating PPPoE server =================== "
-:do {
-    /interface pppoe-server server remove [find interface=$bridgeName]
-} on-error={}
-/interface pppoe-server server add authentication=pap default-profile=default disabled=no interface=$bridgeName one-session-per-host=yes keepalive-timeout=10
+# =================== Creating PPPoE server =================== 
+:do { /interface pppoe-server server remove [find interface=$bridgeName] } on-error={}
+ /interface pppoe-server server add authentication=pap,chap,mschap2 default-profile=$pppoeProfile disabled=no interface=$bridgeName one-session-per-host=yes keepalive-timeout=10
 :put " =================== PPPoE server created =================== "
 
+# =================== Configuring RADIUS servers =================== 
+:do { /radius remove [find address=$radiusip] } on-error={}
+ /radius add service=hotspot address=$radiusip secret=$radiussecret authentication-port=1812 accounting-port=1813 timeout=3000
+ /radius add service=ppp address=$radiusip secret=$radiussecret authentication-port=1812 accounting-port=1813 timeout=3000
+:put "==================== RADIUS servers configured ==================="
 
-:put " =================== Configuring RADIUS authentication =================== "
+# =================== Configuring RADIUS authentication =================== 
 /ppp aaa set use-radius=yes interim-update=00:10:00
 :put " =================== RADIUS authentication enabled =================== "
 
-:put " =================== Configuring API access =================== "
-:do {
-    /user remove [find name=$apiUser]
-} on-error={}
-/user add name=$apiUser password=$apiPassword group=full comment="ZiSP API User"
-:do {
-    /ip firewall filter remove [find comment="zisp-api-allow"]
-} on-error={}
-/ip firewall filter add chain=input action=accept protocol=tcp dst-port=$apiPort src-address=$trustedIp comment="zisp-api-allow"
-:do {
-    /ip service set api disabled=no port=$apiPort address=$trustedIp
-    :put " =================== API service configured =================== "
-} on-error={
-    :put "Warning: Failed to configure API service"
-}
-:put " =================== API access configured =================== "
-
-
-:put " =================== Configuring PPPoE masquerade =================== "
-:do {
-    /ip firewall nat remove [find comment="masquerade pppoe network"]
-} on-error={}
-/ip firewall nat add action=masquerade chain=srcnat comment="masquerade pppoe network" out-interface=ether1
+# =================== Configuring PPPoE masquerade =================== 
+:do { /ip firewall nat remove [find comment="masquerade pppoe network"] } on-error={}
+ /ip firewall nat add action=masquerade chain=srcnat comment="masquerade pppoe network" out-interface=ether1
 :put " =================== PPPoE masquerade configured =================== "
 
+# =================== Configuring antisharing and router IP hiding =================== 
+:do { /ip firewall mangle remove [find comment="anti-sharing-connection"] } on-error={}
+ /ip firewall mangle add action=change-ttl chain=postrouting comment="anti-sharing-connection" new-ttl=set:1 out-interface=$bridgeName passthrough=yes
 
-:put " =================== Configuring antisharing and router IP hiding =================== "
-:do {
-    /ip firewall mangle remove [find comment="anti-sharing-connection"]
-} on-error={}
-/ip firewall mangle add action=change-ttl chain=postrouting comment="anti-sharing-connection" new-ttl=set:1 out-interface=$bridgeName passthrough=yes
-
-:do {
-    /ip firewall mangle remove [find comment="hide-router-ip-address"]
-} on-error={}
-/ip firewall mangle add action=change-ttl chain=prerouting comment="hide-router-ip-address" new-ttl=increment:2 passthrough=yes
+:do { /ip firewall mangle remove [find comment="hide-router-ip-address"] } on-error={}
+ /ip firewall mangle add action=change-ttl chain=prerouting comment="hide-router-ip-address" new-ttl=increment:2 passthrough=yes
 :put " =================== Mangle rules configured =================== "
 
-
-:put " =================== Configuring SNMP =================== "
-:do {
-    :local existingCommunities [/snmp community find name=$snmpCommunity]
-    :if ([:len $existingCommunities] > 0) do={
-        /snmp community remove [find name=$snmpCommunity]
-        :put " =================== Previous SNMP community with the same name removed =================== "
-    }
-} on-error={}
-/snmp community add name=$snmpCommunity addresses=207.154.204.144 read-access=yes write-access=yes comment="ZiSP SNMP Community"
-/snmp set enabled=yes location=$snmpLocation contact="ZiSP Management"
+# =================== Configuring SNMP =================== 
+:do { :local existingCommunities [/snmp community find name=$snmpCommunity] :if ([:len $existingCommunities] > 0) do={ /snmp community remove [find name=$snmpCommunity] :put " =================== Previous SNMP community with the same name removed =================== " } } on-error={}
+ /snmp community add name=$snmpCommunity addresses=207.154.204.144 read-access=yes write-access=yes comment="ZiSP SNMP Community"
+ /snmp set enabled=yes location=$snmpLocation contact="ZiSP Management"
 :put " =================== SNMP configured =================== "
 
-
-:put " =================== Configuring walled garden =================== "
-:do {
-    /ip hotspot walled-garden remove [find comment="zisp-walled-garden"]
-} on-error={}
-/ip hotspot walled-garden add action=allow dst-host=*.google.com comment="zisp-walled-garden"
-/ip hotspot walled-garden add action=allow dst-host=*.googleapis.com comment="zisp-walled-garden"
-/ip hotspot walled-garden add action=allow dst-host=*.gstatic.com comment="zisp-walled-garden"
-/ip hotspot walled-garden add action=allow dst-host=*.mikrotik.com comment="zisp-walled-garden"
+# =================== Configuring walled garden =================== 
+:do { /ip hotspot walled-garden remove [find comment="zisp-walled-garden"] } on-error={}
+ /ip hotspot walled-garden add action=allow dst-host=*.google.com comment="zisp-walled-garden"
+ /ip hotspot walled-garden add action=allow dst-host=*.googleapis.com comment="zisp-walled-garden"
+ /ip hotspot walled-garden add action=allow dst-host=*.gstatic.com comment="zisp-walled-garden"
+ /ip hotspot walled-garden add action=allow dst-host=*.mikrotik.com comment="zisp-walled-garden"
 :put " =================== Walled garden configured =================== "
 
-
-:put " =================== Creating reboot scheduler =================== "
-:do {
-    /system scheduler remove [find name="zisp-reboot-3am"]
-} on-error={}
-/system scheduler add name="zisp-reboot-3am" start-time=03:00:00 interval=1d on-event="/system reboot" comment="ZiSP Daily Reboot at 3AM"
+# =================== Creating reboot scheduler =================== 
+:do { /system scheduler remove [find name="zisp-reboot-3am"] } on-error={}
+ /system scheduler add name="zisp-reboot-3am" start-time=03:00:00 interval=1d on-event="/system reboot" comment="ZiSP Daily Reboot at 3AM"
 :put " =================== Reboot scheduler created =================== "
 
 :put "<<<<======= CONFIGURATION COMPLETE =============>>>>>"
