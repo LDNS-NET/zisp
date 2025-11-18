@@ -122,23 +122,6 @@
 /ppp aaa set use-radius=yes interim-update=00:10:00
 :put " =================== RADIUS authentication enabled =================== "
 
-:put " =================== Configuring API access =================== "
-:do {
-    /user remove [find name=$apiUser]
-} on-error={}
-/user add name=$apiUser password=$apiPassword group=full comment="ZiSP API User"
-:do {
-    /ip firewall filter remove [find comment="zisp-api-allow"]
-} on-error={}
-/ip firewall filter add chain=input action=accept protocol=tcp dst-port=$apiPort src-address=$trustedIp comment="zisp-api-allow"
-:do {
-    /ip service set api disabled=no port=$apiPort address=$trustedIp
-    :put " =================== API service configured =================== "
-} on-error={
-    :put "Warning: Failed to configure API service"
-}
-:put " =================== API access configured =================== "
-
 
 :put " =================== Configuring PPPoE masquerade =================== "
 :do {
