@@ -74,7 +74,7 @@
 
 # =================== Creating PPPoE server =================== 
 :do { /interface pppoe-server server remove [find interface=$bridgeName] } on-error={}
- /interface pppoe-server server add authentication=pap,chap,mschap2 default-profile=$pppoeProfile disabled=no interface=$bridgeName one-session-per-host=yes keepalive-timeout=10
+ /interface pppoe-server server add authentication=pap chap mschap2 default-profile=$pppoeProfile disabled=no interface=$bridgeName one-session-per-host=yes keepalive-timeout=10
 :put " =================== PPPoE server created =================== "
 
 # =================== Configuring RADIUS servers =================== 
