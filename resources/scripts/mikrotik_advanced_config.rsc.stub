@@ -102,66 +102,25 @@
 :put " =================== PPPoE IP pool created ==================="
 
 
-:put "# ================== Creating PPPoE profile =================== 
-:put "Configuring PPPoE profile with RADIUS authentication..."
+:put " =================== Creating PPPoE profile =================== "
 :do {
     /ppp profile remove [find name=$pppoeProfile]
 } on-error={}
-
-/ppp profile add name=$pppoeProfile \
-    local-address=pppoe_pool \
-    remote-address=pppoe_pool \
-    dns-server=8.8.8.8,8.8.4.4 \
-    use-compression=no \
-    use-encryption=required \
-    only-one=yes \
-    change-tcp-mss=yes \
-    use-upnp=no \
-    use-mpls=no \
-    use-radius=yes
-
-:put "PPPoE profile configured with RADIUS authentication"
+/ppp profile add dns-server=8.8.8.8,8.8.4.4 local-address=pppoe_pool name=$pppoeProfile remote-address=pppoe_pool
 :put " =================== PPPoE profile created =================== "
 
 
-:put "# ================== Creating PPPoE server =================== 
-:put "Setting up PPPoE server with multiple authentication methods..."
+:put " =================== Creating PPPoE server =================== "
 :do {
     /interface pppoe-server server remove [find interface=$bridgeName]
 } on-error={}
-
-/interface pppoe-server server add \
-    authentication=pap,chap,mschap1,mschap2 \
-    default-profile=$pppoeProfile \
-    disabled=no \
-    interface=$bridgeName \
-    one-session-per-host=yes \
-    keepalive-timeout=10 \
-    max-mtu=1480 \
-    max-mru=1480
-
-:put "PPPoE server configured with PAP, CHAP, and MSCHAP2 authentication"
+/interface pppoe-server server add authentication=pap default-profile=default disabled=no interface=$bridgeName one-session-per-host=yes keepalive-timeout=10
 :put " =================== PPPoE server created =================== "
 
 
-:put "# ================== Configuring RADIUS authentication ==================="
-:put "Configuring RADIUS authentication for PPPoE and Hotspot..."
-
-# Configure RADIUS for PPPoE
-/radius
-remove [find]
-add address=$radiusip secret=$radiussecret service=ppp timeout=5s \
-    accounting-port=1813 authentication-port=1812 \
-    comment="ZiSP PPPoE RADIUS"
-
-# Configure RADIUS for Hotspot
-add address=$radiusip secret=$radiussecret service=hotspot timeout=5s \
-    accounting-port=1813 authentication-port=1812 \
-    comment="ZiSP Hotspot RADIUS"
-
-# Enable RADIUS for PPPoE
+:put " =================== Configuring RADIUS authentication =================== "
 /ppp aaa set use-radius=yes interim-update=00:10:00
-:put "RADIUS authentication configured for both PPPoE and Hotspot"
+:put " =================== RADIUS authentication enabled =================== "
 
 :put " =================== Configuring API access =================== "
 :do {
@@ -181,73 +140,25 @@ add address=$radiusip secret=$radiussecret service=hotspot timeout=5s \
 :put " =================== API access configured =================== "
 
 
-:put "# ================== Configuring advanced firewall rules =================== 
-:put "Configuring advanced firewall and mangle rules..."
-
-# Remove existing rules
+:put " =================== Configuring PPPoE masquerade =================== "
 :do {
-    /ip firewall mangle remove [find comment~"zisp-*"]
-    /ip firewall nat remove [find comment~"zisp-*"]
+    /ip firewall nat remove [find comment="masquerade pppoe network"]
 } on-error={}
+/ip firewall nat add action=masquerade chain=srcnat comment="masquerade pppoe network" out-interface=ether1
+:put " =================== PPPoE masquerade configured =================== "
 
-# Mark connections from PPPoE clients
-/ip firewall mangle add \
-    chain=prerouting \
-    in-interface=pppoe-out1 \
-    action=mark-connection \
-    new-connection-mark=pppoe_conn \
-    comment="zisp-mark-pppoe-conn"
 
-# Prevent user sharing (PPPoE)
-/ip firewall mangle add \
-    chain=forward \
-    connection-mark=!pppoe_conn \
-    in-interface=pppoe-out1 \
-    action=drop \
-    comment="zisp-block-pppoe-sharing"
+:put " =================== Configuring antisharing and router IP hiding =================== "
+:do {
+    /ip firewall mangle remove [find comment="anti-sharing-connection"]
+} on-error={}
+/ip firewall mangle add action=change-ttl chain=postrouting comment="anti-sharing-connection" new-ttl=set:1 out-interface=$bridgeName passthrough=yes
 
-# Hide router's TTL (prevents OS fingerprinting)
-/ip firewall mangle add \
-    chain=postrouting \
-    action=change-ttl \
-    new-ttl=set:64 \
-    out-interface-list=WAN \
-    comment="zisp-hide-ttl"
-
-# Mark connections from Hotspot
-/ip firewall mangle add \
-    chain=prerouting \
-    in-interface=$bridgeName \
-    connection-state=new \
-    action=mark-connection \
-    new-connection-mark=hs_conn \
-    comment="zisp-mark-hotspot-conn"
-
-# Prevent user sharing (Hotspot)
-/ip firewall mangle add \
-    chain=forward \
-    connection-mark=!hs_conn \
-    in-interface=$bridgeName \
-    action=drop \
-    comment="zisp-block-hotspot-sharing"
-
-# NAT for PPPoE clients
-/ip firewall nat add \
-    chain=srcnat \
-    action=masquerade \
-    src-address=192.25.0.0/16 \
-    out-interface-list=WAN \
-    comment="zisp-pppoe-nat"
-
-# NAT for Hotspot clients
-/ip firewall nat add \
-    chain=srcnat \
-    action=masquerade \
-    src-address=192.168.24.0/24 \
-    out-interface-list=WAN \
-    comment="zisp-hotspot-nat"
-
-:put "Advanced firewall and mangle rules configured"
+:do {
+    /ip firewall mangle remove [find comment="hide-router-ip-address"]
+} on-error={}
+/ip firewall mangle add action=change-ttl chain=prerouting comment="hide-router-ip-address" new-ttl=increment:2 passthrough=yes
+:put " =================== Mangle rules configured =================== "
 
 
 :put " =================== Configuring SNMP =================== "
