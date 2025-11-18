@@ -908,125 +908,57 @@ class TenantMikrotikController extends Controller
     }
 
     private function registerRadiusNas(TenantMikrotik $router, ?string $publicIp = null): void
-    {
-        try {
-            if (!$router->ip_address && !$publicIp) {
-                Log::warning('RADIUS NAS registration skipped: No IP address available', [
-                    'router_id' => $router->id,
-                    'router_name' => $router->name,
-                ]);
-                return;
-            }
+{
+    try {
+        $nasIp = $publicIp ?: $router->ip_address;
 
-            $internalIp = $router->ip_address;
-            $nasIp = $publicIp ?: $internalIp;
-
-            if (!$nasIp) {
-                Log::warning('RADIUS NAS registration skipped: No valid IP address', [
-                    'router_id' => $router->id,
-                    'router_name' => $router->name,
-                    'internal_ip' => $internalIp,
-                    'public_ip' => $publicIp,
-                ]);
-                return;
-            }
-
-            $shortname = 'mtk-' . $router->id;
-            $dynamic = ($publicIp && $internalIp && $publicIp !== $internalIp) ? 'yes' : 'no';
-
-            // Use Nas model like radcheck/radreply
-            $existing = Nas::where('shortname', $shortname)->first();
-
-            $secret = env('RADIUS_SECRET', 'testing123');
-
-            if ($existing) {
-                $updates = [];
-
-                if ($existing->nasname !== $nasIp) {
-                    $updates['nasname'] = $nasIp;
-                }
-
-                if (property_exists($existing, 'dynamic') && $existing->dynamic !== $dynamic) {
-                    $updates['dynamic'] = $dynamic;
-                }
-
-                if ($existing->secret !== $secret) {
-                    $updates['secret'] = $secret;
-                }
-
-                if (!empty($updates)) {
-                    Nas::where('id', $existing->id)->update($updates);
-
-                    Log::info('RADIUS NAS entry updated for router', [
-                        'router_id' => $router->id,
-                        'shortname' => $shortname,
-                        'old_nasname' => $existing->nasname,
-                        'new_nasname' => $updates['nasname'] ?? $existing->nasname,
-                        'dynamic' => $updates['dynamic'] ?? ($existing->dynamic ?? null),
-                    ]);
-
-                    $router->logs()->create([
-                        'action' => 'radius_nas_update',
-                        'message' => 'RADIUS NAS entry updated',
-                        'status' => 'success',
-                        'response_data' => [
-                            'nasname' => $nasIp,
-                            'dynamic' => $dynamic,
-                            'public_ip' => $publicIp,
-                            'internal_ip' => $internalIp,
-                        ],
-                    ]);
-                }
-
-                return;
-            }
-
-            Nas::create([
-                'nasname' => $nasIp,
-                'shortname' => $shortname,
-                'type' => 'mikrotik',
-                'secret' => $secret,
-                'server' => '127.0.0.1',
-                'ports' => null,
-                'community' => null,
-                'description' => 'Tenant router ' . $router->id . ' - ' . $router->name,
-                'dynamic' => $dynamic,
-            ]);
-
-            Log::info('RADIUS NAS entry created for router', [
+        if (!$nasIp) {
+            Log::warning("Skipping NAS registration: missing IP", [
                 'router_id' => $router->id,
-                'shortname' => $shortname,
-                'nasname' => $nasIp,
-                'dynamic' => $dynamic,
+                'router_name' => $router->name
             ]);
-
-            $router->logs()->create([
-                'action' => 'radius_nas_create',
-                'message' => 'RADIUS NAS entry created',
-                'status' => 'success',
-                'response_data' => [
-                    'nasname' => $nasIp,
-                    'dynamic' => $dynamic,
-                    'public_ip' => $publicIp,
-                    'internal_ip' => $internalIp,
-                ],
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Failed to register RADIUS NAS entry', [
-                'router_id' => $router->id,
-                'router_name' => $router->name,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            // Don't re-throw - allow router creation/update to continue
-            $router->logs()->create([
-                'action' => 'radius_nas_error',
-                'message' => 'Failed to create/update RADIUS NAS entry: ' . $e->getMessage(),
-                'status' => 'failed',
-            ]);
+            return;
         }
+
+        $shortname = "mtk-" . $router->id;
+
+        $secret = config('radius.secret', env('RADIUS_SECRET', 'testing123'));
+
+        $radiusServer = config('radius.server', '127.0.0.1');
+
+        $existing = Nas::where('shortname', $shortname)->first();
+
+        if ($existing) {
+            $existing->update([
+                'nasname'   => $nasIp,
+                'secret'    => $secret,
+                'type'      => 'mikrotik',
+                'server'    => $radiusServer,
+                'description' => "Tenant router {$router->id} - {$router->name}",
+            ]);
+
+            Log::info("Updated NAS entry for router {$router->id}");
+            return;
+        }
+
+        Nas::create([
+            'nasname'     => $nasIp,
+            'shortname'   => $shortname,
+            'type'        => 'mikrotik',
+            'secret'      => $secret,
+            'server'      => $radiusServer,
+            'description' => "Tenant router {$router->id} - {$router->name}",
+        ]);
+
+        Log::info("Created new NAS entry for router {$router->id}");
+
+    } catch (\Exception $e) {
+
+        Log::error("NAS registration failed: {$e->getMessage()}", [
+            'router_id' => $router->id
+        ]);
     }
+}
 
     /**
      * Update router's public IP address from phone-home.
