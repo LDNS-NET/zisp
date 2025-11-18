@@ -10,8 +10,9 @@ use App\Models\Tenants\{
     TenantRouterLog,
     TenantBandwidthUsage,
     TenantActiveSession,
-    TenantRouterAlert
 };
+use App\Models\Radius\Nas;
+use App\Models\Tenants\TenantRouterAlert;
 use App\Services\{MikrotikService, MikrotikScriptGenerator, TenantHotspotService};
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
@@ -933,13 +934,8 @@ class TenantMikrotikController extends Controller
             $shortname = 'mtk-' . $router->id;
             $dynamic = ($publicIp && $internalIp && $publicIp !== $internalIp) ? 'yes' : 'no';
 
-            // Use 'radius' connection as configured in database.php
-            $connection = DB::connection('radius');
-            $nasTable = $connection->table('nas');
-
-            $existing = $nasTable
-                ->where('shortname', $shortname)
-                ->first();
+            // Use Nas model like radcheck/radreply
+            $existing = Nas::where('shortname', $shortname)->first();
 
             $secret = env('RADIUS_SECRET', 'testing123');
 
@@ -959,7 +955,7 @@ class TenantMikrotikController extends Controller
                 }
 
                 if (!empty($updates)) {
-                    $nasTable->where('id', $existing->id)->update($updates);
+                    Nas::where('id', $existing->id)->update($updates);
 
                     Log::info('RADIUS NAS entry updated for router', [
                         'router_id' => $router->id,
@@ -985,7 +981,7 @@ class TenantMikrotikController extends Controller
                 return;
             }
 
-            $nasTable->insert([
+            Nas::create([
                 'nasname' => $nasIp,
                 'shortname' => $shortname,
                 'type' => 'mikrotik',
