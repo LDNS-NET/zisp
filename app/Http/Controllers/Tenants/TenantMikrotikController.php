@@ -908,57 +908,57 @@ class TenantMikrotikController extends Controller
     }
 
     private function registerRadiusNas(TenantMikrotik $router, ?string $publicIp = null): void
-{
-    try {
-        $nasIp = $publicIp ?: $router->ip_address;
+    {
+        try {
+            $nasIp = $publicIp ?: $router->ip_address;
 
-        if (!$nasIp) {
-            Log::warning("Skipping NAS registration: missing IP", [
-                'router_id' => $router->id,
-                'router_name' => $router->name
-            ]);
-            return;
-        }
+            if (!$nasIp) {
+                Log::warning("Skipping NAS registration: missing IP", [
+                    'router_id' => $router->id,
+                    'router_name' => $router->name
+                ]);
+                return;
+            }
 
-        $shortname = "mtk-" . $router->id;
+            $shortname = "mtk-" . $router->id;
 
-        $secret = config('radius.secret', env('RADIUS_SECRET', 'testing123'));
+            $secret = config('radius.secret', env('RADIUS_SECRET', 'testing123'));
 
-        $radiusServer = config('radius.server', '127.0.0.1');
+            $radiusServer = config('radius.server', '127.0.0.1');
 
-        $existing = Nas::where('shortname', $shortname)->first();
+            $existing = Nas::where('shortname', $shortname)->first();
 
-        if ($existing) {
-            $existing->update([
-                'nasname'   => $nasIp,
-                'secret'    => $secret,
-                'type'      => 'mikrotik',
-                'server'    => $radiusServer,
+            if ($existing) {
+                $existing->update([
+                    'nasname'   => $nasIp,
+                    'secret'    => $secret,
+                    'type'      => 'mikrotik',
+                    'server'    => $radiusServer,
+                    'description' => "Tenant router {$router->id} - {$router->name}",
+                ]);
+
+                Log::info("Updated NAS entry for router {$router->id}");
+                return;
+            }
+
+            Nas::create([
+                'nasname'     => $nasIp,
+                'shortname'   => $shortname,
+                'type'        => 'mikrotik',
+                'secret'      => $secret,
+                'server'      => $radiusServer,
                 'description' => "Tenant router {$router->id} - {$router->name}",
             ]);
 
-            Log::info("Updated NAS entry for router {$router->id}");
-            return;
+            Log::info("Created new NAS entry for router {$router->id}");
+
+        } catch (\Exception $e) {
+
+            Log::error("NAS registration failed: {$e->getMessage()}", [
+                'router_id' => $router->id
+            ]);
         }
-
-        Nas::create([
-            'nasname'     => $nasIp,
-            'shortname'   => $shortname,
-            'type'        => 'mikrotik',
-            'secret'      => $secret,
-            'server'      => $radiusServer,
-            'description' => "Tenant router {$router->id} - {$router->name}",
-        ]);
-
-        Log::info("Created new NAS entry for router {$router->id}");
-
-    } catch (\Exception $e) {
-
-        Log::error("NAS registration failed: {$e->getMessage()}", [
-            'router_id' => $router->id
-        ]);
     }
-}
 
     /**
      * Update router's public IP address from phone-home.
