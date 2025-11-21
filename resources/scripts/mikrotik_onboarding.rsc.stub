@@ -7,6 +7,11 @@
 :local apiPort "{{api_port}}"
 :local radiusSecret "{{radius_secret}}"
 :local radiusIp "{{radius_ip}}"
+:local radiusVpnIp "{{radius_vpn_ip}}"
+:local radiusServerIp $radiusIp
+:if ([:len $radiusVpnIp] > 0) do={
+    :set radiusServerIp $radiusVpnIp
+}
 :local trustedIp "{{trusted_ip}}"
 :local wgServerEndpoint "{{wg_server_endpoint}}"
 :local wgServerPubKey "{{wg_server_pubkey}}"
@@ -39,6 +44,9 @@
 # ---------- RADIUS Configuration ----------
 :do {
     /radius remove [find address=$radiusIp]
+    :if ($radiusServerIp != $radiusIp) do={
+        /radius remove [find address=$radiusServerIp]
+    }
 } on-error={}
 
 :local radiusServices "ppp"
@@ -48,8 +56,12 @@
 } on-error={}
 
 :do {
-    /radius add service=$radiusServices address=$radiusIp secret=$radiusSecret disabled=no timeout=3000ms accounting-port=1813 authentication-port=1812
-    :put "RADIUS configured: $radiusServices"
+    /radius add service=$radiusServices address=$radiusServerIp secret=$radiusSecret disabled=no timeout=3000ms accounting-port=1813 authentication-port=1812
+    :if ($radiusServerIp != $radiusIp) do={
+        :put "RADIUS configured: $radiusServices (via VPN $radiusServerIp)"
+    } else={
+        :put "RADIUS configured: $radiusServices"
+    }
 } on-error={
     :put "Warning: Could not configure RADIUS"
 }

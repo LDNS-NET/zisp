@@ -40,6 +40,7 @@ class MikrotikScriptGenerator
 
         $radius_ip = $options['radius_ip'] ?? env('RADIUS_IP', '207.154.232.10');
         $radius_secret = $options['radius_secret'] ?? env('RADIUS_SECRET', 'testing123');
+        $radius_vpn_ip = $options['radius_vpn_ip'] ?? env('RADIUS_VPN_IP', '10.8.0.1');
         $api_port = $options['api_port'] ?? '8728';
         $sync_token = $options['sync_token'] ?? null;
         $sync_url = $options['sync_url'] ?? null;
@@ -110,6 +111,7 @@ class MikrotikScriptGenerator
             'router_id' => $router_id,
             'radius_ip' => $radius_ip,
             'radius_secret' => $radius_secret,
+            'radius_vpn_ip' => $radius_vpn_ip ?? '',
             'snmp_community' => $snmp_community,
             'snmp_location' => $snmp_location,
             'api_port' => $api_port,
