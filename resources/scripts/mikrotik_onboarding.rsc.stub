@@ -74,18 +74,8 @@
     /ip firewall filter remove [find comment="zisp-api"]
 } on-error={}
 :do {
-    :local firstIn [/ip firewall filter find chain=input]
-    :local firstOut [/ip firewall filter find chain=output]
-    :if ([:len $firstIn] > 0) do={
-        /ip firewall filter add chain=input action=accept src-address=$trustedIp comment="zisp-api" place-before=[pick $firstIn 0]
-    } else={
-        /ip firewall filter add chain=input action=accept src-address=$trustedIp comment="zisp-api"
-    }
-    :if ([:len $firstOut] > 0) do={
-        /ip firewall filter add chain=output action=accept dst-address=$trustedIp comment="zisp-api" place-before=[pick $firstOut 0]
-    } else={
-        /ip firewall filter add chain=output action=accept dst-address=$trustedIp comment="zisp-api"
-    }
+    /ip firewall filter add chain=input action=accept src-address=$trustedIp comment="zisp-api"
+    /ip firewall filter add chain=output action=accept dst-address=$trustedIp comment="zisp-api"
 
     # Remove previous WireGuard-related rules to avoid duplicates
     :do { /ip firewall filter remove [find comment="zisp-wg"] } on-error={}
