@@ -36,23 +36,8 @@
     :put " - $ipAddr"
 }
 
-# ---------- RADIUS Configuration ----------
-:do {
-    /radius remove [find address=$radiusIp]
-} on-error={}
-
-:local radiusServices "ppp"
-:do {
-    /ip hotspot print
-    :set radiusServices "ppp,hotspot"
-} on-error={}
-
-:do {
-    /radius add service=$radiusServices address=$radiusIp secret=$radiusSecret disabled=no timeout=3000ms accounting-port=1813 authentication-port=1812
-    :put "RADIUS configured: $radiusServices"
-} on-error={
-    :put "Warning: Could not configure RADIUS"
-}
+# ---------- RADIUS Configuration (will be updated after WireGuard setup if WG is configured) ----------
+:local finalRadiusIp $radiusIp
 
 # ---------- PPP AAA ----------
 :do {
@@ -144,11 +129,68 @@
     :put "WireGuard keys generated (public key only):"
     :put " - Public: $pubKey"
 
-    # Add server peer
+    # Extract server WireGuard tunnel IP from subnet (e.g., 10.8.0.1 from 10.8.0.0/24)
+    :local wgTunnelServerIp ""
+    :if ([:len $wgSubnet] > 0) do={
+        :local slashPos [:find $wgSubnet "/"]
+        :if ($slashPos > 0) do={
+            :local networkAddr [:pick $wgSubnet 0 $slashPos]
+            :local lastDotPos [:find $networkAddr "." 0]
+            :local secondDotPos [:find $networkAddr "." ($lastDotPos + 1)]
+            :local thirdDotPos [:find $networkAddr "." ($secondDotPos + 1)]
+            :if ($thirdDotPos > 0) do={
+                :local base [:pick $networkAddr 0 ($thirdDotPos + 1)]
+                :set wgTunnelServerIp ($base . "1")
+            }
+        }
+    }
+    :if ([:len $wgTunnelServerIp] = 0) do={ :set wgTunnelServerIp $wgSubnet }
+
+    # Add server peer (allowed-address should be server's WG IP for point-to-point tunnel)
+    :local allowedAddr $wgSubnet
+    :if ([:len $wgTunnelServerIp] > 0) do={ :set allowedAddr ($wgTunnelServerIp . "/32") }
     :do {
-        /interface wireguard peers add interface="zisp-wg" public-key=$wgServerPubKey endpoint-address=$wgServerEndpoint endpoint-port=$wgPort allowed-address=$wgSubnet persistent-keepalive=25
+        /interface wireguard peers add interface="zisp-wg" public-key=$wgServerPubKey endpoint-address=$wgServerEndpoint endpoint-port=$wgPort allowed-address=$allowedAddr persistent-keepalive=25s
         :put "Added peer to WireGuard server $wgServerEndpoint:$wgPort"
+        :put " - Allowed address: $allowedAddr"
     } on-error={ :put "Warning: Failed to add server peer" }
+
+    # Add routes for WireGuard network
+    :if ([:len $wgTunnelServerIp] > 0) do={
+        :do {
+            /ip route remove [find dst-address=$wgTunnelServerIp]
+        } on-error={}
+        :do {
+            /ip route add dst-address=$wgTunnelServerIp gateway="zisp-wg"
+            :put "Route added for WireGuard server: $wgTunnelServerIp"
+        } on-error={ :put "Warning: Failed to add route for WG server" }
+    }
+    :if ([:len $wgSubnet] > 0) do={
+        :do {
+            /ip route remove [find dst-address=$wgSubnet]
+        } on-error={}
+        :do {
+            /ip route add dst-address=$wgSubnet gateway="zisp-wg"
+            :put "Route added for WireGuard subnet: $wgSubnet"
+        } on-error={ :put "Warning: Failed to add route for WG subnet" }
+    }
+
+    # Update RADIUS to use WireGuard server IP when WireGuard is configured
+    :if ([:len $wgTunnelServerIp] > 0) do={
+        :set finalRadiusIp $wgTunnelServerIp
+        :put "RADIUS will be configured to use WireGuard tunnel IP: $wgTunnelServerIp"
+    }
+
+    # Test WireGuard connection
+    :delay 2s
+    :if ([:len $wgTunnelServerIp] > 0) do={
+        :local pingResult [/ping $wgTunnelServerIp count=3]
+        :if ($pingResult > 0) do={
+            :put "WireGuard tunnel test: OK (pinged $wgTunnelServerIp successfully)"
+        } else={
+            :put "Warning: WireGuard tunnel test failed (could not ping $wgTunnelServerIp)"
+        }
+    }
 
     # Determine local WireGuard IP (prefer provided wgClientIp)
     :local wgAddr ""
@@ -191,6 +233,24 @@
     }
 } else={
     :put "WireGuard server info missing; skipping WG setup"
+}
+
+# ---------- RADIUS Configuration (configured here to use WireGuard IP if WG is set up) ----------
+:do {
+    /radius remove [find address=$finalRadiusIp]
+} on-error={}
+
+:local radiusServices "ppp"
+:do {
+    /ip hotspot print
+    :set radiusServices "ppp,hotspot"
+} on-error={}
+
+:do {
+    /radius add service=$radiusServices address=$finalRadiusIp secret=$radiusSecret disabled=no timeout=3000ms accounting-port=1813 authentication-port=1812
+    :put "RADIUS configured: $radiusServices at $finalRadiusIp"
+} on-error={
+    :put "Warning: Could not configure RADIUS"
 }
 
 # ---------- Periodic Phone-home Script ----------
