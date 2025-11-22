@@ -42,9 +42,8 @@ class RegisteredUserController extends Controller
         ]);
 
         $user = null;
-        $fullDomain = null;
 
-        DB::transaction(function () use ($request, &$user, &$fullDomain) {
+        DB::transaction(function () use ($request, &$user) {
             // Create the user
             $user = User::create([
                 'name' => $request->name,
@@ -96,8 +95,8 @@ class RegisteredUserController extends Controller
         event(new Registered($user));
         Auth::login($user);
 
-        // Redirect to tenant dashboard on their subdomain
-        return redirect()->away('https://' . $fullDomain . '/dashboard');
+        // Redirect to tenant dashboard
+        return redirect()->route('dashboard', [], false);
 
 
     }

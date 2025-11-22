@@ -10,7 +10,6 @@ use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use Illuminate\Support\Facades\Route;
-use Stancl\Tenancy\Middleware\InitializeTenancyByDomain;
 
 Route::middleware('guest')->group(function () {
     Route::get('register', [RegisteredUserController::class, 'create'])
@@ -20,11 +19,9 @@ Route::middleware('guest')->group(function () {
     Route::post('register', [RegisteredUserController::class, 'store'])->middleware('central');
 
     Route::get('login', [AuthenticatedSessionController::class, 'create'])
-        ->middleware(InitializeTenancyByDomain::class)
         ->name('login');
 
-    Route::post('login', [AuthenticatedSessionController::class, 'store'])
-        ->middleware(InitializeTenancyByDomain::class);
+    Route::post('login', [AuthenticatedSessionController::class, 'store']);
 
     Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
         ->name('password.request');
