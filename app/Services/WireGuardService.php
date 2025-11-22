@@ -28,7 +28,7 @@ class WireGuardService
 
         $peerPub = $router->wireguard_public_key;
         $addr = $router->wireguard_address;
-        $allowedIps = $router->wireguard_allowed_ips ?? ($addr ? ($addr . '/32') : '10.254.0.0/16');
+        $allowedIps = $router->wireguard_allowed_ips ?? ($addr ? ($addr . '/32') : '10.100.0.0/16');
 
         // Build wg command for server side: do NOT set endpoint here (client sets server endpoint).
         $wgBinary = config('wireguard.wg_binary') ?? env('WG_BINARY', '/usr/bin/wg');

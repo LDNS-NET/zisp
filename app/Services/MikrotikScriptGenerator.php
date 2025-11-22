@@ -87,9 +87,9 @@ class MikrotikScriptGenerator
             $trusted_ip .= '/32';
         }
 
-        $wg_server_endpoint = $options['wg_server_endpoint'] ?? config('wireguard.server_endpoint') ?? env('WG_SERVER_ENDPOINT', '');
+        $wg_server_endpoint = $options['wg_server_endpoint'] ?? config('wireguard.server_endpoint') ?? env('WG_SERVER_ENDPOINT', '159.89.111.189');
         $wg_server_pubkey  = $options['wg_server_pubkey'] ?? config('wireguard.server_public_key') ?? env('WG_SERVER_PUBLIC_KEY', '');
-        $wg_subnet         = $options['wg_subnet'] ?? config('wireguard.subnet') ?? env('WG_SUBNET', '10.254.0.0/16');
+        $wg_subnet         = $options['wg_subnet'] ?? config('wireguard.subnet') ?? env('WG_SUBNET', '10.100.0.0/16');
         $wg_port           = $options['wg_port'] ?? config('wireguard.server_port') ?? env('WG_SERVER_PORT', 51820);
         $wg_client_ip      = $options['wg_client_ip'] ?? '';
 
