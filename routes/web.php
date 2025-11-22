@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use Stancl\Tenancy\Middleware\InitializeTenancyByDomain;
 
 // Normal user controllers
 use App\Http\Controllers\ProfileController;
@@ -65,7 +66,7 @@ Route::post('mikrotiks/{mikrotik}/register-wireguard', [\App\Http\Controllers\Te
 |--------------------------------------------------------------------------
 */
 
-Route::middleware(['auth', 'verified', 'check.subscription', 'tenant.domain'])
+Route::middleware(['auth', 'verified', 'check.subscription', InitializeTenancyByDomain::class, 'tenant.domain'])
     ->group(function () {
 
 
@@ -196,15 +197,18 @@ Route::middleware(['auth', 'verified', 'check.subscription', 'tenant.domain'])
 | Payment Success Callback | Works for system renewals
 |--------------------------------------------------------------------------
 */
-Route::get('/payment/success', function () {
-    $user = auth()->user();
-    if ($user) {
-        $user->update([
-            'subscription_expires_at' => now()->addDays(30),
-            'is_suspended' => false,
-        ]);
-    }
-    return redirect()->route('dashboard');})->name('payment.success');
+Route::middleware([InitializeTenancyByDomain::class])->group(function () {
+    Route::get('/payment/success', function () {
+        $user = auth()->user();
+        if ($user) {
+            $user->update([
+                'subscription_expires_at' => now()->addDays(30),
+                'is_suspended' => false,
+            ]);
+        }
+        return redirect()->route('dashboard');
+    })->name('payment.success');
+});
 
 
 
@@ -221,7 +225,7 @@ Route::get('/payment/success', function () {
 | Profile Routes
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth', 'tenant.domain'])->group(function () {
+Route::middleware(['auth', InitializeTenancyByDomain::class, 'tenant.domain'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
