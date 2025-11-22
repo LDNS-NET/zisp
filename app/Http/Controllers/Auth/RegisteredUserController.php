@@ -42,9 +42,8 @@ class RegisteredUserController extends Controller
         ]);
 
         $user = null;
-        $fullDomain = null;
 
-        DB::transaction(function () use ($request, &$user, &$fullDomain) {
+        DB::transaction(function () use ($request, &$user) {
             // Create the user
             $user = User::create([
                 'name' => $request->name,
@@ -60,39 +59,44 @@ class RegisteredUserController extends Controller
             $subdomain = $baseSubdomain;
             $counter = 1;
 
-            while (Tenant::where('subdomain', $subdomain)->exists()) {
+            while (DB::table('tenants')->where('subdomain', $subdomain)->exists()) {
                 $subdomain = $baseSubdomain . '-' . $counter++;
             }
 
             $baseDomain = parse_url(config('app.url'), PHP_URL_HOST) ?: 'localhost';
             $fullDomain = $subdomain . '.' . $baseDomain;
 
-            // Create tenant using the Tenant model (this triggers TenantCreated event)
-            $tenant = Tenant::create([
-                'id' => (string) Str::uuid(),
+            // Create tenant
+            $tenantId = (string) Str::uuid();
+            DB::table('tenants')->insert([
+                'id' => $tenantId,
                 'name' => $user->name,
                 'email' => $user->email,
                 'phone' => $user->phone,
                 'username' => $user->username,
                 'subdomain' => $subdomain,
-                'data' => ['name' => $user->name],
+                'data' => json_encode(['name' => $user->name]),
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
 
-            // Create domain using the tenant's domain relationship
-            $tenant->domains()->create([
+            DB::table('domains')->insert([
                 'domain' => $fullDomain,
+                'tenant_id' => $tenantId,
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
 
             // Associate user with tenant
-            $user->tenant_id = $tenant->id;
+            $user->tenant_id = $tenantId;
             $user->save();
         });
 
         event(new Registered($user));
         Auth::login($user);
 
-        // Redirect to tenant dashboard on their subdomain
-        return redirect()->away('https://' . $fullDomain . '/dashboard');
+        // Redirect to tenant dashboard
+        return redirect()->route('dashboard', [], false);
 
 
     }
