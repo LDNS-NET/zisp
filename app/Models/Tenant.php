@@ -2,15 +2,14 @@
 
 namespace App\Models;
 
+use Stancl\Tenancy\Contracts\TenantWithDatabase;
+use Stancl\Tenancy\Database\Concerns\HasDatabase;
 use Stancl\Tenancy\Database\Concerns\HasDomains;
 use Stancl\Tenancy\Database\Models\Tenant as BaseTenant;
-use Illuminate\Support\Facades\Config;
-use IntaSend\IntaSendPHP\APIService;
-use IntaSend\IntaSendPHP\Wallet;
 
-class Tenant extends BaseTenant
+class Tenant extends BaseTenant implements TenantWithDatabase
 {
-    use HasDomains;
+    use HasDatabase, HasDomains;
 
     protected $fillable = [
         'id',
@@ -18,21 +17,9 @@ class Tenant extends BaseTenant
         'email',
         'phone',
         'username',
+        'subdomain',
+        'database',
     ];
-
-    public function configure()
-    {
-        // 🧠 Point the tenant connection to the correct SQLite file
-        Config::set('database.connections.tenant.database', $this->databasePath());
-    }
-
-    protected function databasePath(): string
-    {
-        // 🔐 Store DB in tenants folder with tenant ID as filename
-        return database_path("tenants/{$this->id}.sqlite");
-    }
-
-    // Removed booted() wallet creation logic. Wallets are now created in controllers before tenant creation.
 
     public static function getCustomColumns(): array
     {
