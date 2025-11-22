@@ -124,7 +124,7 @@ class TenantMikrotikController extends Controller
             : null;
 
         // Get server IP (trusted IP) - use config or request IP
-        $trustedIp = config('app.server_ip') ?? request()->server('SERVER_ADDR') ?? '207.154.232.10';
+        $trustedIp = config('app.server_ip') ?? request()->server('SERVER_ADDR') ?? '159.89.111.189';
         
         // Ensure API port is set (should already be set in create, but double-check)
         $apiPort = $router->api_port ?? 8728;
@@ -138,7 +138,7 @@ class TenantMikrotikController extends Controller
             'ca_url' => $caUrl,
             'api_port' => $apiPort, // Use the stored API port
             'trusted_ip' => $trustedIp,
-            'radius_ip' => env('RADIUS_IP', '207.154.232.10'), // TODO: Get from tenant settings
+            'radius_ip' => env('RADIUS_IP', '159.89.111.189'), // TODO: Get from tenant settings
             'radius_secret' => env('RADIUS_SECRET', 'testing123'), // TODO: Get from tenant settings
         ]);
         
@@ -334,7 +334,7 @@ class TenantMikrotikController extends Controller
             : null;
 
         // Get server IP (trusted IP) - use config or request IP
-        $trustedIp = config('app.server_ip') ?? request()->server('SERVER_ADDR') ?? '207.154.232.10';
+        $trustedIp = config('app.server_ip') ?? request()->server('SERVER_ADDR') ?? '159.89.111.189';
         
         $script = $scriptGenerator->generate([
             'name' => $router->name,
@@ -345,7 +345,7 @@ class TenantMikrotikController extends Controller
             'ca_url' => $caUrl,
             'api_port' => $router->api_port ?? 8728,
             'trusted_ip' => $trustedIp,
-            'radius_ip' => env('RADIUS_IP', '207.154.232.10'), // TODO: Get from tenant settings
+            'radius_ip' => env('RADIUS_IP', '159.89.111.189'), // TODO: Get from tenant settings
             'radius_secret' => env('RADIUS_SECRET', 'testing123'), // TODO: Get from tenant settings
         ]);
 
@@ -372,7 +372,7 @@ class TenantMikrotikController extends Controller
             : null;
 
         // Get server IP (trusted IP) - use config or request IP
-        $trustedIp = config('app.server_ip') ?? request()->server('SERVER_ADDR') ?? '207.154.232.10';
+        $trustedIp = config('app.server_ip') ?? request()->server('SERVER_ADDR') ?? '159.89.111.189';
         
         $script = $scriptGenerator->generate([
             'name' => $router->name,
@@ -383,7 +383,7 @@ class TenantMikrotikController extends Controller
             'ca_url' => $caUrl,
             'api_port' => $router->api_port ?? 8728,
             'trusted_ip' => $trustedIp,
-            'radius_ip' => env('RADIUS_IP', '207.154.232.10'), // TODO: Get from tenant settings
+            'radius_ip' => env('RADIUS_IP', '159.89.111.189'), // TODO: Get from tenant settings
             'radius_secret' => env('RADIUS_SECRET', 'testing123'), // TODO: Get from tenant settings
         ]);
 
@@ -537,7 +537,7 @@ class TenantMikrotikController extends Controller
                 $assignedAddress = $wgAddress;
             } else {
                 // Derive deterministic client IP from configured WG_SUBNET and router id
-                $subnet = config('wireguard.subnet') ?? env('WG_SUBNET', '10.254.0.0/16');
+                $subnet = config('wireguard.subnet') ?? env('WG_SUBNET', '10.100.0.0/16');
                 if (strpos($subnet, '/') !== false) {
                     [$network, $prefix] = explode('/', $subnet, 2);
                     $prefix = (int)$prefix;
@@ -844,7 +844,7 @@ class TenantMikrotikController extends Controller
         $router = TenantMikrotik::findOrFail($id);
 
         // Get RADIUS settings (same as onboarding script)
-        $radius_ip = env('RADIUS_IP', '207.154.232.10'); // TODO: Get from tenant settings
+        $radius_ip = env('RADIUS_IP', '159.89.111.189'); // TODO: Get from tenant settings
         $radius_secret = env('RADIUS_SECRET', 'testing123'); // TODO: Get from tenant settings
 
         $script = $scriptGenerator->generateAdvancedConfig([
