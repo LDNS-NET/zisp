@@ -88,7 +88,7 @@ class TenantMikrotikController extends Controller
             'success' => true,
             'status' => $router->status,
             'last_seen_at' => $router->last_seen_at?->toIso8601String(),
-            'vpn_ip' => $router->wireguard_address,
+            'ip_address' => $router->ip_address,
         ]);
     }
 
@@ -272,7 +272,7 @@ class TenantMikrotikController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'IP address set successfully.',
-            'vpn_ip' => $router->wireguard_address,
+            'ip_address' => $router->ip_address,
             'api_port' => $router->api_port,
             'username' => $router->router_username,
         ]);
@@ -316,7 +316,7 @@ class TenantMikrotikController extends Controller
                 ? 'Router is online and responding via API!' 
                 : 'Router is not responding. Please verify: 1) Router is powered on and online, 2) IP address is correct (' . $router->ip_address . '), 3) API service is enabled on port ' . ($router->api_port ?? 8728) . ', 4) Username and password are correct, 5) Firewall allows API connections from this server.',
             'last_seen_at' => $router->last_seen_at,
-            'vpn_ip' => $router->wireguard_address,
+            'ip_address' => $router->ip_address,
             'api_port' => $router->api_port ?? 8728,
             'username' => $router->router_username,
         ]);
@@ -502,14 +502,14 @@ class TenantMikrotikController extends Controller
             Log::info('Router sync successful', [
                 'router_id' => $router->id,
                 'router_name' => $router->name,
-                'vpn_ip' => $router->wireguard_address,
+                'ip_address' => $router->ip_address,
             ]);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Sync received. Router marked online.',
                 'status' => 'online',
-                'vpn_ip' => $router->wireguard_address,
+                'ip_address' => $router->ip_address,
                 'last_seen_at' => $router->last_seen_at->toIso8601String(),
             ]);
         } catch (\Exception $e) {
@@ -643,7 +643,7 @@ class TenantMikrotikController extends Controller
             // Log connection attempt details (without password)
             Log::info('Testing router VPN connection', [
                 'router_id' => $router->id,
-                'vpn_ip' => $router->wireguard_address,
+                'ip_address' => $router->ip_address,
                 'username' => $router->router_username,
                 'api_port' => $apiPort,
                 'use_ssl' => $useSsl,
@@ -680,7 +680,7 @@ class TenantMikrotikController extends Controller
                 
                 Log::info('Router connection successful', [
                     'router_id' => $router->id,
-                    'vpn_ip' => $router->wireguard_address,
+                    'ip_address' => $router->ip_address,
                 ]);
             } else {
                 // Check if router should be marked offline due to stale last_seen_at
@@ -688,14 +688,14 @@ class TenantMikrotikController extends Controller
                     $router->status = 'offline';
                     Log::warning('Router marked offline: Connection failed and last_seen_at > 4 minutes', [
                         'router_id' => $router->id,
-                        'vpn_ip' => $router->wireguard_address,
+                        'ip_address' => $router->ip_address,
                         'last_seen_at' => $router->last_seen_at,
                     ]);
                 } else {
                     // Connection failed but last_seen_at is recent, keep current status
                     Log::warning('Router connection failed: No response', [
                         'router_id' => $router->id,
-                        'vpn_ip' => $router->wireguard_address,
+                        'ip_address' => $router->ip_address,
                     ]);
                 }
             }
@@ -715,7 +715,7 @@ class TenantMikrotikController extends Controller
             $errorMessage = $e->getMessage();
             Log::error("Router connection test failed", [
                 'router_id' => $router->id,
-                'vpn_ip' => $router->wireguard_address,
+                'ip_address' => $router->ip_address,
                 'api_port' => $router->api_port ?? 8728,
                 'error' => $errorMessage,
                 'trace' => $e->getTraceAsString(),
