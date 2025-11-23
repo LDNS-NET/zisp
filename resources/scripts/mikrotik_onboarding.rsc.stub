@@ -6,7 +6,8 @@
 :local password "{{router_password}}"
 :local apiPort "{{api_port}}"
 :local radiusSecret "{{radius_secret}}"
-:local radiusServerIp "{{radius_vpn_ip}}"   # RADIUS reachable via VPN tunnel (10.100.0.1)
+:local radiusServerIp "{{radius_vpn_ip}}"
+# RADIUS reachable via VPN tunnel (10.100.0.1)
 :local radiusIp $radiusServerIp
 :local trustedIp "{{trusted_ip}}"
 :local wgServerEndpoint "{{wg_server_endpoint}}"
