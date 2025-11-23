@@ -43,27 +43,11 @@ class MikrotikScriptGenerator
         $radius_vpn_ip = $options['radius_vpn_ip'] ?? env('RADIUS_VPN_IP', '10.100.0.1');
         $api_port = $options['api_port'] ?? '8728';
         $sync_token = $options['sync_token'] ?? null;
-        $sync_url = $options['sync_url'] ?? null;
+        // sync_url removed - phone-home system replaced with RouterOS API polling
 
         // SNMP defaults
         $snmp_community = $options['snmp_community'] ?? 'public';
         $snmp_location  = $options['snmp_location'] ?? 'ZiSP Network';
-
-        // Build sync_url if not provided
-        if (!$sync_url && !empty($router_id)) {
-            try {
-                $sync_url = url(route('mikrotiks.sync', ['mikrotik' => $router_id], false));
-                if ($sync_token) {
-                    $sync_url .= "?token=$sync_token";
-                }
-            } catch (\Exception $e) {
-                $baseUrl = config('app.url') ?? (request()->scheme() . '://' . request()->getHttpHost());
-                $sync_url = rtrim($baseUrl, '/') . "/mikrotiks/{$router_id}/sync";
-                if ($sync_token) {
-                    $sync_url .= "?token=$sync_token";
-                }
-            }
-        }
 
         // Build wg_register_url if not provided
         $wg_register_url = $options['wg_register_url'] ?? null;
@@ -118,7 +102,7 @@ class MikrotikScriptGenerator
             'snmp_community' => $snmp_community,
             'snmp_location' => $snmp_location,
             'api_port' => $api_port,
-            'sync_url' => $sync_url ?? '',
+            'sync_url' => '', // Phone-home removed - using RouterOS API polling
             'trusted_ip' => $trusted_ip,
             'wg_server_endpoint' => $wg_server_endpoint,
             'wg_server_pubkey' => $wg_server_pubkey,

@@ -49,12 +49,10 @@ Route::get('/', function () {
 
 /*
 |--------------------------------------------------------------------------
-| Public MikroTik Sync Endpoint (Token-based authentication)
+| Phone-home sync endpoint removed.
+| Router monitoring now uses RouterOS API polling via SyncRoutersCommand.
 |--------------------------------------------------------------------------
-| This endpoint is called by MikroTik routers after running the onboarding script.
-| It uses token-based authentication (sync_token) instead of session auth.
 */
-Route::post('mikrotiks/{mikrotik}/sync', [TenantMikrotikController::class, 'sync'])->name('mikrotiks.sync');
 
 // WireGuard registration endpoint (public, token-authenticated)
 Route::post('mikrotiks/{mikrotik}/register-wireguard', [\App\Http\Controllers\Tenants\TenantMikrotikController::class, 'registerWireguard'])->name('mikrotiks.registerWireguard');
@@ -147,6 +145,9 @@ Route::middleware(['auth', 'verified', 'check.subscription', 'tenant.domain'])
         Route::get('mikrotiks/{mikrotik}/test-connection', [TenantMikrotikController::class, 'testConnection'])->name('mikrotiks.testConnection');
         Route::get('mikrotiks/{mikrotik}/ping', [TenantMikrotikController::class, 'pingRouter'])->name('mikrotiks.ping');
         Route::get('mikrotiks/{mikrotik}/status', [TenantMikrotikController::class, 'getStatus'])->name('mikrotiks.status');
+        Route::get('mikrotiks/{mikrotik}/resource', [TenantMikrotikController::class, 'getResource'])->name('mikrotiks.resource');
+        Route::get('mikrotiks/{mikrotik}/interfaces', [TenantMikrotikController::class, 'getInterfaces'])->name('mikrotiks.interfaces');
+        Route::get('mikrotiks/{mikrotik}/active-sessions', [TenantMikrotikController::class, 'getActiveSessions'])->name('mikrotiks.activeSessions');
         Route::post('mikrotiks/{mikrotik}/set-ip', [TenantMikrotikController::class, 'setIp'])->name('mikrotiks.setIp');
         Route::post('mikrotiks/validate', [TenantMikrotikController::class, 'validateRouter'])->name('mikrotiks.validate');
         Route::get('mikrotiks/{mikrotik}/download-setup-script', [TenantMikrotikController::class, 'downloadSetupScript'])->name('mikrotiks.downloadSetupScript');
@@ -156,7 +157,6 @@ Route::middleware(['auth', 'verified', 'check.subscription', 'tenant.domain'])
         Route::get('mikrotiks/{mikrotik}/ca.crt', [TenantMikrotikController::class, 'downloadCACert'])->name('mikrotiks.downloadCACert');
         Route::get('mikrotiks/{mikrotik}/reprovision', [TenantMikrotikController::class, 'reprovision'])->name('mikrotiks.reprovision');
         Route::post('mikrotiks/{mikrotik}/provision-hotspot', [TenantMikrotikController::class, 'provisionHotspot'])->name('mikrotiks.provisionHotspot');
-        // Note: sync route is defined in Public Routes section above (no auth required)
 
 
         //captive portal

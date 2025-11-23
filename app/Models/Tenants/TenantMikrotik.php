@@ -36,6 +36,10 @@ class TenantMikrotik extends Model
         'wireguard_port',
         'wireguard_status',
         'wireguard_last_handshake',
+        // API polling fields
+        'online',
+        'cpu',
+        'memory',
     ];
 
     protected $casts = [
@@ -46,6 +50,10 @@ class TenantMikrotik extends Model
         'temperature' => 'decimal:2',
         // WireGuard handshake timestamp
         'wireguard_last_handshake' => 'datetime',
+        // API polling fields
+        'online' => 'boolean',
+        'cpu' => 'decimal:2',
+        'memory' => 'decimal:2',
     ];
 
     protected $hidden = [

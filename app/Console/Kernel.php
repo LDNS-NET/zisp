@@ -11,8 +11,8 @@ class Kernel extends ConsoleKernel
     {
         $schedule->command('sms:send-expiry-notifications')->everyFiveMinutes();
         
-        // Check MikroTik router status every 3 minutes
-        $schedule->command('mikrotik:check-status')->everyThreeMinutes();
+        // Sync routers via RouterOS API polling every minute
+        $schedule->command('routers:sync')->everyMinute();
 
         // Sync WireGuard peers every minute to pick up new registrations quickly
         $schedule->command('wireguard:sync-peers')->everyMinute();

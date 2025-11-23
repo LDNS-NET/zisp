@@ -177,7 +177,7 @@ function deleteRouter(mikrotik) {
 async function pingRouter(router) {
     // Use VPN IP (wireguard_address) - all router communication uses VPN tunnel only
     const vpnIp = router.wireguard_address ?? router.ip_address ?? 'unknown';
-    toast.info(`Pinging VPN IP (${vpnIp}) ...`);
+    toast.info(`Pinging router via RouterOS API (${vpnIp}) ...`);
 
     pinging.value[router.id] = true;
     formError.value = '';
@@ -192,6 +192,7 @@ async function pingRouter(router) {
         }
 
         router.status = data.status;
+        router.online = data.online;
         router.last_seen_at = data.last_seen_at;
         
         // Update the routers list to reflect the change
@@ -200,10 +201,15 @@ async function pingRouter(router) {
             routersList.value[index] = { ...router };
         }
 
+        // Show latency if available
+        const message = data.latency 
+            ? `${data.message} (Latency: ${data.latency}ms)`
+            : data.message;
+        
         // Use a nicer non-blocking feedback
-        window.toast?.success(data.message) || console.log(data.message);
+        window.toast?.success(message) || console.log(message);
     } catch (err) {
-        toast.error('Error pinging router via VPN tunnel');
+        toast.error('Error pinging router via RouterOS API');
     } finally {
         pinging.value[router.id] = false;
     }
@@ -312,13 +318,12 @@ function provisionHotspot(router) {
     });
 }
 
-// Status polling functions
+// Status polling functions - poll every 5 seconds for real-time updates
 function startStatusPolling() {
-    // Poll every 4 minutes to get updated router status
-    // This matches the backend's 3-minute check cycle (we poll more frequently for better UX)
+    // Poll every 5 seconds to get updated router status
     statusPollInterval = setInterval(() => {
         refreshRouterStatus();
-    }, 400000); // 4 minutes
+    }, 5000); // 5 seconds
 }
 
 function stopStatusPolling() {
@@ -330,17 +335,35 @@ function stopStatusPolling() {
 
 async function refreshRouterStatus() {
     try {
-        // Reload only the routers data to get updated status
-        await Inertia.reload({
-            only: ['routers'],
-            preserveScroll: true,
-            preserveState: true,
-        });
-        // Update the local routers list
-        routersList.value = props.routers || [];
+        // Fetch status for each router individually to get real-time data
+        for (const router of routersList.value) {
+            try {
+                const response = await fetch(route('mikrotiks.status', router.id));
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        // Update router status in local list
+                        const index = routersList.value.findIndex(r => r.id === router.id);
+                        if (index !== -1) {
+                            routersList.value[index] = {
+                                ...routersList.value[index],
+                                status: data.status,
+                                online: data.online,
+                                last_seen_at: data.last_seen_at,
+                                cpu: data.cpu,
+                                memory: data.memory,
+                                uptime: data.uptime,
+                            };
+                        }
+                    }
+                }
+            } catch (err) {
+                // Silently fail for individual routers
+                console.debug(`Status refresh failed for router ${router.id}:`, err);
+            }
+        }
     } catch (err) {
         // Silently fail - don't interrupt user experience
-        toast.error('Error refreshing router status');
         console.debug('Status refresh failed:', err);
     }
 }
@@ -403,7 +426,17 @@ async function refreshRouterStatus() {
                                         <th
                                             class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider"
                                         >
-                                            OS Version
+                                            CPU
+                                        </th>
+                                        <th
+                                            class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider"
+                                        >
+                                            Memory
+                                        </th>
+                                        <th
+                                            class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider"
+                                        >
+                                            Uptime
                                         </th>
                                         <th
                                             class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider"
@@ -450,12 +483,17 @@ async function refreshRouterStatus() {
                                         <td
                                             class="whitespace-nowrap px-6 py-4 text-sm"
                                         >
-                                            {{ router.model || '-' }}
+                                            {{ router.cpu !== null && router.cpu !== undefined ? router.cpu + '%' : '-' }}
                                         </td>
                                         <td
                                             class="whitespace-nowrap px-6 py-4 text-sm"
                                         >
-                                            {{ router.os_version || '-' }}
+                                            {{ router.memory !== null && router.memory !== undefined ? router.memory + '%' : '-' }}
+                                        </td>
+                                        <td
+                                            class="whitespace-nowrap px-6 py-4 text-sm"
+                                        >
+                                            {{ router.uptime ? formatUptime(router.uptime) : '-' }}
                                         </td>
                                         <td
                                             class="whitespace-nowrap px-6 py-4 text-sm"
@@ -645,7 +683,7 @@ async function refreshRouterStatus() {
                                     </tr>
                                     <tr v-if="!routersList.length">
                                         <td
-                                            colspan="7"
+                                            colspan="9"
                                             class="px-6 py-4 text-center text-gray-500"
                                         >
                                             No Mikrotik routers found.
@@ -882,13 +920,19 @@ async function refreshRouterStatus() {
                         class="rounded-xl border border-dashed border-blue-400 bg-gray-50 p-2 dark:bg-black"
                     >
                         <span class="font-medium">CPU Usage:</span>
-                        {{ selectedRouter?.cpu_usage ?? '-' }}%
+                        {{ selectedRouter?.cpu ?? selectedRouter?.cpu_usage ?? '-' }}%
                     </div>
                     <div
                         class="rounded-xl border border-dashed border-blue-400 bg-gray-50 p-2 dark:bg-black"
                     >
                         <span class="font-medium">Memory Usage:</span>
-                        {{ selectedRouter?.memory_usage ?? '-' }}%
+                        {{ selectedRouter?.memory ?? selectedRouter?.memory_usage ?? '-' }}%
+                    </div>
+                    <div
+                        class="rounded-xl border border-dashed border-blue-400 bg-gray-50 p-2 dark:bg-black"
+                    >
+                        <span class="font-medium">Identity:</span>
+                        {{ selectedRouter?.name || '-' }}
                     </div>
                     <div v-if="selectedRouter?.temperature">
                         <span class="font-medium">Temperature:</span>
