@@ -37,9 +37,30 @@ class SyncRoutersCommand extends Command
         
         foreach ($routers as $router) {
             try {
+                // Get VPN IP from wireguard_address (standardized VPN IP storage)
+                $vpnIp = $router->wireguard_address;
+                
+                // Legacy fallback: if wireguard_address not set, check if ip_address is in VPN subnet
+                if (!$vpnIp && $router->ip_address) {
+                    $ip = $router->ip_address;
+                    if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+                        $ipLong = ip2long($ip);
+                        $networkLong = ip2long('10.100.0.0');
+                        $mask = (-1 << (32 - 16)) & 0xFFFFFFFF;
+                        if (($ipLong & $mask) === ($networkLong & $mask)) {
+                            $vpnIp = $ip;
+                            // Also update wireguard_address for consistency
+                            if (!$router->wireguard_address) {
+                                $router->wireguard_address = $ip;
+                                $router->save();
+                            }
+                        }
+                    }
+                }
+                
                 // Skip if no VPN IP configured
-                if (!$router->wireguard_address) {
-                    $this->warn("Router {$router->id} ({$router->name}) has no VPN IP configured, skipping...");
+                if (!$vpnIp) {
+                    $this->warn("Router {$router->id} ({$router->name}) has no VPN IP configured (neither wireguard_address nor ip_address in 10.100.0.0/16), skipping...");
                     continue;
                 }
                 
