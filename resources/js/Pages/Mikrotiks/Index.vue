@@ -183,10 +183,6 @@ async function pingRouter(router) {
     const startTime = Date.now();
 
     try {
-    pinging.value[router.id] = true;
-    formError.value = '';
-
-    try {
         const response = await fetch(route('mikrotiks.ping', router.id));
         const data = await response.json();
 
@@ -216,8 +212,29 @@ async function pingRouter(router) {
         if (elapsed < 3000) {
             await new Promise((r) => setTimeout(r, 3000 - elapsed));
         }
+                const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || 'Ping failed');
+        }
+
+        router.status = data.status;
+        router.last_seen_at = data.last_seen_at;
+
+        const idx = routersList.value.findIndex(r => r.id === router.id);
+        if (idx !== -1) {
+            routersList.value[idx] = { ...router };
+        }
+
+        toast.success(data.message);
+    } catch (err) {
+        toast.error('Error pinging router');
+    } finally {
+        const elapsed = Date.now() - startTime;
+        if (elapsed < 3000) {
+            await new Promise((r) => setTimeout(r, 3000 - elapsed));
+        }
         pinging.value[router.id] = false;
-    }
     }
 }
 
@@ -229,10 +246,6 @@ async function testRouterConnection(router) {
     const ip = router.ip_address || router.ip || router.ipAddress || 'unknown';
     toast.info(`Testing connection (${ip}) ...`);
     const startTime = Date.now();
-
-    try {
-    testing.value[router.id] = true;
-    formError.value = '';
 
     try {
         const response = await fetch(route('mikrotiks.testConnection', router.id));
@@ -265,8 +278,29 @@ async function testRouterConnection(router) {
         if (elapsed < 3000) {
             await new Promise((r) => setTimeout(r, 3000 - elapsed));
         }
+                const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || 'Connection test failed');
+        }
+
+        router.status = data.status;
+        router.last_seen_at = data.last_seen_at;
+
+        const idx = routersList.value.findIndex(r => r.id === router.id);
+        if (idx !== -1) {
+            routersList.value[idx] = { ...router };
+        }
+
+        toast.success(data.message);
+    } catch (err) {
+        toast.error('Error testing connection');
+    } finally {
+        const elapsed = Date.now() - startTime;
+        if (elapsed < 3000) {
+            await new Promise((r) => setTimeout(r, 3000 - elapsed));
+        }
         testing.value[router.id] = false;
-    }
     }
 }
 
