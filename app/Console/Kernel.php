@@ -14,6 +14,7 @@ class Kernel extends ConsoleKernel
         // Sync routers via RouterOS API polling every minute (prevent overlapping runs)
         $schedule->command('routers:sync')
             ->everyMinute()
+            ->withoutOverlapping()
             ->runInBackground()
             ->before(function () {
                 \Log::info('routers:sync triggered at ' . now());
