@@ -31,8 +31,8 @@ class CheckMikrotikStatus extends Command
         $this->info('Starting MikroTik status check...');
 
         // Get all routers that have an IP address configured
-        $routers = TenantMikrotik::whereNotNull('ip_address')
-            ->where('ip_address', '!=', '')
+        $routers = TenantMikrotik::whereNotNull('wireguard_address')
+            ->where('wireguard_address', '!=', '')
             ->get();
 
         if ($routers->isEmpty()) {
@@ -49,7 +49,7 @@ class CheckMikrotikStatus extends Command
 
         foreach ($routers as $router) {
             try {
-                $this->line("Checking router: {$router->name} ({$router->ip_address})...");
+                $this->line("Checking router: {$router->name} ({$router->wireguard_address})...");
 
                 // First, check if router should be marked offline based on last_seen_at
                 if ($this->isRouterStale($router)) {
@@ -122,7 +122,8 @@ class CheckMikrotikStatus extends Command
     private function testRouterConnection(TenantMikrotik $router): bool
     {
         try {
-            if (!$router->ip_address) {
+            // Ensure router has a VPN tunnel IP before attempting ping
+            if (!$router->wireguard_address) {
                 Log::warning('Router test skipped: No IP address', ['router_id' => $router->id]);
                 return false;
             }
@@ -130,15 +131,9 @@ class CheckMikrotikStatus extends Command
             $apiPort = $router->api_port ?? 8728;
             $useSsl = $router->use_ssl ?? false;
 
-            $service = MikrotikService::forMikrotik($router)
-                ->setConnection(
-                    $router->ip_address,
-                    $router->router_username,
-                    $router->router_password,
-                    $apiPort,
-                    $useSsl
-                );
+            $service = MikrotikService::forMikrotik($router);
 
+            // The service will automatically use the router's VPN IP.
             $resources = $service->testConnection();
             $isOnline = $resources !== false;
 
@@ -161,7 +156,7 @@ class CheckMikrotikStatus extends Command
                 
                 Log::debug('Router connection successful', [
                     'router_id' => $router->id,
-                    'ip_address' => $router->ip_address,
+                    'vpn_ip' => $router->wireguard_address,
                 ]);
             } else {
                 // Check if router should be marked offline due to stale last_seen_at
@@ -169,14 +164,14 @@ class CheckMikrotikStatus extends Command
                     $router->status = 'offline';
                     Log::debug('Router marked offline: Connection failed and last_seen_at > 4 minutes', [
                         'router_id' => $router->id,
-                        'ip_address' => $router->ip_address,
+                        'vpn_ip' => $router->wireguard_address,
                         'last_seen_at' => $router->last_seen_at,
                     ]);
                 } else {
                     // Connection failed but last_seen_at is recent, keep current status
                     Log::debug('Router connection failed: No response', [
                         'router_id' => $router->id,
-                        'ip_address' => $router->ip_address,
+                        'vpn_ip' => $router->wireguard_address,
                     ]);
                 }
             }
@@ -188,7 +183,7 @@ class CheckMikrotikStatus extends Command
             $errorMessage = $e->getMessage();
             Log::error("Router connection test failed", [
                 'router_id' => $router->id,
-                'ip_address' => $router->ip_address,
+                'vpn_ip' => $router->wireguard_address,
                 'api_port' => $router->api_port ?? 8728,
                 'error' => $errorMessage,
             ]);

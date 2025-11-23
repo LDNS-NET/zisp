@@ -88,7 +88,7 @@ class TenantMikrotikController extends Controller
             'success' => true,
             'status' => $router->status,
             'last_seen_at' => $router->last_seen_at?->toIso8601String(),
-            'ip_address' => $router->ip_address,
+            'vpn_ip' => $router->wireguard_address,
         ]);
     }
 
@@ -272,7 +272,7 @@ class TenantMikrotikController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'IP address set successfully.',
-            'ip_address' => $router->ip_address,
+            'vpn_ip' => $router->wireguard_address,
             'api_port' => $router->api_port,
             'username' => $router->router_username,
         ]);
@@ -316,7 +316,7 @@ class TenantMikrotikController extends Controller
                 ? 'Router is online and responding via API!' 
                 : 'Router is not responding. Please verify: 1) Router is powered on and online, 2) IP address is correct (' . $router->ip_address . '), 3) API service is enabled on port ' . ($router->api_port ?? 8728) . ', 4) Username and password are correct, 5) Firewall allows API connections from this server.',
             'last_seen_at' => $router->last_seen_at,
-            'ip_address' => $router->ip_address,
+            'vpn_ip' => $router->wireguard_address,
             'api_port' => $router->api_port ?? 8728,
             'username' => $router->router_username,
         ]);
@@ -502,14 +502,14 @@ class TenantMikrotikController extends Controller
             Log::info('Router sync successful', [
                 'router_id' => $router->id,
                 'router_name' => $router->name,
-                'ip_address' => $router->ip_address,
+                'vpn_ip' => $router->wireguard_address,
             ]);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Sync received. Router marked online.',
                 'status' => 'online',
-                'ip_address' => $router->ip_address,
+                'vpn_ip' => $router->wireguard_address,
                 'last_seen_at' => $router->last_seen_at->toIso8601String(),
             ]);
         } catch (\Exception $e) {
@@ -643,8 +643,16 @@ class TenantMikrotikController extends Controller
     private function testRouterConnection(TenantMikrotik $router): bool
     {
         try {
-            if (!$router->ip_address) {
-                Log::warning('Router test skipped: No IP address', ['router_id' => $router->id]);
+            // Use VPN tunnel IP stored in wireguard_address for all reachability checks
+            if (!$router->wireguard_address) {
+                Log::warning('Router test skipped: No VPN tunnel IP', ['router_id' => $router->id]);
+                return false;
+            }
+
+            // Validate private RFC1918 (safety guard)
+            if (!filter_var($router->wireguard_address, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ||
+                !preg_match('/^(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/', $router->wireguard_address)) {
+                Log::warning('Router test skipped: VPN IP not private', ['router_id' => $router->id, 'vpn_ip' => $router->wireguard_address]);
                 return false;
             }
 
@@ -653,9 +661,9 @@ class TenantMikrotikController extends Controller
             $useSsl = $router->use_ssl ?? false;
 
             // Log connection attempt details (without password)
-            Log::info('Testing router connection', [
+            Log::info('Testing router VPN connection', [
                 'router_id' => $router->id,
-                'ip_address' => $router->ip_address,
+                'vpn_ip' => $router->wireguard_address,
                 'username' => $router->router_username,
                 'api_port' => $apiPort,
                 'use_ssl' => $useSsl,
@@ -663,7 +671,7 @@ class TenantMikrotikController extends Controller
 
             $service = MikrotikService::forMikrotik($router)
                 ->setConnection(
-                    $router->ip_address,
+                    $router->wireguard_address,
                     $router->router_username,
                     $router->router_password,
                     $apiPort,
@@ -692,7 +700,7 @@ class TenantMikrotikController extends Controller
                 
                 Log::info('Router connection successful', [
                     'router_id' => $router->id,
-                    'ip_address' => $router->ip_address,
+                    'vpn_ip' => $router->wireguard_address,
                 ]);
             } else {
                 // Check if router should be marked offline due to stale last_seen_at
@@ -700,14 +708,14 @@ class TenantMikrotikController extends Controller
                     $router->status = 'offline';
                     Log::warning('Router marked offline: Connection failed and last_seen_at > 4 minutes', [
                         'router_id' => $router->id,
-                        'ip_address' => $router->ip_address,
+                        'vpn_ip' => $router->wireguard_address,
                         'last_seen_at' => $router->last_seen_at,
                     ]);
                 } else {
                     // Connection failed but last_seen_at is recent, keep current status
                     Log::warning('Router connection failed: No response', [
                         'router_id' => $router->id,
-                        'ip_address' => $router->ip_address,
+                        'vpn_ip' => $router->wireguard_address,
                     ]);
                 }
             }
@@ -727,7 +735,7 @@ class TenantMikrotikController extends Controller
             $errorMessage = $e->getMessage();
             Log::error("Router connection test failed", [
                 'router_id' => $router->id,
-                'ip_address' => $router->ip_address,
+                'vpn_ip' => $router->wireguard_address,
                 'api_port' => $router->api_port ?? 8728,
                 'error' => $errorMessage,
                 'trace' => $e->getTraceAsString(),
