@@ -131,9 +131,15 @@
     # Create WG interface (listen on configured port)
     :do { /interface wireguard add name="zisp-wg" listen-port=$wgPort disabled=no } on-error={ :put "Failed to create WireGuard interface" }
 
-    # Optionally assign a static IP to the WG interface if provided (e.g., 10.10.0.2/32)
+    # Assign VPN IP to the WG interface (unified subnet 10.100.0.0/16)
+    # Server is 10.100.0.1/16, router gets an IP within this subnet (e.g., 10.100.0.2/16)
     :if ([:len $wgClientIp] > 0) do={
-        :do { /ip address add interface="zisp-wg" address=$wgClientIp } on-error={ :put "Warning: Failed to assign WG client IP" }
+        # Ensure IP has /16 subnet mask if not already specified
+        :local clientIpWithMask $wgClientIp
+        :if ([:find $clientIpWithMask "/"] = -1) do={
+            :set clientIpWithMask ($clientIpWithMask . "/16")
+        }
+        :do { /ip address add interface="zisp-wg" address=$clientIpWithMask } on-error={ :put "Warning: Failed to assign WG client IP" }
     }
 
     # Generate keys (RouterOS v7+ supports private-key property)
