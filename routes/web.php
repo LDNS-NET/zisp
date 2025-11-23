@@ -144,6 +144,7 @@ Route::middleware(['auth', 'verified', 'check.subscription', 'tenant.domain'])
         Route::resource('mikrotiks', TenantMikrotikController::class);
         Route::get('mikrotiks/{mikrotik}/test-connection', [TenantMikrotikController::class, 'testConnection'])->name('mikrotiks.testConnection');
         Route::get('mikrotiks/{mikrotik}/ping', [TenantMikrotikController::class, 'pingRouter'])->name('mikrotiks.ping');
+        Route::get('mikrotiks/status', [TenantMikrotikController::class, 'getAllStatus'])->name('mikrotiks.statusAll');
         Route::get('mikrotiks/{mikrotik}/status', [TenantMikrotikController::class, 'getStatus'])->name('mikrotiks.status');
         Route::get('mikrotiks/{mikrotik}/resource', [TenantMikrotikController::class, 'getResource'])->name('mikrotiks.resource');
         Route::get('mikrotiks/{mikrotik}/interfaces', [TenantMikrotikController::class, 'getInterfaces'])->name('mikrotiks.interfaces');

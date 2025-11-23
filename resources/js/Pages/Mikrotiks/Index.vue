@@ -335,31 +335,27 @@ function stopStatusPolling() {
 
 async function refreshRouterStatus() {
     try {
-        // Fetch status for each router individually to get real-time data
-        for (const router of routersList.value) {
-            try {
-                const response = await fetch(route('mikrotiks.status', router.id));
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.success) {
-                        // Update router status in local list
-                        const index = routersList.value.findIndex(r => r.id === router.id);
-                        if (index !== -1) {
-                            routersList.value[index] = {
-                                ...routersList.value[index],
-                                status: data.status,
-                                online: data.online,
-                                last_seen_at: data.last_seen_at,
-                                cpu: data.cpu,
-                                memory: data.memory,
-                                uptime: data.uptime,
-                            };
-                        }
+        // Use bulk status endpoint for better performance
+        const response = await fetch(route('mikrotiks.statusAll'));
+        if (response.ok) {
+            const data = await response.json();
+            if (data.success && Array.isArray(data.routers)) {
+                // Update router statuses in local list
+                data.routers.forEach((routerStatus) => {
+                    const index = routersList.value.findIndex(r => r.id === routerStatus.id);
+                    if (index !== -1) {
+                        // Update only status-related fields, preserve other router data
+                        routersList.value[index] = {
+                            ...routersList.value[index],
+                            status: routerStatus.status,
+                            online: routerStatus.online,
+                            last_seen_at: routerStatus.last_seen_at,
+                            cpu: routerStatus.cpu,
+                            memory: routerStatus.memory,
+                            uptime: routerStatus.uptime,
+                        };
                     }
-                }
-            } catch (err) {
-                // Silently fail for individual routers
-                console.debug(`Status refresh failed for router ${router.id}:`, err);
+                });
             }
         }
     } catch (err) {

@@ -11,8 +11,11 @@ class Kernel extends ConsoleKernel
     {
         $schedule->command('sms:send-expiry-notifications')->everyFiveMinutes();
         
-        // Sync routers via RouterOS API polling every minute
-        $schedule->command('routers:sync')->everyMinute();
+        // Sync routers via RouterOS API polling every minute (prevent overlapping runs)
+        $schedule->command('routers:sync')
+            ->everyMinute()
+            ->withoutOverlapping()
+            ->runInBackground();
 
         // Sync WireGuard peers every minute to pick up new registrations quickly
         $schedule->command('wireguard:sync-peers')->everyMinute();

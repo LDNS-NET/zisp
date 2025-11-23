@@ -163,15 +163,106 @@ class TenantMikrotikController extends Controller
             }
         }
 
+        // Get active sessions if router is online (from cache, don't query API every time)
+        $hotspotUsers = 0;
+        $pppoeUsers = 0;
+        $identity = $router->name; // Default to router name
+        
+        // Only fetch from API if router is online and data is fresh (< 2 minutes)
+        if ($router->status === 'online' && $router->last_seen_at) {
+            $secondsSinceLastSeen = now()->diffInSeconds($router->last_seen_at);
+            if ($secondsSinceLastSeen < 120) { // Less than 2 minutes
+                try {
+                    $apiService = new RouterApiService($router);
+                    $hotspotUsers = $apiService->getHotspotActive();
+                    $pppoeUsers = $apiService->getPppoeActive();
+                    $identityResult = $apiService->getIdentity();
+                    if ($identityResult !== false) {
+                        $identity = $identityResult;
+                    }
+                } catch (\Exception $e) {
+                    // Silently fail, use cached data
+                }
+            }
+        }
+        
+        // Format uptime
+        $uptimeFormatted = null;
+        if ($router->uptime) {
+            $days = floor($router->uptime / 86400);
+            $hours = floor(($router->uptime % 86400) / 3600);
+            $minutes = floor(($router->uptime % 3600) / 60);
+            $uptimeFormatted = "{$days}d {$hours}h {$minutes}m";
+        }
+        
         return response()->json([
             'success' => true,
+            'online' => $router->online ?? ($router->status === 'online'),
             'status' => $router->status,
-            'online' => $router->online ?? false,
             'last_seen_at' => $router->last_seen_at?->toIso8601String(),
             'vpn_ip' => $vpnIp,
             'cpu' => $router->cpu ?? $router->cpu_usage ?? null,
             'memory' => $router->memory ?? $router->memory_usage ?? null,
             'uptime' => $router->uptime ?? null,
+            'uptime_formatted' => $uptimeFormatted,
+            'identity' => $identity,
+            'hotspot_users' => $hotspotUsers,
+            'pppoe_users' => $pppoeUsers,
+        ]);
+    }
+
+    /**
+     * Get status for all routers (bulk endpoint for frontend polling).
+     */
+    public function getAllStatus()
+    {
+        $routers = TenantMikrotik::all();
+        $statuses = [];
+        
+        foreach ($routers as $router) {
+            $router->refresh();
+            
+            $vpnIp = $router->wireguard_address ?? $router->ip_address;
+            
+            // Format uptime
+            $uptimeFormatted = null;
+            if ($router->uptime) {
+                $days = floor($router->uptime / 86400);
+                $hours = floor(($router->uptime % 86400) / 3600);
+                $minutes = floor(($router->uptime % 3600) / 60);
+                $uptimeFormatted = "{$days}d {$hours}h {$minutes}m";
+            }
+            
+            // Check if router should be marked offline (last_seen_at > 2 minutes)
+            $isStale = false;
+            if ($router->last_seen_at) {
+                $secondsSinceLastSeen = now()->diffInSeconds($router->last_seen_at);
+                if ($secondsSinceLastSeen > 120) { // 2 minutes
+                    $isStale = true;
+                }
+            } elseif ($router->status === 'online') {
+                $isStale = true;
+            }
+            
+            $statuses[] = [
+                'id' => $router->id,
+                'online' => $isStale ? false : ($router->online ?? ($router->status === 'online')),
+                'status' => $isStale ? 'offline' : $router->status,
+                'last_seen_at' => $router->last_seen_at?->toIso8601String(),
+                'vpn_ip' => $vpnIp,
+                'cpu' => $router->cpu ?? $router->cpu_usage ?? null,
+                'memory' => $router->memory ?? $router->memory_usage ?? null,
+                'uptime' => $router->uptime ?? null,
+                'uptime_formatted' => $uptimeFormatted,
+                'identity' => $router->name,
+                'hotspot_users' => 0, // Will be fetched on-demand for individual routers
+                'pppoe_users' => 0, // Will be fetched on-demand for individual routers
+            ];
+        }
+        
+        return response()->json([
+            'success' => true,
+            'routers' => $statuses,
         ]);
     }
 

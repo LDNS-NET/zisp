@@ -225,14 +225,15 @@ class MikrotikService
                 }
                 
                 // Connect using VPN IP only (10.100.0.0/16 subnet)
+                // Use shorter timeout for scheduler (2-3 seconds max to avoid blocking)
                 $this->connection = [
                     'host' => $vpnIp,
                     'user' => $this->mikrotik->router_username,
                     'pass' => $this->mikrotik->router_password,
                     'port' => $this->mikrotik->api_port ?? 8728,
                     'ssl' => $this->mikrotik->use_ssl ?? false,
-                    'timeout' => 10, // Connection timeout
-                    'attempts' => 2, // Retry attempts
+                    'timeout' => 3, // 3 second timeout for scheduler (was 10)
+                    'attempts' => 1, // Single attempt for faster failure (was 2)
                 ];
             }
             

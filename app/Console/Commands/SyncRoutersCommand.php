@@ -37,9 +37,22 @@ class SyncRoutersCommand extends Command
         
         foreach ($routers as $router) {
             try {
+                // Skip routers without VPN IP (MikrotikService will throw exception, catch it below)
+                $vpnIp = $router->wireguard_address ?? $router->ip_address;
+                if (!$vpnIp) {
+                    $this->warn("Router {$router->id} ({$router->name}) has no VPN IP configured, skipping...");
+                    continue;
+                }
+                
                 // Use the same approach as pingRouter - MikrotikService handles VPN IP detection
+                // Set timeout to 3 seconds max to avoid blocking
                 $service = MikrotikService::forMikrotik($router);
+                
+                // Wrap in try-catch with timeout handling
+                $startTime = microtime(true);
                 $resources = $service->testConnection();
+                $elapsed = microtime(true) - $startTime;
+                
                 $isOnline = $resources !== false;
                 
                 if ($isOnline) {
@@ -82,7 +95,7 @@ class SyncRoutersCommand extends Command
                     
                     $router->update($updateData);
                     $synced++;
-                    $this->info("Router {$router->id} ({$router->name}) synced successfully");
+                    $this->info("Router {$router->id} ({$router->name}) synced successfully ({$elapsed}s)");
                 } else {
                     // Router is offline
                     $updateData = ['status' => 'offline'];
@@ -91,15 +104,37 @@ class SyncRoutersCommand extends Command
                     }
                     $router->update($updateData);
                     $synced++;
+                    
+                    Log::warning('Router sync: Router is offline', [
+                        'router_id' => $router->id,
+                        'router_name' => $router->name,
+                        'vpn_ip' => $vpnIp,
+                    ]);
+                    
                     $this->warn("Router {$router->id} ({$router->name}) is offline");
                 }
             } catch (\Exception $e) {
                 $failed++;
+                $errorMessage = $e->getMessage();
+                
+                // Determine error type for better logging
+                $errorType = 'unknown';
+                if (str_contains($errorMessage, 'timeout') || str_contains($errorMessage, 'Connection timed out')) {
+                    $errorType = 'timeout';
+                } elseif (str_contains($errorMessage, 'authentication') || str_contains($errorMessage, 'password') || str_contains($errorMessage, 'login')) {
+                    $errorType = 'authentication_failed';
+                } elseif (str_contains($errorMessage, 'VPN IP') || str_contains($errorMessage, 'not set')) {
+                    $errorType = 'no_vpn_ip';
+                    // Skip logging for missing VPN IP (already warned above)
+                    continue;
+                }
+                
                 Log::error('Router sync failed', [
                     'router_id' => $router->id,
                     'router_name' => $router->name,
-                    'error' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString(),
+                    'error_type' => $errorType,
+                    'error' => $errorMessage,
+                    'vpn_ip' => $router->wireguard_address ?? $router->ip_address ?? 'not configured',
                 ]);
                 
                 // Mark as offline on error
@@ -109,7 +144,7 @@ class SyncRoutersCommand extends Command
                 }
                 $router->update($updateData);
                 
-                $this->error("Router {$router->id} ({$router->name}) sync failed: " . $e->getMessage());
+                $this->error("Router {$router->id} ({$router->name}) sync failed: {$errorType} - " . substr($errorMessage, 0, 100));
             }
         }
         
