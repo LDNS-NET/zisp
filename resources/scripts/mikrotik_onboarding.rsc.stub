@@ -131,16 +131,40 @@
     # Create WG interface (listen on configured port)
     :do { /interface wireguard add name="zisp-wg" listen-port=$wgPort disabled=no } on-error={ :put "Failed to create WireGuard interface" }
 
-    # Assign VPN IP to the WG interface (unified subnet 10.100.0.0/16)
-    # Server is 10.100.0.1/16, router gets an IP within this subnet (e.g., 10.100.0.2/16)
-    :if ([:len $wgClientIp] > 0) do={
-        # Ensure IP has /16 subnet mask if not already specified
-        :local clientIpWithMask $wgClientIp
-        :if ([:find $clientIpWithMask "/"] = -1) do={
-            :set clientIpWithMask ($clientIpWithMask . "/16")
-        }
-        :do { /ip address add interface="zisp-wg" address=$clientIpWithMask } on-error={ :put "Warning: Failed to assign WG client IP" }
+:if ([:len $wgClientIp] = 0) do={
+    :put ("Error: wgClientIp is empty")
+} else={
+
+    # Ensure there's a /16 mask
+    :local clientIpWithMask $wgClientIp
+    :if ([:find $clientIpWithMask "/"] = -1) do={
+        :set clientIpWithMask ($clientIpWithMask . "/16")
     }
+
+    # Basic validation: must be inside 10.100.0.0/16
+    # (checks string prefix; good enough for controlled assignment)
+    :if ([:find $clientIpWithMask "10.100."] = -1) do={
+        :put ("Error: " . $clientIpWithMask . " is not in the 10.100.0.0/16 subnet")
+    } else={
+
+        # Check if this exact address/mask is already present
+        :local existing [/ip/address/find where address=$clientIpWithMask]
+        :if ([:len $existing] > 0) do={
+            :put ("Notice: " . $clientIpWithMask . " already assigned on this router")
+        } else={
+
+            # Add the address to the interface, with safe on-error handling
+            :do {
+                /ip/address/add interface="zisp-wg" address=$clientIpWithMask comment="wg assigned by registration script"
+                :put ("Success: added " . $clientIpWithMask . " to interface zisp-wg")
+            } on-error={
+                :local errStr ("Failed to add " . $clientIpWithMask . " - " . [:tostr $error])
+                :put $errStr
+                /log warning $errStr
+            }
+        }
+    }
+}
 
     # Generate keys (RouterOS v7+ supports private-key property)
     :local privKey [/interface wireguard get [find name="zisp-wg"] private-key]
