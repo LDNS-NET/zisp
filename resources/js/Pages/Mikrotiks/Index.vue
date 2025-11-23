@@ -175,6 +175,9 @@ function deleteRouter(mikrotik) {
 }
 
 async function pingRouter(router) {
+    const ip = router.ip_address ?? 'unknown';
+    toast.info(`Pinging (${ip}) ...`);
+
     pinging.value[router.id] = true;
     formError.value = '';
 
@@ -207,6 +210,9 @@ async function pingRouter(router) {
 
 
 async function testRouterConnection(router) {
+    const ip = router.ip_address ?? 'unknown';
+    toast.info(`Testing connection (${ip}) ...`);
+
     testing.value[router.id] = true;
     formError.value = '';
 
