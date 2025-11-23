@@ -178,59 +178,64 @@ async function pingRouter(router) {
     pinging.value[router.id] = true;
     formError.value = '';
 
-    const ip = router.ip_address ?? 'unknown';
-    toast.info(`Pinging (${ip}) ...`);
-    const start = Date.now();
-
     try {
-        const res = await fetch(route('mikrotiks.ping', router.id));
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Ping failed');
+        const response = await fetch(route('mikrotiks.ping', router.id));
+        const data = await response.json();
+
+        if (!response.ok) {
+            toast.error('Error pinging router');
+            return;
+        }
 
         router.status = data.status;
         router.last_seen_at = data.last_seen_at;
+        
+        // Update the routers list to reflect the change
+        const index = routersList.value.findIndex(r => r.id === router.id);
+        if (index !== -1) {
+            routersList.value[index] = { ...router };
+        }
 
-        const idx = routersList.value.findIndex(r => r.id === router.id);
-        if (idx !== -1) routersList.value[idx] = { ...router };
-
-        toast.success(data.message);
+        // Use a nicer non-blocking feedback
+        window.toast?.success(data.message) || console.log(data.message);
     } catch (err) {
         toast.error('Error pinging router');
     } finally {
-        const elapsed = Date.now() - start;
-        if (elapsed < 3000) await new Promise(r => setTimeout(r, 3000 - elapsed));
         pinging.value[router.id] = false;
     }
 }
+
 
 async function testRouterConnection(router) {
     testing.value[router.id] = true;
     formError.value = '';
 
-    const ip = router.ip_address ?? 'unknown';
-    toast.info(`Testing connection (${ip}) ...`);
-    const start = Date.now();
-
     try {
-        const res = await fetch(route('mikrotiks.testConnection', router.id));
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Connection test failed');
+        const response = await fetch(route('mikrotiks.testConnection', router.id));
+        const data = await response.json();
 
+        if (!response.ok) {
+            toast.error('Error testing connection');
+            return;
+        }
+
+        // Update router status in the UI
         router.status = data.status;
         router.last_seen_at = data.last_seen_at;
+        
+        // Update the routers list to reflect the change
+        const index = routersList.value.findIndex(r => r.id === router.id);
+        if (index !== -1) {
+            routersList.value[index] = { ...router };
+        }
 
-        const idx = routersList.value.findIndex(r => r.id === router.id);
-        if (idx !== -1) routersList.value[idx] = { ...router };
-
-        toast.success(data.message);
+        // Use toast notification if available, otherwise console
+        window.toast?.success(data.message) || console.log(data.message);
     } catch (err) {
         toast.error('Error testing connection');
     } finally {
-        const elapsed = Date.now() - start;
-        if (elapsed < 3000) await new Promise(r => setTimeout(r, 3000 - elapsed));
         testing.value[router.id] = false;
     }
-}
 }
 
 function showRemote(router) {
