@@ -284,42 +284,56 @@ class TenantMikrotikController extends Controller
      */
     public function pingRouter($id)
     {
-        $router = TenantMikrotik::findOrFail($id);
-        
-        // Refresh router data from database
-        $router->refresh();
-        
-        // Check if router has an IP address
-        if (!$router->ip_address) {
+        try {
+            $router = TenantMikrotik::findOrFail($id);
+            
+            // Refresh router data from database
+            $router->refresh();
+            
+            // Check if router has an IP address
+            if (!$router->ip_address) {
+                return response()->json([
+                    'success' => false,
+                    'status' => 'pending',
+                    'message' => 'Please set the router IP address first.',
+                    'ip_address' => null,
+                    'last_seen_at' => $router->last_seen_at,
+                ], 400);
+            }
+
+            // Check if router should be marked offline based on last_seen_at (> 4 minutes)
+            if ($this->isRouterStale($router)) {
+                $router->status = 'offline';
+                $router->save();
+            }
+
+            // Test API connection to the router's IP address
+            $isOnline = $this->testRouterConnection($router);
+
+            return response()->json([
+                'success' => $isOnline,
+                'status' => $isOnline ? 'online' : 'offline',
+                'message' => $isOnline 
+                    ? 'Router is online and responding via API!'
+                    : 'Router is not responding. Please verify: 1) Router is powered on and online, 2) IP address is correct (' . $router->ip_address . '), 3) API service is enabled on port ' . ($router->api_port ?? 8728) . ', 4) Username and password are correct, 5) Firewall allows API connections from this server.',
+                'last_seen_at' => $router->last_seen_at,
+                'ip_address' => $router->ip_address,
+                'api_port' => $router->api_port ?? 8728,
+                'username' => $router->router_username,
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Ping router endpoint failed', [
+                'router_id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
             return response()->json([
                 'success' => false,
-                'status' => 'pending',
-                'message' => 'Please set the router IP address first.',
-                'ip_address' => null,
-                'last_seen_at' => $router->last_seen_at,
-            ], 400);
+                'status' => 'error',
+                'message' => 'Unable to complete ping test. Please try again shortly.',
+            ], 500);
         }
-
-        // Check if router should be marked offline based on last_seen_at (> 4 minutes)
-        if ($this->isRouterStale($router)) {
-            $router->status = 'offline';
-            $router->save();
-        }
-
-        // Test API connection to the router's IP address
-        $isOnline = $this->testRouterConnection($router);
-
-        return response()->json([
-            'success' => $isOnline,
-            'status' => $isOnline ? 'online' : 'offline',
-            'message' => $isOnline 
-                ? 'Router is online and responding via API!' 
-                : 'Router is not responding. Please verify: 1) Router is powered on and online, 2) IP address is correct (' . $router->ip_address . '), 3) API service is enabled on port ' . ($router->api_port ?? 8728) . ', 4) Username and password are correct, 5) Firewall allows API connections from this server.',
-            'last_seen_at' => $router->last_seen_at,
-            'ip_address' => $router->ip_address,
-            'api_port' => $router->api_port ?? 8728,
-            'username' => $router->router_username,
-        ]);
     }
 
     /**
