@@ -638,26 +638,6 @@ class TenantMikrotikController extends Controller
     }
 
     /**
-     * Shared logic to test router connectivity.
-     */
-    private function testRouterConnection(TenantMikrotik $router): bool
-    {
-        try {
-            // Use VPN tunnel IP stored in wireguard_address for all reachability checks
-            if (!$router->wireguard_address) {
-                Log::warning('Router test skipped: No VPN tunnel IP', ['router_id' => $router->id]);
-                return false;
-            }
-
-            // Validate private RFC1918 (safety guard)
-            if (!filter_var($router->wireguard_address, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ||
-                !preg_match('/^(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/', $router->wireguard_address)) {
-                Log::warning('Router test skipped: VPN IP not private', ['router_id' => $router->id, 'vpn_ip' => $router->wireguard_address]);
-                return false;
-            }
-
-            // Use the exact credentials and port from database
-            $apiPort = $router->api_port ?? 8728;
             $useSsl = $router->use_ssl ?? false;
 
             // Log connection attempt details (without password)
@@ -671,7 +651,7 @@ class TenantMikrotikController extends Controller
 
             $service = MikrotikService::forMikrotik($router)
                 ->setConnection(
-                    $router->wireguard_address,
+                    $router->ip_address,
                     $router->router_username,
                     $router->router_password,
                     $apiPort,

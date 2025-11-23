@@ -180,14 +180,13 @@ class MikrotikService
                 }
                 
                 // Ensure we have all required connection parameters
-                if (!$this->mikrotik->wireguard_address) {
-                    throw new Exception('Router VPN (WireGuard/IPsec) address is not set.');
+                if (!$this->mikrotik->ip_address) {
+                    throw new Exception('Router IP address is not set.');
                 }
 
-                // Validate that the VPN IP is private (RFC1918)
-                if (!filter_var($this->mikrotik->wireguard_address, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ||
-                    !preg_match('/^(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/', $this->mikrotik->wireguard_address)) {
-                    throw new Exception('Router VPN address must be a private RFC1918 IPv4.');
+                // Basic IPv4 validation
+                if (!filter_var($this->mikrotik->ip_address, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+                    throw new Exception('Router IP address is not a valid IPv4.');
                 }
                 
                 if (!$this->mikrotik->router_username) {
@@ -199,7 +198,7 @@ class MikrotikService
                 }
                 
                 $this->connection = [
-                    'host' => $this->mikrotik->wireguard_address,
+                    'host' => $this->mikrotik->ip_address,
                     'user' => $this->mikrotik->router_username,
                     'pass' => $this->mikrotik->router_password,
                     'port' => $this->mikrotik->api_port ?? 8728,
