@@ -49,8 +49,8 @@ class SyncRoutersCommand extends Command
                         $mask = (-1 << (32 - 16)) & 0xFFFFFFFF;
                         if (($ipLong & $mask) === ($networkLong & $mask)) {
                             $vpnIp = $ip;
-                            // Also update wireguard_address for consistency
-                            if (!$router->wireguard_address) {
+                            // Also update wireguard_address for consistency if column exists
+                            if (Schema::hasColumn('tenant_mikrotiks', 'wireguard_address') && !$router->wireguard_address) {
                                 $router->wireguard_address = $ip;
                                 $router->save();
                             }
