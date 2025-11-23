@@ -178,6 +178,14 @@ async function pingRouter(router) {
     pinging.value[router.id] = true;
     formError.value = '';
 
+    const ip = router.ip_address || router.ip || router.ipAddress || 'unknown';
+    toast.info(`Pinging (${ip}) ...`);
+    const startTime = Date.now();
+
+    try {
+    pinging.value[router.id] = true;
+    formError.value = '';
+
     try {
         const response = await fetch(route('mikrotiks.ping', router.id));
         const data = await response.json();
@@ -201,12 +209,28 @@ async function pingRouter(router) {
     } catch (err) {
         toast.error('Error pinging router');
     } finally {
+            } catch (err) {
+        toast.error('Error pinging router');
+    } finally {
+        const elapsed = Date.now() - startTime;
+        if (elapsed < 3000) {
+            await new Promise((r) => setTimeout(r, 3000 - elapsed));
+        }
         pinging.value[router.id] = false;
+    }
     }
 }
 
 
 async function testRouterConnection(router) {
+    testing.value[router.id] = true;
+    formError.value = '';
+
+    const ip = router.ip_address || router.ip || router.ipAddress || 'unknown';
+    toast.info(`Testing connection (${ip}) ...`);
+    const startTime = Date.now();
+
+    try {
     testing.value[router.id] = true;
     formError.value = '';
 
@@ -234,7 +258,15 @@ async function testRouterConnection(router) {
     } catch (err) {
         toast.error('Error testing connection');
     } finally {
+            } catch (err) {
+        toast.error('Error testing connection');
+    } finally {
+        const elapsed = Date.now() - startTime;
+        if (elapsed < 3000) {
+            await new Promise((r) => setTimeout(r, 3000 - elapsed));
+        }
         testing.value[router.id] = false;
+    }
     }
 }
 
