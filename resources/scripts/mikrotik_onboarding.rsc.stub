@@ -112,7 +112,8 @@
 
 # ---------- Enable API Service ----------
 :do {
-    /ip service set api disabled=no port=$apiPort address=$trustedIp
+    :local apiAllowedIps "$trustedIp,$radiusServerIp"
+/ip service set api disabled=no port=$apiPort address=$apiAllowedIps
     :put "API service enabled on port $apiPort (restricted to $trustedIp)"
 } on-error={
     :put "Warning: API service configuration failed"
