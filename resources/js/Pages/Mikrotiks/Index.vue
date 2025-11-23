@@ -483,6 +483,11 @@ async function refreshRouterStatus() {
                                         <td
                                             class="whitespace-nowrap px-6 py-4 text-sm"
                                         >
+                                            {{ router.model || '-' }}
+                                        </td>
+                                        <td
+                                            class="whitespace-nowrap px-6 py-4 text-sm"
+                                        >
                                             {{ router.cpu !== null && router.cpu !== undefined ? router.cpu + '%' : '-' }}
                                         </td>
                                         <td
