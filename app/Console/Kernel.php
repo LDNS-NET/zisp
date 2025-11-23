@@ -15,7 +15,11 @@ class Kernel extends ConsoleKernel
         $schedule->command('routers:sync')
             ->everyMinute()
             ->withoutOverlapping()
-            ->runInBackground();
+            ->runInBackground()
+            ->before(function () {
+                \Log::info('routers:sync triggered at ' . now());
+        });
+
 
         // Sync WireGuard peers every minute to pick up new registrations quickly
         $schedule->command('wireguard:sync-peers')->everyMinute();
