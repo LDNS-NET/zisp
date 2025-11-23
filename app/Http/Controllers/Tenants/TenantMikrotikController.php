@@ -413,8 +413,38 @@ class TenantMikrotikController extends Controller
                 ], 403);
             }
 
-            // Get router IP from request (if provided) or use client IP
-            $routerIp = $request->input('ip_address') ?? $request->ip();
+            // Extract VPN tunnel IP provided by the router (WireGuard / IPsec)
+            $vpnIp = $request->input('vpn_ip');
+
+            if (!$vpnIp) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Missing vpn_ip',
+                ], 422);
+            }
+
+            // Validate IPv4 format first
+            if (!filter_var($vpnIp, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+                return response()->json(['success' => false, 'message' => 'Invalid vpn_ip'], 422);
+            }
+
+            // Ensure the VPN IP falls within our private tunnel pools (RFC1918)
+            $allowedSubnets = ['10.44.0.0/16', '10.100.0.0/16'];
+            $isAllowed = false;
+            foreach ($allowedSubnets as $cidr) {
+                [$network, $prefix] = explode('/', $cidr, 2);
+                $mask = (-1 << (32 - (int)$prefix)) & 0xFFFFFFFF;
+                if ((ip2long($vpnIp) & $mask) === (ip2long($network) & $mask)) {
+                    $isAllowed = true;
+                    break;
+                }
+            }
+            if (!$isAllowed) {
+                return response()->json(['success' => false, 'message' => 'vpn_ip not in allowed ranges'], 422);
+            }
+
+            // Use the validated VPN IP for further processing
+            $routerIp = $vpnIp;
 
             // Optional hardware/OS details from phone-home
             $boardName     = $request->input('board_name');
@@ -454,8 +484,8 @@ class TenantMikrotikController extends Controller
 
             $router->update($updateData);
 
-            $this->registerRadiusNas($router, $request->ip());
-            $this->updateRouterPublicIp($router, $request->ip());
+            // Store / update NAS entry with the VPN tunnel IP (reachable even behind NAT)
+            $this->registerRadiusNas($router);
 
             // Log the sync
             $router->logs()->create([
@@ -907,10 +937,14 @@ class TenantMikrotikController extends Controller
         }
     }
 
-    private function registerRadiusNas(TenantMikrotik $router, ?string $publicIp = null): void
+    /**
+     * Register or update the router in FreeRADIUS using its VPN tunnel IP.
+     * Storing the tunnel IP ensures connectivity from the RADIUS server even when the router is behind NAT.
+     */
+    private function registerRadiusNas(TenantMikrotik $router): void
     {
         try {
-            $nasIp = $publicIp ?: $router->ip_address;
+            $nasIp = $router->ip_address;
 
             if (!$nasIp) {
                 Log::warning("Skipping NAS registration: missing IP", [
@@ -960,44 +994,6 @@ class TenantMikrotikController extends Controller
         }
     }
 
-    /**
-     * Update router's public IP address from phone-home.
-     * This function stores the public IP used by the router when it phones home.
-     */
-    private function updateRouterPublicIp(TenantMikrotik $router, ?string $publicIp = null): void
-    {
-        if (!$publicIp) {
-            return;
-        }
-
-        // Only update if the public IP is different from current one
-        if ($router->public_ip_address === $publicIp) {
-            return;
-        }
-
-        $oldPublicIp = $router->public_ip_address;
-        $router->public_ip_address = $publicIp;
-        $router->save();
-
-        Log::info('Router public IP updated from phone-home', [
-            'router_id' => $router->id,
-            'router_name' => $router->name,
-            'old_public_ip' => $oldPublicIp,
-            'new_public_ip' => $publicIp,
-            'internal_ip' => $router->ip_address,
-        ]);
-
-        $router->logs()->create([
-            'action' => 'public_ip_update',
-            'message' => 'Public IP address updated from phone-home',
-            'status' => 'success',
-            'response_data' => [
-                'old_public_ip' => $oldPublicIp,
-                'new_public_ip' => $publicIp,
-                'internal_ip' => $router->ip_address,
-            ],
-        ]);
-    }
 
     /**
      * Get trusted IP for scripts.

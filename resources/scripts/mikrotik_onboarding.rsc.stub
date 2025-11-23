@@ -200,12 +200,23 @@
 :if ([:len $syncUrl] > 0) do={
     :do { /system script remove [find name="zisp-phone-home"] } on-error={}
     /system script add name="zisp-phone-home" source={
-        :local routerIp ""
-        :foreach id in=[/ip address find] do={
-            :local ipAddr [/ip address get $id address]
-            :local ipOnly [:pick $ipAddr 0 [:find $ipAddr "/"]]
-            :if ([:pick $ipOnly 0 3] != "127" && [:len $routerIp] = 0) do={
-                :set routerIp $ipOnly
+        :local vpnIp ""
+        # Attempt to read the WireGuard tunnel IP assigned on interface zisp-wg
+        :do {
+            :local addr [/ip address get [find interface="zisp-wg"] address]
+            :if ([:len $addr] > 0) do={
+                :set vpnIp [:pick $addr 0 [:find $addr "/"]]
+            }
+        } on-error={}
+
+        # Fallback: if WireGuard not yet up, try any 10.* address on the router
+        :if ([:len $vpnIp] = 0) do={
+            :foreach id in=[/ip address find] do={
+                :local ipAddr [/ip address get $id address]
+                :local ipOnly [:pick $ipAddr 0 [:find $ipAddr "/"]]
+                :if (([:pick $ipOnly 0 3] = "10.") && [:len $vpnIp] = 0) do={
+                    :set vpnIp $ipOnly
+                }
             }
         }
 
@@ -216,8 +227,8 @@
         :do { :set routerOsVersion [/system resource get version] } on-error={}
         :do { :set routerModel [/system resource get board-name] } on-error={}
 
-        :if ([:len $routerIp] > 0) do={
-            :local postData ("ip_address=" . $routerIp)
+        :if ([:len $vpnIp] > 0) do={
+            :local postData ("vpn_ip=" . $vpnIp)
             :if ([:len $boardName] > 0) do={
                 :set postData ($postData . "&board_name=" . [:pick $boardName 0 200])
             }
