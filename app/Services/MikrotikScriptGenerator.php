@@ -83,13 +83,16 @@ class MikrotikScriptGenerator
         }
 
         $trusted_ip = $options['trusted_ip'] ?? (request()->server('SERVER_ADDR') ?: '207.154.204.144');
+        // Note: trusted_ip is for firewall rules, not VPN subnet
+        // VPN subnet is always 10.100.0.0/16, server is 10.100.0.1/16
         if (is_string($trusted_ip) && strpos($trusted_ip, '/') === false && filter_var($trusted_ip, FILTER_VALIDATE_IP)) {
             $trusted_ip .= '/32';
         }
 
         $wg_server_endpoint = $options['wg_server_endpoint'] ?? config('wireguard.server_endpoint') ?? env('WG_SERVER_ENDPOINT', '');
         $wg_server_pubkey  = $options['wg_server_pubkey'] ?? config('wireguard.server_public_key') ?? env('WG_SERVER_PUBLIC_KEY', '');
-        $wg_subnet         = $options['wg_subnet'] ?? config('wireguard.subnet') ?? env('WG_SUBNET', '10.254.0.0/16');
+        // Unified VPN subnet: 10.100.0.0/16 (server is 10.100.0.1/16)
+        $wg_subnet         = $options['wg_subnet'] ?? config('wireguard.subnet') ?? env('WG_SUBNET', '10.100.0.0/16');
         $wg_port           = $options['wg_port'] ?? config('wireguard.server_port') ?? env('WG_SERVER_PORT', 51820);
         $wg_client_ip      = $options['wg_client_ip'] ?? '';
 
@@ -190,10 +193,12 @@ class MikrotikScriptGenerator
         $maxHosts = (1 << $hostBits) - 2; // exclude network and broadcast
         if ($maxHosts < 2) return '';
 
-        // Offset: reserve +1 for server, then +routerId. Wrap within available host range.
-        $offset = 1 + ($routerId % $maxHosts) + 1; // +1 reserved, +1 avoid .0
+        // Offset: reserve .1 for server (10.100.0.1), then assign router IPs starting from .2
+        // For /16 subnet, we have plenty of addresses (10.100.0.2 - 10.100.255.254)
+        $offset = 1 + ($routerId % $maxHosts) + 1; // +1 reserved for server, +1 avoid .0
         $candidate = $netLong + $offset;
         $ip = long2ip($candidate);
-        return $ip ? ($ip . '/32') : '';
+        // Return IP only (script will add /16 subnet mask)
+        return $ip ? $ip : '';
     }
 }

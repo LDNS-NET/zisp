@@ -11,8 +11,7 @@ class TenantMikrotik extends Model
 {
     protected $fillable = [
         'name',
-        'ip_address',
-        'public_ip_address',
+        'ip_address', // Legacy field - prefer wireguard_address for VPN IP
         'api_port',
         'ssh_port',
         'openvpn_profile_id',

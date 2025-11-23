@@ -1,8 +1,9 @@
 <template>
   <div class="space-y-4">
     <div>
-      <InputLabel for="ip_address" value="Router IP Address" />
-      <TextInput id="ip_address" v-model="ip" placeholder="e.g. 192.168.88.1" class="mt-1 block w-full" />
+      <InputLabel for="ip_address" value="Router VPN IP Address (10.100.0.0/16)" />
+      <TextInput id="ip_address" v-model="ip" placeholder="e.g. 10.100.0.2" class="mt-1 block w-full" />
+      <p class="mt-1 text-xs text-gray-500">All router communication uses VPN tunnel IP only</p>
       <InputError :message="error" />
       <div class="flex gap-2 mt-2">
         <PrimaryButton @click="setIp" :disabled="loading">Set IP</PrimaryButton>

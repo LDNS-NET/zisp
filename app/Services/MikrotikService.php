@@ -6,6 +6,15 @@ use Exception;
 use Illuminate\Support\Facades\Log;
 use App\Models\Tenants\TenantMikrotik;
 
+/**
+ * RouterOS API Service
+ * 
+ * All router operations must use VPN tunnel IP (wireguard_address) only.
+ * Public IP communication is deprecated.
+ * 
+ * This service connects to routers via VPN tunnel (10.100.0.0/16 subnet).
+ * The VPN IP is retrieved from the router's wireguard_address field.
+ */
 class MikrotikService
 {
     protected $mikrotik;
@@ -166,6 +175,9 @@ class MikrotikService
 
     /**
      * Get the RouterOS client instance.
+     * 
+     * All router communication must use VPN tunnel IP only (10.100.0.0/16).
+     * This method retrieves the VPN IP from wireguard_address field.
      *
      * This is public so that higher-level services (e.g. TenantHotspotService)
      * can run advanced RouterOS commands while still reusing the connection
@@ -179,14 +191,29 @@ class MikrotikService
                     throw new Exception('No Mikrotik model or connection configured.');
                 }
                 
-                // Ensure we have all required connection parameters
-                if (!$this->mikrotik->ip_address) {
-                    throw new Exception('Router IP address is not set.');
+                // Get VPN IP from wireguard_address (standardized VPN IP storage)
+                $vpnIp = $this->mikrotik->wireguard_address;
+                
+                // Legacy fallback: if wireguard_address not set, check if ip_address is in VPN subnet
+                if (!$vpnIp && $this->mikrotik->ip_address) {
+                    $ip = $this->mikrotik->ip_address;
+                    if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+                        $ipLong = ip2long($ip);
+                        $networkLong = ip2long('10.100.0.0');
+                        $mask = (-1 << (32 - 16)) & 0xFFFFFFFF;
+                        if (($ipLong & $mask) === ($networkLong & $mask)) {
+                            $vpnIp = $ip;
+                        }
+                    }
+                }
+                
+                if (!$vpnIp) {
+                    throw new Exception('Router VPN IP address is not set. Please ensure WireGuard tunnel is established.');
                 }
 
                 // Basic IPv4 validation
-                if (!filter_var($this->mikrotik->ip_address, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
-                    throw new Exception('Router IP address is not a valid IPv4.');
+                if (!filter_var($vpnIp, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+                    throw new Exception('Router VPN IP address is not a valid IPv4.');
                 }
                 
                 if (!$this->mikrotik->router_username) {
@@ -197,21 +224,22 @@ class MikrotikService
                     throw new Exception('Router password is not set.');
                 }
                 
+                // Connect using VPN IP only (10.100.0.0/16 subnet)
                 $this->connection = [
-                    'host' => $this->mikrotik->ip_address,
+                    'host' => $vpnIp,
                     'user' => $this->mikrotik->router_username,
                     'pass' => $this->mikrotik->router_password,
                     'port' => $this->mikrotik->api_port ?? 8728,
                     'ssl' => $this->mikrotik->use_ssl ?? false,
-                    'timeout' => 10, // Increased timeout for better reliability
-                    'attempts' => 2, // Try twice before failing
+                    'timeout' => 10, // Connection timeout
+                    'attempts' => 2, // Retry attempts
                 ];
             }
             
             try {
                 $this->client = new \RouterOS\Client($this->connection);
             } catch (\Exception $e) {
-                Log::error('Failed to create RouterOS client', [
+                Log::error('Failed to create RouterOS client via VPN tunnel', [
                     'connection' => [
                         'host' => $this->connection['host'],
                         'port' => $this->connection['port'],

@@ -7,6 +7,17 @@ use Illuminate\Support\Facades\Log;
 use Symfony\Component\Process\Process;
 use Symfony\Component\Process\Exception\ProcessFailedException;
 
+/**
+ * WireGuard Service
+ * 
+ * All MikroTik routers communicate with the server using VPN tunnel only (10.100.0.0/16).
+ * Public IP communication is deprecated.
+ * 
+ * Architecture:
+ * - Server VPN interface: 10.100.0.1/16
+ * - Router VPN IPs: 10.100.0.2 - 10.100.255.254 (within /16 subnet)
+ * - AllowedIPs: 10.100.0.0/16 (unified subnet, no longer /32 per-peer)
+ */
 class WireGuardService
 {
     protected string $wgInterface;
@@ -18,6 +29,7 @@ class WireGuardService
 
     /**
      * Apply or update a peer for the given router on the server WireGuard interface.
+     * Uses unified /16 subnet (10.100.0.0/16) for all routers.
      */
     public function applyPeer(TenantMikrotik $router): bool
     {
@@ -28,7 +40,9 @@ class WireGuardService
 
         $peerPub = $router->wireguard_public_key;
         $addr = $router->wireguard_address;
-        $allowedIps = $router->wireguard_allowed_ips ?? ($addr ? ($addr . '/32') : '10.100.0.0/16');
+        // All routers use the unified /16 subnet (10.100.0.0/16)
+        // Server is always 10.100.0.1/16, routers get IPs within this subnet
+        $allowedIps = $router->wireguard_allowed_ips ?? '10.100.0.0/16';
 
         // Build wg command for server side: do NOT set endpoint here (client sets server endpoint).
         $wgBinary = config('wireguard.wg_binary') ?? env('WG_BINARY', '/usr/bin/wg');

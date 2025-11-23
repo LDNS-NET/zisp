@@ -70,6 +70,7 @@ class TenantMikrotikController extends Controller
     /**
      * Get router status (for frontend status checking).
      * Returns current router status from database without testing connection.
+     * All router communication uses VPN IP (wireguard_address) only.
      */
     public function getStatus($id)
     {
@@ -84,11 +85,14 @@ class TenantMikrotikController extends Controller
             $router->save();
         }
 
+        // Get VPN IP (standardized field)
+        $vpnIp = $router->wireguard_address ?? $router->ip_address;
+
         return response()->json([
             'success' => true,
             'status' => $router->status,
             'last_seen_at' => $router->last_seen_at?->toIso8601String(),
-            'ip_address' => $router->ip_address,
+            'vpn_ip' => $vpnIp,
         ]);
     }
 
@@ -225,62 +229,81 @@ class TenantMikrotikController extends Controller
     }
 
     /**
-     * Set router IP address.
+     * Set router VPN IP address.
+     * All router communication must use VPN tunnel IP (10.100.0.0/16) only.
+     * This method sets the VPN IP in wireguard_address field.
      */
     public function setIp(Request $request, $id)
     {
         $router = TenantMikrotik::findOrFail($id);
 
         $data = $request->validate([
-            'ip_address' => 'required|string|max:255',
+            'ip_address' => 'required|string|max:255', // Accepts VPN IP
         ]);
 
-        // Extract IP from CIDR notation if present (e.g., "192.168.1.1/24" -> "192.168.1.1")
+        // Extract IP from CIDR notation if present (e.g., "10.100.0.2/16" -> "10.100.0.2")
         $ip = $data['ip_address'];
         if (strpos($ip, '/') !== false) {
             $ip = explode('/', $ip)[0];
         }
 
         // Validate IP format
-        if (!filter_var($ip, FILTER_VALIDATE_IP)) {
+        if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid IP address format.',
             ], 422);
         }
 
-        $oldIp = $router->ip_address;
+        // Validate that IP is in VPN subnet (10.100.0.0/16)
+        $ipLong = ip2long($ip);
+        $networkLong = ip2long('10.100.0.0');
+        $mask = (-1 << (32 - 16)) & 0xFFFFFFFF;
+        if (($ipLong & $mask) !== ($networkLong & $mask)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'IP address must be in VPN subnet 10.100.0.0/16.',
+            ], 422);
+        }
+
+        $oldVpnIp = $router->wireguard_address;
+        // Store VPN IP in standardized field
+        $router->wireguard_address = $ip;
+        // Also update ip_address for legacy compatibility
         $router->ip_address = $ip;
         $router->save();
 
         $this->registerRadiusNas($router);
 
-        Log::info('Router IP address set', [
+        Log::info('Router VPN IP address set', [
             'router_id' => $router->id,
-            'old_ip' => $oldIp,
-            'new_ip' => $ip,
+            'old_vpn_ip' => $oldVpnIp,
+            'new_vpn_ip' => $ip,
             'username' => $router->router_username,
             'api_port' => $router->api_port,
         ]);
 
         $router->logs()->create([
-            'action' => 'set_ip',
-            'message' => "IP address set to: $ip (API port: {$router->api_port}, Username: {$router->router_username})",
+            'action' => 'set_vpn_ip',
+            'message' => "VPN IP address set to: $ip (API port: {$router->api_port}, Username: {$router->router_username})",
             'status' => 'success',
         ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'IP address set successfully.',
-            'ip_address' => $router->ip_address,
+            'message' => 'VPN IP address set successfully.',
+            'vpn_ip' => $router->wireguard_address,
             'api_port' => $router->api_port,
             'username' => $router->router_username,
         ]);
     }
 
     /**
-     * Used by the Vue SetupScript.vue component.
-     * Pings the router's IP address via API connection test.
+     * Ping the router using its VPN tunnel IP address.
+     * All router communication must go through the VPN tunnel only.
+     * 
+     * Uses the router's wireguard_address (VPN IP) for ping.
+     * Returns JSON with online status and the VPN IP used.
      */
     public function pingRouter($id)
     {
@@ -290,14 +313,32 @@ class TenantMikrotikController extends Controller
             // Refresh router data from database
             $router->refresh();
             
-            // Check if router has an IP address
-            if (!$router->ip_address) {
+            // Get VPN IP from wireguard_address field (standardized VPN IP storage)
+            $vpnIp = $router->wireguard_address;
+            
+            // If wireguard_address is not set, check if ip_address is a VPN IP (10.100.0.0/16)
+            // This handles legacy cases where VPN IP might be in ip_address
+            if (!$vpnIp && $router->ip_address) {
+                $ip = $router->ip_address;
+                // Check if IP is in VPN subnet 10.100.0.0/16
+                if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+                    $ipLong = ip2long($ip);
+                    $networkLong = ip2long('10.100.0.0');
+                    $mask = (-1 << (32 - 16)) & 0xFFFFFFFF;
+                    if (($ipLong & $mask) === ($networkLong & $mask)) {
+                        $vpnIp = $ip;
+                    }
+                }
+            }
+            
+            // If still no VPN IP, return error
+            if (!$vpnIp) {
                 return response()->json([
                     'success' => false,
                     'status' => 'pending',
-                    'message' => 'Please set the router IP address first.',
-                    'ip_address' => null,
-                    'last_seen_at' => $router->last_seen_at,
+                    'message' => 'Router VPN IP address not configured. Please ensure WireGuard tunnel is established.',
+                    'online' => false,
+                    'ip' => null,
                 ], 400);
             }
 
@@ -307,19 +348,31 @@ class TenantMikrotikController extends Controller
                 $router->save();
             }
 
-            // Test API connection to the router's IP address
-            $isOnline = $this->testRouterConnection($router);
+            // Execute ping command using VPN IP
+            // Use ping -c 1 for single ping (Linux/Unix compatible)
+            $output = [];
+            $status = 0;
+            exec("ping -c 1 " . escapeshellarg($vpnIp), $output, $status);
+            
+            // Ping is successful if exit status is 0
+            $isOnline = ($status === 0);
+
+            // Update router status if online
+            if ($isOnline) {
+                $router->status = 'online';
+                $router->last_seen_at = now();
+                $router->save();
+            }
 
             return response()->json([
-                'success' => $isOnline,
+                'success' => true,
+                'online' => $isOnline,
+                'ip' => $vpnIp,
                 'status' => $isOnline ? 'online' : 'offline',
                 'message' => $isOnline 
-                    ? 'Router is online and responding via API!'
-                    : 'Router is not responding. Please verify: 1) Router is powered on and online, 2) IP address is correct (' . $router->ip_address . '), 3) API service is enabled on port ' . ($router->api_port ?? 8728) . ', 4) Username and password are correct, 5) Firewall allows API connections from this server.',
-                'last_seen_at' => $router->last_seen_at,
-                'ip_address' => $router->ip_address,
-                'api_port' => $router->api_port ?? 8728,
-                'username' => $router->router_username,
+                    ? 'Router is online and responding via VPN tunnel.'
+                    : 'Router is not responding via VPN tunnel. Please verify: 1) WireGuard tunnel is established, 2) Router is powered on, 3) VPN IP is correct (' . $vpnIp . ').',
+                'last_seen_at' => $router->last_seen_at?->toIso8601String(),
             ]);
         } catch (\Throwable $e) {
             Log::error('Ping router endpoint failed', [
@@ -330,6 +383,8 @@ class TenantMikrotikController extends Controller
 
             return response()->json([
                 'success' => false,
+                'online' => false,
+                'ip' => null,
                 'status' => 'error',
                 'message' => 'Unable to complete ping test. Please try again shortly.',
             ], 500);
@@ -442,8 +497,9 @@ class TenantMikrotikController extends Controller
                 return response()->json(['success' => false, 'message' => 'Invalid vpn_ip'], 422);
             }
 
-            // Ensure the VPN IP falls within our private tunnel pools (RFC1918)
-            $allowedSubnets = ['10.44.0.0/16', '10.100.0.0/16'];
+            // Ensure the VPN IP falls within our unified VPN subnet (10.100.0.0/16)
+            // Server is always 10.100.0.1/16, routers get IPs within this subnet
+            $allowedSubnets = ['10.100.0.0/16'];
             $isAllowed = false;
             foreach ($allowedSubnets as $cidr) {
                 [$network, $prefix] = explode('/', $cidr, 2);
@@ -457,32 +513,23 @@ class TenantMikrotikController extends Controller
                 return response()->json(['success' => false, 'message' => 'vpn_ip not in allowed ranges'], 422);
             }
 
-            // Use the validated VPN IP for further processing
-            $routerIp = $vpnIp;
+            // Store VPN IP in wireguard_address field (standardized VPN IP storage)
+            // All router communication must use VPN tunnel IP only (10.100.0.0/16)
+            $updateData = [
+                'status'       => 'online',
+                'last_seen_at' => now(),
+                'wireguard_address' => $vpnIp, // Store VPN IP in standardized field
+            ];
+            
+            // Also update ip_address for legacy compatibility (but prefer wireguard_address)
+            if ($vpnIp !== $router->ip_address) {
+                $updateData['ip_address'] = $vpnIp;
+            }
 
             // Optional hardware/OS details from phone-home
             $boardName     = $request->input('board_name');
             $systemVersion = $request->input('system_version');
             $routerModel   = $request->input('router_model');
-            
-            // Validate IP address
-            if ($routerIp && !filter_var($routerIp, FILTER_VALIDATE_IP)) {
-                Log::warning('Invalid IP address in sync request', [
-                    'router_id' => $router->id,
-                    'ip' => $routerIp,
-                ]);
-                $routerIp = $request->ip(); // Fallback to client IP
-            }
-            
-            $updateData = [
-                'status'       => 'online',
-                'last_seen_at' => now(),
-            ];
-            
-            // Update IP address if provided and different (or if not set)
-            if ($routerIp && ($routerIp !== $router->ip_address || !$router->ip_address)) {
-                $updateData['ip_address'] = $routerIp;
-            }
 
             // Persist board/model/version info when provided
             if ($boardName) {
@@ -504,26 +551,26 @@ class TenantMikrotikController extends Controller
             // Log the sync
             $router->logs()->create([
                 'action' => 'sync',
-                'message' => 'Router phone-home sync received. IP: ' . ($routerIp ?? 'not provided'),
+                'message' => 'Router phone-home sync received via VPN tunnel. VPN IP: ' . $vpnIp,
                 'status' => 'success',
                 'response_data' => [
-                    'ip_address' => $routerIp,
+                    'vpn_ip' => $vpnIp,
                     'client_ip' => $request->ip(),
                     'user_agent' => $request->userAgent(),
                 ],
             ]);
 
-            Log::info('Router sync successful', [
+            Log::info('Router sync successful via VPN tunnel', [
                 'router_id' => $router->id,
                 'router_name' => $router->name,
-                'ip_address' => $router->ip_address,
+                'vpn_ip' => $vpnIp,
             ]);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Sync received. Router marked online.',
                 'status' => 'online',
-                'ip_address' => $router->ip_address,
+                'vpn_ip' => $vpnIp,
                 'last_seen_at' => $router->last_seen_at->toIso8601String(),
             ]);
         } catch (\Exception $e) {
@@ -580,7 +627,8 @@ class TenantMikrotikController extends Controller
             if ($wgAddress && filter_var($wgAddress, FILTER_VALIDATE_IP)) {
                 $assignedAddress = $wgAddress;
             } else {
-                // Derive deterministic client IP from configured WG_SUBNET and router id
+                // Derive deterministic client IP from unified VPN subnet (10.100.0.0/16) and router id
+                // Server is 10.100.0.1/16, routers get IPs starting from 10.100.0.2
                 $subnet = config('wireguard.subnet') ?? env('WG_SUBNET', '10.100.0.0/16');
                 if (strpos($subnet, '/') !== false) {
                     [$network, $prefix] = explode('/', $subnet, 2);
@@ -605,7 +653,9 @@ class TenantMikrotikController extends Controller
 
             if ($assignedAddress) {
                 $router->wireguard_address = $assignedAddress;
-                $router->wireguard_allowed_ips = $assignedAddress . '/32';
+                // All routers use the unified /16 subnet (10.100.0.0/16)
+                // No longer using /32 per-peer subnets
+                $router->wireguard_allowed_ips = '10.100.0.0/16';
             }
             $router->wireguard_status = 'pending';
             $router->save();
@@ -652,26 +702,49 @@ class TenantMikrotikController extends Controller
     }
 
     /**
+     * Test router connection via VPN tunnel only.
+     * All router operations must use VPN IP (wireguard_address) from 10.100.0.0/16 subnet.
+     */
+    private function testRouterConnection(TenantMikrotik $router): bool
+    {
+        try {
+            $apiPort = $router->api_port ?? 8728;
             $useSsl = $router->use_ssl ?? false;
 
+            // Get VPN IP from wireguard_address (standardized VPN IP storage)
+            $vpnIp = $router->wireguard_address;
+            
+            // Legacy fallback: if wireguard_address not set, check if ip_address is in VPN subnet
+            if (!$vpnIp && $router->ip_address) {
+                $ip = $router->ip_address;
+                if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+                    $ipLong = ip2long($ip);
+                    $networkLong = ip2long('10.100.0.0');
+                    $mask = (-1 << (32 - 16)) & 0xFFFFFFFF;
+                    if (($ipLong & $mask) === ($networkLong & $mask)) {
+                        $vpnIp = $ip;
+                    }
+                }
+            }
+            
+            if (!$vpnIp) {
+                Log::warning('Cannot test router connection: VPN IP not configured', [
+                    'router_id' => $router->id,
+                ]);
+                return false;
+            }
+
             // Log connection attempt details (without password)
-            Log::info('Testing router VPN connection', [
+            Log::info('Testing router connection via VPN tunnel', [
                 'router_id' => $router->id,
-                'ip_address' => $router->ip_address,
+                'vpn_ip' => $vpnIp,
                 'username' => $router->router_username,
                 'api_port' => $apiPort,
                 'use_ssl' => $useSsl,
             ]);
 
-            $service = MikrotikService::forMikrotik($router)
-                ->setConnection(
-                    $router->ip_address,
-                    $router->router_username,
-                    $router->router_password,
-                    $apiPort,
-                    $useSsl
-                );
-
+            // Connect using VPN IP only - MikrotikService will use VPN IP automatically
+            $service = MikrotikService::forMikrotik($router);
             $resources = $service->testConnection();
             $isOnline = $resources !== false;
 
@@ -692,9 +765,9 @@ class TenantMikrotikController extends Controller
                         : $router->memory_usage;
                 }
                 
-                Log::info('Router connection successful', [
+                Log::info('Router connection successful via VPN tunnel', [
                     'router_id' => $router->id,
-                    'ip_address' => $router->ip_address,
+                    'vpn_ip' => $vpnIp,
                 ]);
             } else {
                 // Check if router should be marked offline due to stale last_seen_at
@@ -702,14 +775,14 @@ class TenantMikrotikController extends Controller
                     $router->status = 'offline';
                     Log::warning('Router marked offline: Connection failed and last_seen_at > 4 minutes', [
                         'router_id' => $router->id,
-                        'ip_address' => $router->ip_address,
+                        'vpn_ip' => $vpnIp,
                         'last_seen_at' => $router->last_seen_at,
                     ]);
                 } else {
                     // Connection failed but last_seen_at is recent, keep current status
-                    Log::warning('Router connection failed: No response', [
+                    Log::warning('Router connection failed via VPN tunnel: No response', [
                         'router_id' => $router->id,
-                        'ip_address' => $router->ip_address,
+                        'vpn_ip' => $vpnIp,
                     ]);
                 }
             }
@@ -727,9 +800,9 @@ class TenantMikrotikController extends Controller
             return $isOnline;
         } catch (\Throwable $e) {
             $errorMessage = $e->getMessage();
-            Log::error("Router connection test failed", [
+            Log::error("Router connection test failed via VPN tunnel", [
                 'router_id' => $router->id,
-                'ip_address' => $router->ip_address,
+                'vpn_ip' => $vpnIp ?? 'not configured',
                 'api_port' => $router->api_port ?? 8728,
                 'error' => $errorMessage,
                 'trace' => $e->getTraceAsString(),
@@ -751,20 +824,33 @@ class TenantMikrotikController extends Controller
 
     /**
      * Validate router connection before saving.
+     * All router communication must use VPN tunnel IP (10.100.0.0/16) only.
      */
     public function validateRouter(Request $request)
     {
         $data = $request->validate([
-            'ip_address' => 'required|ip',
+            'ip_address' => 'required|ip', // Should be VPN IP in 10.100.0.0/16
             'router_username' => 'required|string',
             'router_password' => 'required|string',
             'api_port' => 'nullable|integer|min:1|max:65535',
         ]);
 
+        // Validate that IP is in VPN subnet (10.100.0.0/16)
+        $ip = $data['ip_address'];
+        $ipLong = ip2long($ip);
+        $networkLong = ip2long('10.100.0.0');
+        $mask = (-1 << (32 - 16)) & 0xFFFFFFFF;
+        if (($ipLong & $mask) !== ($networkLong & $mask)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'IP address must be in VPN subnet 10.100.0.0/16.',
+            ], 422);
+        }
+
         try {
             $service = new MikrotikService();
             $service->setConnection(
-                $data['ip_address'],
+                $ip, // VPN IP
                 $data['router_username'],
                 $data['router_password'],
                 $data['api_port'] ?? 8728,
@@ -776,13 +862,13 @@ class TenantMikrotikController extends Controller
 
             return response()->json([
                 'success' => $isValid,
-                'message' => $isValid ? 'Connection successful.' : 'Connection failed.',
+                'message' => $isValid ? 'Connection successful via VPN tunnel.' : 'Connection failed via VPN tunnel.',
                 'resources' => $isValid ? $resources : null,
             ]);
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Connection error: ' . $e->getMessage(),
+                'message' => 'Connection error via VPN tunnel: ' . $e->getMessage(),
             ], 500);
         }
     }
@@ -816,25 +902,43 @@ class TenantMikrotikController extends Controller
 
     /**
      * Get remote management links for router.
+     * All router access must use VPN tunnel IP (10.100.0.0/16) only.
      */
     public function remoteManagement($id)
     {
         $router = TenantMikrotik::findOrFail($id);
 
-        if (!$router->ip_address) {
+        // Get VPN IP from wireguard_address (standardized VPN IP storage)
+        $vpnIp = $router->wireguard_address;
+        
+        // Legacy fallback: if wireguard_address not set, check if ip_address is in VPN subnet
+        if (!$vpnIp && $router->ip_address) {
+            $ip = $router->ip_address;
+            if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+                $ipLong = ip2long($ip);
+                $networkLong = ip2long('10.100.0.0');
+                $mask = (-1 << (32 - 16)) & 0xFFFFFFFF;
+                if (($ipLong & $mask) === ($networkLong & $mask)) {
+                    $vpnIp = $ip;
+                }
+            }
+        }
+
+        if (!$vpnIp) {
             return response()->json([
                 'success' => false,
-                'message' => 'Router IP address not configured.',
+                'message' => 'Router VPN IP address not configured. Please ensure WireGuard tunnel is established.',
             ], 400);
         }
 
         $sshPort = $router->ssh_port ?? 22;
         $apiPort = $router->api_port ?? 8728;
         
+        // All management links use VPN IP only
         $links = [
-            'winbox' => "winbox://{$router->ip_address}",
-            'ssh' => "ssh://{$router->router_username}@{$router->ip_address}:{$sshPort}",
-            'api' => "http://{$router->ip_address}:{$apiPort}",
+            'winbox' => "winbox://{$vpnIp}",
+            'ssh' => "ssh://{$router->router_username}@{$vpnIp}:{$sshPort}",
+            'api' => "http://{$vpnIp}:{$apiPort}",
         ];
 
         return response()->json($links);
@@ -941,15 +1045,30 @@ class TenantMikrotikController extends Controller
 
     /**
      * Register or update the router in FreeRADIUS using its VPN tunnel IP.
-     * Storing the tunnel IP ensures connectivity from the RADIUS server even when the router is behind NAT.
+     * All routers must use VPN IP (wireguard_address) from 10.100.0.0/16 subnet.
+     * This ensures connectivity from the RADIUS server via VPN tunnel only.
      */
     private function registerRadiusNas(TenantMikrotik $router): void
     {
         try {
-            $nasIp = $router->ip_address;
+            // Get VPN IP from wireguard_address (standardized VPN IP storage)
+            $nasIp = $router->wireguard_address;
+            
+            // Legacy fallback: if wireguard_address not set, check if ip_address is in VPN subnet
+            if (!$nasIp && $router->ip_address) {
+                $ip = $router->ip_address;
+                if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+                    $ipLong = ip2long($ip);
+                    $networkLong = ip2long('10.100.0.0');
+                    $mask = (-1 << (32 - 16)) & 0xFFFFFFFF;
+                    if (($ipLong & $mask) === ($networkLong & $mask)) {
+                        $nasIp = $ip;
+                    }
+                }
+            }
 
             if (!$nasIp) {
-                Log::warning("Skipping NAS registration: missing IP", [
+                Log::warning("Skipping NAS registration: missing VPN IP", [
                     'router_id' => $router->id,
                     'router_name' => $router->name
                 ]);
@@ -1010,6 +1129,8 @@ class TenantMikrotikController extends Controller
             return '0.0.0.0/0';
         }
 
+        // Note: trusted_ip is for firewall rules (public IP), not VPN subnet
+        // VPN subnet is always 10.100.0.0/16
         if (!str_contains($trustedIp, '/')) {
             $trustedIp .= '/32';
         }

@@ -175,8 +175,9 @@ function deleteRouter(mikrotik) {
 }
 
 async function pingRouter(router) {
-    const ip = router.ip_address ?? 'unknown';
-    toast.info(`Pinging (${ip}) ...`);
+    // Use VPN IP (wireguard_address) - all router communication uses VPN tunnel only
+    const vpnIp = router.wireguard_address ?? router.ip_address ?? 'unknown';
+    toast.info(`Pinging VPN IP (${vpnIp}) ...`);
 
     pinging.value[router.id] = true;
     formError.value = '';
@@ -186,7 +187,7 @@ async function pingRouter(router) {
         const data = await response.json();
 
         if (!response.ok) {
-            toast.error('Error pinging router');
+            toast.error(data.message || 'Error pinging router');
             return;
         }
 
@@ -202,7 +203,7 @@ async function pingRouter(router) {
         // Use a nicer non-blocking feedback
         window.toast?.success(data.message) || console.log(data.message);
     } catch (err) {
-        toast.error('Error pinging router');
+        toast.error('Error pinging router via VPN tunnel');
     } finally {
         pinging.value[router.id] = false;
     }
@@ -210,8 +211,9 @@ async function pingRouter(router) {
 
 
 async function testRouterConnection(router) {
-    const ip = router.ip_address ?? 'unknown';
-    toast.info(`Testing connection (${ip}) ...`);
+    // Use VPN IP (wireguard_address) - all router communication uses VPN tunnel only
+    const vpnIp = router.wireguard_address ?? router.ip_address ?? 'unknown';
+    toast.info(`Testing connection via VPN tunnel (${vpnIp}) ...`);
 
     testing.value[router.id] = true;
     formError.value = '';
@@ -386,7 +388,7 @@ async function refreshRouterStatus() {
                                         <th
                                             class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider"
                                         >
-                                            IP Address
+                                            VPN IP Address
                                         </th>
                                         <th
                                             class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider"
@@ -431,7 +433,7 @@ async function refreshRouterStatus() {
                                         <td
                                             class="whitespace-nowrap px-6 py-4 text-sm text-blue-700 dark:text-blue-400"
                                         >
-                                            {{ router.ip_address }}
+                                            {{ router.wireguard_address || router.ip_address || 'Not configured' }}
                                         </td>
                                         <td class="whitespace-nowrap px-6 py-4">
                                             <span
@@ -734,12 +736,14 @@ async function refreshRouterStatus() {
                             <InputError :message="form.errors.name" />
                         </div>
                         <div>
-                            <InputLabel value="IP Address" />
+                            <InputLabel value="VPN IP Address (10.100.0.0/16)" />
                             <TextInput
                                 v-model="form.ip_address"
+                                placeholder="e.g. 10.100.0.2"
                                 class="mt-1 block w-full"
                             />
                             <InputError :message="form.errors.ip_address" />
+                            <p class="mt-1 text-xs text-gray-500">All router communication uses VPN tunnel IP only</p>
                         </div>
                         <div>
                             <InputLabel value="API Port" />
@@ -849,8 +853,8 @@ async function refreshRouterStatus() {
                     <div
                         class="rounded-xl border border-dashed border-blue-400 bg-gray-50 p-2 dark:bg-black"
                     >
-                        <span class="font-medium">IP:</span>
-                        {{ selectedRouter?.ip_address }}
+                        <span class="font-medium">VPN IP:</span>
+                        {{ selectedRouter?.wireguard_address || selectedRouter?.ip_address || 'Not configured' }}
                     </div>
                     <div
                         class="rounded-xl border border-dashed border-blue-400 bg-gray-50 p-2 dark:bg-black"

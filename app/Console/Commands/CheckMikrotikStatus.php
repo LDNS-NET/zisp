@@ -30,17 +30,24 @@ class CheckMikrotikStatus extends Command
     {
         $this->info('Starting MikroTik status check...');
 
-        // Get all routers that have an IP address configured
-        $routers = TenantMikrotik::whereNotNull('ip_address')
-            ->where('ip_address', '!=', '')
-            ->get();
+        // Get all routers that have a VPN IP address configured
+        // All router communication must use VPN tunnel IP (10.100.0.0/16) only
+        $routers = TenantMikrotik::where(function($query) {
+            $query->whereNotNull('wireguard_address')
+                  ->where('wireguard_address', '!=', '')
+                  ->orWhere(function($q) {
+                      // Legacy: also check ip_address if it's in VPN subnet
+                      $q->whereNotNull('ip_address')
+                        ->where('ip_address', '!=', '');
+                  });
+        })->get();
 
         if ($routers->isEmpty()) {
-            $this->info('No routers with IP addresses found.');
+            $this->info('No routers with VPN IP addresses found.');
             return 0;
         }
 
-        $this->info("Checking {$routers->count()} router(s)...");
+        $this->info("Checking {$routers->count()} router(s) via VPN tunnel...");
 
         $onlineCount = 0;
         $offlineCount = 0;
@@ -49,7 +56,9 @@ class CheckMikrotikStatus extends Command
 
         foreach ($routers as $router) {
             try {
-                $this->line("Checking router: {$router->name} ({$router->ip_address})...");
+                // Get VPN IP for display
+                $vpnIp = $router->wireguard_address ?? $router->ip_address ?? 'Not configured';
+                $this->line("Checking router: {$router->name} (VPN IP: {$vpnIp})...");
 
                 // First, check if router should be marked offline based on last_seen_at
                 if ($this->isRouterStale($router)) {
@@ -114,7 +123,8 @@ class CheckMikrotikStatus extends Command
     }
 
     /**
-     * Test router connection using the same logic as the controller.
+     * Test router connection via VPN tunnel only.
+     * All router communication must use VPN IP (wireguard_address) from 10.100.0.0/16 subnet.
      *
      * @param TenantMikrotik $router
      * @return bool
@@ -122,9 +132,25 @@ class CheckMikrotikStatus extends Command
     private function testRouterConnection(TenantMikrotik $router): bool
     {
         try {
-            // Ensure router has a VPN tunnel IP before attempting ping
-            if (!$router->ip_address) {
-                Log::warning('Router test skipped: No IP address', ['router_id' => $router->id]);
+            // Get VPN IP from wireguard_address (standardized VPN IP storage)
+            $vpnIp = $router->wireguard_address;
+            
+            // Legacy fallback: if wireguard_address not set, check if ip_address is in VPN subnet
+            if (!$vpnIp && $router->ip_address) {
+                $ip = $router->ip_address;
+                if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+                    $ipLong = ip2long($ip);
+                    $networkLong = ip2long('10.100.0.0');
+                    $mask = (-1 << (32 - 16)) & 0xFFFFFFFF;
+                    if (($ipLong & $mask) === ($networkLong & $mask)) {
+                        $vpnIp = $ip;
+                    }
+                }
+            }
+            
+            // Ensure router has a VPN tunnel IP before attempting connection
+            if (!$vpnIp) {
+                Log::warning('Router test skipped: No VPN IP address configured', ['router_id' => $router->id]);
                 return false;
             }
 
@@ -162,16 +188,16 @@ class CheckMikrotikStatus extends Command
                 // Check if router should be marked offline due to stale last_seen_at
                 if ($this->isRouterStale($router)) {
                     $router->status = 'offline';
-                    Log::debug('Router marked offline: Connection failed and last_seen_at > 4 minutes', [
+                    Log::debug('Router marked offline: Connection failed via VPN tunnel and last_seen_at > 4 minutes', [
                         'router_id' => $router->id,
-                        'ip_address' => $router->ip_address,
+                        'vpn_ip' => $vpnIp,
                         'last_seen_at' => $router->last_seen_at,
                     ]);
                 } else {
                     // Connection failed but last_seen_at is recent, keep current status
-                    Log::debug('Router connection failed: No response', [
+                    Log::debug('Router connection failed via VPN tunnel: No response', [
                         'router_id' => $router->id,
-                        'ip_address' => $router->ip_address,
+                        'vpn_ip' => $vpnIp,
                     ]);
                 }
             }
@@ -181,9 +207,9 @@ class CheckMikrotikStatus extends Command
             return $isOnline;
         } catch (\Throwable $e) {
             $errorMessage = $e->getMessage();
-            Log::error("Router connection test failed", [
+            Log::error("Router connection test failed via VPN tunnel", [
                 'router_id' => $router->id,
-                'ip_address' => $router->ip_address,
+                'vpn_ip' => $vpnIp ?? 'not configured',
                 'api_port' => $router->api_port ?? 8728,
                 'error' => $errorMessage,
             ]);
