@@ -70,7 +70,7 @@ class TenantMikrotikController extends Controller
 
     /**
      * Get router status (for frontend status checking).
-     * Returns current router status from database.
+     * Returns current router status from database, and performs real-time check if data is stale.
      * All router communication uses VPN IP (wireguard_address) only.
      */
     public function getStatus($id)
@@ -82,6 +82,86 @@ class TenantMikrotikController extends Controller
 
         // Get VPN IP (standardized field)
         $vpnIp = $router->wireguard_address ?? $router->ip_address;
+
+        // If no VPN IP, return current status
+        if (!$vpnIp) {
+            return response()->json([
+                'success' => true,
+                'status' => $router->status,
+                'online' => $router->online ?? false,
+                'last_seen_at' => $router->last_seen_at?->toIso8601String(),
+                'vpn_ip' => null,
+                'cpu' => $router->cpu ?? $router->cpu_usage ?? null,
+                'memory' => $router->memory ?? $router->memory_usage ?? null,
+                'uptime' => $router->uptime ?? null,
+            ]);
+        }
+
+        // Check if status is stale (older than 30 seconds) - if so, do a quick real-time check
+        $shouldCheck = false;
+        if (!$router->last_seen_at) {
+            $shouldCheck = true;
+        } else {
+            $secondsSinceLastSeen = now()->diffInSeconds($router->last_seen_at);
+            if ($secondsSinceLastSeen > 30) {
+                $shouldCheck = true;
+            }
+        }
+
+        // Perform real-time check if needed
+        if ($shouldCheck) {
+            try {
+                $apiService = new RouterApiService($router);
+                $isOnline = $apiService->isOnline();
+                
+                if ($isOnline) {
+                    // Get system resources
+                    $resources = $apiService->getSystemResource();
+                    
+                    $updateData = [
+                        'status' => 'online',
+                        'online' => true,
+                        'last_seen_at' => now(),
+                    ];
+                    
+                    if ($resources !== false) {
+                        // Update CPU, memory, uptime
+                        if (isset($resources['cpu-load'])) {
+                            $cpuValue = (float)$resources['cpu-load'];
+                            $updateData['cpu_usage'] = $cpuValue;
+                            $updateData['cpu'] = $cpuValue;
+                        }
+                        
+                        if (isset($resources['free-memory']) && isset($resources['total-memory'])) {
+                            $memoryUsed = $resources['total-memory'] - $resources['free-memory'];
+                            $memoryPercent = round(($memoryUsed / $resources['total-memory']) * 100, 2);
+                            $updateData['memory_usage'] = $memoryPercent;
+                            $updateData['memory'] = $memoryPercent;
+                        }
+                        
+                        if (isset($resources['uptime'])) {
+                            $updateData['uptime'] = (int)$resources['uptime'];
+                        }
+                    }
+                    
+                    $router->update($updateData);
+                    $router->refresh();
+                } else {
+                    // Router is offline
+                    $router->update([
+                        'status' => 'offline',
+                        'online' => false,
+                    ]);
+                    $router->refresh();
+                }
+            } catch (\Exception $e) {
+                // If check fails, just return current database status
+                Log::debug('Real-time status check failed, returning cached status', [
+                    'router_id' => $router->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
 
         return response()->json([
             'success' => true,
