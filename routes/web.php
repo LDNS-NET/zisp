@@ -32,6 +32,7 @@ use App\Http\Controllers\Tenants\TenantTicketController;
 use App\Http\Controllers\Tenants\TenantUserController;
 use App\Http\Controllers\Tenants\TenantWhatsappGatewayController;
 use App\Http\Controllers\Tenants\VoucherController;
+use App\Http\Controllers\MikrotikController;
 
 /*
 |--------------------------------------------------------------------------
@@ -46,6 +47,8 @@ Route::get('/', function () {
         'phpVersion' => PHP_VERSION,
     ]);
 });
+
+Route::get('mikrotiks/status', [MikrotikController::class, 'status'])->name('mikrotiks.health');
 
 /*
 |--------------------------------------------------------------------------
