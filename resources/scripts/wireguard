@@ -1,0 +1,95 @@
+# Proposed wireguard configuration
+# Remove existing wireguard
+ :do {
+    /interface wireguard remove [find name=zisp-wireguard]
+} on-error={}
+
+# Add wireguard with private key
+:do {
+    /interface wireguard add listen-port=0 mtu=1420 name=zisp-wireguard private-key="" disabled=no
+} on-error={
+    :put "Error: Could not add WireGuard interface (may already exist or invalid configuration)"
+}
+
+# Add WireGuard peer (server)
+:do {
+    /interface wireguard peers remove [find public-key="$wgServerPubKey"]
+} on-error={}
+:do {
+    /interface wireguard peers add allowed-address=0.0.0.0/0 endpoint-address=$wgServerEndpoint endpoint-port=51820 interface=zisp-wireguard public-key=$wgServerPubKey persistent-keepalive=25s
+} on-error={
+    :put "Error: Could not add WireGuard peer (may already exist or invalid configuration)"
+}
+
+# remove any existing address that has the same subnet
+:do {
+    /ip address remove [find network=$clientIpWithMask]
+} on-error={}
+
+# Add IP address to WireGuard interface
+:do {
+    /ip address add address=$clientIpWithMask interface=zisp-wireguard
+} on-error={
+    :put "Warning: Could not add IP address to WireGuard interface (may already exist)"
+}
+
+# Add firewall rules to allow WireGuard traffic
+:do {
+    /ip firewall filter remove [find comment="Allow WireGuard"]
+} on-error={}
+:do {
+    /ip firewall filter remove [find comment="Allow WireGuard forward"]
+} on-error={}
+
+:do {
+    /ip firewall filter add action=accept chain=input comment="Allow WireGuard" dst-port=$wgPort protocol=udp
+} on-error={
+    :put "Warning: Could not add WireGuard input rule (may already exist)"
+}
+
+:do {
+    /ip firewall filter add action=accept chain=forward comment="Allow WireGuard" in-interface=zisp-wireguard
+} on-error={
+    :put "Warning: Could not add WireGuard forward in-interface rule (may already exist)"
+}
+
+:do {
+    /ip firewall filter add action=accept chain=forward comment="Allow WireGuard" out-interface=zisp-wireguard
+} on-error={
+    :put "Warning: Could not add WireGuard forward out-interface rule (may already exist)"
+}
+
+:do {
+    /ip firewall filter remove [find action=fasttrack-connection]
+} on-error={}
+
+:do {
+    /ip firewall filter remove [find src-address="10.100.0.1"]
+} on-error={}
+
+:do {
+    /ip firewall filter remove [find dst-address="10.100.0.1"]
+} on-error={}
+
+:do {
+    /ip firewall filter add chain=input action=accept src-address=10.100.0.1 comment="zisp"
+} on-error={
+    :put "Warning: Could not add centipid input rule (may already exist)"
+}
+:do {
+    /ip firewall filter add chain=output action=accept dst-address=10.100.0.1 comment="zisp"
+} on-error={
+    :put "Warning: Could not add centipid output rule (may already exist)"
+}
+
+
+:do {
+    /ip firewall filter move [find comment="zisp"] destination=0
+    /ip firewall filter move [find comment="zisp"] destination=1
+} on-error={
+    :put "Warning: Could not move rules to top"
+}
+
+:do {
+    /ip firewall filter move [find comment="Allow Wireguard"] destination=1
+} on-error={}

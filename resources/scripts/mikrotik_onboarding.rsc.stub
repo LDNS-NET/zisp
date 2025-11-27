@@ -21,23 +21,21 @@
 
 # ---------- Connectivity check ----------
 :if ([/ping 8.8.8.8 count=3] = 0) do={
-    :put "Warning: No internet connection detected!"
-} else={
-    :put "Internet connectivity: OK"
+    :return "No internet connection. Try again after checking."
 }
 
 # ---------- Router Identity ----------
 /system identity set name="{{name}}"
-:put "Router identity set to: {{name}}"
+:put " === Router identity set to: {{name}} === "
 
 # ---------- Display Router IPs ----------
-:put "Router IP addresses:"
+:put " === Router IP addresses: === "
 :foreach id in=[/ip address find] do={
     :local ipAddr [/ip address get $id address]
     :put " - $ipAddr"
 }
 
-# ---------- RADIUS Configuration ----------
+put: " ======= Applying Radius Configuration ======= "
 :do {
     /radius remove [find address=$radiusIp]
     :if ($radiusServerIp != $radiusIp) do={
@@ -56,10 +54,10 @@
     :if ($radiusServerIp != $radiusIp) do={
         :put "RADIUS configured: $radiusServices (via VPN $radiusServerIp)"
     } else={
-        :put "RADIUS configured: $radiusServices"
+        :put " ======= RADIUS configured: $radiusServices ======= "
     }
 } on-error={
-    :put "Warning: Could not configure RADIUS"
+    :put " !!!! Warning: Could not configure RADIUS !!!!! "
 }
 
 # ---------- PPP AAA ----------
@@ -86,7 +84,7 @@
     /ip firewall filter add chain=output action=accept dst-address=$trustedIp comment="zisp-api"
 
     # Remove previous WireGuard-related rules to avoid duplicates
-    :do { /ip firewall filter remove [find comment="zisp-wg"] } on-error={}
+    :do { /ip firewall filter remove [find comment="zisp-wireguard"] } on-error={}
 
     # Resolve WG server endpoint to IP (if hostname provided)
     :local wgServerIp ""
@@ -101,9 +99,9 @@
         /ip firewall filter add chain=input action=accept protocol=udp dst-port=$wgPort comment="zisp-wg"
     }
     # Allow any traffic via the zisp-wg interface (tunnel)
-    /ip firewall filter add chain=input action=accept in-interface="zisp-wg" comment="zisp-wg-interface"
+    /ip firewall filter add chain=input action=accept in-interface="zisp-wireguard" comment="zisp-wireguard-interface"
     # Accept forwarding from the tunnel to other interfaces
-    /ip firewall filter add chain=forward action=accept in-interface="zisp-wg" comment="zisp-wg-forward"
+    /ip firewall filter add chain=forward action=accept in-interface="zisp-wireguard" comment="zisp-wireguard-forward"
 
     :put "Firewall rules configured"
 } on-error={
@@ -119,17 +117,16 @@
     :put "Warning: API service configuration failed"
 }
 
-# ---------- WireGuard Setup ----------
 :put "==================== WIREGUARD SETUP ===================="
 
 :if ([:len $wgServerPubKey] > 0 && [:len $wgServerEndpoint] > 0) do={
     :put "WireGuard server info present, setting up interface..."
 
     # Remove existing interface
-    :do { /interface wireguard remove [find name="zisp-wg"] } on-error={}
+    :do { /interface wireguard remove [find name="zisp-wireguard"] } on-error={}
 
     # Create WG interface (listen on configured port)
-    :do { /interface wireguard add name="zisp-wg" listen-port=$wgPort disabled=no } on-error={ :put "Failed to create WireGuard interface" }
+    :do { /interface wireguard add name="zisp-wireguard" listen-port=$wgPort disabled=no } on-error={ :put "Failed to create WireGuard interface" }
 
 :if ([:len $wgClientIp] = 0) do={
     :put ("Error: wgClientIp is empty")
@@ -141,8 +138,6 @@
         :set clientIpWithMask ($clientIpWithMask . "/16")
     }
 
-    # Basic validation: must be inside 10.100.0.0/16
-    # (checks string prefix; good enough for controlled assignment)
     :if ([:find $clientIpWithMask "10.100."] = -1) do={
         :put ("Error: " . $clientIpWithMask . " is not in the 10.100.0.0/16 subnet")
     } else={
@@ -155,8 +150,8 @@
 
             # Add the address to the interface, with safe on-error handling
             :do {
-                /ip/address/add interface="zisp-wg" address=$clientIpWithMask comment="wg assigned by registration script"
-                :put ("Success: added " . $clientIpWithMask . " to interface zisp-wg")
+                /ip/address/add interface="zisp-wireguard" address=$clientIpWithMask comment="wireguard assigned by registration script"
+                :put ("Success: added " . $clientIpWithMask . " to interface zisp-wireguard")
             } on-error={
                 :local errStr ("Failed to add " . $clientIpWithMask . " - " . [:tostr $error])
                 :put $errStr
@@ -167,15 +162,15 @@
 }
 
     # Generate keys (RouterOS v7+ supports private-key property)
-    :local privKey [/interface wireguard get [find name="zisp-wg"] private-key]
-    :local pubKey [/interface wireguard get [find name="zisp-wg"] public-key]
+    :local privKey [/interface wireguard get [find name="zisp-wireguard"] private-key]
+    :local pubKey [/interface wireguard get [find name="zisp-wireguard"] public-key]
 
     :put "WireGuard keys generated (public key only):"
     :put " - Public: $pubKey"
 
     # Add server peer
     :do {
-        /interface wireguard peers add interface="zisp-wg" public-key=$wgServerPubKey endpoint-address=$wgServerEndpoint endpoint-port=$wgPort allowed-address=$wgSubnet persistent-keepalive=25
+        /interface wireguard peers add interface="zisp-wireguard" public-key=$wgServerPubKey endpoint-address=$wgServerEndpoint endpoint-port=$wgPort allowed-address=$wgSubnet persistent-keepalive=25
         :put "Added peer to WireGuard server $wgServerEndpoint:$wgPort"
     } on-error={ :put "Warning: Failed to add server peer" }
 
@@ -222,12 +217,28 @@
     :put "WireGuard server info missing; skipping WG setup"
 }
 
+:do {
+    /system clock
+    set time-zone-name=Africa/Nairobi
+} on-error={
+    :put "Warning: Could not set timezone"
+}
+:put " ======= Timezone Configured ======= "
 
-# ---------- Phone-home system removed - using RouterOS API polling instead ----------
-# Server now polls routers via RouterOS API through VPN tunnel (10.100.0.0/16)
-# No phone-home script or scheduler needed
+
+
+:put " =================== Creating reboot scheduler =================== "
+:do {
+    /system scheduler remove [find name="zisp-reboot-3am"]
+} on-error={}
+/system scheduler add name="zisp-reboot-3am" start-time=03:00:00 interval=1d on-event="/system reboot" comment="ZiSP Daily Reboot at 3AM"
+:put " =================== Reboot scheduler created =================== "
+
 
 :put "==================== ONBOARDING COMPLETE ===================="
 :put "Router connected to ZiSP system"
 :put "API User: $username"
 :put "API Port: $apiPort"
+
+
+:put " ======= zisp Onboarding successful ======== "
