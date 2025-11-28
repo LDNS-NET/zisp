@@ -499,7 +499,7 @@ class TenantMikrotikController extends Controller
     /**
      * Check router connectivity.
      */
-    public function testConnection($id)
+   /* public function testConnection($id)
     {
         $router = TenantMikrotik::findOrFail($id);
 
@@ -511,7 +511,7 @@ class TenantMikrotikController extends Controller
             'status' => $router->status,
             'last_seen_at' => $router->last_seen_at,
         ]);
-    }
+    }*/
 
     /**
      * Set router VPN IP address.
@@ -853,9 +853,9 @@ class TenantMikrotikController extends Controller
             return $router->status === 'online';
         }
 
-        // Check if last_seen_at is more than 4 minutes ago
-        $fourMinutesAgo = now()->subMinutes(4);
-        return $router->last_seen_at->lt($fourMinutesAgo);
+        // Check if last_seen_at is more than 6 minutes ago
+        $sixMinutesAgo = now()->subMinutes(6);
+        return $router->last_seen_at->lt($sixMinutesAgo);
     }
 
     /**

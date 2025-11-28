@@ -214,43 +214,6 @@ async function pingRouter(router) {
     }
 }
 
-
-/*async function testRouterConnection(router) {
-    // Use VPN IP (wireguard_address) - all router communication uses VPN tunnel only
-    const vpnIp = router.wireguard_address ?? router.ip_address ?? 'unknown';
-    toast.info(`Testing connection via VPN tunnel (${vpnIp}) ...`);
-
-    testing.value[router.id] = true;
-    formError.value = '';
-
-    try {
-        const response = await fetch(route('mikrotiks.testConnection', router.id));
-        const data = await response.json();
-
-        if (!response.ok) {
-            toast.error('Error testing connection');
-            return;
-        }
-
-        // Update router status in the UI
-        router.status = data.status;
-        router.last_seen_at = data.last_seen_at;
-        
-        // Update the routers list to reflect the change
-        const index = routersList.value.findIndex(r => r.id === router.id);
-        if (index !== -1) {
-            routersList.value[index] = { ...router };
-        }
-
-        // Use toast notification if available, otherwise console
-        window.toast?.success(data.message) || console.log(data.message);
-    } catch (err) {
-        toast.error('Error testing connection');
-    } finally {
-        testing.value[router.id] = false;
-    }
-}*/
-
 function showRemote(router) {
     formError.value = '';
     fetch(route('mikrotiks.remoteManagement', router.id))
