@@ -29,17 +29,5 @@ function confirmAction() {
         <!-- Hotspot content goes here -->
 
         <!-- Example Modal for Hotspot actions -->
-        <Modal v-if="showModal" @close="showModal = false">
-            <template #header>
-                <h3 class="text-lg font-medium">Hotspot Action</h3>
-            </template>
-            <template #body>
-                <p>Perform actions related to Hotspots here.</p>
-            </template>
-            <template #footer>
-                <PrimaryButton @click="showModal = false">Close</PrimaryButton>
-                <DangerButton @click="/* Add action logic here */">Confirm</DangerButton>
-            </template>
-        </Modal>
     </div>
 </template>
