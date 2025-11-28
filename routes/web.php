@@ -87,8 +87,8 @@ Route::middleware(['auth', 'verified', 'check.subscription', 'tenant.domain'])
         Route::resource('activeusers', TenantActiveUsersController::class);
 
         //tenants packages
-        Route::resource('packages', PackageController::class)->except(['show']);
         Route::delete('/packages/bulk-delete', [PackageController::class, 'bulkDelete'])->name('packages.bulk-delete');
+        Route::resource('packages', PackageController::class)->except(['show']);
 
         //network users( tenants )
         Route::resource('users', TenantUserController::class);

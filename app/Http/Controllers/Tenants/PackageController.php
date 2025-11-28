@@ -65,9 +65,19 @@ class PackageController extends Controller
             'ids.*' => 'integer|exists:packages,id',
         ]);
 
-        Package::whereIn('id', $request->ids)->delete();
+        try {
+            $deletedCount = Package::whereIn('id', $request->ids)->delete();
 
-        return back()->with('success', 'Selected packages deleted successfully.');
+            return back()->with('success', "Selected {$deletedCount} packages deleted successfully.");
+        } catch (\Exception $e) {
+            \Log::error('Bulk package deletion failed: ' . $e->getMessage(), [
+                'ids' => $request->ids,
+                'user_id' => auth()->id(),
+                'tenant_id' => tenant('id', 'unknown'),
+            ]);
+
+            return back()->with('error', 'Failed to delete selected packages. They may be in use by active users or vouchers.');
+        }
     }
 
     /**
@@ -75,10 +85,22 @@ class PackageController extends Controller
      */
     public function destroy(Package $package)
     {
-        $package->delete();
+        try {
+            $package->delete();
 
-        return redirect()->route('packages.index')
-            ->with('success', 'Package deleted successfully.');
+            return redirect()->route('packages.index')
+                ->with('success', 'Package deleted successfully.');
+        } catch (\Exception $e) {
+            \Log::error('Package deletion failed: ' . $e->getMessage(), [
+                'package_id' => $package->id,
+                'package_name' => $package->name,
+                'user_id' => auth()->id(),
+                'tenant_id' => tenant('id', 'unknown'),
+            ]);
+
+            return redirect()->route('packages.index')
+                ->with('error', 'Failed to delete package. It may be in use by active users or vouchers.');
+        }
     }
 
     /**

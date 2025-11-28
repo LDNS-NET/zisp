@@ -71,9 +71,17 @@ class Package extends Model
 
         static::deleting(function ($package) {
             if ($package->type === 'hotspot') {
-                TenantHotspot::where('name', $package->name)
-                    ->where('tenant_id', tenant('id'))
-                    ->delete();
+                try {
+                    TenantHotspot::where('name', $package->name)
+                        ->where('tenant_id', tenant('id'))
+                        ->delete();
+                } catch (\Exception $e) {
+                    \Log::error('Failed to delete related TenantHotspot: ' . $e->getMessage(), [
+                        'package_id' => $package->id,
+                        'package_name' => $package->name,
+                        'tenant_id' => tenant('id', 'unknown'),
+                    ]);
+                }
             }
         });
     }
