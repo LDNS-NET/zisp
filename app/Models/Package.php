@@ -7,6 +7,7 @@ use Stancl\Tenancy\Database\Concerns\UsesTenantConnection;
 
 class Package extends Model
 {
+    use UsesTenantConnection;
     protected $fillable = [
         'name',
         'type',
@@ -34,6 +35,16 @@ class Package extends Model
     }
 
     protected $appends = ['duration_in_days'];
+
+    /**
+     * Scope a query to only include records for the specified tenant.
+     */
+    public function scopeForTenant($query, $tenantId = null)
+    {
+        $tenantId = $tenantId ?? tenant('id');
+
+        return $query->where('created_by', $tenantId);
+    }
 
     public function getDurationInDaysAttribute(): int|float|null
     {
