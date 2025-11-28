@@ -177,6 +177,9 @@ async function pingRouter(router) {
     // Use VPN IP (wireguard_address) - all router communication uses VPN tunnel only
     const vpnIp = router.wireguard_address ?? router.ip_address ?? 'unknown';
     toast.info(`Pinging router via RouterOS API (${vpnIp}) ...`);
+    onSuccess: () => {
+        toast.success('router is online');
+    };
 
     pinging.value[router.id] = true;
     formError.value = '';

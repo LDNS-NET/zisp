@@ -496,24 +496,7 @@ class TenantMikrotikController extends Controller
         return redirect()->route('mikrotiks.index')->with('success', 'Router deleted!');
     }
 
-    /**
-     * Check router connectivity.
-     */
-   /* public function testConnection($id)
-    {
-        $router = TenantMikrotik::findOrFail($id);
-
-        $isOnline = $this->testRouterConnection($router);
-
-        return response()->json([
-            'success' => $isOnline,
-            'message' => $isOnline ? 'Router is online.' : 'Router is offline.',
-            'status' => $router->status,
-            'last_seen_at' => $router->last_seen_at,
-        ]);
-    }*/
-
-    /**
+    /*
      * Set router VPN IP address.
      * All router communication must use VPN tunnel IP (10.100.0.0/16) only.
      * This method sets the VPN IP in wireguard_address field.
@@ -1167,7 +1150,7 @@ class TenantMikrotikController extends Controller
     /**
      * Provision MikroTik hotspot profile + server for this tenant on the given router.
      */
-    public function provisionHotspot($id, TenantHotspotService $hotspotService)
+    /*public function provisionHotspot($id, TenantHotspotService $hotspotService)
     {
         $router = TenantMikrotik::findOrFail($id);
 
@@ -1199,7 +1182,7 @@ class TenantMikrotikController extends Controller
                 ->with('error', 'Failed to provision hotspot on router.');
         }
     }
-
+    */
     /**
      * Register or update the router in FreeRADIUS using its VPN tunnel IP.
      * All routers must use VPN IP (wireguard_address) from 10.100.0.0/16 subnet.
