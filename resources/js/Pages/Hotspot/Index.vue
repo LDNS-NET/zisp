@@ -32,10 +32,11 @@ function confirmAction() {
         <!-- Hotspot list -->
         <div v-if="hotspots.length === 0" class="text-gray-500">No hotspot packages found.</div>
         <div v-for="hotspot in hotspots" :key="hotspot.id" class="mb-2 flex justify-between items-center border p-2 rounded">
-            <div>
+            <div class="flex-1">
                 <div class="font-medium">{{ hotspot.name }}</div>
-                <div class="text-sm text-gray-500">{{ hotspot.duration_value }} {{ hotspot.duration_unit }} @ {{ hotspot.price }} KES</div>
+                <div class="text-sm text-gray-500">{{ hotspot.duration_value }} {{ hotspot.duration_unit }}</div>
             </div>
+            <div class="text-sm font-semibold">@ {{ hotspot.price }} KES</div>
             <PrimaryButton @click="openModal(hotspot)">Buy</PrimaryButton>
         </div>
 
