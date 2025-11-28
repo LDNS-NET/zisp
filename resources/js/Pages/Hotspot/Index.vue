@@ -34,7 +34,7 @@ function confirmAction() {
         <div v-for="hotspot in hotspots" :key="hotspot.id" class="mb-2 flex justify-between items-center border p-2 rounded">
             <span class="font-medium">{{ hotspot.name }}</span>
                 <span class="text-sm text-gray-500">{{ hotspot.price }} KES</span>
-            <PrimaryButton @click="openModal(hotspot)">Manage</PrimaryButton>
+            <PrimaryButton @click="openModal(hotspot)">Buy</PrimaryButton>
         </div>
 
         <!-- Modal -->
