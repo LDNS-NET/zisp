@@ -32,6 +32,50 @@ class Package extends Model
                 $model->created_by = auth()->id();
             }
         });
+
+        // Sync hotspot packages to tenant_hotspot table
+        static::created(function ($package) {
+            if ($package->type === 'hotspot') {
+                TenantHotspot::create([
+                    'tenant_id' => tenant('id'),
+                    'name' => $package->name,
+                    'duration_value' => $package->duration_value,
+                    'duration_unit' => $package->duration_unit,
+                    'price' => $package->price,
+                    'device_limit' => $package->device_limit,
+                    'upload_speed' => $package->upload_speed,
+                    'download_speed' => $package->download_speed,
+                    'burst_limit' => $package->burst_limit,
+                    'created_by' => $package->created_by,
+                    'domain' => request()->getHost(),
+                ]);
+            }
+        });
+
+        static::updated(function ($package) {
+            if ($package->type === 'hotspot') {
+                TenantHotspot::where('name', $package->name)
+                    ->where('tenant_id', tenant('id'))
+                    ->update([
+                        'duration_value' => $package->duration_value,
+                        'duration_unit' => $package->duration_unit,
+                        'price' => $package->price,
+                        'device_limit' => $package->device_limit,
+                        'upload_speed' => $package->upload_speed,
+                        'download_speed' => $package->download_speed,
+                        'burst_limit' => $package->burst_limit,
+                        'created_by' => $package->created_by,
+                    ]);
+            }
+        });
+
+        static::deleting(function ($package) {
+            if ($package->type === 'hotspot') {
+                TenantHotspot::where('name', $package->name)
+                    ->where('tenant_id', tenant('id'))
+                    ->delete();
+            }
+        });
     }
 
     protected $appends = ['duration_in_days'];

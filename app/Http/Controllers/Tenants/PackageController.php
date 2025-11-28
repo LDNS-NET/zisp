@@ -29,103 +29,14 @@ class PackageController extends Controller
      */
     public function store(Request $request)
     {
-        try {
-            \Log::info('Package store method called', [
-                'request_data' => $request->all(),
-                'auth_check' => auth()->check(),
-                'user_id' => auth()->id(),
-            ]);
+        $validated = $this->validatePackage($request);
 
-            $validated = $this->validatePackage($request);
+        $validated['created_by'] = auth()->id();
 
-            $validated['created_by'] = auth()->id();
+        Package::create($validated);
 
-            $package = Package::create($validated);
-
-            \Log::info('Package created successfully', [
-                'package_id' => $package->id,
-                'package_name' => $package->name,
-                'package_type' => $package->type,
-            ]);
-
-            // Sync to tenant_hotspot table if it's a hotspot package
-            if ($package->type === 'hotspot') {
-                \Log::info('Processing hotspot package sync', [
-                    'package_id' => $package->id,
-                    'package_type' => $package->type,
-                ]);
-
-                try {
-                    // Try to get tenant from context first, then fallback to authenticated user
-                    $tenantId = tenant('id');
-                    
-                    if (!$tenantId && auth()->check() && auth()->user()->tenant_id) {
-                        $tenantId = auth()->user()->tenant_id;
-                        \Log::info('Using tenant from authenticated user', [
-                            'tenant_id' => $tenantId,
-                            'user_id' => auth()->id(),
-                        ]);
-                    }
-                    
-                    if (!$tenantId) {
-                        \Log::error('No tenant context available', [
-                            'package_id' => $package->id,
-                            'package_name' => $package->name,
-                            'auth_check' => auth()->check(),
-                            'user_tenant_id' => auth()->user()->tenant_id ?? null,
-                        ]);
-                        
-                        // Continue without TenantHotspot sync but don't fail the package creation
-                        return redirect()->route('packages.index')
-                            ->with('success', 'Package created successfully (TenantHotspot sync skipped - no tenant context).');
-                    }
-                    
-                    \Log::info('Creating TenantHotspot record', [
-                        'tenant_id' => $tenantId,
-                        'package_name' => $package->name,
-                    ]);
-                    
-                    $tenantHotspot = \App\Models\Tenants\TenantHotspot::create([
-                        'tenant_id' => $tenantId,
-                        'name' => $package->name,
-                        'duration_value' => $package->duration_value,
-                        'duration_unit' => $package->duration_unit,
-                        'price' => $package->price,
-                        'device_limit' => $package->device_limit,
-                        'upload_speed' => $package->upload_speed,
-                        'download_speed' => $package->download_speed,
-                        'burst_limit' => $package->burst_limit,
-                        'created_by' => $package->created_by,
-                        'domain' => request()->getHost(),
-                    ]);
-                    
-                    \Log::info('TenantHotspot record created successfully', [
-                        'tenant_hotspot_id' => $tenantHotspot->id,
-                        'package_id' => $package->id,
-                    ]);
-                } catch (\Exception $e) {
-                    \Log::error('Failed to create related TenantHotspot: ' . $e->getMessage(), [
-                        'package_id' => $package->id,
-                        'package_name' => $package->name,
-                        'tenant_id' => $tenantId ?? 'unknown',
-                        'trace' => $e->getTraceAsString(),
-                    ]);
-                }
-            }
-
-            return redirect()->route('packages.index')
-                ->with('success', 'Package created successfully.');
-        } catch (\Exception $e) {
-            \Log::error('Package creation failed: ' . $e->getMessage(), [
-                'request_data' => $request->all(),
-                'user_id' => auth()->id(),
-                'tenant_id' => tenant('id', 'unknown'),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return redirect()->route('packages.index')
-                ->with('error', 'Failed to create package. Please check the logs for details.');
-        }
+        return redirect()->route('packages.index')
+            ->with('success', 'Package created successfully.');
     }
 
 
@@ -135,65 +46,12 @@ class PackageController extends Controller
      */
     public function update(Request $request, Package $package)
     {
-        try {
-            $validated = $this->validatePackage($request, $package->id);
+        $validated = $this->validatePackage($request, $package->id);
 
-            $package->update($validated);
+        $package->update($validated);
 
-            // Sync to tenant_hotspot table if it's a hotspot package
-            if ($package->type === 'hotspot') {
-                try {
-                    // Try to get tenant from context first, then fallback to authenticated user
-                    $tenantId = tenant('id');
-                    
-                    if (!$tenantId && auth()->check() && auth()->user()->tenant_id) {
-                        $tenantId = auth()->user()->tenant_id;
-                    }
-                    
-                    if (!$tenantId) {
-                        \Log::warning('No tenant context available for TenantHotspot update', [
-                            'package_id' => $package->id,
-                            'package_name' => $package->name,
-                        ]);
-                        // Continue without TenantHotspot sync
-                        return redirect()->route('packages.index')
-                            ->with('success', 'Package updated successfully (TenantHotspot sync skipped - no tenant context).');
-                    }
-                    
-                    \App\Models\Tenants\TenantHotspot::where('name', $package->name)
-                        ->where('tenant_id', $tenantId)
-                        ->update([
-                            'duration_value' => $package->duration_value,
-                            'duration_unit' => $package->duration_unit,
-                            'price' => $package->price,
-                            'device_limit' => $package->device_limit,
-                            'upload_speed' => $package->upload_speed,
-                            'download_speed' => $package->download_speed,
-                            'burst_limit' => $package->burst_limit,
-                            'created_by' => $package->created_by,
-                        ]);
-                } catch (\Exception $e) {
-                    \Log::error('Failed to update related TenantHotspot: ' . $e->getMessage(), [
-                        'package_id' => $package->id,
-                        'package_name' => $package->name,
-                        'tenant_id' => $tenantId ?? 'unknown',
-                    ]);
-                }
-            }
-
-            return redirect()->route('packages.index')
-                ->with('success', 'Package updated successfully.');
-        } catch (\Exception $e) {
-            \Log::error('Package update failed: ' . $e->getMessage(), [
-                'package_id' => $package->id,
-                'request_data' => $request->all(),
-                'user_id' => auth()->id(),
-                'tenant_id' => tenant('id', 'unknown'),
-            ]);
-
-            return redirect()->route('packages.index')
-                ->with('error', 'Failed to update package. Please check the logs for details.');
-        }
+        return redirect()->route('packages.index')
+            ->with('success', 'Package updated successfully.');
     }
 
 
@@ -207,39 +65,9 @@ class PackageController extends Controller
             'ids.*' => 'integer|exists:packages,id',
         ]);
 
-        try {
-            // Get the packages to delete before deletion for TenantHotspot cleanup
-            $packages = Package::whereIn('id', $request->ids)->get();
-            
-            // Delete related TenantHotspot records for hotspot packages
-            foreach ($packages as $package) {
-                if ($package->type === 'hotspot') {
-                    try {
-                        \App\Models\Tenants\TenantHotspot::where('name', $package->name)
-                            ->where('tenant_id', tenant('id'))
-                            ->delete();
-                    } catch (\Exception $e) {
-                        \Log::error('Failed to delete related TenantHotspot during bulk delete: ' . $e->getMessage(), [
-                            'package_id' => $package->id,
-                            'package_name' => $package->name,
-                            'tenant_id' => tenant('id', 'unknown'),
-                        ]);
-                    }
-                }
-            }
+        Package::whereIn('id', $request->ids)->delete();
 
-            $deletedCount = Package::whereIn('id', $request->ids)->delete();
-
-            return back()->with('success', "Selected {$deletedCount} packages deleted successfully.");
-        } catch (\Exception $e) {
-            \Log::error('Bulk package deletion failed: ' . $e->getMessage(), [
-                'ids' => $request->ids,
-                'user_id' => auth()->id(),
-                'tenant_id' => tenant('id', 'unknown'),
-            ]);
-
-            return back()->with('error', 'Failed to delete selected packages. They may be in use by active users or vouchers.');
-        }
+        return back()->with('success', 'Selected packages deleted successfully.');
     }
 
     /**
@@ -247,37 +75,10 @@ class PackageController extends Controller
      */
     public function destroy(Package $package)
     {
-        try {
-            // Delete related TenantHotspot record if it's a hotspot package
-            if ($package->type === 'hotspot') {
-                try {
-                    \App\Models\Tenants\TenantHotspot::where('name', $package->name)
-                        ->where('tenant_id', tenant('id'))
-                        ->delete();
-                } catch (\Exception $e) {
-                    \Log::error('Failed to delete related TenantHotspot: ' . $e->getMessage(), [
-                        'package_id' => $package->id,
-                        'package_name' => $package->name,
-                        'tenant_id' => tenant('id', 'unknown'),
-                    ]);
-                }
-            }
+        $package->delete();
 
-            $package->delete();
-
-            return redirect()->route('packages.index')
-                ->with('success', 'Package deleted successfully.');
-        } catch (\Exception $e) {
-            \Log::error('Package deletion failed: ' . $e->getMessage(), [
-                'package_id' => $package->id,
-                'package_name' => $package->name,
-                'user_id' => auth()->id(),
-                'tenant_id' => tenant('id', 'unknown'),
-            ]);
-
-            return redirect()->route('packages.index')
-                ->with('error', 'Failed to delete package. It may be in use by active users or vouchers.');
-        }
+        return redirect()->route('packages.index')
+            ->with('success', 'Package deleted successfully.');
     }
 
     /**
