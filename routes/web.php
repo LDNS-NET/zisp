@@ -49,7 +49,7 @@ Route::get('/', function () {
     ]);
 });
 
-Route::resource('hotspots', TenantHotspotController::class);
+Route::resource('hotspot', TenantHotspotController::class);
 
 Route::get('/captive-portal', function () {
         return Inertia::render('CaptivePortal/Index');
