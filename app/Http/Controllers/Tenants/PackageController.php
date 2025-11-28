@@ -29,14 +29,25 @@ class PackageController extends Controller
      */
     public function store(Request $request)
     {
-        $validated = $this->validatePackage($request);
+        try {
+            $validated = $this->validatePackage($request);
 
-        $validated['created_by'] = auth()->id();
+            $validated['created_by'] = auth()->id();
 
-        Package::create($validated);
+            Package::create($validated);
 
-        return redirect()->route('packages.index')
-            ->with('success', 'Package created successfully.');
+            return redirect()->route('packages.index')
+                ->with('success', 'Package created successfully.');
+        } catch (\Exception $e) {
+            \Log::error('Package creation failed: ' . $e->getMessage(), [
+                'request_data' => $request->all(),
+                'user_id' => auth()->id(),
+                'tenant_id' => tenant('id', 'unknown'),
+            ]);
+
+            return redirect()->route('packages.index')
+                ->with('error', 'Failed to create package. Please check the logs for details.');
+        }
     }
 
 
@@ -46,12 +57,24 @@ class PackageController extends Controller
      */
     public function update(Request $request, Package $package)
     {
-        $validated = $this->validatePackage($request, $package->id);
+        try {
+            $validated = $this->validatePackage($request, $package->id);
 
-        $package->update($validated);
+            $package->update($validated);
 
-        return redirect()->route('packages.index')
-            ->with('success', 'Package updated successfully.');
+            return redirect()->route('packages.index')
+                ->with('success', 'Package updated successfully.');
+        } catch (\Exception $e) {
+            \Log::error('Package update failed: ' . $e->getMessage(), [
+                'package_id' => $package->id,
+                'request_data' => $request->all(),
+                'user_id' => auth()->id(),
+                'tenant_id' => tenant('id', 'unknown'),
+            ]);
+
+            return redirect()->route('packages.index')
+                ->with('error', 'Failed to update package. Please check the logs for details.');
+        }
     }
 
 
