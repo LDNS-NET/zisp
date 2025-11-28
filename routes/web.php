@@ -75,7 +75,7 @@ Route::post('mikrotiks/{mikrotik}/register-wireguard', [\App\Http\Controllers\Te
 |--------------------------------------------------------------------------
 */
 
-Route::middleware(['auth', 'verified', 'check.subscription', 'tenant.domain'])
+Route::middleware(['auth', 'verified', 'check.subscription', \Stancl\Tenancy\Middleware\InitializeTenancyByDomain::class, 'tenant.domain'])
     ->group(function () {
 
 
@@ -217,7 +217,7 @@ Route::get('/payment/success', function () {
 | Profile Routes
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth', 'tenant.domain'])->group(function () {
+Route::middleware(['auth', \Stancl\Tenancy\Middleware\InitializeTenancyByDomain::class, 'tenant.domain'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');

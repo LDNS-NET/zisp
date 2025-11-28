@@ -30,24 +30,63 @@ class PackageController extends Controller
     public function store(Request $request)
     {
         try {
+            \Log::info('Package store method called', [
+                'request_data' => $request->all(),
+                'auth_check' => auth()->check(),
+                'user_id' => auth()->id(),
+            ]);
+
             $validated = $this->validatePackage($request);
 
             $validated['created_by'] = auth()->id();
 
             $package = Package::create($validated);
 
+            \Log::info('Package created successfully', [
+                'package_id' => $package->id,
+                'package_name' => $package->name,
+                'package_type' => $package->type,
+            ]);
+
             // Sync to tenant_hotspot table if it's a hotspot package
             if ($package->type === 'hotspot') {
+                \Log::info('Processing hotspot package sync', [
+                    'package_id' => $package->id,
+                    'package_type' => $package->type,
+                ]);
+
                 try {
-                    \Log::info('Attempting to create TenantHotspot record', [
-                        'package_id' => $package->id,
+                    // Try to get tenant from context first, then fallback to authenticated user
+                    $tenantId = tenant('id');
+                    
+                    if (!$tenantId && auth()->check() && auth()->user()->tenant_id) {
+                        $tenantId = auth()->user()->tenant_id;
+                        \Log::info('Using tenant from authenticated user', [
+                            'tenant_id' => $tenantId,
+                            'user_id' => auth()->id(),
+                        ]);
+                    }
+                    
+                    if (!$tenantId) {
+                        \Log::error('No tenant context available', [
+                            'package_id' => $package->id,
+                            'package_name' => $package->name,
+                            'auth_check' => auth()->check(),
+                            'user_tenant_id' => auth()->user()->tenant_id ?? null,
+                        ]);
+                        
+                        // Continue without TenantHotspot sync but don't fail the package creation
+                        return redirect()->route('packages.index')
+                            ->with('success', 'Package created successfully (TenantHotspot sync skipped - no tenant context).');
+                    }
+                    
+                    \Log::info('Creating TenantHotspot record', [
+                        'tenant_id' => $tenantId,
                         'package_name' => $package->name,
-                        'package_type' => $package->type,
-                        'tenant_id' => tenant('id'),
                     ]);
                     
                     $tenantHotspot = \App\Models\Tenants\TenantHotspot::create([
-                        'tenant_id' => tenant('id'),
+                        'tenant_id' => $tenantId,
                         'name' => $package->name,
                         'duration_value' => $package->duration_value,
                         'duration_unit' => $package->duration_unit,
@@ -68,7 +107,7 @@ class PackageController extends Controller
                     \Log::error('Failed to create related TenantHotspot: ' . $e->getMessage(), [
                         'package_id' => $package->id,
                         'package_name' => $package->name,
-                        'tenant_id' => tenant('id', 'unknown'),
+                        'tenant_id' => $tenantId ?? 'unknown',
                         'trace' => $e->getTraceAsString(),
                     ]);
                 }
@@ -81,6 +120,7 @@ class PackageController extends Controller
                 'request_data' => $request->all(),
                 'user_id' => auth()->id(),
                 'tenant_id' => tenant('id', 'unknown'),
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return redirect()->route('packages.index')
@@ -103,8 +143,25 @@ class PackageController extends Controller
             // Sync to tenant_hotspot table if it's a hotspot package
             if ($package->type === 'hotspot') {
                 try {
+                    // Try to get tenant from context first, then fallback to authenticated user
+                    $tenantId = tenant('id');
+                    
+                    if (!$tenantId && auth()->check() && auth()->user()->tenant_id) {
+                        $tenantId = auth()->user()->tenant_id;
+                    }
+                    
+                    if (!$tenantId) {
+                        \Log::warning('No tenant context available for TenantHotspot update', [
+                            'package_id' => $package->id,
+                            'package_name' => $package->name,
+                        ]);
+                        // Continue without TenantHotspot sync
+                        return redirect()->route('packages.index')
+                            ->with('success', 'Package updated successfully (TenantHotspot sync skipped - no tenant context).');
+                    }
+                    
                     \App\Models\Tenants\TenantHotspot::where('name', $package->name)
-                        ->where('tenant_id', tenant('id'))
+                        ->where('tenant_id', $tenantId)
                         ->update([
                             'duration_value' => $package->duration_value,
                             'duration_unit' => $package->duration_unit,
@@ -119,7 +176,7 @@ class PackageController extends Controller
                     \Log::error('Failed to update related TenantHotspot: ' . $e->getMessage(), [
                         'package_id' => $package->id,
                         'package_name' => $package->name,
-                        'tenant_id' => tenant('id', 'unknown'),
+                        'tenant_id' => $tenantId ?? 'unknown',
                     ]);
                 }
             }
