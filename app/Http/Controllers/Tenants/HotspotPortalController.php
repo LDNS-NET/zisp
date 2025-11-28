@@ -31,14 +31,9 @@ class HotspotPortalController extends Controller
                 ?? ($tenant->domains->first()->domain ?? $request->getHost()),
         ];
 
-        // Fetch hotspot packages that belong to this tenant
-        $packages = Package::query()
-            ->where('type', 'hotspot')
-            ->where(function ($q) use ($tenant) {
-                $q->where('tenant_id', $tenant->id)
-                  ->orWhere('created_by', $tenant->id);
-            })
-            ->get();
+        // In tenant context the packages table is already scoped to the tenant DB.
+        // Just fetch hotspot-type packages.
+        $packages = Package::where('type', 'hotspot')->get();
 
         return Inertia::render('Tenants/HotspotPortal/Index', [
             'tenant'        => $tenantInfo,
