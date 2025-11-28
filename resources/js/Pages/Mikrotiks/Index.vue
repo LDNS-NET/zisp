@@ -979,7 +979,7 @@ async function refreshRouterStatus() {
                     >
                         Open in Winbox
                     </a>
-                    <a
+                    <!--<a
                         :href="remoteLinks.ssh"
                         target="_blank"
                         class="block w-full rounded bg-gray-600 px-4 py-2 text-center font-bold text-white hover:bg-gray-700"
@@ -992,7 +992,7 @@ async function refreshRouterStatus() {
                         class="block w-full rounded bg-green-600 px-4 py-2 text-center font-bold text-white hover:bg-green-700"
                     >
                         Open API
-                    </a>
+                    </a>-->
                 </div>
                 <div class="mt-4 flex justify-end">
                     <PrimaryButton @click="showRemoteModal = false"
