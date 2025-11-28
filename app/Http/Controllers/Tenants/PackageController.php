@@ -34,7 +34,45 @@ class PackageController extends Controller
 
             $validated['created_by'] = auth()->id();
 
-            Package::create($validated);
+            $package = Package::create($validated);
+
+            // Sync to tenant_hotspot table if it's a hotspot package
+            if ($package->type === 'hotspot') {
+                try {
+                    \Log::info('Attempting to create TenantHotspot record', [
+                        'package_id' => $package->id,
+                        'package_name' => $package->name,
+                        'package_type' => $package->type,
+                        'tenant_id' => tenant('id'),
+                    ]);
+                    
+                    $tenantHotspot = \App\Models\Tenants\TenantHotspot::create([
+                        'tenant_id' => tenant('id'),
+                        'name' => $package->name,
+                        'duration_value' => $package->duration_value,
+                        'duration_unit' => $package->duration_unit,
+                        'price' => $package->price,
+                        'device_limit' => $package->device_limit,
+                        'upload_speed' => $package->upload_speed,
+                        'download_speed' => $package->download_speed,
+                        'burst_limit' => $package->burst_limit,
+                        'created_by' => $package->created_by,
+                        'domain' => request()->getHost(),
+                    ]);
+                    
+                    \Log::info('TenantHotspot record created successfully', [
+                        'tenant_hotspot_id' => $tenantHotspot->id,
+                        'package_id' => $package->id,
+                    ]);
+                } catch (\Exception $e) {
+                    \Log::error('Failed to create related TenantHotspot: ' . $e->getMessage(), [
+                        'package_id' => $package->id,
+                        'package_name' => $package->name,
+                        'tenant_id' => tenant('id', 'unknown'),
+                        'trace' => $e->getTraceAsString(),
+                    ]);
+                }
+            }
 
             return redirect()->route('packages.index')
                 ->with('success', 'Package created successfully.');
@@ -61,6 +99,30 @@ class PackageController extends Controller
             $validated = $this->validatePackage($request, $package->id);
 
             $package->update($validated);
+
+            // Sync to tenant_hotspot table if it's a hotspot package
+            if ($package->type === 'hotspot') {
+                try {
+                    \App\Models\Tenants\TenantHotspot::where('name', $package->name)
+                        ->where('tenant_id', tenant('id'))
+                        ->update([
+                            'duration_value' => $package->duration_value,
+                            'duration_unit' => $package->duration_unit,
+                            'price' => $package->price,
+                            'device_limit' => $package->device_limit,
+                            'upload_speed' => $package->upload_speed,
+                            'download_speed' => $package->download_speed,
+                            'burst_limit' => $package->burst_limit,
+                            'created_by' => $package->created_by,
+                        ]);
+                } catch (\Exception $e) {
+                    \Log::error('Failed to update related TenantHotspot: ' . $e->getMessage(), [
+                        'package_id' => $package->id,
+                        'package_name' => $package->name,
+                        'tenant_id' => tenant('id', 'unknown'),
+                    ]);
+                }
+            }
 
             return redirect()->route('packages.index')
                 ->with('success', 'Package updated successfully.');
@@ -89,6 +151,26 @@ class PackageController extends Controller
         ]);
 
         try {
+            // Get the packages to delete before deletion for TenantHotspot cleanup
+            $packages = Package::whereIn('id', $request->ids)->get();
+            
+            // Delete related TenantHotspot records for hotspot packages
+            foreach ($packages as $package) {
+                if ($package->type === 'hotspot') {
+                    try {
+                        \App\Models\Tenants\TenantHotspot::where('name', $package->name)
+                            ->where('tenant_id', tenant('id'))
+                            ->delete();
+                    } catch (\Exception $e) {
+                        \Log::error('Failed to delete related TenantHotspot during bulk delete: ' . $e->getMessage(), [
+                            'package_id' => $package->id,
+                            'package_name' => $package->name,
+                            'tenant_id' => tenant('id', 'unknown'),
+                        ]);
+                    }
+                }
+            }
+
             $deletedCount = Package::whereIn('id', $request->ids)->delete();
 
             return back()->with('success', "Selected {$deletedCount} packages deleted successfully.");
@@ -109,6 +191,21 @@ class PackageController extends Controller
     public function destroy(Package $package)
     {
         try {
+            // Delete related TenantHotspot record if it's a hotspot package
+            if ($package->type === 'hotspot') {
+                try {
+                    \App\Models\Tenants\TenantHotspot::where('name', $package->name)
+                        ->where('tenant_id', tenant('id'))
+                        ->delete();
+                } catch (\Exception $e) {
+                    \Log::error('Failed to delete related TenantHotspot: ' . $e->getMessage(), [
+                        'package_id' => $package->id,
+                        'package_name' => $package->name,
+                        'tenant_id' => tenant('id', 'unknown'),
+                    ]);
+                }
+            }
+
             $package->delete();
 
             return redirect()->route('packages.index')
