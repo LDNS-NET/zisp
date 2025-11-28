@@ -21,8 +21,11 @@ class TenantHotspotController extends Controller
             ->orderBy('name')
             ->get();
 
+        $tenant = tenant();
+
         return Inertia::render('Hotspot/Index', [
             'packages' => $packages,
+            'tenantName' => $tenant?->name,
         ]);
     }
 
