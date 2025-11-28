@@ -271,17 +271,6 @@ function downloadAdvancedConfig(router) {
     }
 }
 
-function provisionHotspot(router) {
-    formError.value = '';
-    Inertia.post(route('mikrotiks.provisionHotspot', router.id), {}, {
-        onSuccess: () => {
-            toast.success('Hotspot provisioned on router');
-        },
-        onError: () => {
-            toast.error('Failed to provision hotspot on router');
-        },
-    });
-}
 
 // Status polling functions - poll every 5 seconds for real-time updates
 function startStatusPolling() {
@@ -563,20 +552,6 @@ async function refreshRouterStatus() {
                                                         >
                                                             <ExternalLink
                                                                 class="h-5 w-5 text-purple-600"
-                                                            />
-                                                        </button>
-                                                        <button
-                                                            @click="
-                                                                provisionHotspot(
-                                                                    router,
-                                                                );
-                                                                closeAllActions();
-                                                            "
-                                                            title="Provision Hotspot"
-                                                            class="rounded p-2 hover:bg-gray-100"
-                                                        >
-                                                            <Wifi
-                                                                class="h-5 w-5 text-pink-600"
                                                             />
                                                         </button>
                                                         <button
