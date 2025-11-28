@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Stancl\Tenancy\Database\Concerns\UsesTenantConnection;
+use App\Models\Tenants\TenantHotspot;
 
 class Package extends Model
 {
@@ -29,6 +30,48 @@ class Package extends Model
         static::creating(function ($model) {
             if (auth()->check() && empty($model->created_by)) {
                 $model->created_by = auth()->id();
+            }
+        });
+
+        // Sync hotspot packages to tenant_hotspots table
+        static::created(function ($package) {
+            if ($package->type === 'hotspot') {
+                TenantHotspot::create([
+                    'tenant_id' => tenant()->id,
+                    'package_id' => $package->id,
+                    'name' => $package->name,
+                    'price' => $package->price,
+                    'duration_value' => $package->duration_value,
+                    'duration_unit' => $package->duration_unit,
+                    'device_limit' => $package->device_limit,
+                    'upload_speed' => $package->upload_speed,
+                    'download_speed' => $package->download_speed,
+                    'burst_limit' => $package->burst_limit,
+                    'created_by' => $package->created_by,
+                    'domain' => tenant()->domains->first()->domain ?? null,
+                ]);
+            }
+        });
+
+        static::updated(function ($package) {
+            if ($package->type === 'hotspot') {
+                TenantHotspot::where('package_id', $package->id)->update([
+                    'name' => $package->name,
+                    'price' => $package->price,
+                    'duration_value' => $package->duration_value,
+                    'duration_unit' => $package->duration_unit,
+                    'device_limit' => $package->device_limit,
+                    'upload_speed' => $package->upload_speed,
+                    'download_speed' => $package->download_speed,
+                    'burst_limit' => $package->burst_limit,
+                    'created_by' => $package->created_by,
+                ]);
+            }
+        });
+
+        static::deleting(function ($package) {
+            if ($package->type === 'hotspot') {
+                TenantHotspot::where('package_id', $package->id)->delete();
             }
         });
     }
