@@ -18,8 +18,13 @@ class HotspotPortalController extends Controller
      */
     public function index(Request $request): Response
     {
-        /** @var Tenant $tenant */
+        /** @var Tenant|null $tenant */
         $tenant = tenant();
+
+        if (! $tenant) {
+            // No tenant resolved for this domain – return 404 instead of 500
+            abort(404, 'Tenant not found for this domain.');
+        }
 
         // Fetch lightweight package data for this tenant only
         $packages = Package::query()
