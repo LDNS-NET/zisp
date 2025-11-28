@@ -11,7 +11,6 @@ const selectedHotspot = ref(null);
 // Packages received from Inertia
 const page = usePage();
 const hotspots = computed(() => page.props?.packages || []);
-const tenantName = computed(() => page.props?.tenantName || '');
 
 function openModal(hotspot) {
     selectedHotspot.value = hotspot;
@@ -28,15 +27,14 @@ function confirmAction() {
 <template>
     <Head title="Hotspot" />
     <div class="p-6 bg-white rounded-lg shadow-md">
-        <h2 class="text-2xl font-semibold mb-4">{{ tenantName }} – Hotspot Packages</h2>
+        <h2 class="text-2xl font-semibold mb-4">Hotspot Packages</h2>
 
         <!-- Hotspot list -->
         <div v-if="hotspots.length === 0" class="text-gray-500">No hotspot packages found.</div>
-        <div v-for="hotspot in hotspots" :key="hotspot.id" class="mb-2 grid grid-cols-5 gap-2 items-center border p-2 rounded">
-            <span class="font-medium col-span-2">{{ hotspot.name }}</span>
+        <div v-for="hotspot in hotspots" :key="hotspot.id" class="mb-2 flex justify-between items-center border p-2 rounded">
+            <span class="font-medium">{{ hotspot.name }}</span>
                 <span class="text-sm text-gray-500">{{ hotspot.price }} KES</span>
-                <span class="text-sm text-gray-500">{{ hotspot.upload_speed }}M / {{ hotspot.download_speed }}M</span>
-            <PrimaryButton class="justify-self-end" @click="openModal(hotspot)">Manage</PrimaryButton>
+            <PrimaryButton @click="openModal(hotspot)">Manage</PrimaryButton>
         </div>
 
         <!-- Modal -->
