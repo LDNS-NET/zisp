@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Tenants;
 
 use App\Http\Controllers\Controller;
 use App\Models\Package;
+use App\Models\Tenants\TenantHotspot;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\DB;
 
 class PackageController extends Controller
 {
@@ -30,10 +32,36 @@ class PackageController extends Controller
     public function store(Request $request)
     {
         $validated = $this->validatePackage($request);
-
         $validated['created_by'] = auth()->id();
 
-        Package::create($validated);
+        $package = null;
+
+        DB::transaction(function () use ($validated, &$package) {
+            // Create the package
+            $package = Package::create($validated);
+
+            // If it's a hotspot package, create corresponding tenant_hotspot record
+            if ($validated['type'] === 'hotspot') {
+                $tenantId = tenant('id');
+                if ($tenantId) {
+                    DB::table('tenant_hotspot')->insert([
+                        'tenant_id' => $tenantId,
+                        'name' => $package->name,
+                        'duration_value' => $package->duration_value,
+                        'duration_unit' => $package->duration_unit,
+                        'price' => $package->price,
+                        'device_limit' => $package->device_limit,
+                        'upload_speed' => $package->upload_speed,
+                        'download_speed' => $package->download_speed,
+                        'burst_limit' => $package->burst_limit,
+                        'created_by' => $package->created_by,
+                        'domain' => \Illuminate\Support\Facades\Request::host(),
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+            }
+        });
 
         return redirect()->route('packages.index')
             ->with('success', 'Package created successfully.');
@@ -48,7 +76,31 @@ class PackageController extends Controller
     {
         $validated = $this->validatePackage($request, $package->id);
 
-        $package->update($validated);
+        DB::transaction(function () use ($validated, $package) {
+            // Update the package
+            $package->update($validated);
+
+            // If it's a hotspot package, update corresponding tenant_hotspot record
+            if ($validated['type'] === 'hotspot') {
+                $tenantId = tenant('id');
+                if ($tenantId) {
+                    DB::table('tenant_hotspot')
+                        ->where('name', $package->name)
+                        ->where('tenant_id', $tenantId)
+                        ->update([
+                            'duration_value' => $package->duration_value,
+                            'duration_unit' => $package->duration_unit,
+                            'price' => $package->price,
+                            'device_limit' => $package->device_limit,
+                            'upload_speed' => $package->upload_speed,
+                            'download_speed' => $package->download_speed,
+                            'burst_limit' => $package->burst_limit,
+                            'created_by' => $package->created_by,
+                            'updated_at' => now(),
+                        ]);
+                }
+            }
+        });
 
         return redirect()->route('packages.index')
             ->with('success', 'Package updated successfully.');
@@ -65,7 +117,25 @@ class PackageController extends Controller
             'ids.*' => 'integer|exists:packages,id',
         ]);
 
-        Package::whereIn('id', $request->ids)->delete();
+        DB::transaction(function () use ($request) {
+            // Get hotspot packages before deletion
+            $hotspotPackages = Package::whereIn('id', $request->ids)
+                ->where('type', 'hotspot')
+                ->get();
+
+            // Delete corresponding tenant_hotspot records
+            $tenantId = tenant('id');
+            if ($tenantId && $hotspotPackages->isNotEmpty()) {
+                $packageNames = $hotspotPackages->pluck('name');
+                DB::table('tenant_hotspot')
+                    ->whereIn('name', $packageNames)
+                    ->where('tenant_id', $tenantId)
+                    ->delete();
+            }
+
+            // Delete the packages
+            Package::whereIn('id', $request->ids)->delete();
+        });
 
         return back()->with('success', 'Selected packages deleted successfully.');
     }
@@ -75,7 +145,21 @@ class PackageController extends Controller
      */
     public function destroy(Package $package)
     {
-        $package->delete();
+        DB::transaction(function () use ($package) {
+            // If it's a hotspot package, delete corresponding tenant_hotspot record
+            if ($package->type === 'hotspot') {
+                $tenantId = tenant('id');
+                if ($tenantId) {
+                    DB::table('tenant_hotspot')
+                        ->where('name', $package->name)
+                        ->where('tenant_id', $tenantId)
+                        ->delete();
+                }
+            }
+
+            // Delete the package
+            $package->delete();
+        });
 
         return redirect()->route('packages.index')
             ->with('success', 'Package deleted successfully.');
