@@ -13,16 +13,13 @@ class Kernel extends ConsoleKernel
         
         // Sync routers via RouterOS API polling every minute (prevent overlapping runs)
         $schedule->command('routers:sync')
-            ->everyMinute()
+            ->everyFourMinutes()
             ->withoutOverlapping()
-            ->runInBackground()
-            ->before(function () {
-                \Log::info('routers:sync triggered at ' . now());
-        });
+            ->runInBackground();
 
 
         // Sync WireGuard peers every minute to pick up new registrations quickly
-        $schedule->command('wireguard:sync-peers')->everyMinute();
+        $schedule->command('wireguard:sync-peers')->everyFourMinutes();
     }
 
     protected function commands(): void
