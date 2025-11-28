@@ -233,6 +233,18 @@ watch(collapsed, (val) => {
                         <span class="nav-label">Mikrotiks</span>
                     </NavLink>
                 </div>
+
+                <!-- not sto be shown layout-->
+                 <div class="mb-4 px-3">
+                    <NavLink
+                        :href="route('hotspot.index')"
+                        :active="route().current('hotspot.index')"
+                        class="flex items-center p-2 dark:text-white nav-link"
+                    >
+                        <Phone class="nav-icon h-4 w-4 text-purple-500" />
+                        <span class="nav-label">Hotspot</span>
+                    </NavLink>
+                </div>
             </nav>
         </aside>
 
