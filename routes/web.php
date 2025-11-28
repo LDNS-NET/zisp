@@ -17,7 +17,6 @@ use App\Http\Controllers\Tenants\TenantEquipmentController;
 use App\Http\Controllers\Tenants\TenantExpensesController;
 use App\Http\Controllers\Tenants\TenantGeneralSettingsController;
 use App\Http\Controllers\Tenants\TenantHotspotSettingsController;
-use App\Http\Controllers\Tenants\HotspotPortalController;
 use App\Http\Controllers\Tenants\TenantInvoiceController;
 use App\Http\Controllers\Tenants\TenantLeadController;
 use App\Http\Controllers\Tenants\TenantMikrotikController;
@@ -48,12 +47,6 @@ Route::get('/', function () {
         'phpVersion' => PHP_VERSION,
     ]);
 });
-// Tenant Hotspot Captive Portal (public, domain-resolved)
-Route::middleware([\Stancl\Tenancy\Middleware\InitializeTenancyByDomain::class, \Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains::class])
-    ->group(function () {
-        Route::get('/hotspot', [HotspotPortalController::class, 'index'])->name('hotspot.portal');
-    });
-
 Route::get('/captive-portal', function () {
         return Inertia::render('CaptivePortal/Index');
         })->name('captive-portal');
