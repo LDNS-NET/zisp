@@ -49,7 +49,7 @@ Route::get('/', function () {
     ]);
 });
 
-Route::middleware(['tenant.domain', 'check.subscription'])->group(function () {
+Route::middleware(['tenant.domain'])->group(function () {
 Route::resource('hotspot', TenantHotspotController::class);
 });
 
