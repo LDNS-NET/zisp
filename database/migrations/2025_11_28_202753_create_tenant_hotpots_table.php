@@ -13,7 +13,8 @@ return new class extends Migration
     {
         Schema::create('tenant_hotpots', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('tenant_id')->constrained()->cascadeOnDelete();
+            $table->string('tenant_id');
+            $table->foreign('tenant_id')->references('id')->on('tenants')->onDelete('cascade');
             $table->string('name');
             $table->string('duration_value');
             $table->string('duration_unit');

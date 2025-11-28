@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::table('tenant_hotpots', function (Blueprint $table) {
             $table->foreignId('package_id')->nullable()->after('tenant_id');
-            $table->index('package_id');
+            $table->foreign('package_id')->references('id')->on('packages')->onDelete('set null');
         });
     }
 
@@ -23,7 +23,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('tenant_hotpots', function (Blueprint $table) {
-            $table->dropIndex(['package_id']);
+            $table->dropForeign(['package_id']);
             $table->dropColumn('package_id');
         });
     }
