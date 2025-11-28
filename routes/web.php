@@ -47,6 +47,24 @@ Route::get('/', function () {
         'phpVersion' => PHP_VERSION,
     ]);
 });
+Route::get('/captive-portal', function () {
+        return Inertia::render('CaptivePortal/Index');
+        })->name('captive-portal');
+
+        // Fetch available hotspot packages
+        Route::get('/hotspot/packages', [CaptivePortalController::class, 'packages']);
+
+        // Login with username & password (Hotspot)
+        Route::post('/hotspot/login', [CaptivePortalController::class, 'login']);
+
+        // Login using a voucher
+        Route::post('/hotspot/voucher', [CaptivePortalController::class, 'voucher']);
+
+        // Pay for access
+        Route::post('/hotspot/pay', [CaptivePortalController::class, 'pay']);
+
+        // Callback from IntaSend after payment
+        Route::post('/hotspot/payment/callback', [CaptivePortalController::class, 'paymentCallback']);
 
 Route::get('mikrotiks/status', [MikrotikController::class, 'status'])->name('mikrotiks.health');
 
@@ -164,24 +182,7 @@ Route::middleware(['auth', 'verified', 'check.subscription', 'tenant.domain'])
 
 
         //captive portal
-        Route::get('/captive-portal', function () {
-        return Inertia::render('CaptivePortal/Index');
-        })->name('captive-portal');
-
-        // Fetch available hotspot packages
-        Route::get('/hotspot/packages', [CaptivePortalController::class, 'packages']);
-
-        // Login with username & password (Hotspot)
-        Route::post('/hotspot/login', [CaptivePortalController::class, 'login']);
-
-        // Login using a voucher
-        Route::post('/hotspot/voucher', [CaptivePortalController::class, 'voucher']);
-
-        // Pay for access
-        Route::post('/hotspot/pay', [CaptivePortalController::class, 'pay']);
-
-        // Callback from IntaSend after payment
-        Route::post('/hotspot/payment/callback', [CaptivePortalController::class, 'paymentCallback']);
+        
 
 
         // Tenant settings routes
