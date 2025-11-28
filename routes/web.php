@@ -33,6 +33,7 @@ use App\Http\Controllers\Tenants\TenantUserController;
 use App\Http\Controllers\Tenants\TenantWhatsappGatewayController;
 use App\Http\Controllers\Tenants\VoucherController;
 use App\Http\Controllers\MikrotikController;
+use App\Http\Controllers\Tenants\TenantHotspotController;
 
 /*
 |--------------------------------------------------------------------------
@@ -47,6 +48,9 @@ Route::get('/', function () {
         'phpVersion' => PHP_VERSION,
     ]);
 });
+
+Route::resource('hotspots', TenantHotspotController::class);
+
 Route::get('/captive-portal', function () {
         return Inertia::render('CaptivePortal/Index');
         })->name('captive-portal');
