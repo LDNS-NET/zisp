@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Tenants;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Package;
+use Stancl\Tenancy\Facades\Tenancy;
 use App\Models\Tenants\NetworkUser;
 use App\Models\Voucher;
 use Illuminate\Support\Facades\Hash;
@@ -38,11 +39,20 @@ class CaptivePortalController extends Controller
         } while (NetworkUser::where('account_number', $accountNumber)->exists());
         return $accountNumber;
     }
+    /**
+     * Get hotspot packages for the current tenant
+     */
     public function packages()
     {
-        $packages = Package::query()->where('type', 'hotspot')->get();
+        $tenant = tenant();
+        $packages = Package::query()
+            ->where('type', 'hotspot')
+            ->where('created_by', $tenant->id)
+            ->get();
+            
         return response()->json(['packages' => $packages]);
     }
+    
 
     // POST /hotspot/login
     public function login(Request $request)
@@ -176,8 +186,11 @@ class CaptivePortalController extends Controller
 
     public function show()
     {
-        $packages = Package::where('type', 'hotspot')->get();
         $tenant = tenant();
+        $packages = Package::query()
+            ->where('type', 'hotspot')
+            ->where('created_by', $tenant->id)
+            ->get();
         return Inertia::render('CaptivePortal/Index', [
             'packages' => $packages,
             'business' => [
@@ -428,9 +441,17 @@ class CaptivePortalController extends Controller
     {
         $t = tenant();
         if (!$t) {
-            return response()->json(['business_name' => 'Hotspot', 'phone' => '']);
+            return response()->json([
+                'business_name' => 'Hotspot', 
+                'phone' => '',
+                'domain' => ''
+            ]);
         }
-        return response()->json(['business_name' => $t->business_name, 'phone' => $t->phone]);
+        return response()->json([
+            'business_name' => $t->name, 
+            'phone' => $t->phone,
+            'domain' => $t->domain
+        ]);
     }
 
     public function paymentStatus($identifier)
