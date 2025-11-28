@@ -6,7 +6,21 @@ import Modal from '@/Components/Modal.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import DangerButton from '@/Components/DangerButton.vue';
 
+const showModal = ref(false);
+const selectedHotspot = ref(null);
+
+function openModal(hotspot) {
+    selectedHotspot.value = hotspot;
+    showModal.value = true;
+}
+
+function confirmAction() {
+    // Add your hotspot action logic here
+    console.log('Action confirmed for', selectedHotspot.value);
+    showModal.value = false;
+}
 </script>
+
 
 <template>
     <Head title="Hotspot" />
