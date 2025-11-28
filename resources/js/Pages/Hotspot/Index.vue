@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import Modal from '@/Components/Modal.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
@@ -9,8 +9,8 @@ const showModal = ref(false);
 const selectedHotspot = ref(null);
 
 // Packages received from Inertia
-const { props } = usePage();
-const hotspots = ref(props.value.packages ?? []);
+const page = usePage();
+const hotspots = computed(() => page.props?.value?.packages || []);
 
 function openModal(hotspot) {
     selectedHotspot.value = hotspot;
