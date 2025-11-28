@@ -33,45 +33,47 @@ class Package extends Model
             }
         });
 
-        // Sync hotspot packages to tenant_hotspots table
+        // Sync hotspot packages to tenant_hotspot table
         static::created(function ($package) {
             if ($package->type === 'hotspot') {
                 TenantHotspot::create([
-                    'tenant_id' => tenant()->id,
-                    'package_id' => $package->id,
+                    'tenant_id' => tenant('id'),
                     'name' => $package->name,
-                    'price' => $package->price,
                     'duration_value' => $package->duration_value,
                     'duration_unit' => $package->duration_unit,
+                    'price' => $package->price,
                     'device_limit' => $package->device_limit,
                     'upload_speed' => $package->upload_speed,
                     'download_speed' => $package->download_speed,
                     'burst_limit' => $package->burst_limit,
                     'created_by' => $package->created_by,
-                    'domain' => tenant()->domains->first()->domain ?? null,
+                    'domain' => request()->getHost(),
                 ]);
             }
         });
 
         static::updated(function ($package) {
             if ($package->type === 'hotspot') {
-                TenantHotspot::where('package_id', $package->id)->update([
-                    'name' => $package->name,
-                    'price' => $package->price,
-                    'duration_value' => $package->duration_value,
-                    'duration_unit' => $package->duration_unit,
-                    'device_limit' => $package->device_limit,
-                    'upload_speed' => $package->upload_speed,
-                    'download_speed' => $package->download_speed,
-                    'burst_limit' => $package->burst_limit,
-                    'created_by' => $package->created_by,
-                ]);
+                TenantHotspot::where('name', $package->name)
+                    ->where('tenant_id', tenant('id'))
+                    ->update([
+                        'duration_value' => $package->duration_value,
+                        'duration_unit' => $package->duration_unit,
+                        'price' => $package->price,
+                        'device_limit' => $package->device_limit,
+                        'upload_speed' => $package->upload_speed,
+                        'download_speed' => $package->download_speed,
+                        'burst_limit' => $package->burst_limit,
+                        'created_by' => $package->created_by,
+                    ]);
             }
         });
 
         static::deleting(function ($package) {
             if ($package->type === 'hotspot') {
-                TenantHotspot::where('package_id', $package->id)->delete();
+                TenantHotspot::where('name', $package->name)
+                    ->where('tenant_id', tenant('id'))
+                    ->delete();
             }
         });
     }
