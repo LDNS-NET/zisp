@@ -1,6 +1,5 @@
 <script setup>
 import { ref } from 'vue';
-import { usePage } from '@inertiajs/inertia-vue3';
 import Modal from '@/Components/Modal.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import DangerButton from '@/Components/DangerButton.vue';
