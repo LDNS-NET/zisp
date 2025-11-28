@@ -189,6 +189,10 @@ async function pingRouter(router) {
             toast.error(data.message || 'Error pinging router');
             return;
         }
+        else if (data.success) {
+            toast.error(data.message || 'Ping failed');
+            return;
+        }
 
         router.status = data.status;
         router.online = data.online;
