@@ -1,5 +1,6 @@
 <script setup>
 import { ref } from 'vue';
+import { usePage } from '@inertiajs/vue3';
 import Modal from '@/Components/Modal.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import DangerButton from '@/Components/DangerButton.vue';
@@ -7,12 +8,9 @@ import DangerButton from '@/Components/DangerButton.vue';
 const showModal = ref(false);
 const selectedHotspot = ref(null);
 
-// Example hotspot list (replace with real data from Inertia)
-const hotspots = ref([
-  { id: 1, name: 'Hotspot 1' },
-  { id: 2, name: 'Hotspot 2' },
-  { id: 3, name: 'Hotspot 3' },
-]);
+// Packages received from Inertia
+const { props } = usePage();
+const hotspots = ref(props.value.packages ?? []);
 
 function openModal(hotspot) {
     selectedHotspot.value = hotspot;
@@ -29,11 +27,12 @@ function confirmAction() {
 <template>
     <Head title="Hotspot" />
     <div class="p-6 bg-white rounded-lg shadow-md">
-        <h2 class="text-2xl font-semibold mb-4">Hotspot Management</h2>
+        <h2 class="text-2xl font-semibold mb-4">Hotspot Packages</h2>
 
         <!-- Hotspot list -->
         <div v-for="hotspot in hotspots" :key="hotspot.id" class="mb-2 flex justify-between items-center border p-2 rounded">
-            <span>{{ hotspot.name }}</span>
+            <span class="font-medium">{{ hotspot.name }}</span>
+                <span class="text-sm text-gray-500">{{ hotspot.price }} KES</span>
             <PrimaryButton @click="openModal(hotspot)">Manage</PrimaryButton>
         </div>
 

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\TenantHotspot;
 use App\Http\Requests\StoreTenantHotspotRequest;
 use App\Http\Requests\UpdateTenantHotspotRequest;
+use App\Models\Package;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -16,7 +17,13 @@ class TenantHotspotController extends Controller
      */
     public function index()
     {
-        return Inertia::render('Hotspot/Index');
+        $packages = Package::where('type', 'hotspot')
+            ->orderBy('name')
+            ->get();
+
+        return Inertia::render('Hotspot/Index', [
+            'packages' => $packages,
+        ]);
     }
 
     /**

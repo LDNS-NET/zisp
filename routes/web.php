@@ -49,8 +49,11 @@ Route::get('/', function () {
     ]);
 });
 
+// Hotspot routes (protected by subscription check) replace subscription with a safer middleware for hotspot safe redirects
+
 Route::middleware(['check.subscription'])->group(function () {
-Route::resource('hotspot', TenantHotspotController::class);
+
+    Route::resource('hotspot', TenantHotspotController::class);
 });
 
 
