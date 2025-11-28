@@ -189,10 +189,6 @@ async function pingRouter(router) {
             toast.error(data.message || 'Error pinging router');
             return;
         }
-        else if (data.success) {
-            toast.error(data.message || 'Ping failed');
-            return;
-        }
 
         router.status = data.status;
         router.online = data.online;
@@ -219,7 +215,7 @@ async function pingRouter(router) {
 }
 
 
-async function testRouterConnection(router) {
+/*async function testRouterConnection(router) {
     // Use VPN IP (wireguard_address) - all router communication uses VPN tunnel only
     const vpnIp = router.wireguard_address ?? router.ip_address ?? 'unknown';
     toast.info(`Testing connection via VPN tunnel (${vpnIp}) ...`);
@@ -253,7 +249,7 @@ async function testRouterConnection(router) {
     } finally {
         testing.value[router.id] = false;
     }
-}
+}*/
 
 function showRemote(router) {
     formError.value = '';
@@ -588,25 +584,7 @@ async function refreshRouterStatus() {
                                                                 class="h-5 w-5 text-green-600"
                                                             />
                                                         </button>
-                                                        <button
-                                                            @click="
-                                                                testRouterConnection(
-                                                                    router,
-                                                                );
-                                                                closeAllActions();
-                                                            "
-                                                            :disabled="
-                                                                testing[
-                                                                    router.id
-                                                                ]
-                                                            "
-                                                            title="Test Connection"
-                                                            class="rounded p-2 hover:bg-gray-100"
-                                                        >
-                                                            <TestTube
-                                                                class="h-5 w-5 text-blue-600"
-                                                            />
-                                                        </button>
+                                                        
                                                         <button
                                                             @click="
                                                                 showRemote(
