@@ -34,6 +34,14 @@ class PackageController extends Controller
         $validated = $this->validatePackage($request);
         $validated['created_by'] = auth()->id();
 
+        // Debug logging
+        \Log::info('PackageController::store called', [
+            'validated_type' => $validated['type'] ?? 'none',
+            'tenant_id_from_helper' => tenant('id'),
+            'user_tenant_id' => $request->user()?->tenant_id,
+            'first_tenant_id' => \App\Models\Tenant::first()?->id,
+        ]);
+
         $package = null;
 
         DB::transaction(function () use ($validated, &$package) {
@@ -42,7 +50,17 @@ class PackageController extends Controller
 
             // If it's a hotspot package, create corresponding tenant_hotspot record
             if ($validated['type'] === 'hotspot') {
-                $tenantId = tenant('id');
+                $tenantId = tenant('id') ?? ($request->user() ? $request->user()->tenant_id : null);
+                if (!$tenantId) {
+                    $tenantId = \App\Models\Tenant::first()?->id;
+                }
+                
+                \Log::info('Creating tenant_hotspot record', [
+                    'package_id' => $package->id,
+                    'package_name' => $package->name,
+                    'final_tenant_id' => $tenantId,
+                ]);
+                
                 if ($tenantId) {
                     DB::table('tenant_hotspot')->insert([
                         'tenant_id' => $tenantId,
@@ -82,7 +100,10 @@ class PackageController extends Controller
 
             // If it's a hotspot package, update corresponding tenant_hotspot record
             if ($validated['type'] === 'hotspot') {
-                $tenantId = tenant('id');
+                $tenantId = tenant('id') ?? ($request->user() ? $request->user()->tenant_id : null);
+                if (!$tenantId) {
+                    $tenantId = \App\Models\Tenant::first()?->id;
+                }
                 if ($tenantId) {
                     DB::table('tenant_hotspot')
                         ->where('name', $package->name)
@@ -124,7 +145,10 @@ class PackageController extends Controller
                 ->get();
 
             // Delete corresponding tenant_hotspot records
-            $tenantId = tenant('id');
+            $tenantId = tenant('id') ?? ($request->user() ? $request->user()->tenant_id : null);
+            if (!$tenantId) {
+                $tenantId = \App\Models\Tenant::first()?->id;
+            }
             if ($tenantId && $hotspotPackages->isNotEmpty()) {
                 $packageNames = $hotspotPackages->pluck('name');
                 DB::table('tenant_hotspot')
@@ -148,7 +172,10 @@ class PackageController extends Controller
         DB::transaction(function () use ($package) {
             // If it's a hotspot package, delete corresponding tenant_hotspot record
             if ($package->type === 'hotspot') {
-                $tenantId = tenant('id');
+                $tenantId = tenant('id') ?? (auth()->user() ? auth()->user()->tenant_id : null);
+                if (!$tenantId) {
+                    $tenantId = \App\Models\Tenant::first()?->id;
+                }
                 if ($tenantId) {
                     DB::table('tenant_hotspot')
                         ->where('name', $package->name)

@@ -4,12 +4,13 @@ namespace App\Models\Tenants;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Stancl\Tenancy\Database\Concerns\UsesTenantConnection;
 
 class TenantHotspot extends Model
 {
     /** @use HasFactory<\Database\Factories\TenantHotspotFactory> */
-    use HasFactory, UsesTenantConnection;
+    use HasFactory;
+
+    protected $table = 'tenant_hotspot';
 
     protected $fillable = [
         'tenant_id',
