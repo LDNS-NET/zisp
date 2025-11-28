@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('tenant_hotpots', function (Blueprint $table) {
+        Schema::create('tenant_hotspot', function (Blueprint $table) {
             $table->id();
             $table->string('tenant_id');
             $table->foreign('tenant_id')->references('id')->on('tenants')->onDelete('cascade');
@@ -34,6 +34,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('tenant_hotpots');
+        Schema::dropIfExists('tenant_hotspot');
     }
 };
