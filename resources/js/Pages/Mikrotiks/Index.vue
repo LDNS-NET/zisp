@@ -111,7 +111,6 @@ async function submitForm() {
         onSuccess: () => {
             toast.success('Router added successfully');
             closeModal();
-            Inertia.visit(route('mikrotiks.index'));
         },
         onError: (errors) => {
             toast.error('Error adding router');
