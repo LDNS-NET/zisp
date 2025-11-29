@@ -15,7 +15,7 @@ class Package extends Model
         'duration_value',
         'duration_unit',
         'upload_speed',
-        'download_speed',
+        'download_speed',z
         'burst_limit',
         'created_by',
     ];
