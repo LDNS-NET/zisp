@@ -1,12 +1,17 @@
 <script setup>
 import { ref, computed } from 'vue';
-import { usePage } from '@inertiajs/vue3';
+import { usePage, router } from '@inertiajs/vue3';
 import Modal from '@/Components/Modal.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import DangerButton from '@/Components/DangerButton.vue';
+import SecondaryButton from '@/Components/SecondaryButton.vue';
 
 const showModal = ref(false);
 const selectedHotspot = ref(null);
+const phoneNumber = ref('');
+const isProcessing = ref(false);
+const paymentMessage = ref('');
+const paymentError = ref('');
 
 // Packages received from Inertia
 const page = usePage();
@@ -14,13 +19,70 @@ const hotspots = computed(() => page.props?.packages || []);
 
 function openModal(hotspot) {
     selectedHotspot.value = hotspot;
+    phoneNumber.value = '';
+    paymentMessage.value = '';
+    paymentError.value = '';
     showModal.value = true;
 }
 
-function confirmAction() {
-    // Example: perform an action with Inertia.post or API
-    console.log('Action confirmed for', selectedHotspot.value);
+function closeModal() {
     showModal.value = false;
+    selectedHotspot.value = null;
+    phoneNumber.value = '';
+    paymentMessage.value = '';
+    paymentError.value = '';
+}
+
+async function processPayment() {
+    if (!phoneNumber.value.match(/^2547\d{8}$/)) {
+        paymentError.value = 'Please enter a valid Safaricom number (2547XXXXXXXX)';
+        return;
+    }
+
+    isProcessing.value = true;
+    paymentError.value = '';
+    paymentMessage.value = '';
+
+    try {
+        const response = await fetch('/hotspot/purchase-stk-push', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({
+                package_id: selectedHotspot.value.id,
+                phone: phoneNumber.value
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            paymentMessage.value = result.message;
+            // Close modal after 3 seconds on success
+            setTimeout(() => {
+                closeModal();
+            }, 3000);
+        } else {
+            paymentError.value = result.message;
+        }
+    } catch (error) {
+        paymentError.value = 'Payment failed. Please try again.';
+        console.error('Payment error:', error);
+    } finally {
+        isProcessing.value = false;
+    }
+}
+
+function formatPhoneNumber(event) {
+    let value = event.target.value.replace(/\D/g, '');
+    if (value.startsWith('0') && value.length >= 10) {
+        value = '254' + value.substring(1);
+    } else if (value.startsWith('7') && value.length >= 9) {
+        value = '254' + value;
+    }
+    phoneNumber.value = value;
 }
 </script>
 
@@ -40,19 +102,61 @@ function confirmAction() {
             <PrimaryButton @click="openModal(hotspot)">Buy</PrimaryButton>
         </div>
 
-        <!-- Modal -->
-        <Modal v-if="showModal" @close="showModal = false">
+        <!-- Checkout Modal -->
+        <Modal v-if="showModal" @close="closeModal">
             <template #header>
-                <h3 class="text-lg font-medium">Manage Hotspot: {{ selectedHotspot?.name }}</h3>
+                <h3 class="text-lg font-medium">Purchase Hotspot Package</h3>
             </template>
 
             <template #body>
-                <p>Perform actions for this hotspot here.</p>
+                <div v-if="selectedHotspot" class="space-y-4">
+                    <!-- Package Details -->
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h4 class="font-semibold text-lg">{{ selectedHotspot.name }}</h4>
+                        <p class="text-sm text-gray-600">{{ selectedHotspot.duration_value }} {{ selectedHotspot.duration_unit }}</p>
+                        <p class="text-2xl font-bold text-green-600">KES {{ selectedHotspot.price }}</p>
+                    </div>
+
+                    <!-- Phone Number Input -->
+                    <div>
+                        <label for="phone" class="block text-sm font-medium text-gray-700 mb-2">
+                            M-Pesa Phone Number
+                        </label>
+                        <input
+                            id="phone"
+                            v-model="phoneNumber"
+                            @input="formatPhoneNumber"
+                            type="tel"
+                            placeholder="2547XXXXXXXX"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                            :disabled="isProcessing"
+                        />
+                        <p class="text-xs text-gray-500 mt-1">Enter Safaricom number in format: 2547XXXXXXXX</p>
+                    </div>
+
+                    <!-- Payment Messages -->
+                    <div v-if="paymentMessage" class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
+                        {{ paymentMessage }}
+                    </div>
+
+                    <div v-if="paymentError" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+                        {{ paymentError }}
+                    </div>
+                </div>
             </template>
 
             <template #footer>
-                <PrimaryButton @click="showModal = false">Close</PrimaryButton>
-                <DangerButton @click="confirmAction">Confirm</DangerButton>
+                <SecondaryButton @click="closeModal" :disabled="isProcessing">
+                    Cancel
+                </SecondaryButton>
+                <PrimaryButton 
+                    @click="processPayment" 
+                    :disabled="isProcessing || !phoneNumber.match(/^2547\d{8}$/)"
+                    class="ml-3"
+                >
+                    <span v-if="isProcessing">Processing...</span>
+                    <span v-else>Pay with M-Pesa</span>
+                </PrimaryButton>
             </template>
         </Modal>
     </div>

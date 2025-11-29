@@ -54,6 +54,7 @@ Route::get('/', function () {
 Route::middleware(['check.subscription'])->group(function () {
 
     Route::resource('hotspot', TenantHotspotController::class);
+    Route::post('/hotspot/purchase-stk-push', [TenantHotspotController::class, 'purchaseSTKPush'])->name('hotspot.purchase-stk-push');
 });
 
 

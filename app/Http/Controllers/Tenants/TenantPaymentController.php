@@ -11,6 +11,8 @@ use App\Exports\TenantPaymentsExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
+use IntaSend\IntaSendPHP\Collection;
+use App\Jobs\CheckIntaSendPaymentStatus;
 
 class TenantPaymentController extends Controller
 {
@@ -226,6 +228,84 @@ class TenantPaymentController extends Controller
             } catch (\Exception $e) {
                 logger()->error('SMS failed: ' . $e->getMessage());
             }
+        }
+    }
+
+    public function processSTKPush(Request $request)
+    {
+        $data = $request->validate([
+            'phone' => 'required|string|regex:/^2547\d{8}$/',
+            'package_id' => 'required|exists:packages,id',
+            'amount' => 'required|numeric|min:1',
+        ]);
+
+        $package = \App\Models\Package::findOrFail($data['package_id']);
+        
+        // Generate unique receipt number
+        $receiptNumber = 'HS-' . strtoupper(uniqid()) . '-' . date('Ymd');
+        
+        // Create payment record with pending status
+        $payment = TenantPayment::create([
+            'phone' => $data['phone'],
+            'package_id' => $data['package_id'],
+            'amount' => $data['amount'],
+            'receipt_number' => $receiptNumber,
+            'status' => 'pending',
+            'checked' => false,
+            'disbursement_type' => 'pending',
+        ]);
+
+        try {
+            $collection = new Collection();
+            $collection->init([
+                'token' => env('INTASEND_SECRET_KEY'),
+                'publishable_key' => env('INTASEND_PUBLISHABLE_KEY'),
+                'test' => env('INTASEND_TEST_ENV', true),
+            ]);
+
+            $response = $collection->mpesa()->stkpush([
+                'phone_number' => $data['phone'],
+                'amount' => $data['amount'],
+                'currency' => 'KES',
+                'email' => null,
+                'comment' => "Hotspot Package: {$package->name}",
+                'external_reference' => $receiptNumber,
+            ]);
+
+            $resp = json_decode(json_encode($response), true);
+
+            // Update payment with IntaSend response
+            $payment->update([
+                'intasend_reference' => $resp['invoice']['id'] ?? null,
+                'intasend_checkout_id' => $resp['invoice']['checkout_id'] ?? null,
+                'response' => $resp,
+            ]);
+
+            // Dispatch job to check payment status
+            if (!empty($resp['invoice']['id'])) {
+                CheckIntaSendPaymentStatus::dispatch($resp['invoice']['id'])
+                    ->delay(now()->addSeconds(30));
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'STK Push sent successfully. Please check your phone.',
+                'payment_id' => $payment->id,
+                'receipt_number' => $receiptNumber,
+                'response' => $resp,
+            ]);
+
+        } catch (\Exception $e) {
+            // Mark payment as failed
+            $payment->update([
+                'status' => 'failed',
+                'response' => ['error' => $e->getMessage()],
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to initiate STK Push: ' . $e->getMessage(),
+            ], 500);
         }
     }
 }

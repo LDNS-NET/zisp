@@ -17,10 +17,17 @@ class TenantPayment extends Model
         "paid_at",
         "created_by",
         "disbursement_type",
+        "package_id",
+        "status",
+        "intasend_reference",
+        "intasend_checkout_id",
+        "transaction_id",
+        "response",
     ];
   protected $casts = [
         'checked' => 'boolean',
         'paid_at' => 'datetime',
+        'response' => 'array',
     ];
     public function user()
     {

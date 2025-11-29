@@ -7,8 +7,10 @@ use App\Models\TenantHotspot;
 use App\Http\Requests\StoreTenantHotspotRequest;
 use App\Http\Requests\UpdateTenantHotspotRequest;
 use App\Models\Package;
+use App\Models\Tenants\TenantPayment;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use App\Http\Controllers\Tenants\TenantPaymentController;
 
 class TenantHotspotController extends Controller
 {
@@ -72,5 +74,28 @@ class TenantHotspotController extends Controller
     public function destroy(TenantHotspot $tenantHotspot)
     {
         //
+    }
+
+    /**
+     * Process hotspot package purchase with STK Push
+     */
+    public function purchaseSTKPush(Request $request)
+    {
+        $data = $request->validate([
+            'package_id' => 'required|exists:packages,id',
+            'phone' => 'required|string|regex:/^2547\d{8}$/',
+        ]);
+
+        $package = Package::findOrFail($data['package_id']);
+
+        // Forward to TenantPaymentController for processing
+        $paymentController = new TenantPaymentController();
+        $request->merge([
+            'phone' => $data['phone'],
+            'package_id' => $data['package_id'],
+            'amount' => $package->price,
+        ]);
+
+        return $paymentController->processSTKPush($request);
     }
 }
