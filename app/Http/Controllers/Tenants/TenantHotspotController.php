@@ -14,7 +14,6 @@ use Inertia\Inertia;
 use App\Http\Controllers\Tenants\TenantPaymentController;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
-use IntaSend\IntaSendPHP\Collection;
 use Illuminate\Support\Facades\Log;
 
 class TenantHotspotController extends Controller
@@ -101,26 +100,26 @@ class TenantHotspotController extends Controller
             $maskedCreds['publishable_key'] = substr($credentials['publishable_key'] ?? '', 0, 6) . '...';
             \Log::info('Using IntaSend credentials', $maskedCreds);
 
-            $collection = new Collection();
-            $collection->init($credentials);
-
             $api_ref = 'HS-' . uniqid();
 
-            $response = $collection->create(
-                $amount,
-                $phone,
-                'KES',
-                'MPESA_STK_PUSH',
-                $api_ref,
-                '', // name (optional)
-                $request->email ?? 'customer@example.com' // email (optional)
-            );
+            // Use direct HTTP API call instead of SDK to avoid wallet requirement
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $credentials['token'],
+                'Content-Type' => 'application/json',
+            ])->post('https://payment.intasend.com/api/v1/payment/mpesa-stk-push/', [
+                'amount' => $amount,
+                'phone_number' => $phone,
+                'currency' => 'KES',
+                'api_ref' => $api_ref,
+                'email' => $request->email ?? 'customer@example.com',
+            ]);
 
-            \Log::info('IntaSend SDK response', ['response' => json_decode(json_encode($response), true)]);
+            $responseData = $response->json();
+            \Log::info('IntaSend API response', ['response' => $responseData]);
 
-            if (empty($response->invoice)) {
-                \Log::error('IntaSend SDK error', ['response' => $response]);
-                return response()->json(['success' => false, 'message' => 'Failed to initiate payment.']);
+            if (!$response->successful()) {
+                \Log::error('IntaSend API error', ['response' => $responseData]);
+                return response()->json(['success' => false, 'message' => 'Failed to initiate payment: ' . ($responseData['message'] ?? 'Unknown error')]);
             }
 
             // Store payment request
@@ -132,9 +131,9 @@ class TenantHotspotController extends Controller
                 'status' => 'pending',
                 'checked' => false,
                 'disbursement_type' => 'pending',
-                'intasend_reference' => $response->invoice,
-                'intasend_checkout_id' => $response->checkout_id ?? null,
-                'response' => json_decode(json_encode($response), true),
+                'intasend_reference' => $responseData['id'] ?? $responseData['invoice'] ?? null,
+                'intasend_checkout_id' => $responseData['checkout_id'] ?? null,
+                'response' => $responseData,
             ]);
 
             return response()->json(['success' => true, 'message' => 'STK Push sent. Complete payment on your phone.', 'payment_id' => $payment->id]);
