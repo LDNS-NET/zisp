@@ -126,21 +126,9 @@ function formatPhoneNumber(event) {
 
             <!-- Main Content Area - Smartphone Screen Size -->
             <div class="bg-white rounded-2xl shadow-2xl overflow-hidden" style="aspect-ratio: 9/19.5;">
-                <!-- Status Bar -->
-                <div class="bg-gradient-to-r from-purple-600 to-blue-600 px-4 py-2 flex justify-between items-center">
-                    <span class="text-white text-xs font-medium">9:41 AM</span>
-                    <div class="flex items-center space-x-1">
-                        <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/>
-                        </svg>
-                        <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M17.778 8.222c-4.296-4.296-11.26-4.296-15.556 0A1 1 0 01.808 6.808c5.076-5.077 13.308-5.077 18.384 0a1 1 0 01-1.414 1.414zM14.95 11.05a7 7 0 00-9.9 0 1 1 0 01-1.414-1.414 9 9 0 0112.728 0 1 1 0 01-1.414 1.414zM12.12 13.88a3 3 0 00-4.242 0 1 1 0 01-1.415-1.415 5 5 0 017.072 0 1 1 0 01-1.415 1.415zM9 16a1 1 0 011-1v0a1 1 0 110 2v0a1 1 0 01-1-1z" clip-rule="evenodd"/>
-                        </svg>
-                        <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M3 4a2 2 0 00-2 2v1.161l8.441 4.221a1.25 1.25 0 001.118 0L19 7.162V6a2 2 0 00-2-2H3z"/>
-                            <path d="M19 8.839l-7.77 3.885a2.75 2.75 0 01-2.46 0L1 8.839V14a2 2 0 002 2h14a2 2 0 002-2V8.839z"/>
-                        </svg>
-                    </div>
+                <!-- Header Bar -->
+                <div class="bg-gradient-to-r from-purple-600 to-blue-600 px-4 py-4 text-center">
+                    <h2 class="text-white font-semibold text-lg">Available Packages</h2>
                 </div>
 
                 <!-- Scrollable Content Area -->
