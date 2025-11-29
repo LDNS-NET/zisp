@@ -78,20 +78,44 @@
 
 
 :put " =================== Configuring hotspot HTML templates =================== "
-# Remove existing hotspot HTML files
+# Download hotspot template files from our system
 :do {
-    /ip hotspot html remove [find name~"login.html|alogin.html|rlogin.html|flogin.html|logout.html|redirect.html|error.html"]
-} on-error={}
-# Create custom HTML files that redirect to tenant hotspot URL
-/ip hotspot html add name=login.html contents="<html><head><meta http-equiv=\"refresh\" content=\"0; URL='$hotspot_url?src=login'\"></head><body><h2>Redirecting...</h2><a href=\"$hotspot_url?src=login\">Continue</a></body></html>"
-/ip hotspot html add name=alogin.html contents="<html><head><meta http-equiv=\"refresh\" content=\"0; URL='$hotspot_url?src=alogin'\"></head><body><h2>Redirecting...</h2><a href=\"$hotspot_url?src=alogin\">Continue</a></body></html>"
-/ip hotspot html add name=rlogin.html contents="<html><head><meta http-equiv=\"refresh\" content=\"0; URL='$hotspot_url?src=rlogin'\"></head><body><h2>Redirecting...</h2><a href=\"$hotspot_url?src=rlogin\">Continue</a></body></html>"
-/ip hotspot html add name=flogin.html contents="<html><head><meta http-equiv=\"refresh\" content=\"0; URL='$hotspot_url?src=flogin'\"></head><body><h2>Redirecting...</h2><a href=\"$hotspot_url?src=flogin\">Continue</a></body></html>"
-/ip hotspot html add name=logout.html contents="<html><head><meta http-equiv=\"refresh\" content=\"0; URL='$hotspot_url?src=logout'\"></head><body><h2>Redirecting...</h2><a href=\"$hotspot_url?src=logout\">Continue</a></body></html>"
-/ip hotspot html add name=redirect.html contents="<html><head><meta http-equiv=\"refresh\" content=\"0; URL='$hotspot_url?src=redirect'\"></head><body><h2>Redirecting...</h2><a href=\"$hotspot_url?src=redirect\">Continue</a></body></html>"
-/ip hotspot html add name=error.html contents="<html><head><meta http-equiv=\"refresh\" content=\"0; URL='$hotspot_url?src=error'\"></head><body><h2>Redirecting...</h2><a href=\"$hotspot_url?src=error\">Continue</a></body></html>"
-:put " =================== Hotspot HTML templates configured =================== "
+    /tool fetch url="{{hotspot_url}}/hotspot-templates/login.html" mode=https dst-path="hotspot/login.html"
+} on-error={
+    :put "Warning: Could not fetch hotspot login.html to hotspot/"
+}
+:do {
+    /tool fetch url="{{hotspot_url}}/hotspot-templates/alogin.html" mode=https dst-path="hotspot/alogin.html"
+} on-error={
+    :put "Warning: Could not fetch hotspot alogin.html to hotspot/"
+}
+:do {
+    /tool fetch url="{{hotspot_url}}/hotspot-templates/rlogin.html" mode=https dst-path="hotspot/rlogin.html"
+} on-error={
+    :put "Warning: Could not fetch hotspot rlogin.html to hotspot/"
+}
+:do {
+    /tool fetch url="{{hotspot_url}}/hotspot-templates/flogin.html" mode=https dst-path="hotspot/flogin.html"
+} on-error={
+    :put "Warning: Could not fetch hotspot flogin.html to hotspot/"
+}
+:do {
+    /tool fetch url="{{hotspot_url}}/hotspot-templates/logout.html" mode=https dst-path="hotspot/logout.html"
+} on-error={
+    :put "Warning: Could not fetch hotspot logout.html to hotspot/"
+}
+:do {
+    /tool fetch url="{{hotspot_url}}/hotspot-templates/redirect.html" mode=https dst-path="hotspot/redirect.html"
+} on-error={
+    :put "Warning: Could not fetch hotspot redirect.html to hotspot/"
+}
+:do {
+    /tool fetch url="{{hotspot_url}}/hotspot-templates/error.html" mode=https dst-path="hotspot/error.html"
+} on-error={
+    :put "Warning: Could not fetch hotspot error.html to hotspot/"
+}
 
+:put " =================== Hotspot HTML templates configured =================== "
 
 :put " =================== Configuring hotspot masquerade =================== "
 :do {
