@@ -272,11 +272,24 @@ class TenantPaymentController extends Controller
         ]);
 
         try {
+            // Log the attempt
+            \Log::info('IntaSend STK Push attempt', [
+                'phone' => $phone,
+                'amount' => $data['amount'],
+                'api_ref' => $receiptNumber
+            ]);
+
             $collection = new Collection();
             $collection->init([
                 'token' => env('INTASEND_SECRET_KEY'),
                 'publishable_key' => env('INTASEND_PUBLISHABLE_KEY'),
-                'test' => env('INTASEND_TEST_ENV', true),
+                'test' => env('INTASEND_TEST_ENV', false),
+            ]);
+
+            \Log::info('IntaSend collection initialized', [
+                'token_set' => !empty(env('INTASEND_SECRET_KEY')),
+                'publishable_key_set' => !empty(env('INTASEND_PUBLISHABLE_KEY')),
+                'test_env' => env('INTASEND_TEST_ENV', false)
             ]);
 
             $response = $collection->create(
@@ -290,6 +303,8 @@ class TenantPaymentController extends Controller
             );
 
             $resp = json_decode(json_encode($response), true);
+
+            \Log::info('IntaSend response received', ['response' => $resp]);
 
             // Update payment with IntaSend response
             $payment->update([
@@ -314,7 +329,13 @@ class TenantPaymentController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            // Mark payment as failed
+            \Log::error('IntaSend STK Push failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'phone' => $phone,
+                'amount' => $data['amount']
+            ]);
+
             $payment->update([
                 'status' => 'failed',
                 'response' => ['error' => $e->getMessage()],
