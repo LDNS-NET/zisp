@@ -12,6 +12,8 @@ const phoneNumber = ref('');
 const isProcessing = ref(false);
 const paymentMessage = ref('');
 const paymentError = ref('');
+const userCredentials = ref(null);
+const isCheckingPayment = ref(false);
 
 // Packages received from Inertia
 const page = usePage();
@@ -37,6 +39,48 @@ function closeModal() {
     phoneNumber.value = '';
     paymentMessage.value = '';
     paymentError.value = '';
+    userCredentials.value = null;
+    isCheckingPayment.value = false;
+}
+
+async function checkPaymentStatus() {
+    if (!selectedHotspot.value || !phoneNumber.value) return;
+    
+    isCheckingPayment.value = true;
+    
+    try {
+        const response = await fetch('/hotspot/callback', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({
+                phone: phoneNumber.value,
+                package_id: selectedHotspot.value.id
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success && data.user) {
+            userCredentials.value = data.user;
+            paymentMessage.value = data.message;
+            paymentError.value = '';
+            
+            // Auto-close modal after showing credentials
+            setTimeout(() => {
+                closeModal();
+            }, 10000);
+        } else {
+            paymentError.value = data.message || 'Payment not confirmed yet. Please try again in a moment.';
+        }
+    } catch (error) {
+        console.error('Error checking payment status:', error);
+        paymentError.value = 'Failed to check payment status. Please try again.';
+    } finally {
+        isCheckingPayment.value = false;
+    }
 }
 
 async function processPayment() {
@@ -361,6 +405,30 @@ function formatPhoneNumber(event) {
                             {{ paymentMessage }}
                         </div>
 
+                        <!-- User Credentials Display -->
+                        <div v-if="userCredentials" class="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-xl">
+                            <h4 class="font-semibold text-blue-900 mb-2">Your Hotspot Account</h4>
+                            <div class="space-y-1 text-sm">
+                                <div class="flex justify-between">
+                                    <span class="font-medium">Username:</span>
+                                    <span class="font-mono bg-blue-100 px-2 py-1 rounded">{{ userCredentials.username }}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="font-medium">Password:</span>
+                                    <span class="font-mono bg-blue-100 px-2 py-1 rounded">{{ userCredentials.password }}</span>
+                                </div>
+                                <div v-if="userCredentials.expires_at" class="flex justify-between">
+                                    <span class="font-medium">Expires:</span>
+                                    <span>{{ new Date(userCredentials.expires_at).toLocaleString() }}</span>
+                                </div>
+                                <div v-if="userCredentials.package_name" class="flex justify-between">
+                                    <span class="font-medium">Package:</span>
+                                    <span>{{ userCredentials.package_name }}</span>
+                                </div>
+                            </div>
+                            <p class="text-xs text-blue-600 mt-2">Save these credentials! This window will close in 10 seconds.</p>
+                        </div>
+
                         <div v-if="paymentError" class="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-xl flex items-center">
                             <svg class="w-5 h-5 mr-2 text-red-600" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
@@ -373,12 +441,37 @@ function formatPhoneNumber(event) {
                     <div class="mt-8 flex gap-3">
                         <button 
                             @click="closeModal" 
-                            :disabled="isProcessing"
+                            :disabled="isProcessing || isCheckingPayment"
                             class="flex-1 px-6 py-3 border-2 border-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             Cancel
                         </button>
+                        
+                        <!-- Check Payment Status Button -->
                         <button 
+                            v-if="paymentMessage && !userCredentials"
+                            @click="checkPaymentStatus" 
+                            :disabled="isCheckingPayment"
+                            class="flex-1 bg-blue-600 text-white font-semibold py-3 px-6 rounded-xl hover:bg-blue-700 transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                        >
+                            <span v-if="isCheckingPayment" class="flex items-center justify-center">
+                                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Checking...
+                            </span>
+                            <span v-else class="flex items-center justify-center">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                Check Payment Status
+                            </span>
+                        </button>
+                        
+                        <!-- Pay Now Button -->
+                        <button 
+                            v-if="!paymentMessage"
                             @click="processPayment" 
                             :disabled="isProcessing || !phoneNumber.match(/^(01\d{8}|07\d{8}|254\d{9}|2547\d{8}|2541\d{8})$/)"
                             class="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold py-3 px-6 rounded-xl hover:from-purple-700 hover:to-blue-700 transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg"

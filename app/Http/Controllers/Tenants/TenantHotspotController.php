@@ -15,6 +15,7 @@ use App\Http\Controllers\Tenants\TenantPaymentController;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
+use App\Jobs\CheckIntaSendPaymentStatusJob;
 
 class TenantHotspotController extends Controller
 {
@@ -136,6 +137,9 @@ class TenantHotspotController extends Controller
                 'response' => $responseData,
             ]);
 
+            // Dispatch job to check payment status and create user automatically
+            CheckIntaSendPaymentStatusJob::dispatch($payment)->delay(now()->addSeconds(30));
+            
             return response()->json(['success' => true, 'message' => 'STK Push sent. Complete payment on your phone.', 'payment_id' => $payment->id]);
         } catch (\Exception $e) {
             \Log::error('IntaSend SDK exception', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
@@ -164,12 +168,28 @@ class TenantHotspotController extends Controller
             }
             
             if ($payment->status === 'paid') {
-                // Already paid, create user if not already created
+                // Already paid, return existing user if any
+                $existingUser = NetworkUser::where('phone', $request->phone)
+                    ->where('type', 'hotspot')
+                    ->first();
+                    
+                if ($existingUser) {
+                    return response()->json([
+                        'success' => true, 
+                        'message' => 'Payment already processed',
+                        'user' => [
+                            'username' => $existingUser->username,
+                            'password' => 'Password already set',
+                        ]
+                    ]);
+                }
+                
+                // Create user if payment is paid but no user exists
                 $package = Package::find($request->package_id);
                 return $this->handleSuccessfulPayment($payment, $package);
             }
             
-            // SSL verification enabled for production and secure local dev
+            // Check payment status with IntaSend
             $statusResponse = Http::withHeaders([
                 'Authorization' => 'Bearer ' . config('services.intasend.secret_key'),
                 'Content-Type' => 'application/json',
@@ -181,8 +201,10 @@ class TenantHotspotController extends Controller
             
             if ($statusResponse->successful() && isset($statusData['status']) && $statusData['status'] === 'PAID') {
                 $payment->status = 'paid';
-                $payment->response = $statusData;
+                $payment->response = array_merge($payment->response ?? [], $statusData);
+                $payment->paid_at = now();
                 $payment->save();
+                
                 $package = Package::find($request->package_id);
                 return $this->handleSuccessfulPayment($payment, $package);
             }
@@ -199,21 +221,87 @@ class TenantHotspotController extends Controller
      */
     private function handleSuccessfulPayment(TenantPayment $payment, Package $package)
     {
-        $username = 'HS' . strtoupper(Str::random(6));
-        $password = Str::random(8);
-
-        $user = NetworkUser::create([
-            'account_number' => $this->generateAccountNumber(),
-            'username' => $username,
-            'password' => bcrypt($password),
-            'phone' => $payment->phone,
-            'type' => 'hotspot',
-            'package_id' => $package->id,
-            'expires_at' => now()->addDays($package->duration),
-            'registered_at' => now(),
-        ]);
-
-        return response()->json(['success' => true, 'user' => $user, 'plain_password' => $password]);
+        try {
+            // Check if user already exists for this phone number
+            $existingUser = NetworkUser::where('phone', $payment->phone)
+                ->where('type', 'hotspot')
+                ->first();
+                
+            if ($existingUser) {
+                // Update existing user's package and expiry
+                $existingUser->package_id = $package->id;
+                $existingUser->expires_at = now()->addDays($package->duration);
+                $existingUser->save();
+                
+                \Log::info('Updated existing hotspot user', [
+                    'user_id' => $existingUser->id,
+                    'username' => $existingUser->username,
+                    'phone' => $existingUser->phone,
+                    'new_expiry' => $existingUser->expires_at
+                ]);
+                
+                return response()->json([
+                    'success' => true, 
+                    'message' => 'Payment successful! Your existing account has been extended.',
+                    'user' => [
+                        'username' => $existingUser->username,
+                        'password' => 'Use your existing password',
+                        'expires_at' => $existingUser->expires_at->toDateTimeString(),
+                    ]
+                ]);
+            }
+            
+            // Generate new hotspot user credentials
+            $username = 'HS' . strtoupper(Str::random(6));
+            $plainPassword = Str::random(8);
+            
+            // Create new network user
+            $user = NetworkUser::create([
+                'account_number' => $this->generateAccountNumber(),
+                'username' => $username,
+                'password' => bcrypt($plainPassword),
+                'phone' => $payment->phone,
+                'type' => 'hotspot',
+                'package_id' => $package->id,
+                'expires_at' => now()->addDays($package->duration),
+                'registered_at' => now(),
+            ]);
+            
+            \Log::info('Created new hotspot user', [
+                'user_id' => $user->id,
+                'username' => $username,
+                'phone' => $payment->phone,
+                'package' => $package->name,
+                'duration' => $package->duration,
+                'expires_at' => $user->expires_at
+            ]);
+            
+            return response()->json([
+                'success' => true, 
+                'message' => 'Payment successful! Your hotspot account has been created.',
+                'user' => [
+                    'username' => $username,
+                    'password' => $plainPassword,
+                    'expires_at' => $user->expires_at->toDateTimeString(),
+                    'package_name' => $package->name,
+                    'duration_days' => $package->duration,
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Failed to create hotspot user after payment', [
+                'payment_id' => $payment->id,
+                'phone' => $payment->phone,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false, 
+                'message' => 'Payment was successful but account creation failed. Please contact support.',
+                'payment_id' => $payment->id
+            ]);
+        }
     }
 
     /**
