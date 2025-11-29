@@ -39,6 +39,9 @@ return [
         'public_key' => env('INTASEND_PUBLIC_KEY'),
         'secret_key' => env('INTASEND_SECRET_KEY'),
         'test_env' => env('INTASEND_TEST_ENV', false),
+        'base_url' => env('INTASEND_TEST_ENV', false) 
+            ? 'https://api.intasend.com/api/v1' 
+            : 'https://api.intasend.com/api/v1',
     ],
 
 ];
