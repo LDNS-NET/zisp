@@ -1118,10 +1118,6 @@ class TenantMikrotikController extends Controller
     public function downloadAdvancedConfig($id, MikrotikScriptGenerator $scriptGenerator)
     {
         $router = TenantMikrotik::findOrFail($id);
-        
-        // Get current tenant and domain
-        $currentTenant = tenant();
-        $tenantDomain = $currentTenant ? $currentTenant->domains()->first()->domain : null;
 
         // Get RADIUS settings (same as onboarding script)
         $radius_ip = env('RADIUS_IP', '159.89.111.189'); // TODO: Get from tenant settings
@@ -1130,7 +1126,6 @@ class TenantMikrotikController extends Controller
         $script = $scriptGenerator->generateAdvancedConfig([
             'name' => $router->name,
             'router_id' => $router->id,
-            'tenant_id' => $currentTenant ? $currentTenant->id : 'TENANT_ID',
             'radius_ip' => $radius_ip,
             'radius_secret' => $radius_secret,
             'snmp_community' => $router->name ? strtolower(str_replace(' ', '_', $router->name)) . '_snmp' : 'public',
@@ -1139,7 +1134,6 @@ class TenantMikrotikController extends Controller
             'username' => $router->router_username,
             'router_password' => $router->router_password,
             'trusted_ip' => $this->getTrustedIpForScripts(),
-            'hotspot_url' => $tenantDomain ? "https://{$tenantDomain}/hotspot" : "https://" . ($currentTenant ? $currentTenant->id : 'TENANT_ID') . ".yourdomain.com/hotspot",
         ]);
 
         $router->logs()->create([

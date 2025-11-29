@@ -69,7 +69,14 @@ class MikrotikScriptGenerator
         // Build hotspot URL for tenant (for onboarding script)
         $hotspot_url = $options['hotspot_url'] ?? null;
         if (!$hotspot_url && !empty($tenant_id)) {
-            $hotspot_url = "https://{$tenant_id}.yourdomain.com/hotspot"; // Fallback if no URL provided
+            try {
+                // Try to build the tenant hotspot URL using the tenant's domain
+                $hotspot_url = url(route('hotspot.index', [], false));
+            } catch (\Exception $e) {
+                // Fallback if route doesn't exist
+                $baseUrl = config('app.url') ?? (request()->scheme() . '://' . request()->getHttpHost());
+                $hotspot_url = rtrim($baseUrl, '/') . "/hotspot";
+            }
         }
 
         $trusted_ip = $options['trusted_ip'] ?? (request()->server('SERVER_ADDR') ?: '207.154.204.144');
@@ -146,7 +153,14 @@ class MikrotikScriptGenerator
         // Build hotspot URL for tenant
         $hotspot_url = $options['hotspot_url'] ?? null;
         if (!$hotspot_url && !empty($tenant_id)) {
-            $hotspot_url = "https://{$tenant_id}.yourdomain.com/hotspot"; // Fallback if no URL provided
+            try {
+                // Try to build the tenant hotspot URL using the tenant's domain
+                $hotspot_url = url(route('hotspot.index', [], false));
+            } catch (\Exception $e) {
+                // Fallback if route doesn't exist
+                $baseUrl = config('app.url') ?? (request()->scheme() . '://' . request()->getHttpHost());
+                $hotspot_url = rtrim($baseUrl, '/') . "/hotspot";
+            }
         }
 
         $templatePath = resource_path('scripts/mikrotik_advanced_config.rsc.stub');
