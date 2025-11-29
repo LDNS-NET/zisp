@@ -110,8 +110,9 @@ function formatPhoneNumber(event) {
 
 <template>
     <Head title="Hotspot" />
-    <div class="min-h-screen bg-gradient-to-br from-purple-600 via-blue-600 to-cyan-600 p-4">
-        <div class="max-w-md mx-auto">
+    <div class="min-h-screen bg-gradient-to-br from-purple-600 via-blue-600 to-cyan-600 flex items-center justify-center p-4">
+        <!-- Smartphone-sized Container -->
+        <div class="w-full max-w-sm">
             <!-- Header -->
             <div class="text-center mb-8">
                 <div class="inline-flex items-center justify-center w-16 h-16 bg-white/20 backdrop-blur-lg rounded-full mb-4">
@@ -123,28 +124,28 @@ function formatPhoneNumber(event) {
                 <p class="text-white/80">Choose your perfect internet plan</p>
             </div>
 
-            <!-- Phone Frame Container -->
-            <div class="bg-black/30 backdrop-blur-xl rounded-3xl p-2 shadow-2xl">
-                <div class="bg-white rounded-2xl overflow-hidden">
-                    <!-- Status Bar -->
-                    <div class="bg-gradient-to-r from-purple-600 to-blue-600 px-6 py-3 flex justify-between items-center">
-                        <span class="text-white text-xs font-medium">9:41 AM</span>
-                        <div class="flex items-center space-x-1">
-                            <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/>
-                            </svg>
-                            <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M17.778 8.222c-4.296-4.296-11.26-4.296-15.556 0A1 1 0 01.808 6.808c5.076-5.077 13.308-5.077 18.384 0a1 1 0 01-1.414 1.414zM14.95 11.05a7 7 0 00-9.9 0 1 1 0 01-1.414-1.414 9 9 0 0112.728 0 1 1 0 01-1.414 1.414zM12.12 13.88a3 3 0 00-4.242 0 1 1 0 01-1.415-1.415 5 5 0 017.072 0 1 1 0 01-1.415 1.415zM9 16a1 1 0 011-1v0a1 1 0 110 2v0a1 1 0 01-1-1z" clip-rule="evenodd"/>
-                            </svg>
-                            <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M3 4a2 2 0 00-2 2v1.161l8.441 4.221a1.25 1.25 0 001.118 0L19 7.162V6a2 2 0 00-2-2H3z"/>
-                                <path d="M19 8.839l-7.77 3.885a2.75 2.75 0 01-2.46 0L1 8.839V14a2 2 0 002 2h14a2 2 0 002-2V8.839z"/>
-                            </svg>
-                        </div>
+            <!-- Main Content Area - Smartphone Screen Size -->
+            <div class="bg-white rounded-2xl shadow-2xl overflow-hidden" style="aspect-ratio: 9/19.5;">
+                <!-- Status Bar -->
+                <div class="bg-gradient-to-r from-purple-600 to-blue-600 px-4 py-2 flex justify-between items-center">
+                    <span class="text-white text-xs font-medium">9:41 AM</span>
+                    <div class="flex items-center space-x-1">
+                        <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/>
+                        </svg>
+                        <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M17.778 8.222c-4.296-4.296-11.26-4.296-15.556 0A1 1 0 01.808 6.808c5.076-5.077 13.308-5.077 18.384 0a1 1 0 01-1.414 1.414zM14.95 11.05a7 7 0 00-9.9 0 1 1 0 01-1.414-1.414 9 9 0 0112.728 0 1 1 0 01-1.414 1.414zM12.12 13.88a3 3 0 00-4.242 0 1 1 0 01-1.415-1.415 5 5 0 017.072 0 1 1 0 01-1.415 1.415zM9 16a1 1 0 011-1v0a1 1 0 110 2v0a1 1 0 01-1-1z" clip-rule="evenodd"/>
+                        </svg>
+                        <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M3 4a2 2 0 00-2 2v1.161l8.441 4.221a1.25 1.25 0 001.118 0L19 7.162V6a2 2 0 00-2-2H3z"/>
+                            <path d="M19 8.839l-7.77 3.885a2.75 2.75 0 01-2.46 0L1 8.839V14a2 2 0 002 2h14a2 2 0 002-2V8.839z"/>
+                        </svg>
                     </div>
+                </div>
 
-                    <!-- Content Area -->
-                    <div class="p-6 bg-gradient-to-b from-gray-50 to-white min-h-[500px]">
+                <!-- Scrollable Content Area -->
+                <div class="h-full overflow-y-auto bg-gradient-to-b from-gray-50 to-white">
+                    <div class="p-4 pb-6">
                         <!-- Package Cards -->
                         <div v-if="hotspots.length === 0" class="text-center py-12">
                             <div class="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
@@ -152,33 +153,33 @@ function formatPhoneNumber(event) {
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                                 </svg>
                             </div>
-                            <p class="text-gray-500">No hotspot packages available</p>
+                            <p class="text-gray-500 text-sm">No hotspot packages available</p>
                         </div>
 
-                        <div v-else class="space-y-4">
+                        <div v-else class="space-y-3">
                             <div 
                                 v-for="hotspot in hotspots" 
                                 :key="hotspot.id" 
-                                class="group relative bg-white rounded-2xl border border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden"
+                                class="group relative bg-white rounded-xl border border-gray-200 shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden"
                             >
                                 <!-- Gradient Border Effect -->
-                                <div class="absolute inset-0 bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                                <div class="absolute inset-0 bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl"></div>
                                 
                                 <!-- Card Content -->
-                                <div class="relative bg-white rounded-2xl p-6">
+                                <div class="relative bg-white rounded-xl p-4">
                                     <!-- Header -->
-                                    <div class="flex justify-between items-start mb-4">
-                                        <div>
-                                            <h3 class="text-xl font-bold text-gray-900 mb-1">{{ hotspot.name }}</h3>
-                                            <div class="flex items-center text-sm text-gray-600">
-                                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <div class="flex justify-between items-start mb-3">
+                                        <div class="flex-1">
+                                            <h3 class="text-lg font-bold text-gray-900 mb-1">{{ hotspot.name }}</h3>
+                                            <div class="flex items-center text-xs text-gray-600">
+                                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                                 </svg>
                                                 {{ hotspot.duration_value }} {{ hotspot.duration_unit }}
                                             </div>
                                         </div>
-                                        <div class="text-right">
-                                            <div class="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-blue-600">
+                                        <div class="text-right ml-3">
+                                            <div class="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-blue-600">
                                                 KES {{ hotspot.price }}
                                             </div>
                                             <div class="text-xs text-gray-500">one-time</div>
@@ -186,37 +187,37 @@ function formatPhoneNumber(event) {
                                     </div>
 
                                     <!-- Features -->
-                                    <div class="grid grid-cols-2 gap-3 mb-6">
-                                        <div class="flex items-center text-sm text-gray-600">
-                                            <svg class="w-4 h-4 mr-2 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <div class="grid grid-cols-2 gap-2 mb-4">
+                                        <div class="flex items-center text-xs text-gray-600">
+                                            <svg class="w-3 h-3 mr-1 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                                                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                                             </svg>
                                             {{ hotspot.device_limit }} Devices
                                         </div>
-                                        <div class="flex items-center text-sm text-gray-600">
-                                            <svg class="w-4 h-4 mr-2 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                                        <div class="flex items-center text-xs text-gray-600">
+                                            <svg class="w-3 h-3 mr-1 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                                                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                                             </svg>
-                                            {{ hotspot.download_speed }} Download
+                                            {{ hotspot.download_speed }}
                                         </div>
-                                        <div class="flex items-center text-sm text-gray-600">
-                                            <svg class="w-4 h-4 mr-2 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                                        <div class="flex items-center text-xs text-gray-600">
+                                            <svg class="w-3 h-3 mr-1 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                                                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                                             </svg>
-                                            {{ hotspot.upload_speed }} Upload
+                                            {{ hotspot.upload_speed }}
                                         </div>
-                                        <div class="flex items-center text-sm text-gray-600">
-                                            <svg class="w-4 h-4 mr-2 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                                        <div class="flex items-center text-xs text-gray-600">
+                                            <svg class="w-3 h-3 mr-1 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                                                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                                             </svg>
-                                            {{ hotspot.burst_limit }} Burst
+                                            {{ hotspot.burst_limit }}
                                         </div>
                                     </div>
 
                                     <!-- Action Button -->
                                     <button 
                                         @click="openModal(hotspot)"
-                                        class="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold py-3 px-6 rounded-xl hover:from-purple-700 hover:to-blue-700 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg"
+                                        class="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold py-2.5 px-4 rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-md text-sm"
                                     >
                                         Get Started
                                     </button>
@@ -227,9 +228,9 @@ function formatPhoneNumber(event) {
                 </div>
             </div>
 
-            <!-- Bottom Navigation Hint -->
+            <!-- Bottom Hint -->
             <div class="text-center mt-6">
-                <p class="text-white/60 text-sm">Swipe up for more options</p>
+                <p class="text-white/60 text-xs">Scroll for more packages</p>
             </div>
         </div>
 
