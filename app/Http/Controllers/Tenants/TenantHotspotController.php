@@ -153,9 +153,21 @@ class TenantHotspotController extends Controller
     public function callback(Request $request)
     {
         try {
+            \Log::info('IntaSend callback received', [
+                'request_data' => $request->all(),
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'timestamp' => now()->toISOString()
+            ]);
+
             $request->validate([
                 'phone' => 'required|string',
                 'package_id' => 'required|exists:packages,id',
+            ]);
+            
+            \Log::info('Callback validation passed', [
+                'phone' => $request->phone,
+                'package_id' => $request->package_id
             ]);
             
             $payment = TenantPayment::where('phone', $request->phone)
@@ -164,30 +176,61 @@ class TenantHotspotController extends Controller
                 ->first();
                 
             if (!$payment) {
+                \Log::warning('No payment found for callback', [
+                    'phone' => $request->phone,
+                    'package_id' => $request->package_id
+                ]);
                 return response()->json(['success' => false, 'message' => 'No payment found.']);
             }
             
+            \Log::info('Payment record found', [
+                'payment_id' => $payment->id,
+                'status' => $payment->status,
+                'amount' => $payment->amount,
+                'created_at' => $payment->created_at
+            ]);
+            
             if ($payment->status === 'paid') {
+                \Log::info('Payment already processed, checking for existing user', [
+                    'payment_id' => $payment->id
+                ]);
+                
                 // Already paid, return existing user if any
                 $existingUser = NetworkUser::where('phone', $request->phone)
                     ->where('type', 'hotspot')
                     ->first();
                     
                 if ($existingUser) {
+                    \Log::info('Existing user found, returning credentials', [
+                        'user_id' => $existingUser->id,
+                        'username' => $existingUser->username,
+                        'expires_at' => $existingUser->expires_at
+                    ]);
+                    
                     return response()->json([
                         'success' => true, 
                         'message' => 'Payment already processed',
                         'user' => [
                             'username' => $existingUser->username,
                             'password' => 'Password already set',
+                            'expires_at' => $existingUser->expires_at->toDateTimeString(),
                         ]
                     ]);
                 }
+                
+                \Log::info('Payment paid but no user exists, creating user', [
+                    'payment_id' => $payment->id
+                ]);
                 
                 // Create user if payment is paid but no user exists
                 $package = Package::find($request->package_id);
                 return $this->handleSuccessfulPayment($payment, $package);
             }
+            
+            \Log::info('Checking payment status with IntaSend', [
+                'payment_id' => $payment->id,
+                'intasend_reference' => $payment->intasend_reference
+            ]);
             
             // Check payment status with IntaSend
             $statusResponse = Http::withHeaders([
@@ -199,7 +242,19 @@ class TenantHotspotController extends Controller
                 
             $statusData = $statusResponse->json();
             
+            \Log::info('IntaSend status check response', [
+                'payment_id' => $payment->id,
+                'status_code' => $statusResponse->status(),
+                'response_body' => $statusData
+            ]);
+            
             if ($statusResponse->successful() && isset($statusData['status']) && $statusData['status'] === 'PAID') {
+                \Log::info('Payment confirmed as PAID, updating payment and creating user', [
+                    'payment_id' => $payment->id,
+                    'intasend_status' => $statusData['status'],
+                    'amount' => $statusData['amount'] ?? 'unknown'
+                ]);
+                
                 $payment->status = 'paid';
                 $payment->response = array_merge($payment->response ?? [], $statusData);
                 $payment->paid_at = now();
@@ -209,9 +264,19 @@ class TenantHotspotController extends Controller
                 return $this->handleSuccessfulPayment($payment, $package);
             }
             
+            \Log::info('Payment not yet confirmed', [
+                'payment_id' => $payment->id,
+                'intasend_status' => $statusData['status'] ?? 'unknown',
+                'response' => $statusData
+            ]);
+            
             return response()->json(['success' => false, 'message' => 'Payment not confirmed yet.']);
         } catch (\Exception $e) {
-            \Log::error('IntaSend callback exception', ['error' => $e->getMessage()]);
+            \Log::error('IntaSend callback exception', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'request_data' => $request->all()
+            ]);
             return response()->json(['success' => false, 'message' => 'Payment status error. ' . $e->getMessage()]);
         }
     }

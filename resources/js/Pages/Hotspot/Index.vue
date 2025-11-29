@@ -14,6 +14,9 @@ const paymentMessage = ref('');
 const paymentError = ref('');
 const userCredentials = ref(null);
 const isCheckingPayment = ref(false);
+const pollingInterval = ref(null);
+const paymentAttempts = ref(0);
+const maxPollingAttempts = 20; // Check for up to 10 minutes (20 * 30 seconds)
 
 // Packages received from Inertia
 const page = usePage();
@@ -34,6 +37,12 @@ function openModal(hotspot) {
 }
 
 function closeModal() {
+    // Clear any active polling
+    if (pollingInterval.value) {
+        clearInterval(pollingInterval.value);
+        pollingInterval.value = null;
+    }
+    
     showModal.value = false;
     selectedHotspot.value = null;
     phoneNumber.value = '';
@@ -41,6 +50,7 @@ function closeModal() {
     paymentError.value = '';
     userCredentials.value = null;
     isCheckingPayment.value = false;
+    paymentAttempts.value = 0;
 }
 
 async function checkPaymentStatus() {
@@ -49,6 +59,8 @@ async function checkPaymentStatus() {
     isCheckingPayment.value = true;
     
     try {
+        console.log(`Checking payment status for phone: ${phoneNumber.value}, attempt: ${paymentAttempts.value + 1}`);
+        
         const response = await fetch('/hotspot/callback', {
             method: 'POST',
             headers: {
@@ -62,11 +74,18 @@ async function checkPaymentStatus() {
         });
         
         const data = await response.json();
+        console.log('Payment status response:', data);
         
         if (data.success && data.user) {
             userCredentials.value = data.user;
             paymentMessage.value = data.message;
             paymentError.value = '';
+            
+            // Stop polling on success
+            if (pollingInterval.value) {
+                clearInterval(pollingInterval.value);
+                pollingInterval.value = null;
+            }
             
             // Auto-close modal after showing credentials
             setTimeout(() => {
@@ -74,6 +93,7 @@ async function checkPaymentStatus() {
             }, 10000);
         } else {
             paymentError.value = data.message || 'Payment not confirmed yet. Please try again in a moment.';
+            console.log('Payment not confirmed yet:', data.message);
         }
     } catch (error) {
         console.error('Error checking payment status:', error);
@@ -81,6 +101,79 @@ async function checkPaymentStatus() {
     } finally {
         isCheckingPayment.value = false;
     }
+}
+
+function startPaymentPolling() {
+    console.log('Starting payment polling...');
+    paymentAttempts.value = 0;
+    
+    // Clear any existing polling
+    if (pollingInterval.value) {
+        clearInterval(pollingInterval.value);
+    }
+    
+    // Start polling every 30 seconds
+    pollingInterval.value = setInterval(async () => {
+        paymentAttempts.value++;
+        console.log(`Polling attempt ${paymentAttempts.value} of ${maxPollingAttempts}`);
+        
+        // Check if we've exceeded max attempts
+        if (paymentAttempts.value >= maxPollingAttempts) {
+            console.log('Max polling attempts reached, stopping polling');
+            if (pollingInterval.value) {
+                clearInterval(pollingInterval.value);
+                pollingInterval.value = null;
+            }
+            
+            paymentError.value = 'Payment confirmation timeout. Please click "Check Payment Status" to try again.';
+            return;
+        }
+        
+        // Check payment status
+        try {
+            const response = await fetch('/hotspot/callback', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({
+                    phone: phoneNumber.value,
+                    package_id: selectedHotspot.value.id
+                })
+            });
+            
+            const data = await response.json();
+            console.log(`Polling response (attempt ${paymentAttempts.value}):`, data);
+            
+            if (data.success && data.user) {
+                console.log('Payment confirmed! Stopping polling and showing credentials');
+                userCredentials.value = data.user;
+                paymentMessage.value = data.message;
+                paymentError.value = '';
+                
+                // Stop polling on success
+                if (pollingInterval.value) {
+                    clearInterval(pollingInterval.value);
+                    pollingInterval.value = null;
+                }
+                
+                // Auto-close modal after showing credentials
+                setTimeout(() => {
+                    closeModal();
+                }, 10000);
+            } else {
+                console.log(`Payment still pending (attempt ${paymentAttempts.value}): ${data.message}`);
+                // Update message to show we're still checking
+                if (!userCredentials.value) {
+                    paymentMessage.value = `STK Push sent! Checking payment status... (${paymentAttempts.value}/${maxPollingAttempts})`;
+                }
+            }
+        } catch (error) {
+            console.error(`Polling error (attempt ${paymentAttempts.value}):`, error);
+            // Continue polling on error, but log it
+        }
+    }, 30000); // Check every 30 seconds
 }
 
 async function processPayment() {
@@ -118,20 +211,27 @@ async function processPayment() {
         });
 
         console.log('Response status:', response.status);
-        const result = await response.json();
-        console.log('Response result:', result);
-
-        if (result.success) {
-            paymentMessage.value = result.message;
-            // Show success toast
-            showToast('STK Push sent successfully! Please check your phone.', 'success');
-            // Close modal after 3 seconds on success
-            setTimeout(() => {
-                closeModal();
-            }, 3000);
+        if (response.ok) {
+            const data = await response.json();
+            console.log('Payment response:', data);
+            
+            if (data.success) {
+                paymentMessage.value = data.message;
+                paymentError.value = '';
+                
+                // Start polling for payment confirmation
+                startPaymentPolling();
+                
+                showToast('STK Push sent successfully! Please complete the payment on your phone.', 'success');
+            } else {
+                paymentError.value = data.message;
+                showToast(data.message, 'error');
+            }
         } else {
-            paymentError.value = result.message;
-            showToast(result.message, 'error');
+            const errorData = await response.json();
+            console.error('Payment error:', errorData);
+            paymentError.value = errorData.message || 'Payment failed';
+            showToast(errorData.message || 'Payment failed', 'error');
         }
     } catch (error) {
         console.error('Payment error:', error);
@@ -402,7 +502,18 @@ function formatPhoneNumber(event) {
                             <svg class="w-5 h-5 mr-2 text-green-600" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
                             </svg>
-                            {{ paymentMessage }}
+                            <div class="flex-1">
+                                {{ paymentMessage }}
+                                <div v-if="paymentAttempts > 0 && !userCredentials" class="text-xs text-green-600 mt-1">
+                                    Checking payment status... ({{ paymentAttempts }}/{{ maxPollingAttempts }})
+                                </div>
+                            </div>
+                            <div v-if="paymentAttempts > 0 && !userCredentials" class="ml-2">
+                                <svg class="animate-spin h-4 w-4 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            </div>
                         </div>
 
                         <!-- User Credentials Display -->
