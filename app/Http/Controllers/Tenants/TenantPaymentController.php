@@ -234,11 +234,17 @@ class TenantPaymentController extends Controller
     public function processSTKPush(Request $request)
     {
         $data = $request->validate([
-            'phone' => 'required|string|regex:/^2547\d{8}$/',
+            'phone' => 'required|string|regex:/^(07\d{8}|2547\d{8})$/',
             'package_id' => 'required|exists:packages,id',
             'amount' => 'required|numeric|min:1',
         ]);
 
+        // Normalize phone number to 2547 format
+        $phone = $data['phone'];
+        if (str_starts_with($phone, '07')) {
+            $phone = '2547' . substr($phone, 2);
+        }
+        
         $package = \App\Models\Package::findOrFail($data['package_id']);
         
         // Generate unique receipt number
@@ -246,7 +252,7 @@ class TenantPaymentController extends Controller
         
         // Create payment record with pending status
         $payment = TenantPayment::create([
-            'phone' => $data['phone'],
+            'phone' => $phone, // Store normalized format
             'package_id' => $data['package_id'],
             'amount' => $data['amount'],
             'receipt_number' => $receiptNumber,
@@ -265,7 +271,7 @@ class TenantPaymentController extends Controller
 
             $response = $collection->create(
                 amount: $data['amount'],
-                phone_number: $data['phone'],
+                phone_number: $phone, // Use normalized phone number
                 currency: 'KES',
                 method: 'MPESA_STK_PUSH',
                 api_ref: $receiptNumber,

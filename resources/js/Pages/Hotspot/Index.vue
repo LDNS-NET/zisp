@@ -39,19 +39,15 @@ function closeModal() {
     paymentError.value = '';
 }
 
-function testClick() {
-    console.log('Test click - button is working!');
-    alert('Button click is working!');
-}
-
 async function processPayment() {
     console.log('Process payment called');
     console.log('Phone number:', phoneNumber.value);
     console.log('Selected hotspot:', selectedHotspot.value);
     
+    // Updated validation to accept 2547 format (12 digits)
     if (!phoneNumber.value.match(/^2547\d{8}$/)) {
         console.log('Phone validation failed');
-        paymentError.value = 'Please enter a valid Safaricom number (2547XXXXXXXX)';
+        paymentError.value = 'Please enter a valid Safaricom number (07XXXXXXXX or 2547XXXXXXXX)';
         return;
     }
 
@@ -99,11 +95,24 @@ async function processPayment() {
 
 function formatPhoneNumber(event) {
     let value = event.target.value.replace(/\D/g, '');
+    
+    // Handle different formats
     if (value.startsWith('0') && value.length >= 10) {
+        // Convert 07... to 2547...
         value = '254' + value.substring(1);
     } else if (value.startsWith('7') && value.length >= 9) {
+        // Convert 7... to 2547...
         value = '254' + value;
+    } else if (value.startsWith('2547') && value.length >= 10) {
+        // Already in correct format, keep as is
+        value = value;
+    } else if (value.startsWith('254') && value.length >= 12) {
+        // Handle 254... format (convert to 2547...)
+        if (value.length >= 12 && value[3] === '0') {
+            value = '2547' + value.substring(4);
+        }
     }
+    
     phoneNumber.value = value;
 }
 </script>
@@ -284,7 +293,7 @@ function formatPhoneNumber(event) {
                                     v-model="phoneNumber"
                                     @input="formatPhoneNumber"
                                     type="tel"
-                                    placeholder="2547XXXXXXXX"
+                                    placeholder="07XXXXXXXX or 2547XXXXXXXX"
                                     class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-lg transition-all duration-200"
                                     :disabled="isProcessing"
                                 />
@@ -294,7 +303,7 @@ function formatPhoneNumber(event) {
                                     </svg>
                                 </div>
                             </div>
-                            <p class="text-xs text-gray-500 mt-2">Enter Safaricom number in format: 2547XXXXXXXX</p>
+                            <p class="text-xs text-gray-500 mt-2">Enter Safaricom number: 07XXXXXXXX or 2547XXXXXXXX</p>
                             <p class="text-xs text-blue-500 mt-1 font-mono">"{{ phoneNumber }}" - Valid: {{ !!phoneNumber.match(/^2547\d{8}$/) }}</p>
                         </div>
 
@@ -324,7 +333,7 @@ function formatPhoneNumber(event) {
                             Cancel
                         </button>
                         <button 
-                            @click="testClick" 
+                            @click="processPayment" 
                             :disabled="isProcessing || !phoneNumber.match(/^2547\d{8}$/)"
                             class="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold py-3 px-6 rounded-xl hover:from-purple-700 hover:to-blue-700 transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg"
                         >

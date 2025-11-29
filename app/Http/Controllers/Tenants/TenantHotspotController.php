@@ -83,7 +83,7 @@ class TenantHotspotController extends Controller
     {
         $data = $request->validate([
             'package_id' => 'required|exists:packages,id',
-            'phone' => 'required|string|regex:/^2547\d{8}$/',
+            'phone' => 'required|string|regex:/^(07\d{8}|2547\d{8})$/',
         ]);
 
         $package = Package::findOrFail($data['package_id']);
