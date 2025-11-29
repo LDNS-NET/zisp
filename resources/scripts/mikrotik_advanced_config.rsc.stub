@@ -82,14 +82,84 @@
 :do {
     /ip hotspot html remove [find name~"login.html|alogin.html|rlogin.html|flogin.html|logout.html|redirect.html|error.html"]
 } on-error={}
-# Create custom HTML files that redirect to tenant hotspot URL
-/ip hotspot html add name=login.html contents="<html><head><meta http-equiv=\"refresh\" content=\"0; URL='$hotspot_url?src=login'\"></head><body><h2>Redirecting...</h2><a href=\"$hotspot_url?src=login\">Continue</a></body></html>"
-/ip hotspot html add name=alogin.html contents="<html><head><meta http-equiv=\"refresh\" content=\"0; URL='$hotspot_url?src=alogin'\"></head><body><h2>Redirecting...</h2><a href=\"$hotspot_url?src=alogin\">Continue</a></body></html>"
-/ip hotspot html add name=rlogin.html contents="<html><head><meta http-equiv=\"refresh\" content=\"0; URL='$hotspot_url?src=rlogin'\"></head><body><h2>Redirecting...</h2><a href=\"$hotspot_url?src=rlogin\">Continue</a></body></html>"
-/ip hotspot html add name=flogin.html contents="<html><head><meta http-equiv=\"refresh\" content=\"0; URL='$hotspot_url?src=flogin'\"></head><body><h2>Redirecting...</h2><a href=\"$hotspot_url?src=flogin\">Continue</a></body></html>"
-/ip hotspot html add name=logout.html contents="<html><head><meta http-equiv=\"refresh\" content=\"0; URL='$hotspot_url?src=logout'\"></head><body><h2>Redirecting...</h2><a href=\"$hotspot_url?src=logout\">Continue</a></body></html>"
-/ip hotspot html add name=redirect.html contents="<html><head><meta http-equiv=\"refresh\" content=\"0; URL='$hotspot_url?src=redirect'\"></head><body><h2>Redirecting...</h2><a href=\"$hotspot_url?src=redirect\">Continue</a></body></html>"
-/ip hotspot html add name=error.html contents="<html><head><meta http-equiv=\"refresh\" content=\"0; URL='$hotspot_url?src=error'\"></head><body><h2>Redirecting...</h2><a href=\"$hotspot_url?src=error\">Continue</a></body></html>"
+
+# Download hotspot template files from server
+:local baseUrl "https://{{hotspot_url}}"
+:local templateFiles {"login.html", "alogin.html", "rlogin.html", "flogin.html", "logout.html", "redirect.html", "error.html"}
+
+:foreach file in=$templateFiles do={
+    :local downloadUrl ($baseUrl . "/hotspot-templates/" . $file)
+    :put ("Downloading: " . $downloadUrl)
+    
+    :do {
+        /tool fetch url=$downloadUrl mode=http dst-path=$file keep-result=no
+        :delay 1s
+        
+        # Check if file was downloaded successfully
+        :if ([:len [/file find name=$file]] > 0) do={
+            # Read the downloaded file content
+            :local fileContent [/file get $file contents]
+            
+            # Create hotspot HTML file with downloaded content
+            /ip hotspot html add name=$file contents=$fileContent
+            :put ("Created hotspot HTML: " . $file)
+            
+            # Remove temporary file
+            /file remove $file
+        } else={
+            :put ("Failed to download: " . $file)
+            
+            # Fallback: create redirect template manually
+            :if ($file = "login.html") do={
+                /ip hotspot html add name=$file contents="<html><head><meta http-equiv=\"refresh\" content=\"0; URL='$hotspot_url?src=login'\"></head><body style=\"font-family: Arial; background:#111; color:#fff; text-align:center; padding-top:50px;\"><h2>Redirecting...</h2><p>If you are not redirected automatically, click below:</p><a href=\"$hotspot_url?src=login\" style=\"color:#4FC3F7; font-size:20px;\">Continue</a></body></html>"
+            }
+            :if ($file = "alogin.html") do={
+                /ip hotspot html add name=$file contents="<html><head><meta http-equiv=\"refresh\" content=\"0; URL='$hotspot_url?src=alogin'\"></head><body style=\"font-family: Arial; background:#111; color:#fff; text-align:center; padding-top:50px;\"><h2>Redirecting...</h2><p>If you are not redirected automatically, click below:</p><a href=\"$hotspot_url?src=alogin\" style=\"color:#4FC3F7; font-size:20px;\">Continue</a></body></html>"
+            }
+            :if ($file = "rlogin.html") do={
+                /ip hotspot html add name=$file contents="<html><head><meta http-equiv=\"refresh\" content=\"0; URL='$hotspot_url?src=rlogin'\"></head><body style=\"font-family: Arial; background:#111; color:#fff; text-align:center; padding-top:50px;\"><h2>Redirecting...</h2><p>If you are not redirected automatically, click below:</p><a href=\"$hotspot_url?src=rlogin\" style=\"color:#4FC3F7; font-size:20px;\">Continue</a></body></html>"
+            }
+            :if ($file = "flogin.html") do={
+                /ip hotspot html add name=$file contents="<html><head><meta http-equiv=\"refresh\" content=\"0; URL='$hotspot_url?src=flogin'\"></head><body style=\"font-family: Arial; background:#111; color:#fff; text-align:center; padding-top:50px;\"><h2>Redirecting...</h2><p>If you are not redirected automatically, click below:</p><a href=\"$hotspot_url?src=flogin\" style=\"color:#4FC3F7; font-size:20px;\">Continue</a></body></html>"
+            }
+            :if ($file = "logout.html") do={
+                /ip hotspot html add name=$file contents="<html><head><meta http-equiv=\"refresh\" content=\"0; URL='$hotspot_url?src=logout'\"></head><body style=\"font-family: Arial; background:#111; color:#fff; text-align:center; padding-top:50px;\"><h2>Redirecting...</h2><p>If you are not redirected automatically, click below:</p><a href=\"$hotspot_url?src=logout\" style=\"color:#4FC3F7; font-size:20px;\">Continue</a></body></html>"
+            }
+            :if ($file = "redirect.html") do={
+                /ip hotspot html add name=$file contents="<html><head><meta http-equiv=\"refresh\" content=\"0; URL='$hotspot_url?src=redirect'\"></head><body style=\"font-family: Arial; background:#111; color:#fff; text-align:center; padding-top:50px;\"><h2>Redirecting...</h2><p>If you are not redirected automatically, click below:</p><a href=\"$hotspot_url?src=redirect\" style=\"color:#4FC3F7; font-size:20px;\">Continue</a></body></html>"
+            }
+            :if ($file = "error.html") do={
+                /ip hotspot html add name=$file contents="<html><head><meta http-equiv=\"refresh\" content=\"0; URL='$hotspot_url?src=error'\"></head><body style=\"font-family: Arial; background:#111; color:#fff; text-align:center; padding-top:50px;\"><h2>Redirecting...</h2><p>If you are not redirected automatically, click below:</p><a href=\"$hotspot_url?src=error\" style=\"color:#4FC3F7; font-size:20px;\">Continue</a></body></html>"
+            }
+        }
+    } on-error={
+        :put ("Error downloading: " . $file . " - creating fallback template")
+        
+        # Fallback: create redirect template manually
+        :if ($file = "login.html") do={
+            /ip hotspot html add name=$file contents="<html><head><meta http-equiv=\"refresh\" content=\"0; URL='$hotspot_url?src=login'\"></head><body style=\"font-family: Arial; background:#111; color:#fff; text-align:center; padding-top:50px;\"><h2>Redirecting...</h2><p>If you are not redirected automatically, click below:</p><a href=\"$hotspot_url?src=login\" style=\"color:#4FC3F7; font-size:20px;\">Continue</a></body></html>"
+        }
+        :if ($file = "alogin.html") do={
+            /ip hotspot html add name=$file contents="<html><head><meta http-equiv=\"refresh\" content=\"0; URL='$hotspot_url?src=alogin'\"></head><body style=\"font-family: Arial; background:#111; color:#fff; text-align:center; padding-top:50px;\"><h2>Redirecting...</h2><p>If you are not redirected automatically, click below:</p><a href=\"$hotspot_url?src=alogin\" style=\"color:#4FC3F7; font-size:20px;\">Continue</a></body></html>"
+        }
+        :if ($file = "rlogin.html") do={
+            /ip hotspot html add name=$file contents="<html><head><meta http-equiv=\"refresh\" content=\"0; URL='$hotspot_url?src=rlogin'\"></head><body style=\"font-family: Arial; background:#111; color:#fff; text-align:center; padding-top:50px;\"><h2>Redirecting...</h2><p>If you are not redirected automatically, click below:</p><a href=\"$hotspot_url?src=rlogin\" style=\"color:#4FC3F7; font-size:20px;\">Continue</a></body></html>"
+        }
+        :if ($file = "flogin.html") do={
+            /ip hotspot html add name=$file contents="<html><head><meta http-equiv=\"refresh\" content=\"0; URL='$hotspot_url?src=flogin'\"></head><body style=\"font-family: Arial; background:#111; color:#fff; text-align:center; padding-top:50px;\"><h2>Redirecting...</h2><p>If you are not redirected automatically, click below:</p><a href=\"$hotspot_url?src=flogin\" style=\"color:#4FC3F7; font-size:20px;\">Continue</a></body></html>"
+        }
+        :if ($file = "logout.html") do={
+            /ip hotspot html add name=$file contents="<html><head><meta http-equiv=\"refresh\" content=\"0; URL='$hotspot_url?src=logout'\"></head><body style=\"font-family: Arial; background:#111; color:#fff; text-align:center; padding-top:50px;\"><h2>Redirecting...</h2><p>If you are not redirected automatically, click below:</p><a href=\"$hotspot_url?src=logout\" style=\"color:#4FC3F7; font-size:20px;\">Continue</a></body></html>"
+        }
+        :if ($file = "redirect.html") do={
+            /ip hotspot html add name=$file contents="<html><head><meta http-equiv=\"refresh\" content=\"0; URL='$hotspot_url?src=redirect'\"></head><body style=\"font-family: Arial; background:#111; color:#fff; text-align:center; padding-top:50px;\"><h2>Redirecting...</h2><p>If you are not redirected automatically, click below:</p><a href=\"$hotspot_url?src=redirect\" style=\"color:#4FC3F7; font-size:20px;\">Continue</a></body></html>"
+        }
+        :if ($file = "error.html") do={
+            /ip hotspot html add name=$file contents="<html><head><meta http-equiv=\"refresh\" content=\"0; URL='$hotspot_url?src=error'\"></head><body style=\"font-family: Arial; background:#111; color:#fff; text-align:center; padding-top:50px;\"><h2>Redirecting...</h2><p>If you are not redirected automatically, click below:</p><a href=\"$hotspot_url?src=error\" style=\"color:#4FC3F7; font-size:20px;\">Continue</a></body></html>"
+        }
+    }
+}
+
 :put " =================== Hotspot HTML templates configured =================== "
 
 

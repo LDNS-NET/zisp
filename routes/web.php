@@ -174,6 +174,38 @@ Route::middleware(['auth', 'verified', 'check.subscription', 'tenant.domain'])
         Route::get('mikrotiks/{mikrotik}/remote-management', [TenantMikrotikController::class, 'remoteManagement'])->name('mikrotiks.remoteManagement');
         Route::get('mikrotiks/{mikrotik}/ca.crt', [TenantMikrotikController::class, 'downloadCACert'])->name('mikrotiks.downloadCACert');
         Route::get('mikrotiks/{mikrotik}/reprovision', [TenantMikrotikController::class, 'reprovision'])->name('mikrotiks.reprovision');
+
+        // Hotspot template file serving
+        Route::get('hotspot-templates/{file}', function ($file) {
+            // Allowed files
+            $allowedFiles = ['login.html', 'alogin.html', 'rlogin.html', 'flogin.html', 'logout.html', 'redirect.html', 'error.html'];
+            
+            if (!in_array($file, $allowedFiles)) {
+                abort(404, 'Template file not found');
+            }
+            
+            $templatePath = resource_path('scripts/zisp-hotspot/' . $file);
+            
+            if (!file_exists($templatePath)) {
+                abort(404, 'Template file not found');
+            }
+            
+            // Get current tenant and replace domain placeholder
+            $currentTenant = tenant();
+            $tenantDomain = $currentTenant ? $currentTenant->domains()->first()->domain : null;
+            
+            $content = file_get_contents($templatePath);
+            
+            if ($tenantDomain) {
+                $content = str_replace('{{ $tenant->domain }}', $tenantDomain, $content);
+            }
+            
+            return response($content)
+                ->header('Content-Type', 'text/html')
+                ->header('Cache-Control', 'no-cache, no-store, must-revalidate')
+                ->header('Pragma', 'no-cache')
+                ->header('Expires', '0');
+        })->name('hotspot.templates');
         Route::post('mikrotiks/{mikrotik}/provision-hotspot', [TenantMikrotikController::class, 'provisionHotspot'])->name('mikrotiks.provisionHotspot');
 
 
