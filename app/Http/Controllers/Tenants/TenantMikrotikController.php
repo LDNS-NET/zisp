@@ -17,7 +17,9 @@ use App\Services\{MikrotikService, MikrotikScriptGenerator, TenantHotspotService
 use App\Services\Mikrotik\RouterApiService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Str;
+use Illuminate\Support\Facades\ZipArchive;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
 class TenantMikrotikController extends Controller
@@ -1276,5 +1278,134 @@ class TenantMikrotikController extends Controller
         }
 
         return $trustedIp;
+    }
+
+    /**
+     * Download hotspot template files as ZIP archive.
+     */
+    public function downloadHotspotTemplates($id)
+    {
+        $router = TenantMikrotik::findOrFail($id);
+        
+        // Get current tenant for proper URL replacement
+        $currentTenant = tenant();
+        $tenantDomain = $currentTenant ? $currentTenant->domains()->first()->domain : null;
+        
+        // Path to hotspot template files
+        $templatePath = resource_path('scripts/zisp-hotspot');
+        
+        if (!is_dir($templatePath)) {
+            return response()->json(['error' => 'Hotspot template directory not found'], 404);
+        }
+        
+        // Create ZIP file in memory
+        $zipFileName = "hotspot_templates_{$router->id}_{$router->name}.zip";
+        $zipPath = storage_path("app/temp/{$zipFileName}");
+        
+        // Ensure temp directory exists
+        $tempDir = storage_path('app/temp');
+        if (!is_dir($tempDir)) {
+            mkdir($tempDir, 0755, true);
+        }
+        
+        $zip = new ZipArchive();
+        if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== TRUE) {
+            return response()->json(['error' => 'Failed to create ZIP file'], 500);
+        }
+        
+        // Template files to include
+        $templateFiles = [
+            'login.html',
+            'alogin.html', 
+            'rlogin.html',
+            'flogin.html',
+            'logout.html',
+            'redirect.html',
+            'error.html'
+        ];
+        
+        foreach ($templateFiles as $file) {
+            $filePath = $templatePath . '/' . $file;
+            if (file_exists($filePath)) {
+                // Read the template content
+                $content = file_get_contents($filePath);
+                
+                // Replace tenant domain placeholder if needed
+                if ($tenantDomain) {
+                    $content = str_replace('{{ $tenant->domain }}', $tenantDomain, $content);
+                }
+                
+                // Add to ZIP
+                $zip->addFromString($file, $content);
+            }
+        }
+        
+        $zip->close();
+        
+        // Log the download
+        $router->logs()->create([
+            'action' => 'download_hotspot_templates',
+            'message' => 'Hotspot template files downloaded as ZIP',
+            'status' => 'success',
+        ]);
+        
+        // Return the ZIP file for download
+        return response()->download($zipPath, $zipFileName, [
+            'Content-Type' => 'application/zip',
+            'Content-Disposition' => "attachment; filename=\"{$zipFileName}\""
+        ])->deleteFileAfterSend(true);
+    }
+
+    /**
+     * Generate MikroTik script to upload and configure hotspot templates.
+     */
+    public function getHotspotUploadScript($id)
+    {
+        $router = TenantMikrotik::findOrFail($id);
+        
+        // Get current tenant domain
+        $currentTenant = tenant();
+        $tenantDomain = $currentTenant ? $currentTenant->domains()->first()->domain : null;
+        
+        $script = "# ZiSP Hotspot Template Upload Script
+# Generated for router: {$router->name}
+# Router ID: {$router->id}
+
+:put \"==================== HOTSPOT TEMPLATE UPLOAD ====================\"
+
+# Remove existing hotspot HTML files
+:do {
+    /ip hotspot html remove [find name~\"login.html|alogin.html|rlogin.html|flogin.html|logout.html|redirect.html|error.html\"]
+} on-error={}
+
+# Create custom HTML files that redirect to tenant hotspot URL
+/ip hotspot html add name=login.html contents=\"<html><head><meta http-equiv=\\\"refresh\\\" content=\\\"0; URL='https://{$tenantDomain}/hotspot?src=login'\\\"></head><body style=\\\"font-family: Arial; background:#111; color:#fff; text-align:center; padding-top:50px;\\\"><h2>Redirecting...</h2><p>If you are not redirected automatically, click below:</p><a href=\\\"https://{$tenantDomain}/hotspot?src=login\\\" style=\\\"color:#4FC3F7; font-size:20px;\\\">Continue</a></body></html>\"
+
+/ip hotspot html add name=alogin.html contents=\"<html><head><meta http-equiv=\\\"refresh\\\" content=\\\"0; URL='https://{$tenantDomain}/hotspot?src=alogin'\\\"></head><body style=\\\"font-family: Arial; background:#111; color:#fff; text-align:center; padding-top:50px;\\\"><h2>Redirecting...</h2><p>If you are not redirected automatically, click below:</p><a href=\\\"https://{$tenantDomain}/hotspot?src=alogin\\\" style=\\\"color:#4FC3F7; font-size:20px;\\\">Continue</a></body></html>\"
+
+/ip hotspot html add name=rlogin.html contents=\"<html><head><meta http-equiv=\\\"refresh\\\" content=\\\"0; URL='https://{$tenantDomain}/hotspot?src=rlogin'\\\"></head><body style=\\\"font-family: Arial; background:#111; color:#fff; text-align:center; padding-top:50px;\\\"><h2>Redirecting...</h2><p>If you are not redirected automatically, click below:</p><a href=\\\"https://{$tenantDomain}/hotspot?src=rlogin\\\" style=\\\"color:#4FC3F7; font-size:20px;\\\">Continue</a></body></html>\"
+
+/ip hotspot html add name=flogin.html contents=\"<html><head><meta http-equiv=\\\"refresh\\\" content=\\\"0; URL='https://{$tenantDomain}/hotspot?src=flogin'\\\"></head><body style=\\\"font-family: Arial; background:#111; color:#fff; text-align:center; padding-top:50px;\\\"><h2>Redirecting...</h2><p>If you are not redirected automatically, click below:</p><a href=\\\"https://{$tenantDomain}/hotspot?src=flogin\\\" style=\\\"color:#4FC3F7; font-size:20px;\\\">Continue</a></body></html>\"
+
+/ip hotspot html add name=logout.html contents=\"<html><head><meta http-equiv=\\\"refresh\\\" content=\\\"0; URL='https://{$tenantDomain}/hotspot?src=logout'\\\"></head><body style=\\\"font-family: Arial; background:#111; color:#fff; text-align:center; padding-top:50px;\\\"><h2>Redirecting...</h2><p>If you are not redirected automatically, click below:</p><a href=\\\"https://{$tenantDomain}/hotspot?src=logout\\\" style=\\\"color:#4FC3F7; font-size:20px;\\\">Continue</a></body></html>\"
+
+/ip hotspot html add name=redirect.html contents=\"<html><head><meta http-equiv=\\\"refresh\\\" content=\\\"0; URL='https://{$tenantDomain}/hotspot?src=redirect'\\\"></head><body style=\\\"font-family: Arial; background:#111; color:#fff; text-align:center; padding-top:50px;\\\"><h2>Redirecting...</h2><p>If you are not redirected automatically, click below:</p><a href=\\\"https://{$tenantDomain}/hotspot?src=redirect\\\" style=\\\"color:#4FC3F7; font-size:20px;\\\">Continue</a></body></html>\"
+
+/ip hotspot html add name=error.html contents=\"<html><head><meta http-equiv=\\\"refresh\\\" content=\\\"0; URL='https://{$tenantDomain}/hotspot?src=error'\\\"></head><body style=\\\"font-family: Arial; background:#111; color:#fff; text-align:center; padding-top:50px;\\\"><h2>Redirecting...</h2><p>If you are not redirected automatically, click below:</p><a href=\\\"https://{$tenantDomain}/hotspot?src=error\\\" style=\\\"color:#4FC3F7; font-size:20px;\\\">Continue</a></body></html>\"
+
+:put \" =================== Hotspot HTML templates configured =================== \"
+
+:put \"==================== HOTSPOT TEMPLATE UPLOAD COMPLETE ====================\"";
+        
+        // Log the script generation
+        $router->logs()->create([
+            'action' => 'generate_hotspot_upload_script',
+            'message' => 'Hotspot template upload script generated',
+            'status' => 'success',
+        ]);
+        
+        return response($script)
+            ->header('Content-Type', 'text/plain')
+            ->header('Content-Disposition', "attachment; filename=hotspot_upload_{$router->id}.rsc");
     }
 }
