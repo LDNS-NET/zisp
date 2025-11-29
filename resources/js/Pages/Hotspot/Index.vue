@@ -45,7 +45,7 @@ async function processPayment() {
     console.log('Selected hotspot:', selectedHotspot.value);
     
     // Updated validation to accept multiple formats
-    if (!phoneNumber.value.match(/^2547\d{8}$/)) {
+    if (!phoneNumber.value.match(/^(01\d{8}|07\d{8}|254\d{9}|2547\d{8}|2541\d{8})$/)) {
         console.log('Phone validation failed');
         paymentError.value = 'Please enter a valid Safaricom number (01XXXXXXXX, 07XXXXXXXX, 254XXXXXXXX, 2541XXXXXXXX, or 2547XXXXXXXX)';
         return;
@@ -134,36 +134,29 @@ function showToast(message, type = 'info') {
 function formatPhoneNumber(event) {
     let value = event.target.value.replace(/\D/g, '');
     
-    // Handle different formats
+    // Only format for display, but keep the original value
+    // Let the backend handle the conversion to 2547 format
     if (value.startsWith('01') && value.length >= 10) {
-        // Convert 01... to 2547...
-        value = '2547' + value.substring(2);
+        // Keep as 01... format for backend
+        value = value;
     } else if (value.startsWith('07') && value.length >= 10) {
-        // Convert 07... to 2547...
-        value = '2547' + value.substring(2);
+        // Keep as 07... format for backend
+        value = value;
     } else if (value.startsWith('1') && value.length >= 9) {
-        // Convert 1... to 2547...
-        value = '2547' + value.substring(1);
+        // Convert to 01... format
+        value = '01' + value.substring(1);
     } else if (value.startsWith('7') && value.length >= 9) {
-        // Convert 7... to 2547...
-        value = '2547' + value;
+        // Convert to 07... format
+        value = '07' + value;
     } else if (value.startsWith('2547') && value.length >= 12) {
         // Already in correct format, keep as is
         value = value;
     } else if (value.startsWith('2541') && value.length >= 12) {
-        // Convert 2541... to 2547...
-        value = '2547' + value.substring(4);
+        // Already in correct format, keep as is
+        value = value;
     } else if (value.startsWith('254') && value.length >= 12) {
-        // Handle 254... format (convert to 2547...)
-        if (value.length >= 12) {
-            // Remove the leading 254 and replace with 2547, then add the rest
-            if (value[3] === '0' || value[3] === '1' || value[3] === '7') {
-                value = '2547' + value.substring(4);
-            } else {
-                // If it's 254 followed by other digits, assume it's missing the 7
-                value = '2547' + value.substring(3);
-            }
-        }
+        // Keep as 254... format for backend
+        value = value;
     }
     
     phoneNumber.value = value;
@@ -357,7 +350,7 @@ function formatPhoneNumber(event) {
                                 </div>
                             </div>
                             <p class="text-xs text-gray-500 mt-2">Enter Safaricom number: 01XXXXXXXX, 07XXXXXXXX, 254XXXXXXXX, or 2547XXXXXXXX</p>
-                            <p class="text-xs text-blue-500 mt-1 font-mono">"{{ phoneNumber }}" - Valid: {{ !!phoneNumber.match(/^2547\d{8}$/) }}</p>
+                            <p class="text-xs text-blue-500 mt-1 font-mono">"{{ phoneNumber }}" - Valid: {{ !!phoneNumber.match(/^(01\d{8}|07\d{8}|254\d{9}|2547\d{8}|2541\d{8})$/) }}</p>
                         </div>
 
                         <!-- Payment Messages -->
@@ -387,7 +380,7 @@ function formatPhoneNumber(event) {
                         </button>
                         <button 
                             @click="processPayment" 
-                            :disabled="isProcessing || !phoneNumber.match(/^2547\d{8}$/)"
+                            :disabled="isProcessing || !phoneNumber.match(/^(01\d{8}|07\d{8}|254\d{9}|2547\d{8}|2541\d{8})$/)"
                             class="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold py-3 px-6 rounded-xl hover:from-purple-700 hover:to-blue-700 transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg"
                         >
                             <span v-if="isProcessing" class="flex items-center justify-center">
