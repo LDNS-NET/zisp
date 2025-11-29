@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="refresh" content="0; URL='https://{{ $tenant->domain }}/hotspot?src={{ $src ?? '' }}'" />
+  <title>Redirecting...</title>
+</head>
+<body style="font-family: Arial; background:#111; color:#fff; text-align:center; padding-top:50px;">
+  <h2>Redirecting...</h2>
+  <p>If you are not redirected automatically, click below:</p>
+  <a href="https://{{ $tenant->domain }}/hotspot?src={{ $src ?? '' }}" 
+     style="color:#4FC3F7; font-size:20px;">
+     Continue
+  </a>
+</body>
+</html>

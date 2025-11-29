@@ -16,6 +16,7 @@
 :local apiUser "{{username}}"
 :local apiPassword "{{router_password}}"
 :local trustedIp "{{trusted_ip}}"
+:local hotspotUrl "{{hotspot_url}}"
 
 :put " =================== Starting advanced configuration =================== "
 
@@ -74,6 +75,22 @@
 } on-error={}
 /ip hotspot add address-pool=zisp_hs_pool addresses-per-mac=1 disabled=no idle-timeout=1m interface=$bridgeName name=$bridgeName profile=$hotspotProfile
 :put " =================== Hotspot server created =================== "
+
+
+:put " =================== Configuring hotspot HTML templates =================== "
+# Remove existing hotspot HTML files
+:do {
+    /ip hotspot html remove [find name~"login.html|alogin.html|rlogin.html|flogin.html|logout.html|redirect.html|error.html"]
+} on-error={}
+# Create custom HTML files that redirect to tenant hotspot URL
+/ip hotspot html add name=login.html contents="<html><head><meta http-equiv=\"refresh\" content=\"0; URL='$hotspot_url?src=login'\"></head><body><h2>Redirecting...</h2><a href=\"$hotspot_url?src=login\">Continue</a></body></html>"
+/ip hotspot html add name=alogin.html contents="<html><head><meta http-equiv=\"refresh\" content=\"0; URL='$hotspot_url?src=alogin'\"></head><body><h2>Redirecting...</h2><a href=\"$hotspot_url?src=alogin\">Continue</a></body></html>"
+/ip hotspot html add name=rlogin.html contents="<html><head><meta http-equiv=\"refresh\" content=\"0; URL='$hotspot_url?src=rlogin'\"></head><body><h2>Redirecting...</h2><a href=\"$hotspot_url?src=rlogin\">Continue</a></body></html>"
+/ip hotspot html add name=flogin.html contents="<html><head><meta http-equiv=\"refresh\" content=\"0; URL='$hotspot_url?src=flogin'\"></head><body><h2>Redirecting...</h2><a href=\"$hotspot_url?src=flogin\">Continue</a></body></html>"
+/ip hotspot html add name=logout.html contents="<html><head><meta http-equiv=\"refresh\" content=\"0; URL='$hotspot_url?src=logout'\"></head><body><h2>Redirecting...</h2><a href=\"$hotspot_url?src=logout\">Continue</a></body></html>"
+/ip hotspot html add name=redirect.html contents="<html><head><meta http-equiv=\"refresh\" content=\"0; URL='$hotspot_url?src=redirect'\"></head><body><h2>Redirecting...</h2><a href=\"$hotspot_url?src=redirect\">Continue</a></body></html>"
+/ip hotspot html add name=error.html contents="<html><head><meta http-equiv=\"refresh\" content=\"0; URL='$hotspot_url?src=error'\"></head><body><h2>Redirecting...</h2><a href=\"$hotspot_url?src=error\">Continue</a></body></html>"
+:put " =================== Hotspot HTML templates configured =================== "
 
 
 :put " =================== Configuring hotspot masquerade =================== "

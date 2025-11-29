@@ -126,6 +126,7 @@ class MikrotikScriptGenerator
     {
         $name = $options['name'] ?? 'ISP-Managed';
         $router_id = $options['router_id'] ?? 'ROUTER_ID';
+        $tenant_id = $options['tenant_id'] ?? 'TENANT_ID';
         $radius_ip = $options['radius_ip'] ?? env('RADIUS_IP', '207.154.232.10');
         $radius_secret = $options['radius_secret'] ?? env('RADIUS_SECRET', 'testing123');
         $snmp_community = $options['snmp_community'] ?? 'public';
@@ -134,6 +135,12 @@ class MikrotikScriptGenerator
         $username = $options['username'] ?? 'apiuser';
         $router_password = $options['router_password'] ?? 'apipassword';
         $trusted_ip = $options['trusted_ip'] ?? '0.0.0.0/0';
+
+        // Build hotspot URL for tenant
+        $hotspot_url = $options['hotspot_url'] ?? null;
+        if (!$hotspot_url && !empty($tenant_id)) {
+            $hotspot_url = "https://{$tenant_id}.yourdomain.com/hotspot"; // Will be replaced with actual tenant domain
+        }
 
         $templatePath = resource_path('scripts/mikrotik_advanced_config.rsc.stub');
         $template = file_exists($templatePath) ? file_get_contents($templatePath) : '';
@@ -150,6 +157,7 @@ class MikrotikScriptGenerator
             'username' => $username,
             'router_password' => $router_password,
             'trusted_ip' => $trusted_ip,
+            'hotspot_url' => $hotspot_url ?? '',
         ];
 
         foreach ($replacements as $key => $value) {
