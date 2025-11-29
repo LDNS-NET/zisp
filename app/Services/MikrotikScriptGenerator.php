@@ -66,6 +66,12 @@ class MikrotikScriptGenerator
             }
         }
 
+        // Build hotspot URL for tenant (for onboarding script)
+        $hotspot_url = $options['hotspot_url'] ?? null;
+        if (!$hotspot_url && !empty($tenant_id)) {
+            $hotspot_url = "https://{$tenant_id}.yourdomain.com/hotspot"; // Fallback if no URL provided
+        }
+
         $trusted_ip = $options['trusted_ip'] ?? (request()->server('SERVER_ADDR') ?: '207.154.204.144');
         // Note: trusted_ip is for firewall rules, not VPN subnet
         // VPN subnet is always 10.100.0.0/16, server is 10.100.0.1/16
@@ -110,6 +116,7 @@ class MikrotikScriptGenerator
             'wg_port' => $wg_port,
             'wg_client_ip' => $wg_client_ip,
             'wg_register_url' => $wg_register_url ?? '',
+            'hotspot_url' => $hotspot_url ?? '',
         ];
 
         foreach ($replacements as $key => $value) {
@@ -139,7 +146,7 @@ class MikrotikScriptGenerator
         // Build hotspot URL for tenant
         $hotspot_url = $options['hotspot_url'] ?? null;
         if (!$hotspot_url && !empty($tenant_id)) {
-            $hotspot_url = "https://{$tenant_id}.yourdomain.com/hotspot"; // Will be replaced with actual tenant domain
+            $hotspot_url = "https://{$tenant_id}.yourdomain.com/hotspot"; // Fallback if no URL provided
         }
 
         $templatePath = resource_path('scripts/mikrotik_advanced_config.rsc.stub');
