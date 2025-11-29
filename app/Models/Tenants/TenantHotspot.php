@@ -13,6 +13,7 @@ class TenantHotspot extends Model
 
     protected $fillable = [
         'tenant_id',
+        'package_id',
         'name',
         'duration_value',
         'duration_unit',

@@ -110,11 +110,9 @@ function formatPhoneNumber(event) {
 
         <!-- Checkout Modal -->
         <Modal :show="showModal" @close="closeModal">
-            <template #header>
-                <h3 class="text-lg font-medium">Purchase Hotspot Package</h3>
-            </template>
-
-            <template #body>
+            <div class="p-6">
+                <h3 class="text-lg font-medium mb-4">Purchase Hotspot Package</h3>
+                
                 <div v-if="selectedHotspot" class="space-y-4">
                     <!-- Package Details -->
                     <div class="bg-gray-50 p-4 rounded-lg">
@@ -149,21 +147,21 @@ function formatPhoneNumber(event) {
                         {{ paymentError }}
                     </div>
                 </div>
-            </template>
 
-            <template #footer>
-                <SecondaryButton @click="closeModal" :disabled="isProcessing">
-                    Cancel
-                </SecondaryButton>
-                <PrimaryButton 
-                    @click="processPayment" 
-                    :disabled="isProcessing || !phoneNumber.match(/^2547\d{8}$/)"
-                    class="ml-3"
-                >
-                    <span v-if="isProcessing">Processing...</span>
-                    <span v-else>Pay with M-Pesa</span>
-                </PrimaryButton>
-            </template>
+                <!-- Actions -->
+                <div class="mt-6 flex justify-end space-x-3">
+                    <SecondaryButton @click="closeModal" :disabled="isProcessing">
+                        Cancel
+                    </SecondaryButton>
+                    <PrimaryButton 
+                        @click="processPayment" 
+                        :disabled="isProcessing || !phoneNumber.match(/^2547\d{8}$/)"
+                    >
+                        <span v-if="isProcessing">Processing...</span>
+                        <span v-else>Pay with M-Pesa</span>
+                    </PrimaryButton>
+                </div>
+            </div>
         </Modal>
     </div>
 </template>
