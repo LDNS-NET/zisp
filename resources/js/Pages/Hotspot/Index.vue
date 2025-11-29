@@ -39,30 +39,46 @@ function closeModal() {
     paymentError.value = '';
 }
 
+function testClick() {
+    console.log('Test click - button is working!');
+    alert('Button click is working!');
+}
+
 async function processPayment() {
+    console.log('Process payment called');
+    console.log('Phone number:', phoneNumber.value);
+    console.log('Selected hotspot:', selectedHotspot.value);
+    
     if (!phoneNumber.value.match(/^2547\d{8}$/)) {
+        console.log('Phone validation failed');
         paymentError.value = 'Please enter a valid Safaricom number (2547XXXXXXXX)';
         return;
     }
 
+    console.log('Phone validation passed, starting payment...');
     isProcessing.value = true;
     paymentError.value = '';
     paymentMessage.value = '';
 
     try {
+        const payload = {
+            package_id: selectedHotspot.value.id,
+            phone: phoneNumber.value
+        };
+        console.log('Sending payload:', payload);
+
         const response = await fetch('/hotspot/purchase-stk-push', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
             },
-            body: JSON.stringify({
-                package_id: selectedHotspot.value.id,
-                phone: phoneNumber.value
-            })
+            body: JSON.stringify(payload)
         });
 
+        console.log('Response status:', response.status);
         const result = await response.json();
+        console.log('Response result:', result);
 
         if (result.success) {
             paymentMessage.value = result.message;
@@ -74,8 +90,8 @@ async function processPayment() {
             paymentError.value = result.message;
         }
     } catch (error) {
-        paymentError.value = 'Payment failed. Please try again.';
         console.error('Payment error:', error);
+        paymentError.value = 'Payment failed. Please try again.';
     } finally {
         isProcessing.value = false;
     }
@@ -136,6 +152,7 @@ function formatPhoneNumber(event) {
                             :disabled="isProcessing"
                         />
                         <p class="text-xs text-gray-500 mt-1">Enter Safaricom number in format: 2547XXXXXXXX</p>
+                        <p class="text-xs text-blue-500 mt-1">Debug: "{{ phoneNumber }}" - Valid: {{ !!phoneNumber.match(/^2547\d{8}$/) }}</p>
                     </div>
 
                     <!-- Payment Messages -->
@@ -154,7 +171,7 @@ function formatPhoneNumber(event) {
                         Cancel
                     </SecondaryButton>
                     <PrimaryButton 
-                        @click="processPayment" 
+                        @click="testClick" 
                         :disabled="isProcessing || !phoneNumber.match(/^2547\d{8}$/)"
                     >
                         <span v-if="isProcessing">Processing...</span>
