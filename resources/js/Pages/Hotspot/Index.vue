@@ -44,10 +44,10 @@ async function processPayment() {
     console.log('Phone number:', phoneNumber.value);
     console.log('Selected hotspot:', selectedHotspot.value);
     
-    // Updated validation to accept 2547 format (12 digits)
+    // Updated validation to accept multiple formats
     if (!phoneNumber.value.match(/^2547\d{8}$/)) {
         console.log('Phone validation failed');
-        paymentError.value = 'Please enter a valid Safaricom number (07XXXXXXXX or 2547XXXXXXXX)';
+        paymentError.value = 'Please enter a valid Safaricom number (01XXXXXXXX, 07XXXXXXXX, 254XXXXXXXX, or 2547XXXXXXXX)';
         return;
     }
 
@@ -97,19 +97,31 @@ function formatPhoneNumber(event) {
     let value = event.target.value.replace(/\D/g, '');
     
     // Handle different formats
-    if (value.startsWith('0') && value.length >= 10) {
+    if (value.startsWith('01') && value.length >= 10) {
+        // Convert 01... to 2547...
+        value = '2547' + value.substring(2);
+    } else if (value.startsWith('07') && value.length >= 10) {
         // Convert 07... to 2547...
-        value = '254' + value.substring(1);
+        value = '2547' + value.substring(2);
+    } else if (value.startsWith('1') && value.length >= 9) {
+        // Convert 1... to 2547...
+        value = '2547' + value.substring(1);
     } else if (value.startsWith('7') && value.length >= 9) {
         // Convert 7... to 2547...
-        value = '254' + value;
-    } else if (value.startsWith('2547') && value.length >= 10) {
+        value = '2547' + value;
+    } else if (value.startsWith('2547') && value.length >= 12) {
         // Already in correct format, keep as is
         value = value;
     } else if (value.startsWith('254') && value.length >= 12) {
         // Handle 254... format (convert to 2547...)
-        if (value.length >= 12 && value[3] === '0') {
-            value = '2547' + value.substring(4);
+        if (value.length >= 12) {
+            // Remove the leading 254 and replace with 2547, then add the rest
+            if (value[3] === '0' || value[3] === '1' || value[3] === '7') {
+                value = '2547' + value.substring(4);
+            } else {
+                // If it's 254 followed by other digits, assume it's missing the 7
+                value = '2547' + value.substring(3);
+            }
         }
     }
     
@@ -293,7 +305,7 @@ function formatPhoneNumber(event) {
                                     v-model="phoneNumber"
                                     @input="formatPhoneNumber"
                                     type="tel"
-                                    placeholder="07XXXXXXXX or 2547XXXXXXXX"
+                                    placeholder="01XXXXXXXX, 07XXXXXXXX, 254XXXXXXXX, or 2547XXXXXXXX"
                                     class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-lg transition-all duration-200"
                                     :disabled="isProcessing"
                                 />
@@ -303,7 +315,7 @@ function formatPhoneNumber(event) {
                                     </svg>
                                 </div>
                             </div>
-                            <p class="text-xs text-gray-500 mt-2">Enter Safaricom number: 07XXXXXXXX or 2547XXXXXXXX</p>
+                            <p class="text-xs text-gray-500 mt-2">Enter Safaricom number: 01XXXXXXXX, 07XXXXXXXX, 254XXXXXXXX, or 2547XXXXXXXX</p>
                             <p class="text-xs text-blue-500 mt-1 font-mono">"{{ phoneNumber }}" - Valid: {{ !!phoneNumber.match(/^2547\d{8}$/) }}</p>
                         </div>
 

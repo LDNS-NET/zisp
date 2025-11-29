@@ -234,15 +234,25 @@ class TenantPaymentController extends Controller
     public function processSTKPush(Request $request)
     {
         $data = $request->validate([
-            'phone' => 'required|string|regex:/^(07\d{8}|2547\d{8})$/',
+            'phone' => 'required|string|regex:/^(01\d{8}|07\d{8}|254\d{9}|2547\d{8})$/',
             'package_id' => 'required|exists:packages,id',
             'amount' => 'required|numeric|min:1',
         ]);
 
         // Normalize phone number to 2547 format
         $phone = $data['phone'];
-        if (str_starts_with($phone, '07')) {
+        if (str_starts_with($phone, '01')) {
             $phone = '2547' . substr($phone, 2);
+        } elseif (str_starts_with($phone, '07')) {
+            $phone = '2547' . substr($phone, 2);
+        } elseif (str_starts_with($phone, '254')) {
+            if (strlen($phone) === 12 && $phone[3] === '7') {
+                // Already 2547XXXXXXXX format
+                $phone = $phone;
+            } elseif (strlen($phone) === 12) {
+                // 254XXXXXXXX format, convert to 2547XXXXXXXX
+                $phone = '2547' . substr($phone, 3);
+            }
         }
         
         $package = \App\Models\Package::findOrFail($data['package_id']);
