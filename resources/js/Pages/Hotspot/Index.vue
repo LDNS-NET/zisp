@@ -1,10 +1,10 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { usePage, router } from '@inertiajs/vue3';
-import Modal from '@/Components/Modal.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import DangerButton from '@/Components/DangerButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
+import Modal from '@/Components/Modal.vue';
 
 const showModal = ref(false);
 const selectedHotspot = ref(null);
@@ -285,7 +285,7 @@ function formatPhoneNumber(event) {
         </div>
 
         <!-- Checkout Modal -->
-        <!--<Modal :show="showModal" @close="closeModal">-->
+        <Modal :show="showModal" @close="closeModal">
             <div class="bg-white rounded-2xl overflow-hidden max-w-md w-full mx-4">
                 <!-- Modal Header -->
                 <div class="bg-gradient-to-r from-purple-600 to-blue-600 p-6 text-white">
@@ -407,6 +407,6 @@ function formatPhoneNumber(event) {
                     </div>
                 </div>
             </div>
-        <!--/Modal>-->
+        </Modal>
     </div>
 </template>
