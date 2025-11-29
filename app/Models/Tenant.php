@@ -18,6 +18,7 @@ class Tenant extends BaseTenant
         'email',
         'phone',
         'username',
+        'wallet_id',
     ];
 
     public function configure()
@@ -42,6 +43,7 @@ class Tenant extends BaseTenant
             'username',
             'email',
             'phone',
+            'wallet_id',
         ];
     }
 

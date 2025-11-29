@@ -105,14 +105,6 @@ class TenantHotspotController extends Controller
             $collection->init($credentials);
 
             $api_ref = 'HS-' . uniqid();
-            $tenantId = tenant('id') ?? (request()->user() ? request()->user()->tenant_id : null);
-            $tenant = \App\Models\Tenant::find($tenantId);
-            if (!$tenant || !$tenant->wallet_id) {
-                \Log::error('No wallet_id found for tenant', ['tenant_id' => $tenantId]);
-                return response()->json(['success' => false, 'message' => 'No wallet ID configured for this tenant. Please contact support.']);
-            }
-            $walletId = $tenant->wallet_id;
-            \Log::info('Using IntaSend wallet_id', ['wallet_id' => $walletId, 'tenant_id' => $tenantId]);
 
             $response = $collection->create(
                 $amount,
@@ -121,10 +113,7 @@ class TenantHotspotController extends Controller
                 'MPESA_STK_PUSH',
                 $api_ref,
                 '', // name (optional)
-                $request->email ?? 'customer@example.com', // email (optional)
-                [
-                    'wallet_id' => $walletId,
-                ]
+                $request->email ?? 'customer@example.com' // email (optional)
             );
 
             \Log::info('IntaSend SDK response', ['response' => json_decode(json_encode($response), true)]);
