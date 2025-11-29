@@ -263,27 +263,29 @@ class TenantPaymentController extends Controller
                 'test' => env('INTASEND_TEST_ENV', true),
             ]);
 
-            $response = $collection->mpesa()->stkpush([
-                'phone_number' => $data['phone'],
-                'amount' => $data['amount'],
-                'currency' => 'KES',
-                'email' => null,
-                'comment' => "Hotspot Package: {$package->name}",
-                'external_reference' => $receiptNumber,
-            ]);
+            $response = $collection->create(
+                amount: $data['amount'],
+                phone_number: $data['phone'],
+                currency: 'KES',
+                method: 'MPESA_STK_PUSH',
+                api_ref: $receiptNumber,
+                name: '',
+                email: null
+            );
 
             $resp = json_decode(json_encode($response), true);
 
             // Update payment with IntaSend response
             $payment->update([
-                'intasend_reference' => $resp['invoice']['id'] ?? null,
-                'intasend_checkout_id' => $resp['invoice']['checkout_id'] ?? null,
+                'intasend_reference' => $resp['invoice']['id'] ?? $resp['id'] ?? null,
+                'intasend_checkout_id' => $resp['invoice']['checkout_id'] ?? $resp['checkout_id'] ?? null,
                 'response' => $resp,
             ]);
 
             // Dispatch job to check payment status
-            if (!empty($resp['invoice']['id'])) {
-                CheckIntaSendPaymentStatus::dispatch($resp['invoice']['id'])
+            if (!empty($resp['invoice']['id']) || !empty($resp['id'])) {
+                $invoiceId = $resp['invoice']['id'] ?? $resp['id'];
+                CheckIntaSendPaymentStatus::dispatch($invoiceId)
                     ->delay(now()->addSeconds(30));
             }
 
