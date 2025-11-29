@@ -47,7 +47,7 @@ async function processPayment() {
     // Updated validation to accept multiple formats
     if (!phoneNumber.value.match(/^2547\d{8}$/)) {
         console.log('Phone validation failed');
-        paymentError.value = 'Please enter a valid Safaricom number (01XXXXXXXX, 07XXXXXXXX, 254XXXXXXXX, or 2547XXXXXXXX)';
+        paymentError.value = 'Please enter a valid Safaricom number (01XXXXXXXX, 07XXXXXXXX, 254XXXXXXXX, 2541XXXXXXXX, or 2547XXXXXXXX)';
         return;
     }
 
@@ -59,11 +59,12 @@ async function processPayment() {
     try {
         const payload = {
             package_id: selectedHotspot.value.id,
-            phone: phoneNumber.value
+            phone: phoneNumber.value,
+            email: 'customer@example.com' // Optional email
         };
         console.log('Sending payload:', payload);
 
-        const response = await fetch('/hotspot/purchase-stk-push', {
+        const response = await fetch('/hotspot/checkout', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -78,19 +79,56 @@ async function processPayment() {
 
         if (result.success) {
             paymentMessage.value = result.message;
+            // Show success toast
+            showToast('STK Push sent successfully! Please check your phone.', 'success');
             // Close modal after 3 seconds on success
             setTimeout(() => {
                 closeModal();
             }, 3000);
         } else {
             paymentError.value = result.message;
+            showToast(result.message, 'error');
         }
     } catch (error) {
         console.error('Payment error:', error);
         paymentError.value = 'Payment failed. Please try again.';
+        showToast('Payment failed. Please try again.', 'error');
     } finally {
         isProcessing.value = false;
     }
+}
+
+// Toast notification function
+function showToast(message, type = 'info') {
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = `fixed top-4 right-4 px-6 py-3 rounded-lg text-white font-medium z-50 transition-all duration-300 transform translate-x-full`;
+    
+    // Set color based on type
+    if (type === 'success') {
+        toast.classList.add('bg-green-500');
+    } else if (type === 'error') {
+        toast.classList.add('bg-red-500');
+    } else {
+        toast.classList.add('bg-blue-500');
+    }
+    
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    // Animate in
+    setTimeout(() => {
+        toast.classList.remove('translate-x-full');
+        toast.classList.add('translate-x-0');
+    }, 100);
+    
+    // Remove after 5 seconds
+    setTimeout(() => {
+        toast.classList.add('translate-x-full');
+        setTimeout(() => {
+            document.body.removeChild(toast);
+        }, 300);
+    }, 5000);
 }
 
 function formatPhoneNumber(event) {
@@ -112,6 +150,9 @@ function formatPhoneNumber(event) {
     } else if (value.startsWith('2547') && value.length >= 12) {
         // Already in correct format, keep as is
         value = value;
+    } else if (value.startsWith('2541') && value.length >= 12) {
+        // Convert 2541... to 2547...
+        value = '2547' + value.substring(4);
     } else if (value.startsWith('254') && value.length >= 12) {
         // Handle 254... format (convert to 2547...)
         if (value.length >= 12) {
@@ -244,7 +285,7 @@ function formatPhoneNumber(event) {
         </div>
 
         <!-- Checkout Modal -->
-        <Modal :show="showModal" @close="closeModal">
+        <!--<Modal :show="showModal" @close="closeModal">-->
             <div class="bg-white rounded-2xl overflow-hidden max-w-md w-full mx-4">
                 <!-- Modal Header -->
                 <div class="bg-gradient-to-r from-purple-600 to-blue-600 p-6 text-white">
@@ -305,7 +346,7 @@ function formatPhoneNumber(event) {
                                     v-model="phoneNumber"
                                     @input="formatPhoneNumber"
                                     type="tel"
-                                    placeholder="01XXXXXXXX, 07XXXXXXXX, 254XXXXXXXX, or 2547XXXXXXXX"
+                                    placeholder="01XXXXXXXX, 07XXXXXXXX, 254XXXXXXXX, 2541XXXXXXXX, or 2547XXXXXXXX"
                                     class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-lg transition-all duration-200"
                                     :disabled="isProcessing"
                                 />
@@ -360,12 +401,12 @@ function formatPhoneNumber(event) {
                                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
                                 </svg>
-                                Pay with M-Pesa
+                                Pay Now with IntaSend STK Push
                             </span>
                         </button>
                     </div>
                 </div>
             </div>
-        </Modal>
+        <!--/Modal>-->
     </div>
 </template>

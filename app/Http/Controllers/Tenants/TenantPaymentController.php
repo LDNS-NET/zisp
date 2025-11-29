@@ -347,4 +347,29 @@ class TenantPaymentController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Update payment status from IntaSend callback
+     */
+    public function updatePaymentStatus($receiptNumber, $status, $responseData = [])
+    {
+        $payment = TenantPayment::where('receipt_number', $receiptNumber)->first();
+
+        if (!$payment) {
+            return false;
+        }
+
+        $updateData = [
+            'response' => array_merge($payment->response ?? [], $responseData),
+        ];
+
+        if ($status === 'SUCCESS') {
+            $updateData['status'] = 'paid';
+            $updateData['paid_at'] = now();
+        } else {
+            $updateData['status'] = 'failed';
+        }
+
+        return $payment->update($updateData);
+    }
 }

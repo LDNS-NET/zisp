@@ -55,34 +55,8 @@ Route::middleware(['check.subscription'])->group(function () {
 
     Route::resource('hotspot', TenantHotspotController::class);
     Route::post('/hotspot/purchase-stk-push', [TenantHotspotController::class, 'purchaseSTKPush'])->name('hotspot.purchase-stk-push');
-});
-
-// Temporary debug route for testing IntaSend API
-Route::post('/debug-intasend', function () {
-    try {
-        $collection = new \IntaSend\IntaSendPHP\Collection();
-        $collection->init([
-            'token' => env('INTASEND_SECRET_KEY'),
-            'publishable_key' => env('INTASEND_PUBLISHABLE_KEY'),
-            'test' => env('INTASEND_TEST_ENV', false),
-        ]);
-        
-        return response()->json([
-            'success' => true,
-            'message' => 'IntaSend initialized successfully',
-            'config' => [
-                'token_set' => !empty(env('INTASEND_SECRET_KEY')),
-                'publishable_key_set' => !empty(env('INTASEND_PUBLISHABLE_KEY')),
-                'test_env' => env('INTASEND_TEST_ENV', false)
-            ]
-        ]);
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString()
-        ]);
-    }
+    Route::post('/hotspot/checkout', [TenantHotspotController::class, 'checkout'])->name('hotspot.checkout');
+    Route::post('/hotspot/callback', [TenantHotspotController::class, 'callback'])->name('hotspot.callback');
 });
 
 
