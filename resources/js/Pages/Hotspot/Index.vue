@@ -15,14 +15,20 @@ const paymentError = ref('');
 
 // Packages received from Inertia
 const page = usePage();
-const hotspots = computed(() => page.props?.packages || []);
+const hotspots = computed(() => {
+    const packages = page.props?.packages || [];
+    console.log('Loaded packages:', packages);
+    return packages;
+});
 
 function openModal(hotspot) {
+    console.log('Opening modal for hotspot:', hotspot);
     selectedHotspot.value = hotspot;
     phoneNumber.value = '';
     paymentMessage.value = '';
     paymentError.value = '';
     showModal.value = true;
+    console.log('showModal set to:', showModal.value);
 }
 
 function closeModal() {
@@ -103,7 +109,7 @@ function formatPhoneNumber(event) {
         </div>
 
         <!-- Checkout Modal -->
-        <Modal v-if="showModal" @close="closeModal">
+        <Modal :show="showModal" @close="closeModal">
             <template #header>
                 <h3 class="text-lg font-medium">Purchase Hotspot Package</h3>
             </template>
