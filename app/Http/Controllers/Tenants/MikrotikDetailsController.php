@@ -9,13 +9,16 @@ use Inertia\Inertia;
 
 class MikrotikDetailsController extends Controller
 {
-    public function index(Request $request, $tenantId)
+    public function index(Request $request)
     {
+        $tenantId = tenant('id'); // since you're using Stancl Tenancy
+
         $mikrotikDetails = TenantMikrotik::where('tenant_id', $tenantId)->first();
 
-        return Inertia::render('Mikrotikdetails/Index', [
+        return Inertia::render('Tenants/Mikrotikdetails/Index', [
             'mikrotikDetails' => $mikrotikDetails,
-            'tenantId' => $tenantId,
+            'tenantId'        => $tenantId,
         ]);
     }
+
 }
