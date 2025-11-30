@@ -124,12 +124,12 @@ watch(selectedTenantTickets, (val) => {
 
 const remove = (ticket) => {
     if (confirm('Delete this ticket?')) {
-        router.delete(route('tenants.tickets.destroy', ticket.id));
+        router.delete(route('tickets.destroy', ticket.id));
     }
 };
 
 const changeFilter = (status) => {
-    router.visit(route('tenants.tickets.index', { status }), {
+    router.visit(route('tickets.index', { status }), {
         preserveScroll: true,
     });
 };
@@ -143,7 +143,7 @@ const bulkDelete = () => {
     if (!selectedTenantTickets.value.length) return;
     if (!confirm('Are you sure you want to delete selected Tickets?')) return;
 
-    router.delete(route('tenants.tickets.bulk-delete'), {
+    router.delete(route('tickets.bulk-delete'), {
         data: { ids: selectedTenantTickets.value },
         onSuccess: () => {
             selectedTenantTickets.value = [];

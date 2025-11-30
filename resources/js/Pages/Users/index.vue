@@ -61,7 +61,7 @@ watch(selectedFilter, (value) => {
     router.get(
         route('users.index'), 
         { type: value, search: search.value }, 
-        { preserveScroll: true, preserveState: true }
+        { preserveScroll: true }
     );
 });
 
@@ -72,7 +72,7 @@ watch(search, (value) => {
         router.get(
             route('users.index'),
             { type: selectedFilter.value, search: value },
-            { preserveScroll: true, preserveState: true }
+            { preserveScroll: true }
         );
     }, 300);
 });

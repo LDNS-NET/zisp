@@ -137,7 +137,7 @@ watch(search, (value) => {
         router.get(
             route('leads.index'),
             { search: value },
-            { preserveState: true, preserveScroll: true, replace: true }
+            { preserveScroll: true, replace: true }
         );
     }, 300);
 });
