@@ -110,6 +110,37 @@ const submit = () => {
     }
 };
 
+const availableVariables = [
+    '{full_name}',
+    '{phone}',
+    '{account_number}',
+    '{expiry_date}',
+    '{package}',
+    '{username}',
+    '{password}',
+    '{support_number}'
+];
+
+const insertVariable = (variable) => {
+    const textarea = document.getElementById('content');
+    if (textarea) {
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const text = form.content;
+        const before = text.substring(0, start);
+        const after = text.substring(end, text.length);
+        form.content = before + variable + after;
+        
+        // Restore focus and cursor position
+        setTimeout(() => {
+            textarea.focus();
+            textarea.setSelectionRange(start + variable.length, start + variable.length);
+        }, 0);
+    } else {
+        form.content += variable;
+    }
+};
+
 const deleteTemplate = (template) => {
     if (confirm('Are you sure you want to delete this template?')) {
         router.delete(route('smstemplates.destroy', template.id), {
@@ -335,9 +366,25 @@ const bulkDelete = () => {
                                 required
                             ></textarea>
                             <InputError :message="form.errors.content" class="mt-2" />
-                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400 text-right">
-                                {{ form.content.length }} characters
-                            </p>
+                            <div class="mt-2 flex justify-between items-start">
+                                <div class="text-xs text-gray-500 dark:text-gray-400">
+                                    <p class="mb-1 font-medium">Available Variables (Click to insert):</p>
+                                    <div class="flex flex-wrap gap-2">
+                                        <button 
+                                            v-for="variable in availableVariables" 
+                                            :key="variable"
+                                            type="button"
+                                            @click="insertVariable(variable)"
+                                            class="px-2 py-1 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded text-xs text-gray-700 dark:text-gray-300 transition-colors border border-gray-200 dark:border-gray-600"
+                                        >
+                                            {{ variable }}
+                                        </button>
+                                    </div>
+                                </div>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap ml-4">
+                                    {{ form.content.length }} characters
+                                </p>
+                            </div>
                         </div>
                     </div>
 
