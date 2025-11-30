@@ -1,15 +1,18 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import Pagination from '@/Components/Pagination.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import {
-    Pencil,
-    PencilIcon,
-    PlusIcon,
-    Save,
-    Trash,
+    FileText,
+    Plus,
+    Search,
+    MoreVertical,
+    Edit,
     Trash2,
+    Save,
+    XCircle,
+    CheckCircle
 } from 'lucide-vue-next';
 import { useToast } from 'vue-toastification';
 import Modal from '@/Components/Modal.vue';
@@ -18,215 +21,371 @@ import InputError from '@/Components/InputError.vue';
 import TextInput from '@/Components/TextInput.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import DangerButton from '@/Components/DangerButton.vue';
-
-const toast = useToast();
+import Checkbox from '@/Components/Checkbox.vue';
 
 const props = defineProps({
     templates: Object,
     perPage: Number,
 });
 
+const toast = useToast();
+
+// State
 const showModal = ref(false);
+const showActionsModal = ref(false);
 const editing = ref(null);
+const selectedTemplate = ref(null);
+const selectedItems = ref([]);
+const selectAll = ref(false);
 
 const form = useForm({
     name: '',
     content: '',
 });
 
-/**
- * Open edit modal and populate form
- */
-function openEdit(template) {
-    editing.value = template.id;
-    form.name = template.name;
-    form.content = template.content;
-    showModal.value = true;
-}
+// Bulk Selection Logic
+const toggleSelectAll = () => {
+    if (selectAll.value) {
+        selectedItems.value = props.templates.data.map(t => t.id);
+    } else {
+        selectedItems.value = [];
+    }
+};
 
-function closeModal() {
-    showModal.value = false;
+watch(selectedItems, (val) => {
+    selectAll.value = val.length === props.templates.data.length && props.templates.data.length > 0;
+});
+
+// Actions
+const openCreateModal = () => {
     editing.value = null;
     form.reset();
     form.clearErrors();
-}
+    showModal.value = true;
+};
 
-/**
- * Submit edited form via Inertia PUT request
- */
-function submit() {
-    if (!editing.value) return;
+const openEditModal = (template) => {
+    editing.value = template.id;
+    form.name = template.name;
+    form.content = template.content;
+    form.clearErrors();
+    showModal.value = true;
+    showActionsModal.value = false;
+};
 
-    form.put(route('smstemplates.update', editing.value), {
-        preserveScroll: true,
-        onSuccess: () => {
-            toast.success('Template updated successfully');
-            closeModal();
-        },
-        onError: () => {
-            toast.error(
-                'Failed to update template. Please check the form fields.',
-            );
-        },
-    });
-}
+const openActions = (template) => {
+    selectedTemplate.value = template;
+    showActionsModal.value = true;
+};
 
-function remove(id) {
-    if (confirm('Are you sure you want to delete this template?')) {
-        router.delete(route('smstemplates.destroy', id), {
+const closeModal = () => {
+    showModal.value = false;
+    editing.value = null;
+    form.reset();
+};
+
+const submit = () => {
+    if (editing.value) {
+        form.put(route('smstemplates.update', editing.value), {
+            preserveScroll: true,
             onSuccess: () => {
-                toast.success('Template deleted successfully');
+                toast.success('Template updated successfully');
+                closeModal();
             },
             onError: () => {
-                toast.error('Failed to delete template.');
+                toast.error('Failed to update template');
+            },
+        });
+    } else {
+        form.post(route('smstemplates.store'), {
+            preserveScroll: true,
+            onSuccess: () => {
+                toast.success('Template created successfully');
+                closeModal();
+            },
+            onError: () => {
+                toast.error('Failed to create template');
             },
         });
     }
-}
+};
+
+const deleteTemplate = (template) => {
+    if (confirm('Are you sure you want to delete this template?')) {
+        router.delete(route('smstemplates.destroy', template.id), {
+            preserveScroll: true,
+            onSuccess: () => {
+                showActionsModal.value = false;
+                toast.success('Template deleted successfully');
+            },
+            onError: () => {
+                toast.error('Failed to delete template');
+            },
+        });
+    }
+};
+
+const bulkDelete = () => {
+    if (!selectedItems.value.length) return;
+    
+    if (confirm(`Are you sure you want to delete ${selectedItems.value.length} templates?`)) {
+        router.delete(route('smstemplates.bulk-delete'), {
+            data: { ids: selectedItems.value },
+            preserveScroll: true,
+            onSuccess: () => {
+                selectedItems.value = [];
+                selectAll.value = false;
+                toast.success('Selected templates deleted successfully');
+            },
+        });
+    }
+};
 </script>
 
 <template>
-    <Head title="SMS Templates"/>
+    <Head title="SMS Templates" />
+
     <AuthenticatedLayout>
         <template #header>
-            <div class="flex justify-between">
-                <h2 class="text-xl font-semibold leading-tight">
-                    SMS Templates
-                </h2>
-                <Link
-                    :href="route('smstemplates.create')"
-                    class="flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
-                >
-                    <PlusIcon class="h-4 w-4" />
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
+                        <FileText class="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                        SMS Templates
+                    </h2>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                        Manage reusable SMS message templates
+                    </p>
+                </div>
+                <PrimaryButton @click="openCreateModal" class="flex items-center gap-2">
+                    <Plus class="w-4 h-4" />
                     <span>New Template</span>
-                </Link>
+                </PrimaryButton>
             </div>
         </template>
-        <div class="rounded-xl py-12 dark:bg-black">
-            <div class="mx-auto max-w-7xl sm:px-6 lg:px-8">
-                <div
-                    class="overflow-hidden bg-white p-6 shadow-sm sm:rounded-lg dark:bg-transparent"
-                >
-                    <table
-                        class="w-full table-auto divide-y divide-gray-300 border border-gray-300 dark:divide-gray-700 dark:border-gray-700"
+
+        <div class="space-y-6">
+            <!-- Main Content -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+                <!-- Bulk Actions Toolbar -->
+                <div v-if="selectedItems.length > 0" class="bg-blue-50 dark:bg-blue-900/20 px-4 py-3 flex items-center justify-between border-b border-blue-100 dark:border-blue-800">
+                    <span class="text-sm font-medium text-blue-700 dark:text-blue-300">
+                        {{ selectedItems.length }} selected
+                    </span>
+                    <button 
+                        @click="bulkDelete"
+                        class="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 text-sm font-medium flex items-center gap-2"
                     >
-                        <thead>
+                        <Trash2 class="w-4 h-4" />
+                        Delete Selected
+                    </button>
+                </div>
+
+                <!-- Desktop Table -->
+                <div class="hidden md:block overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead class="bg-gray-50 dark:bg-gray-700/50">
                             <tr>
-                                <th
-                                    class="border-b border-r border-gray-300 px-4 py-2 text-left dark:border-gray-700"
-                                >
-                                    Name
+                                <th scope="col" class="px-6 py-3 text-left">
+                                    <Checkbox 
+                                        :checked="selectAll"
+                                        @update:checked="val => { selectAll = val; toggleSelectAll() }"
+                                    />
                                 </th>
-                                <th
-                                    class="border-b border-gray-300 px-4 py-2 text-left dark:border-gray-700"
-                                >
-                                    Content
-                                </th>
-                                <th
-                                    class="border-b border-gray-300 px-4 py-2 text-left dark:border-gray-700"
-                                >
-                                    Actions
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Content</th>
+                                <th scope="col" class="relative px-6 py-3">
+                                    <span class="sr-only">Actions</span>
                                 </th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <tr
-                                v-for="template in templates.data"
-                                :key="template.id"
-                                class="hover:bg-gray-50 dark:hover:bg-gray-800"
-                            >
-                                <td
-                                    class="border-b border-r border-gray-300 px-4 py-2 dark:border-gray-700"
-                                >
-                                    {{ template.name }}
+                        <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                            <tr v-for="template in templates.data" :key="template.id" class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <Checkbox 
+                                        :value="template.id"
+                                        v-model:checked="selectedItems"
+                                    />
                                 </td>
-                                <td
-                                    class="max-w-xs overflow-hidden text-ellipsis whitespace-nowrap border-b border-gray-300 px-4 py-2 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-                                    :title="template.content"
-                                >
-                                    {{
-                                        template.content.length > 20
-                                            ? template.content.slice(0, 20) +
-                                              '...'
-                                            : template.content
-                                    }}
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="text-sm font-medium text-gray-900 dark:text-white">
+                                        {{ template.name }}
+                                    </span>
                                 </td>
-                                <td
-                                    class="flex justify-end gap-2 px-4 py-3 text-right"
-                                >
-                                    <button
-                                        @click="openEdit(template)"
-                                        class="text-blue-500 hover:text-blue-700"
-                                    >
-                                        <PencilIcon class="h-4 w-auto" />
+                                <td class="px-6 py-4">
+                                    <p class="text-sm text-gray-600 dark:text-gray-300 max-w-lg truncate" :title="template.content">
+                                        {{ template.content }}
+                                    </p>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <button @click="openActions(template)" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                                        <MoreVertical class="w-5 h-5" />
                                     </button>
-                                    <button
-                                        @click="remove(template.id)"
-                                        class="text-red-500 hover:text-red-700"
-                                    >
-                                        <Trash2 class="h-4 w-auto" />
-                                    </button>
+                                </td>
+                            </tr>
+                            <tr v-if="templates.data.length === 0">
+                                <td colspan="4" class="px-6 py-12 text-center">
+                                    <div class="flex flex-col items-center justify-center">
+                                        <div class="bg-gray-100 dark:bg-gray-700 rounded-full p-4 mb-4">
+                                            <FileText class="w-8 h-8 text-gray-400 dark:text-gray-500" />
+                                        </div>
+                                        <h3 class="text-lg font-medium text-gray-900 dark:text-white">No templates found</h3>
+                                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Create templates to reuse common messages.</p>
+                                        <div class="mt-6">
+                                            <PrimaryButton @click="openCreateModal">
+                                                <Plus class="w-4 h-4 mr-2" />
+                                                New Template
+                                            </PrimaryButton>
+                                        </div>
+                                    </div>
                                 </td>
                             </tr>
                         </tbody>
                     </table>
-
-                    <Pagination :links="templates.links" class="mt-4" />
                 </div>
 
-                <!-- Edit Modal -->
-                <Modal :show="showModal" @close="showModal = false">
-                    <div class="p-6">
-                        <h3 class="mb-4 text-lg font-semibold">
-                            {{ editing ? 'Edit Template' : 'Create Template' }}
-                        </h3>
-                        <form @submit.prevent="submit" class="space-y-4">
-                            <div>
-                                <InputLabel for="name" value="Template name" />
-                                <TextInput
-                                    id="name"
-                                    v-model="form.name"
-                                    class="mt-1 block w-full"
-                                />
-                                <InputError
-                                    :message="form.errors.name"
-                                    class="mt-1"
-                                />
-                            </div>
-                            <div>
-                                <InputLabel
-                                    for="content"
-                                    value="Template content"
-                                />
-                                <TextInput
-                                    id="content"
-                                    v-model="form.content"
-                                    class="mt-1 block w-full"
-                                />
-                                <InputError
-                                    :message="form.errors.content"
-                                    class="mt-1"
-                                />
-                            </div>
-                            <div class="flex justify-end space-x-2">
-                                <DangerButton
-                                    type="button"
-                                    @click="closeModal"
-                                    class="rounded bg-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
-                                >
-                                    Cancel
-                                </DangerButton>
-                                <PrimaryButton :disabled="form.processing">
-                                    <Save class="mr-1 h-4 w-4" />
-                                    {{ editing ? 'Update' : 'Save' }}
-                                </PrimaryButton>
-                            </div>
-                        </form>
-
-                        <div></div>
+                <!-- Mobile Card View -->
+                <div class="md:hidden">
+                    <div v-if="selectedItems.length > 0" class="p-4 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
+                        <Checkbox 
+                            :checked="selectAll"
+                            @update:checked="val => { selectAll = val; toggleSelectAll() }"
+                        >
+                            <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Select All</span>
+                        </Checkbox>
                     </div>
-                </Modal>
+                    
+                    <div class="divide-y divide-gray-200 dark:divide-gray-700">
+                        <div v-for="template in templates.data" :key="template.id" class="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                            <div class="flex items-start gap-3">
+                                <Checkbox 
+                                    :value="template.id"
+                                    v-model:checked="selectedItems"
+                                    class="mt-1"
+                                />
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <h3 class="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                            {{ template.name }}
+                                        </h3>
+                                        <button @click="openActions(template)" class="text-gray-400">
+                                            <MoreVertical class="w-5 h-5" />
+                                        </button>
+                                    </div>
+                                    <p class="text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
+                                        {{ template.content }}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Empty State Mobile -->
+                        <div v-if="templates.data.length === 0" class="p-8 text-center">
+                            <div class="bg-gray-100 dark:bg-gray-700 rounded-full p-4 mb-4 inline-flex">
+                                <FileText class="w-8 h-8 text-gray-400 dark:text-gray-500" />
+                            </div>
+                            <h3 class="text-lg font-medium text-gray-900 dark:text-white">No templates</h3>
+                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Create your first template.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pagination -->
+                <div v-if="templates.total > templates.per_page" class="border-t border-gray-200 dark:border-gray-700 px-4 py-3 sm:px-6">
+                    <Pagination :links="templates.links" />
+                </div>
             </div>
         </div>
+
+        <!-- Create/Edit Modal -->
+        <Modal :show="showModal" @close="closeModal">
+            <div class="p-6 dark:bg-gray-800">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-lg font-medium text-gray-900 dark:text-white">
+                        {{ editing ? 'Edit Template' : 'Create Template' }}
+                    </h2>
+                    <button @click="closeModal" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
+                        <XCircle class="w-6 h-6" />
+                    </button>
+                </div>
+
+                <form @submit.prevent="submit">
+                    <div class="space-y-4">
+                        <div>
+                            <InputLabel for="name" value="Template Name" />
+                            <TextInput
+                                id="name"
+                                v-model="form.name"
+                                type="text"
+                                class="mt-1 block w-full"
+                                placeholder="e.g., Payment Reminder"
+                                required
+                            />
+                            <InputError :message="form.errors.name" class="mt-2" />
+                        </div>
+
+                        <div>
+                            <InputLabel for="content" value="Template Content" />
+                            <textarea
+                                id="content"
+                                v-model="form.content"
+                                rows="4"
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-300"
+                                placeholder="Type your template content here..."
+                                required
+                            ></textarea>
+                            <InputError :message="form.errors.content" class="mt-2" />
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400 text-right">
+                                {{ form.content.length }} characters
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 flex justify-end gap-3">
+                        <DangerButton type="button" @click="closeModal">
+                            Cancel
+                        </DangerButton>
+                        <PrimaryButton :class="{ 'opacity-25': form.processing }" :disabled="form.processing">
+                            <Save class="w-4 h-4 mr-2" />
+                            {{ editing ? 'Update Template' : 'Save Template' }}
+                        </PrimaryButton>
+                    </div>
+                </form>
+            </div>
+        </Modal>
+
+        <!-- Actions Modal (Mobile/Desktop) -->
+        <Modal :show="showActionsModal" @close="showActionsModal = false" maxWidth="sm">
+            <div class="p-6 dark:bg-gray-800" v-if="selectedTemplate">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                    Actions for {{ selectedTemplate.name }}
+                </h3>
+                <div class="space-y-3">
+                    <button 
+                        @click="openEditModal(selectedTemplate)"
+                        class="w-full flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                    >
+                        <Edit class="w-4 h-4 mr-3 text-blue-500" />
+                        Edit Template
+                    </button>
+                    
+                    <button 
+                        @click="deleteTemplate(selectedTemplate)"
+                        class="w-full flex items-center px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                    >
+                        <Trash2 class="w-4 h-4 mr-3" />
+                        Delete Template
+                    </button>
+                </div>
+                <div class="mt-6 flex justify-end">
+                    <button 
+                        @click="showActionsModal = false"
+                        class="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                    >
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </Modal>
     </AuthenticatedLayout>
 </template>
