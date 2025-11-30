@@ -14,7 +14,9 @@ import {
     CheckCircle,
     XCircle,
     Clock,
-    Send
+    Send,
+    FileText,
+    Users
 } from 'lucide-vue-next';
 import Modal from '@/Components/Modal.vue';
 import InputLabel from '@/Components/InputLabel.vue';
@@ -30,6 +32,8 @@ const props = defineProps({
     smsLogs: Object,
     perPage: Number,
     filters: Object,
+    renters: Array,
+    templates: Array,
 });
 
 const toast = useToast();
@@ -43,8 +47,7 @@ const selectedItems = ref([]);
 const selectAll = ref(false);
 
 const form = useForm({
-    recipient_name: '',
-    phone_number: '',
+    recipients: [],
     message: '',
 });
 
@@ -93,6 +96,14 @@ const submitCreate = () => {
             toast.error('Failed to send SMS');
         },
     });
+};
+
+const applyTemplate = (event) => {
+    const templateId = event.target.value;
+    const template = props.templates.find(t => t.id == templateId);
+    if (template) {
+        form.message = template.content;
+    }
 };
 
 const deleteSms = (sms) => {
@@ -345,28 +356,38 @@ const formatDate = (dateString) => {
                 <form @submit.prevent="submitCreate">
                     <div class="space-y-4">
                         <div>
-                            <InputLabel for="recipient_name" value="Recipient Name" />
-                            <TextInput
-                                id="recipient_name"
-                                v-model="form.recipient_name"
-                                type="text"
-                                class="mt-1 block w-full"
-                                placeholder="John Doe"
-                            />
-                            <InputError :message="form.errors.recipient_name" class="mt-2" />
+                            <InputLabel for="recipients" value="Select Recipients" />
+                            <select 
+                                id="recipients" 
+                                v-model="form.recipients" 
+                                multiple
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-300 h-32"
+                                required
+                            >
+                                <option v-for="renter in renters" :key="renter.id" :value="renter.id">
+                                    {{ renter.full_name }} ({{ renter.phone }})
+                                </option>
+                            </select>
+                            <InputError :message="form.errors.recipients" class="mt-2" />
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                Hold Ctrl (Windows) or Cmd (Mac) to select multiple recipients.
+                            </p>
                         </div>
 
                         <div>
-                            <InputLabel for="phone_number" value="Phone Number" />
-                            <TextInput
-                                id="phone_number"
-                                v-model="form.phone_number"
-                                type="text"
-                                class="mt-1 block w-full"
-                                placeholder="+254..."
-                                required
-                            />
-                            <InputError :message="form.errors.phone_number" class="mt-2" />
+                            <div class="flex items-center justify-between mb-1">
+                                <InputLabel for="template" value="Use Template (Optional)" />
+                            </div>
+                            <select 
+                                id="template" 
+                                @change="applyTemplate"
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-300"
+                            >
+                                <option value="">Select a template...</option>
+                                <option v-for="template in templates" :key="template.id" :value="template.id">
+                                    {{ template.name }}
+                                </option>
+                            </select>
                         </div>
 
                         <div>

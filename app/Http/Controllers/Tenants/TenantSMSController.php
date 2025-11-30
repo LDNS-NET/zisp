@@ -14,16 +14,20 @@ use Illuminate\Support\Facades\Auth;
 class TenantSMSController extends Controller
 {
     public function index(Request $request)
-{
-    $perPage = (int) $request->input('perPage', 10);
+    {
+        $perPage = (int) $request->input('perPage', 10);
 
-    $smsLogs = TenantSMS::latest()->paginate($perPage)->withQueryString();
+        $smsLogs = TenantSMS::latest()->paginate($perPage)->withQueryString();
+        $renters = NetworkUser::all(['id', 'full_name', 'phone']);
+        $templates = TenantSMSTemplate::orderBy('name')->get(['id', 'name', 'content']);
 
-    return Inertia::render('SMS/Index', [
-        'smsLogs' => $smsLogs,
-        'perPage' => (int) $perPage,
-    ]);
-}
+        return Inertia::render('SMS/Index', [
+            'smsLogs' => $smsLogs,
+            'perPage' => (int) $perPage,
+            'renters' => $renters,
+            'templates' => $templates,
+        ]);
+    }
 
 
     public function create()
@@ -90,11 +94,11 @@ class TenantSMSController extends Controller
                     'Accept' => 'application/json',
                     'Content-Type' => 'application/json',
                 ])->post('https://bulksms.talksasa.com/api/v3/sms/send', [
-                    'recipient' => $phoneNumber,
-                    'sender_id' => $senderId,
-                    'type' => 'plain',
-                    'message' => $personalizedMessage,
-                ]);
+                            'recipient' => $phoneNumber,
+                            'sender_id' => $senderId,
+                            'type' => 'plain',
+                            'message' => $personalizedMessage,
+                        ]);
                 $data = $response->json();
                 if ($response->successful() && isset($data['status']) && $data['status'] === 'success') {
                     $smsLog->update([
@@ -146,11 +150,11 @@ class TenantSMSController extends Controller
                 'Accept' => 'application/json',
                 'Content-Type' => 'application/json',
             ])->post('https://bulksms.talksasa.com/api/v3/sms/send', [
-                'recipient' => $phoneNumbers,
-                'sender_id' => $senderId,
-                'type' => 'plain',
-                'message' => $message,
-            ]);
+                        'recipient' => $phoneNumbers,
+                        'sender_id' => $senderId,
+                        'type' => 'plain',
+                        'message' => $message,
+                    ]);
 
             $data = $response->json();
 
