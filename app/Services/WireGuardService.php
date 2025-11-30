@@ -383,6 +383,7 @@ class WireGuardService
         $lines = explode("\n", $configContent);
         $currentPeer = null;
         $currentComment = '';
+        $seenKeys = [];
 
         foreach ($lines as $line) {
             $line = trim($line);
@@ -390,7 +391,11 @@ class WireGuardService
             // Check for peer section start
             if (stripos($line, '[Peer]') === 0) {
                 if ($currentPeer !== null) {
-                    $peers[] = $currentPeer;
+                    // Deduplicate by PublicKey
+                    if (isset($currentPeer['PublicKey']) && !in_array($currentPeer['PublicKey'], $seenKeys)) {
+                        $peers[] = $currentPeer;
+                        $seenKeys[] = $currentPeer['PublicKey'];
+                    }
                 }
                 $currentPeer = ['comment' => $currentComment];
                 $currentComment = '';
@@ -412,7 +417,9 @@ class WireGuardService
 
         // Add last peer
         if ($currentPeer !== null) {
-            $peers[] = $currentPeer;
+            if (isset($currentPeer['PublicKey']) && !in_array($currentPeer['PublicKey'], $seenKeys)) {
+                $peers[] = $currentPeer;
+            }
         }
 
         return $peers;
@@ -447,15 +454,22 @@ class WireGuardService
         $lines = explode("\n", $originalConfig);
         $interfaceSection = [];
         $inInterface = false;
+        $foundFirstInterface = false;
 
         foreach ($lines as $line) {
-            if (stripos(trim($line), '[Interface]') === 0) {
+            $trimmed = trim($line);
+
+            if (stripos($trimmed, '[Interface]') === 0) {
+                if ($foundFirstInterface) {
+                    break; // Stop if we hit a second Interface section (duplication fix)
+                }
                 $inInterface = true;
+                $foundFirstInterface = true;
                 $interfaceSection[] = $line;
                 continue;
             }
 
-            if (stripos(trim($line), '[Peer]') === 0) {
+            if (stripos($trimmed, '[Peer]') === 0) {
                 break; // Stop at first peer
             }
 
