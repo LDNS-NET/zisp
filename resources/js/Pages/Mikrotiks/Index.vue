@@ -1,8 +1,6 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
-import { Head, useForm } from '@inertiajs/vue3';
-import { Inertia } from '@inertiajs/inertia';
-import { route } from 'ziggy-js';
+import { ref, onMounted, onUnmounted, watch } from 'vue';
+import { Head, useForm, router } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Modal from '@/Components/Modal.vue';
 import InputLabel from '@/Components/InputLabel.vue';
@@ -11,19 +9,28 @@ import TextArea from '@/Components/TextArea.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import DangerButton from '@/Components/DangerButton.vue';
 import InputError from '@/Components/InputError.vue';
+import Dropdown from '@/Components/Dropdown.vue';
+import DropdownLink from '@/Components/DropdownLink.vue';
 import { useToast } from 'vue-toastification';
 import {
     Plus,
-    Edit,
-    Eye,
-    Trash2,
+    Search,
     Wifi,
-    Download,
+    Server,
     Activity,
-    MoreHorizontal,
+    Clock,
+    MoreVertical,
+    Eye,
+    Edit,
+    Trash2,
+    Download,
     ExternalLink,
-    TestTube,
     RotateCcw,
+    CheckCircle,
+    XCircle,
+    Cpu,
+    HardDrive,
+    Terminal
 } from 'lucide-vue-next';
 
 const toast = useToast();
@@ -43,49 +50,23 @@ const showRemoteModal = ref(false);
 const selectedRouter = ref(null);
 const remoteLinks = ref({});
 const pinging = ref({});
-const testing = ref({});
 const formError = ref('');
-const actionsOpen = ref({});
 const routersList = ref(props.routers || []);
+const search = ref('');
 let statusPollInterval = null;
 
-function toggleActions(id) {
-    actionsOpen.value[id] = !actionsOpen.value[id];
-}
-
-// Watch for props changes and update local list
+// Watch for props changes
 watch(() => props.routers, (newRouters) => {
     routersList.value = newRouters || [];
 }, { immediate: true, deep: true });
 
 onMounted(() => {
-    window.addEventListener('click', handleClickOutside);
-    // Start polling for router status updates every 30 seconds
     startStatusPolling();
 });
 
 onUnmounted(() => {
-    window.removeEventListener('click', handleClickOutside);
     stopStatusPolling();
 });
-function handleClickOutside(e) {
-    if (!e.target.closest('.router-actions-toggle')) {
-        closeAllActions();
-    }
-}
-
-function closeAllActions() {
-    actionsOpen.value = {};
-}
-
-// Add event listener to close actions on outside click
-if (typeof window !== 'undefined') {
-    window.addEventListener('click', (e) => {
-        if (!e.target.closest('.router-actions-toggle')) {
-            closeAllActions();
-        }
-    });
-}
 
 const form = useForm({
     name: '',
@@ -112,10 +93,8 @@ async function submitForm() {
             toast.success('Router added successfully');
             closeModal();
         },
-        onError: (errors) => {
+        onError: () => {
             toast.error('Error adding router');
-            formError.value = errorMessage;
-            window.toast?.error(errorMessage) || console.error(errorMessage);
         },
     });
 }
@@ -126,22 +105,16 @@ function editForm() {
             onSuccess: () => {
                 toast.success('Router updated successfully');
                 closeModal();
-                Inertia.reload({ 
-                    only: ['routers'], 
-                    preserveScroll: true,
-                    onSuccess: () => {
-                        routersList.value = props.routers || [];
-                    }
-                });
+                // Optimistic update or reload handled by Inertia/Watch
             },
-            onError: (errors) => {
+            onError: () => {
                 toast.error('Error updating router');
             },
         });
     }
 }
 
-function editRouter(router) {
+function openEdit(router) {
     selectedRouter.value = router;
     form.name = router.name;
     form.ip_address = router.ip_address || '';
@@ -162,11 +135,10 @@ function viewRouter(router) {
 }
 
 function deleteRouter(mikrotik) {
-    if (confirm('Delete this router?')) {
-        Inertia.delete(route('mikrotiks.destroy', mikrotik.id), {
+    if (confirm('Are you sure you want to delete this router?')) {
+        router.delete(route('mikrotiks.destroy', mikrotik.id), {
             onSuccess: () => {
                 toast.success('Router deleted successfully');
-                // Remove from local list
                 routersList.value = routersList.value.filter(r => r.id !== mikrotik.id);
             },
         });
@@ -174,15 +146,10 @@ function deleteRouter(mikrotik) {
 }
 
 async function pingRouter(router) {
-    // Use VPN IP (wireguard_address) - all router communication uses VPN tunnel only
     const vpnIp = router.wireguard_address ?? router.ip_address ?? 'unknown';
     toast.info(`Pinging router via RouterOS API (${vpnIp}) ...`);
-    onSuccess: () => {
-        toast.success('router is online');
-    };
-
+    
     pinging.value[router.id] = true;
-    formError.value = '';
 
     try {
         const response = await fetch(route('mikrotiks.ping', router.id));
@@ -193,25 +160,24 @@ async function pingRouter(router) {
             return;
         }
 
-        router.status = data.status;
-        router.online = data.online;
-        router.last_seen_at = data.last_seen_at;
-        
-        // Update the routers list to reflect the change
+        // Update local state
         const index = routersList.value.findIndex(r => r.id === router.id);
         if (index !== -1) {
-            routersList.value[index] = { ...router };
+            routersList.value[index] = { 
+                ...routersList.value[index],
+                status: data.status,
+                online: data.online,
+                last_seen_at: data.last_seen_at
+            };
         }
 
-        // Show latency if available
         const message = data.latency 
             ? `${data.message} (Latency: ${data.latency}ms)`
             : data.message;
         
-        // Use a nicer non-blocking feedback
-        window.toast?.success(message) || console.log(message);
+        toast.success(message);
     } catch (err) {
-        toast.error('Error pinging router via RouterOS API');
+        toast.error('Error pinging router');
     } finally {
         pinging.value[router.id] = false;
     }
@@ -221,42 +187,20 @@ function showRemote(router) {
     formError.value = '';
     fetch(route('mikrotiks.remoteManagement', router.id))
         .then(async (res) => {
-            if (!res.ok) {
-                toast.error('Error loading remote management links');
-                return;
-            }
+            if (!res.ok) throw new Error('Failed to load links');
             return res.json();
         })
         .then((data) => {
             remoteLinks.value = data;
             showRemoteModal.value = true;
         })
-        .catch((err) => {
+        .catch(() => {
             toast.error('Error loading remote management links');
         });
 }
 
-function formatUptime(uptime) {
-    if (!uptime) return '-';
-    const days = Math.floor(uptime / 86400);
-    const hours = Math.floor((uptime % 86400) / 3600);
-    const minutes = Math.floor((uptime % 3600) / 60);
-    return `${days}d ${hours}h ${minutes}m`;
-}
-
-function formatBytes(bytes) {
-    if (!bytes && bytes !== 0) return '-';
-    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-    let pow = Math.floor((bytes ? Math.log(bytes) : 0) / Math.log(1024));
-    pow = Math.min(pow, units.length - 1);
-    const val = bytes / Math.pow(1024, pow);
-    return `${val.toFixed(2)} ${units[pow]}`;
-}
-
 function downloadAdvancedConfig(router) {
-    formError.value = '';
     try {
-        // Create a link and trigger download
         const url = route('mikrotiks.downloadAdvancedConfig', router.id);
         const link = document.createElement('a');
         link.href = url;
@@ -264,20 +208,14 @@ function downloadAdvancedConfig(router) {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        
-        toast.success('Advanced configuration script download started');
+        toast.success('Download started');
     } catch (err) {
-        toast.error('Error downloading advanced config');
+        toast.error('Error downloading config');
     }
 }
 
-
-// Status polling functions - poll every 5 seconds for real-time updates
 function startStatusPolling() {
-    // Poll every 5 seconds to get updated router status
-    statusPollInterval = setInterval(() => {
-        refreshRouterStatus();
-    }, 5000); // 5 seconds
+    statusPollInterval = setInterval(refreshRouterStatus, 5000);
 }
 
 function stopStatusPolling() {
@@ -289,16 +227,13 @@ function stopStatusPolling() {
 
 async function refreshRouterStatus() {
     try {
-        // Use bulk status endpoint for better performance
         const response = await fetch(route('mikrotiks.statusAll'));
         if (response.ok) {
             const data = await response.json();
             if (data.success && Array.isArray(data.routers)) {
-                // Update router statuses in local list
                 data.routers.forEach((routerStatus) => {
                     const index = routersList.value.findIndex(r => r.id === routerStatus.id);
                     if (index !== -1) {
-                        // Update only status-related fields, preserve other router data
                         routersList.value[index] = {
                             ...routersList.value[index],
                             status: routerStatus.status,
@@ -313,370 +248,277 @@ async function refreshRouterStatus() {
             }
         }
     } catch (err) {
-        // Silently fail - don't interrupt user experience
         console.debug('Status refresh failed:', err);
     }
 }
+
+function formatUptime(uptime) {
+    if (!uptime) return '-';
+    const days = Math.floor(uptime / 86400);
+    const hours = Math.floor((uptime % 86400) / 3600);
+    const minutes = Math.floor((uptime % 3600) / 60);
+    return `${days}d ${hours}h ${minutes}m`;
+}
+
+// Filtered routers based on search
+const filteredRouters = ref(routersList.value);
+watch([routersList, search], () => {
+    if (!search.value) {
+        filteredRouters.value = routersList.value;
+        return;
+    }
+    const q = search.value.toLowerCase();
+    filteredRouters.value = routersList.value.filter(r => 
+        r.name.toLowerCase().includes(q) || 
+        (r.ip_address && r.ip_address.includes(q)) ||
+        (r.wireguard_address && r.wireguard_address.includes(q))
+    );
+});
 </script>
 
 <template>
     <Head title="Mikrotik Routers" />
     <AuthenticatedLayout>
         <template #header>
-            <div class="flex items-center justify-between">
-                <h2
-                    class="flex items-center gap-2 text-2xl font-semibold text-gray-800"
-                >
-                    <Wifi class="h-6 w-6 text-blue-600" />
-                    Mikrotik Routers
-                </h2>
-                <PrimaryButton
-                    @click="showAddModal = true"
-                    class="flex items-center gap-2"
-                >
-                    <Plus class="h-4 w-4" />
-                    Add Router
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
+                        <Wifi class="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                        Mikrotik Routers
+                    </h2>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                        Manage your network infrastructure and connectivity
+                    </p>
+                </div>
+                <PrimaryButton @click="showAddModal = true" class="flex items-center gap-2">
+                    <Plus class="w-4 h-4" />
+                    <span>Add Router</span>
                 </PrimaryButton>
             </div>
         </template>
 
-        <div class="py-6">
-            <div class="mx-auto max-w-7xl sm:px-6 lg:px-8">
-                <div
-                    class="overflow-hidden border border-dashed border-blue-400 bg-white shadow-sm sm:rounded-lg dark:bg-black"
-                >
-                    <div
-                        class="border-b border-gray-200 bg-white p-6 dark:bg-black"
-                    >
-                        <!-- Router Table -->
-                        <div class="overflow-x-auto">
-                            <table class="min-w-full divide-y divide-gray-200">
-                                <thead class="bg-gray-50 dark:bg-black">
-                                    <tr>
-                                        <th
-                                            class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider"
-                                        >
-                                            Name
-                                        </th>
-                                        <th
-                                            class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider"
-                                        >
-                                            VPN IP Address
-                                        </th>
-                                        <th
-                                            class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider"
-                                        >
-                                            Status
-                                        </th>
-                                        <th
-                                            class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider"
-                                        >
-                                            Model
-                                        </th>
-                                        <th
-                                            class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider"
-                                        >
-                                            CPU
-                                        </th>
-                                        <th
-                                            class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider"
-                                        >
-                                            Memory
-                                        </th>
-                                        <th
-                                            class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider"
-                                        >
-                                            Uptime
-                                        </th>
-                                        <th
-                                            class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider"
-                                        >
-                                            Last Seen
-                                        </th>
-                                        <th
-                                            class="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider"
-                                        >
-                                            Actions
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody
-                                    class="divide-y divide-gray-200 bg-white dark:bg-black dark:text-white"
-                                >
-                                    <tr
-                                        v-for="router in routersList"
-                                        :key="router.id"
-                                        class="hover:bg-gray-50 dark:hover:bg-gray-800"
-                                    >
-                                        <td
-                                            class="whitespace-nowrap px-6 py-4 text-sm font-extrabold text-gray-900 dark:text-gray-400"
-                                        >
-                                            {{ router.name }}
-                                        </td>
-                                        <td
-                                            class="whitespace-nowrap px-6 py-4 text-sm text-blue-700 dark:text-blue-400"
-                                        >
-                                            {{ router.wireguard_address || router.ip_address || 'Not configured' }}
-                                        </td>
-                                        <td class="whitespace-nowrap px-6 py-4">
-                                            <span
-                                                :class="[
-                                                    'inline-flex rounded-full px-2 py-1 text-xs font-semibold',
-                                                    router.status === 'online'
-                                                        ? 'bg-green-100 text-green-800'
-                                                        : 'bg-red-100 text-red-800',
-                                                ]"
-                                            >
-                                                {{ router.status }}
-                                            </span>
-                                        </td>
-                                        <td
-                                            class="whitespace-nowrap px-6 py-4 text-sm"
-                                        >
-                                            {{ router.model || '-' }}
-                                        </td>
-                                        <td
-                                            class="whitespace-nowrap px-6 py-4 text-sm"
-                                        >
-                                            {{ router.cpu !== null && router.cpu !== undefined ? router.cpu + '%' : '-' }}
-                                        </td>
-                                        <td
-                                            class="whitespace-nowrap px-6 py-4 text-sm"
-                                        >
-                                            {{ router.memory !== null && router.memory !== undefined ? router.memory + '%' : '-' }}
-                                        </td>
-                                        <td
-                                            class="whitespace-nowrap px-6 py-4 text-sm"
-                                        >
-                                            {{ router.uptime ? formatUptime(router.uptime) : '-' }}
-                                        </td>
-                                        <td
-                                            class="whitespace-nowrap px-6 py-4 text-sm"
-                                        >
-                                            {{
-                                                router.last_seen_at
-                                                    ? new Date(
-                                                          router.last_seen_at,
-                                                      ).toLocaleString()
-                                                    : '-'
-                                            }}
-                                        </td>
-                                        <td
-                                            class="whitespace-nowrap px-6 py-4 text-right text-sm font-medium"
-                                        >
-                                            <div
-                                                class="relative flex items-center justify-end"
-                                            >
-                                                <button
-                                                    @click.stop="
-                                                        toggleActions(router.id)
-                                                    "
-                                                    class="router-actions-toggle rounded p-2 hover:bg-green-400"
-                                                    :aria-expanded="
-                                                        actionsOpen[router.id]
-                                                            ? 'true'
-                                                            : 'false'
-                                                    "
-                                                    title="Show actions"
-                                                >
-                                                    <MoreHorizontal
-                                                        class="h-5 w-5 text-blue-600"
-                                                    />
-                                                </button>
-                                                <transition name="fade">
-                                                    <div
-                                                        v-if="
-                                                            actionsOpen[
-                                                                router.id
-                                                            ]
-                                                        "
-                                                        class="absolute right-0 z-50 mt-2 flex space-x-2 rounded border bg-white p-2 shadow-lg"
-                                                    >
-                                                        <button
-                                                            @click="
-                                                                viewRouter(
-                                                                    router,
-                                                                );
-                                                                closeAllActions();
-                                                            "
-                                                            title="View"
-                                                            class="rounded p-2 hover:bg-gray-100"
-                                                        >
-                                                            <Eye
-                                                                class="h-5 w-5 text-blue-600"
-                                                            />
-                                                        </button>
-                                                        <button
-                                                            @click="
-                                                                editRouter(
-                                                                    router,
-                                                                );
-                                                                closeAllActions();
-                                                            "
-                                                            title="Edit"
-                                                            class="rounded p-2 hover:bg-gray-100"
-                                                        >
-                                                            <Edit
-                                                                class="h-5 w-5 text-yellow-600"
-                                                            />
-                                                        </button>
-                                                        <button
-                                                            @click="
-                                                                pingRouter(
-                                                                    router,
-                                                                );
-                                                                closeAllActions();
-                                                            "
-                                                            :disabled="
-                                                                pinging[
-                                                                    router.id
-                                                                ]
-                                                            "
-                                                            title="Ping Router"
-                                                            class="rounded p-2 hover:bg-gray-100"
-                                                        >
-                                                            <Activity
-                                                                class="h-5 w-5 text-green-600"
-                                                            />
-                                                        </button>
-                                                        
-                                                        <button
-                                                            @click="
-                                                                showRemote(
-                                                                    router,
-                                                                );
-                                                                closeAllActions();
-                                                            "
-                                                            title="Remote Management"
-                                                            class="rounded p-2 hover:bg-gray-100"
-                                                        >
-                                                            <ExternalLink
-                                                                class="h-5 w-5 text-purple-600"
-                                                            />
-                                                        </button>
-                                                        <button
-                                                            @click="
-                                                                Inertia.visit(
-                                                                    route(
-                                                                        'mikrotiks.reprovision',
-                                                                        router.id,
-                                                                    ),
-                                                                );
-                                                                closeAllActions();
-                                                            "
-                                                            title="Reprovision/Show Script"
-                                                            class="rounded p-2 hover:bg-gray-100"
-                                                        >
-                                                            <RotateCcw
-                                                                class="h-5 w-5 text-indigo-600"
-                                                            />
-                                                        </button>
-                                                        <button
-                                                            @click="
-                                                                downloadAdvancedConfig(
-                                                                    router,
-                                                                );
-                                                                closeAllActions();
-                                                            "
-                                                            title="Download Advanced Config Script"
-                                                            class="rounded p-2 hover:bg-gray-100"
-                                                        >
-                                                            <Download
-                                                                class="h-5 w-5 text-purple-600"
-                                                            />
-                                                        </button>
-                                                        <button
-                                                            @click="
-                                                                deleteRouter(
-                                                                    router,
-                                                                );
-                                                                closeAllActions();
-                                                            "
-                                                            title="Delete"
-                                                            class="rounded p-2 hover:bg-red-50"
-                                                        >
-                                                            <Trash2
-                                                                class="h-5 w-5 text-red-600"
-                                                            />
-                                                        </button>
-                                                    </div>
-                                                </transition>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr v-if="!routersList.length">
-                                        <td
-                                            colspan="9"
-                                            class="px-6 py-4 text-center text-gray-500"
-                                        >
-                                            No Mikrotik routers found.
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
+        <div class="space-y-6">
+            <!-- Search -->
+            <div class="flex flex-col sm:flex-row gap-4 justify-between items-center bg-white dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm">
+                <div class="relative w-full sm:w-72">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Search class="h-4 w-4 text-gray-400" />
+                    </div>
+                    <input
+                        v-model="search"
+                        type="text"
+                        placeholder="Search routers..."
+                        class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg leading-5 bg-white dark:bg-slate-900 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150 ease-in-out"
+                    />
+                </div>
+            </div>
+
+            <!-- Routers Table (Desktop) / Cards (Mobile) -->
+            <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                <!-- Desktop Table -->
+                <div class="hidden md:block overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
+                        <thead class="bg-gray-50 dark:bg-slate-900/50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Router Name</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">VPN IP</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Resources</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Uptime</th>
+                                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 dark:divide-slate-700">
+                            <tr v-for="router in filteredRouters" :key="router.id" class="hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <div class="h-10 w-10 flex-shrink-0 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                                            <Server class="w-5 h-5" />
+                                        </div>
+                                        <div class="ml-4">
+                                            <div class="text-sm font-medium text-gray-900 dark:text-white">{{ router.name }}</div>
+                                            <div class="text-xs text-gray-500 dark:text-gray-400">{{ router.model || 'Unknown Model' }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm font-mono text-gray-600 dark:text-gray-300">
+                                        {{ router.wireguard_address || router.ip_address || 'Not configured' }}
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span :class="[
+                                        'px-2 inline-flex text-xs leading-5 font-semibold rounded-full',
+                                        router.status === 'online'
+                                            ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                                            : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                                    ]">
+                                        {{ router.status === 'online' ? 'Online' : 'Offline' }}
+                                    </span>
+                                    <div class="text-xs text-gray-400 mt-1">
+                                        Last seen: {{ router.last_seen_at ? new Date(router.last_seen_at).toLocaleTimeString() : '-' }}
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex flex-col gap-1">
+                                        <div class="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
+                                            <Cpu class="w-3 h-3" />
+                                            <span>CPU: {{ router.cpu ? router.cpu + '%' : '-' }}</span>
+                                        </div>
+                                        <div class="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
+                                            <HardDrive class="w-3 h-3" />
+                                            <span>Mem: {{ router.memory ? router.memory + '%' : '-' }}</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                    <div class="flex items-center gap-1">
+                                        <Clock class="w-3 h-3" />
+                                        {{ router.uptime ? formatUptime(router.uptime) : '-' }}
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <Dropdown align="right" width="48">
+                                        <template #trigger>
+                                            <button class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors p-1 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700">
+                                                <MoreVertical class="w-5 h-5" />
+                                            </button>
+                                        </template>
+                                        <template #content>
+                                            <DropdownLink as="button" @click="viewRouter(router)" class="flex items-center gap-2">
+                                                <Eye class="w-4 h-4 text-blue-500" /> View Details
+                                            </DropdownLink>
+                                            <DropdownLink as="button" @click="openEdit(router)" class="flex items-center gap-2">
+                                                <Edit class="w-4 h-4 text-amber-500" /> Edit Router
+                                            </DropdownLink>
+                                            <DropdownLink as="button" @click="pingRouter(router)" :disabled="pinging[router.id]" class="flex items-center gap-2">
+                                                <Activity class="w-4 h-4 text-green-500" /> Ping Router
+                                            </DropdownLink>
+                                            <DropdownLink as="button" @click="showRemote(router)" class="flex items-center gap-2">
+                                                <ExternalLink class="w-4 h-4 text-purple-500" /> Remote Mgmt
+                                            </DropdownLink>
+                                            <DropdownLink as="button" @click="router.visit(route('mikrotiks.reprovision', router.id))" class="flex items-center gap-2">
+                                                <RotateCcw class="w-4 h-4 text-indigo-500" /> Reprovision
+                                            </DropdownLink>
+                                            <DropdownLink as="button" @click="downloadAdvancedConfig(router)" class="flex items-center gap-2">
+                                                <Download class="w-4 h-4 text-cyan-500" /> Download Config
+                                            </DropdownLink>
+                                            <div class="border-t border-gray-100 dark:border-slate-700 my-1"></div>
+                                            <DropdownLink as="button" @click="deleteRouter(router)" class="flex items-center gap-2 text-red-600 dark:text-red-400">
+                                                <Trash2 class="w-4 h-4" /> Delete
+                                            </DropdownLink>
+                                        </template>
+                                    </Dropdown>
+                                </td>
+                            </tr>
+                            <tr v-if="filteredRouters.length === 0">
+                                <td colspan="6" class="px-6 py-10 text-center text-gray-500 dark:text-gray-400">
+                                    <div class="flex flex-col items-center justify-center">
+                                        <Wifi class="w-12 h-12 text-gray-300 dark:text-gray-600 mb-3" />
+                                        <p class="text-lg font-medium">No routers found</p>
+                                        <p class="text-sm">Try adding a new router</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Mobile Cards -->
+                <div class="md:hidden divide-y divide-gray-200 dark:divide-slate-700">
+                    <div v-for="router in filteredRouters" :key="router.id" class="p-4 space-y-3">
+                        <div class="flex items-start justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="h-10 w-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                                    <Server class="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <div class="text-sm font-medium text-gray-900 dark:text-white">{{ router.name }}</div>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400">{{ router.model || 'Unknown Model' }}</div>
+                                </div>
+                            </div>
+                            <span :class="[
+                                'px-2 py-0.5 text-xs font-semibold rounded-full',
+                                router.status === 'online'
+                                    ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                                    : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                            ]">
+                                {{ router.status === 'online' ? 'Online' : 'Offline' }}
+                            </span>
                         </div>
+
+                        <div class="grid grid-cols-2 gap-2 text-sm">
+                            <div class="text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                <Terminal class="w-3 h-3" /> {{ router.wireguard_address || 'No IP' }}
+                            </div>
+                            <div class="text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                <Clock class="w-3 h-3" /> {{ router.uptime ? formatUptime(router.uptime) : '-' }}
+                            </div>
+                            <div class="text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                <Cpu class="w-3 h-3" /> {{ router.cpu ? router.cpu + '%' : '-' }}
+                            </div>
+                            <div class="text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                <HardDrive class="w-3 h-3" /> {{ router.memory ? router.memory + '%' : '-' }}
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-end gap-3 pt-2 border-t border-gray-100 dark:border-slate-700/50">
+                            <button @click="viewRouter(router)" class="text-blue-600 dark:text-blue-400 text-sm font-medium">View</button>
+                            <button @click="openEdit(router)" class="text-amber-600 dark:text-amber-400 text-sm font-medium">Edit</button>
+                            <button @click="pingRouter(router)" class="text-green-600 dark:text-green-400 text-sm font-medium">Ping</button>
+                            <Dropdown align="right" width="48">
+                                <template #trigger>
+                                    <button class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                                        <MoreVertical class="w-5 h-5" />
+                                    </button>
+                                </template>
+                                <template #content>
+                                    <DropdownLink as="button" @click="showRemote(router)">Remote Mgmt</DropdownLink>
+                                    <DropdownLink as="button" @click="router.visit(route('mikrotiks.reprovision', router.id))">Reprovision</DropdownLink>
+                                    <DropdownLink as="button" @click="downloadAdvancedConfig(router)">Download Config</DropdownLink>
+                                    <div class="border-t border-gray-100 dark:border-slate-700 my-1"></div>
+                                    <DropdownLink as="button" @click="deleteRouter(router)" class="text-red-600">Delete</DropdownLink>
+                                </template>
+                            </Dropdown>
+                        </div>
+                    </div>
+                    <div v-if="filteredRouters.length === 0" class="p-8 text-center text-gray-500 dark:text-gray-400">
+                        No routers found.
                     </div>
                 </div>
             </div>
         </div>
 
-        <div v-if="formError" class="mb-4 rounded bg-red-100 p-2 text-red-700">
-            {{ formError }}
-        </div>
-
-        <!-- Add Router Wizard Modal -->
+        <!-- Add Router Modal -->
         <Modal :show="showAddModal" @close="closeModal">
-            <div class="p-6">
-                <h3 class="mb-4 text-lg font-semibold">Add Mikrotik Router</h3>
+            <div class="p-6 dark:bg-slate-800 dark:text-white">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Add Mikrotik Router</h3>
                 <form @submit.prevent="submitForm">
-                    <div class="mb-4">
-                        <InputLabel for="name" value="Router Name" />
-                        <TextInput
-                            id="name"
-                            v-model="form.name"
-                            class="mt-1 block w-full"
-                            required
-                            autofocus
-                        />
-                        <InputError :message="form.errors.name" />
+                    <div class="space-y-4">
+                        <div>
+                            <InputLabel for="name" value="Router Name" />
+                            <TextInput id="name" v-model="form.name" class="mt-1 block w-full" required autofocus />
+                            <InputError :message="form.errors.name" />
+                        </div>
+                        <div>
+                            <InputLabel for="router_username" value="Username" />
+                            <TextInput id="router_username" v-model="form.router_username" class="mt-1 block w-full" required autocomplete="username" />
+                            <InputError :message="form.errors.router_username" />
+                        </div>
+                        <div>
+                            <InputLabel for="router_password" value="Password" />
+                            <TextInput id="router_password" v-model="form.router_password" type="password" class="mt-1 block w-full" required autocomplete="current-password" />
+                            <InputError :message="form.errors.router_password" />
+                        </div>
+                        <div>
+                            <InputLabel for="notes" value="Notes (optional)" />
+                            <TextArea id="notes" v-model="form.notes" class="mt-1 block w-full" rows="3" />
+                            <InputError :message="form.errors.notes" />
+                        </div>
                     </div>
-                    <div class="mb-4">
-                        <InputLabel for="router_username" value="Username" />
-                        <TextInput
-                            id="router_username"
-                            v-model="form.router_username"
-                            class="mt-1 block w-full"
-                            required
-                            autocomplete="username"
-                        />
-                        <InputError :message="form.errors.router_username" />
-                    </div>
-                    <div class="mb-4">
-                        <InputLabel for="router_password" value="Password" />
-                        <TextInput
-                            id="router_password"
-                            v-model="form.router_password"
-                            class="mt-1 block w-full"
-                            type="password"
-                            required
-                            autocomplete="current-password"
-                        />
-                        <InputError :message="form.errors.router_password" />
-                    </div>
-                    <div class="mb-4">
-                        <InputLabel for="notes" value="Notes (optional)" />
-                        <TextArea
-                            id="notes"
-                            v-model="form.notes"
-                            class="mt-1 block w-full"
-                        />
-                        <InputError :message="form.errors.notes" />
-                    </div>
-                    <div class="mt-6 flex justify-end gap-2">
-                        <PrimaryButton type="submit">Add Router</PrimaryButton>
-                        <DangerButton type="button" @click="closeModal"
-                            >Cancel</DangerButton
-                        >
+                    <div class="mt-6 flex justify-end gap-3">
+                        <DangerButton type="button" @click="closeModal">Cancel</DangerButton>
+                        <PrimaryButton :disabled="form.processing">Add Router</PrimaryButton>
                     </div>
                 </form>
             </div>
@@ -684,322 +526,123 @@ async function refreshRouterStatus() {
 
         <!-- Edit Router Modal -->
         <Modal :show="showEditModal" @close="closeModal">
-            <div class="p-6">
-                <h2 class="mb-4 text-lg font-semibold">Edit Mikrotik Router</h2>
+            <div class="p-6 dark:bg-slate-800 dark:text-white">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Edit Mikrotik Router</h3>
                 <form @submit.prevent="editForm">
-                    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <InputLabel value="Router Name" />
-                            <TextInput
-                                v-model="form.name"
-                                class="mt-1 block w-full"
-                            />
+                            <TextInput v-model="form.name" class="mt-1 block w-full" />
                             <InputError :message="form.errors.name" />
                         </div>
                         <div>
                             <InputLabel value="VPN IP Address (10.100.0.0/16)" />
-                            <TextInput
-                                v-model="form.ip_address"
-                                placeholder="e.g. 10.100.0.2"
-                                class="mt-1 block w-full"
-                            />
+                            <TextInput v-model="form.ip_address" placeholder="e.g. 10.100.0.2" class="mt-1 block w-full" />
                             <InputError :message="form.errors.ip_address" />
-                            <p class="mt-1 text-xs text-gray-500">All router communication uses VPN tunnel IP only</p>
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Communication uses VPN tunnel IP only</p>
                         </div>
                         <div>
                             <InputLabel value="API Port" />
-                            <TextInput
-                                v-model="form.api_port"
-                                type="number"
-                                class="mt-1 block w-full"
-                            />
+                            <TextInput v-model="form.api_port" type="number" class="mt-1 block w-full" />
                             <InputError :message="form.errors.api_port" />
                         </div>
                         <div>
                             <InputLabel value="SSH Port" />
-                            <TextInput
-                                v-model="form.ssh_port"
-                                type="number"
-                                class="mt-1 block w-full"
-                            />
+                            <TextInput v-model="form.ssh_port" type="number" class="mt-1 block w-full" />
                             <InputError :message="form.errors.ssh_port" />
                         </div>
                         <div>
                             <InputLabel value="Username" />
-                            <TextInput
-                                v-model="form.router_username"
-                                class="mt-1 block w-full"
-                                autocomplete="username"
-                            />
-                            <InputError
-                                :message="form.errors.router_username"
-                            />
+                            <TextInput v-model="form.router_username" class="mt-1 block w-full" autocomplete="username" />
+                            <InputError :message="form.errors.router_username" />
                         </div>
                         <div>
-                            <InputLabel
-                                value="Password (leave blank to keep current)"
-                            />
-                            <TextInput
-                                v-model="form.router_password"
-                                type="password"
-                                class="mt-1 block w-full"
-                                autocomplete="current-password"
-                            />
-                            <InputError
-                                :message="form.errors.router_password"
-                            />
+                            <InputLabel value="Password (leave blank to keep)" />
+                            <TextInput v-model="form.router_password" type="password" class="mt-1 block w-full" autocomplete="current-password" />
+                            <InputError :message="form.errors.router_password" />
                         </div>
                         <div class="md:col-span-2">
                             <InputLabel value="Connection Type" />
-                            <select
-                                v-model="form.connection_type"
-                                class="mt-1 block w-full rounded-md border-gray-300 dark:bg-black"
-                            >
+                            <select v-model="form.connection_type" class="mt-1 block w-full rounded-md border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500">
                                 <option value="api">API</option>
                                 <option value="ssh">SSH</option>
                                 <option value="ovpn">OVPN</option>
                             </select>
-                            <InputError
-                                :message="form.errors.connection_type"
-                            />
+                            <InputError :message="form.errors.connection_type" />
                         </div>
                         <div class="md:col-span-2">
                             <InputLabel value="OpenVPN Profile (optional)" />
-                            <select
-                                v-model="form.openvpn_profile_id"
-                                class="mt-1 block w-full rounded-md border-gray-300 dark:bg-black"
-                            >
+                            <select v-model="form.openvpn_profile_id" class="mt-1 block w-full rounded-md border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500">
                                 <option :value="null">None</option>
-                                <option
-                                    v-for="profile in openvpnProfiles"
-                                    :key="profile.id"
-                                    :value="profile.id"
-                                >
+                                <option v-for="profile in openvpnProfiles" :key="profile.id" :value="profile.id">
                                     {{ profile.config_path }}
                                 </option>
                             </select>
-                            <InputError
-                                :message="form.errors.openvpn_profile_id"
-                            />
+                            <InputError :message="form.errors.openvpn_profile_id" />
                         </div>
                         <div class="md:col-span-2">
                             <InputLabel value="Notes" />
-                            <TextArea
-                                v-model="form.notes"
-                                class="mt-1 block w-full"
-                                rows="3"
-                            />
+                            <TextArea v-model="form.notes" class="mt-1 block w-full" rows="3" />
                             <InputError :message="form.errors.notes" />
                         </div>
                     </div>
-                    <div class="mt-4 flex justify-end gap-3">
-                        <DangerButton type="button" @click="closeModal">
-                            Cancel
-                        </DangerButton>
-                        <PrimaryButton :disabled="form.processing">
-                            Update
-                        </PrimaryButton>
+                    <div class="mt-6 flex justify-end gap-3">
+                        <DangerButton type="button" @click="closeModal">Cancel</DangerButton>
+                        <PrimaryButton :disabled="form.processing">Update Router</PrimaryButton>
                     </div>
                 </form>
             </div>
         </Modal>
 
-        <!-- Router Details Modal -->
-        <Modal :show="showDetails" @close="showDetails = false">
-            <div class="rounded-xl border border-dashed border-green-400 p-6">
-                <h2 class="mb-4 text-lg font-semibold">
-                    Router Details: {{ selectedRouter?.name }}
-                </h2>
-                <div class="mb-4 grid grid-cols-2 gap-4">
-                    <div
-                        class="rounded-xl border border-dashed border-blue-400 bg-gray-50 p-2 dark:bg-black"
-                    >
-                        <span class="font-medium">VPN IP:</span>
-                        {{ selectedRouter?.wireguard_address || selectedRouter?.ip_address || 'Not configured' }}
-                    </div>
-                    <div
-                        class="rounded-xl border border-dashed border-blue-400 bg-gray-50 p-2 dark:bg-black"
-                    >
-                        <span class="font-medium">Model:</span>
-                        {{ selectedRouter?.model || '-' }}
-                    </div>
-                    <div
-                        class="rounded-xl border border-dashed border-blue-400 bg-gray-50 p-2 dark:bg-black"
-                    >
-                        <span class="font-medium">OS Version:</span>
-                        {{ selectedRouter?.os_version || '-' }}
-                    </div>
-                    <div
-                        class="rounded-xl border border-dashed border-blue-400 bg-gray-50 p-2 dark:bg-black"
-                    >
-                        <span class="font-medium">Uptime:</span>
-                        {{
-                            selectedRouter?.uptime
-                                ? formatUptime(selectedRouter.uptime)
-                                : '-'
-                        }}
-                    </div>
-                    <div
-                        class="rounded-xl border border-dashed border-blue-400 bg-gray-50 p-2 dark:bg-black"
-                    >
-                        <span class="font-medium">CPU Usage:</span>
-                        {{ selectedRouter?.cpu ?? selectedRouter?.cpu_usage ?? '-' }}%
-                    </div>
-                    <div
-                        class="rounded-xl border border-dashed border-blue-400 bg-gray-50 p-2 dark:bg-black"
-                    >
-                        <span class="font-medium">Memory Usage:</span>
-                        {{ selectedRouter?.memory ?? selectedRouter?.memory_usage ?? '-' }}%
-                    </div>
-                    <div
-                        class="rounded-xl border border-dashed border-blue-400 bg-gray-50 p-2 dark:bg-black"
-                    >
-                        <span class="font-medium">Identity:</span>
-                        {{ selectedRouter?.name || '-' }}
-                    </div>
-                    <div v-if="selectedRouter?.temperature">
-                        <span class="font-medium">Temperature:</span>
-                        {{ selectedRouter.temperature }}°C
-                    </div>
-                    <div
-                        class="rounded-xl border border-dashed border-blue-400 bg-gray-50 p-2 dark:bg-black"
-                    >
-                        <span class="font-medium">Last Seen:</span>
-                        {{
-                            selectedRouter?.last_seen_at
-                                ? new Date(
-                                      selectedRouter.last_seen_at,
-                                  ).toLocaleString()
-                                : '-'
-                        }}
-                    </div>
-                </div>
-                <div v-if="selectedRouter?.notes" class="mb-4">
-                    <span class="font-medium">Notes:</span>
-                    {{ selectedRouter.notes }}
-                </div>
-
-                <div class="mb-4">
-                    <h3 class="mb-2 font-extrabold text-blue-400">Logs</h3>
-                    <div
-                        class="max-h-32 overflow-y-auto rounded-xl bg-gray-50 p-2 dark:bg-black"
-                    >
-                        <div
-                            v-for="log in selectedRouter?.logs"
-                            :key="log.id"
-                            class="mb-1 text-sm"
-                        >
-                            [{{
-                                log.created_at
-                                    ? new Date(log.created_at).toLocaleString()
-                                    : ''
-                            }}] {{ log.action }}: {{ log.message }} ({{
-                                log.status
-                            }})
-                        </div>
-                        <div
-                            v-if="!selectedRouter?.logs?.length"
-                            class="text-gray-500"
-                        >
-                            No logs found.
-                        </div>
-                    </div>
-                </div>
-
-                <div class="mb-4">
-                    <h3 class="mb-2 font-semibold text-blue-500">
-                        Bandwidth Usage (last 5 records)
-                    </h3>
-                    <div
-                        class="max-h-32 overflow-y-auto rounded-xl bg-gray-50 p-2 dark:bg-black"
-                    >
-                        <div
-                            v-for="bw in selectedRouter?.bandwidth_usage?.slice(
-                                0,
-                                5,
-                            )"
-                            :key="bw.id"
-                            class="mb-1 text-sm"
-                        >
-                            {{ bw.interface_name }}:
-                            {{ formatBytes(bw.bytes_in) }} in /
-                            {{ formatBytes(bw.bytes_out) }} out @
-                            {{ new Date(bw.timestamp).toLocaleString() }}
-                        </div>
-                        <div
-                            v-if="!selectedRouter?.bandwidth_usage?.length"
-                            class="text-gray-500"
-                        >
-                            No bandwidth data.
-                        </div>
-                    </div>
-                </div>
-
-                <div class="mb-4">
-                    <h3 class="mb-2 font-semibold text-blue-500">Alerts</h3>
-                    <div
-                        class="max-h-32 overflow-y-auto rounded-xl bg-gray-50 p-2 dark:bg-black"
-                    >
-                        <div
-                            v-for="alert in selectedRouter?.alerts"
-                            :key="alert.id"
-                            class="mb-1 text-sm"
-                        >
-                            [{{ alert.severity }}] {{ alert.alert_type }}:
-                            {{ alert.message }}
-                        </div>
-                        <div
-                            v-if="!selectedRouter?.alerts?.length"
-                            class="text-gray-500"
-                        >
-                            No alerts.
-                        </div>
-                    </div>
-                </div>
-
-                <div class="flex justify-end">
-                    <PrimaryButton @click="showDetails = false"
-                        >Close</PrimaryButton
-                    >
-                </div>
-            </div>
-        </Modal>
-
         <!-- Remote Management Modal -->
         <Modal :show="showRemoteModal" @close="showRemoteModal = false">
-            <div class="p-6">
-                <h2 class="mb-4 text-lg font-semibold">
-                    Remote Management Links
-                </h2>
-                <div class="space-y-2">
-                    <a
-                        :href="remoteLinks.winbox"
-                        target="_blank"
-                        class="block w-full rounded bg-blue-600 px-4 py-2 text-center font-bold text-white hover:bg-blue-700"
-                    >
-                        Open in Winbox
-                    </a>
-                    <!--<a
-                        :href="remoteLinks.ssh"
-                        target="_blank"
-                        class="block w-full rounded bg-gray-600 px-4 py-2 text-center font-bold text-white hover:bg-gray-700"
-                    >
-                        Open SSH
-                    </a>
-                    <a
-                        :href="remoteLinks.api"
-                        target="_blank"
-                        class="block w-full rounded bg-green-600 px-4 py-2 text-center font-bold text-white hover:bg-green-700"
-                    >
-                        Open API
-                    </a>-->
+            <div class="p-6 dark:bg-slate-800 dark:text-white">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Remote Management Links</h3>
+                <div v-if="remoteLinks" class="space-y-4">
+                    <div v-for="(link, type) in remoteLinks" :key="type" class="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-700 rounded-lg">
+                        <span class="font-medium capitalize">{{ type }}</span>
+                        <a :href="link" target="_blank" class="text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1">
+                            Open <ExternalLink class="w-3 h-3" />
+                        </a>
+                    </div>
                 </div>
-                <div class="mt-4 flex justify-end">
-                    <PrimaryButton @click="showRemoteModal = false"
-                        >Close</PrimaryButton
-                    >
+                <div class="mt-6 flex justify-end">
+                    <PrimaryButton @click="showRemoteModal = false">Close</PrimaryButton>
                 </div>
             </div>
         </Modal>
+
+        <!-- View Details Modal (Simple) -->
+        <Modal :show="showDetails" @close="showDetails = false">
+            <div class="p-6 dark:bg-slate-800 dark:text-white" v-if="selectedRouter">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">{{ selectedRouter.name }} Details</h3>
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <span class="block text-gray-500 dark:text-gray-400">IP Address</span>
+                        <span class="font-medium">{{ selectedRouter.ip_address || '-' }}</span>
+                    </div>
+                    <div>
+                        <span class="block text-gray-500 dark:text-gray-400">VPN IP</span>
+                        <span class="font-medium">{{ selectedRouter.wireguard_address || '-' }}</span>
+                    </div>
+                    <div>
+                        <span class="block text-gray-500 dark:text-gray-400">Model</span>
+                        <span class="font-medium">{{ selectedRouter.model || '-' }}</span>
+                    </div>
+                    <div>
+                        <span class="block text-gray-500 dark:text-gray-400">OS Version</span>
+                        <span class="font-medium">{{ selectedRouter.os_version || '-' }}</span>
+                    </div>
+                    <div class="col-span-2">
+                        <span class="block text-gray-500 dark:text-gray-400">Notes</span>
+                        <p class="mt-1 text-gray-700 dark:text-gray-300">{{ selectedRouter.notes || 'No notes' }}</p>
+                    </div>
+                </div>
+                <div class="mt-6 flex justify-end">
+                    <PrimaryButton @click="showDetails = false">Close</PrimaryButton>
+                </div>
+            </div>
+        </Modal>
+
     </AuthenticatedLayout>
 </template>

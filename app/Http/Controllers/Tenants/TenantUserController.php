@@ -210,12 +210,19 @@ public function show($id)
         $passwordChanged = isset($validated['password']);
         
         // Update the user in a transaction
-       /* \DB::transaction(function () use ($user, $validated) {
-            if ($passwordChanged) {
-                $validated['password'] = Hash::make($validated['password']);
+        \DB::transaction(function () use ($user, $validated, $passwordChanged) {
+            $updateData = $validated;
+            
+            // Only hash password if it's provided and not empty
+            if ($passwordChanged && !empty($validated['password'])) {
+                $updateData['password'] = Hash::make($validated['password']);
+            } else {
+                // Remove password from update data if it's empty to avoid clearing existing password
+                unset($updateData['password']);
             }
-            $user->update($validated);
-        });*/
+            
+            $user->update($updateData);
+        });
 
         return back()->with([
             'success' => 'User updated successfully.',
