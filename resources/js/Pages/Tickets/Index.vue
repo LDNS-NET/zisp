@@ -1,17 +1,28 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
-import { router, useForm } from '@inertiajs/vue3';
+import { router, useForm, Head } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Modal from '@/Components/Modal.vue';
 import InputLabel from '@/Components/InputLabel.vue';
-//import TextInput from '@/Components/TextInput.vue';
 import TextArea from '@/Components/TextArea.vue';
-//import SelectInput from '@/Components/SelectInput.vue';
 import InputError from '@/Components/InputError.vue';
 import Pagination from '@/Components/Pagination.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import DangerButton from '@/Components/DangerButton.vue';
-import { Plus, Save, X, Edit, Trash2, CheckCheck } from 'lucide-vue-next';
+import { 
+    Plus, 
+    Save, 
+    X, 
+    Edit, 
+    Trash2, 
+    CheckCheck, 
+    Ticket, 
+    MoreVertical, 
+    XCircle,
+    User,
+    AlertCircle,
+    FileText
+} from 'lucide-vue-next';
 
 const props = defineProps({
     tickets: Object,
@@ -26,6 +37,8 @@ const selectedTenantTickets = ref([]);
 const resolving = ref(null);
 const showDescriptionModal = ref(false);
 const fullDescription = ref('');
+const showActionsModal = ref(false);
+const selectedTicket = ref(null);
 
 const form = useForm({
     client_type: 'user',
@@ -52,6 +65,11 @@ const openEdit = (ticket) => {
     form.status = ticket.status;
     form.description = ticket.description;
     showModal.value = true;
+};
+
+const openActions = (ticket) => {
+    selectedTicket.value = ticket;
+    showActionsModal.value = true;
 };
 
 const submit = () => {
@@ -101,12 +119,12 @@ watch(selectAll, (val) => {
 const allIds = computed(() => props.tickets.data.map((l) => l.id));
 
 watch(selectedTenantTickets, (val) => {
-    selectAll.value = val.length === allIds.value.length;
+    selectAll.value = val.length === allIds.value.length && allIds.value.length > 0;
 });
 
-const remove = (id) => {
+const remove = (ticket) => {
     if (confirm('Delete this ticket?')) {
-        router.delete(route('tenants.tickets.destroy', id));
+        router.delete(route('tenants.tickets.destroy', ticket.id));
     }
 };
 
@@ -121,7 +139,6 @@ const clients = computed(() =>
 );
 
 //bulk delete
-//bulk delete
 const bulkDelete = () => {
     if (!selectedTenantTickets.value.length) return;
     if (!confirm('Are you sure you want to delete selected Tickets?')) return;
@@ -130,9 +147,7 @@ const bulkDelete = () => {
         data: { ids: selectedTenantTickets.value },
         onSuccess: () => {
             selectedTenantTickets.value = [];
-            router.visit(route('tenants.tickets.index'), {
-                preserveScroll: true,
-            });
+            selectAll.value = false;
         },
     });
 };
@@ -153,323 +168,333 @@ function showDescription(description) {
 </script>
 
 <template>
+    <Head title="Tickets" />
     <AuthenticatedLayout>
         <template #header>
-            <div class="flex items-center justify-between">
-                <h2 class="text-xl font-bold">
-                    Tickets ({{ props.statusFilter }})
-                </h2>
-                <PrimaryButton
-                    @click="openCreate"
-                    class="flex items-center gap-2"
-                >
-                    <Plus class="h-4 w-4" /> Add Ticket
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
+                        <Ticket class="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                        Tickets
+                    </h2>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                        Manage support requests and issues
+                    </p>
+                </div>
+                <PrimaryButton @click="openCreate" class="flex items-center gap-2">
+                    <Plus class="w-4 h-4" />
+                    <span>Add Ticket</span>
                 </PrimaryButton>
             </div>
         </template>
 
-        <div>
-            <div class="flex justify-between">
-                <div
-                    v-if="selectedTenantTickets.length"
-                    class="mb-4 flex items-center justify-between rounded p-3"
-                >
-                    <div class="flex gap-2">
-                        <DangerButton @click="bulkDelete"
-                            >Delete ({{
-                                selectedTenantTickets.length
-                            }})</DangerButton
-                        >
-                    </div>
-                </div>
-
-                <!-- Filter Buttons -->
-                <div class="mt-4 flex gap-2">
-                    <PrimaryButton
+        <div class="space-y-6">
+            <!-- Filters and Bulk Actions -->
+            <div class="flex flex-col sm:flex-row gap-4 justify-between items-center bg-white dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm">
+                <div class="flex p-1 bg-gray-100 dark:bg-slate-900 rounded-lg">
+                    <button
                         @click="changeFilter('open')"
-                        :class="{
-                            'bg-blue-700': props.statusFilter === 'open',
-                        }"
+                        :class="[
+                            'px-4 py-2 text-sm font-medium rounded-md transition-all',
+                            props.statusFilter === 'open'
+                                ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm'
+                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                        ]"
                     >
                         Open
-                    </PrimaryButton>
-                    <PrimaryButton
+                    </button>
+                    <button
                         @click="changeFilter('closed')"
-                        :class="{
-                            'bg-blue-700': props.statusFilter === 'closed',
-                        }"
+                        :class="[
+                            'px-4 py-2 text-sm font-medium rounded-md transition-all',
+                            props.statusFilter === 'closed'
+                                ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm'
+                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                        ]"
                     >
                         Closed
-                    </PrimaryButton>
+                    </button>
+                </div>
+
+                <div v-if="selectedTenantTickets.length" class="flex items-center gap-2">
+                    <span class="text-sm text-gray-500 dark:text-gray-400">{{ selectedTenantTickets.length }} selected</span>
+                    <DangerButton @click="bulkDelete" class="flex items-center gap-2">
+                        <Trash2 class="w-4 h-4" /> Delete
+                    </DangerButton>
                 </div>
             </div>
 
-            <!-- Table -->
-            <div
-                class="mt-4 overflow-x-auto rounded-lg border border-blue-400 bg-gray-200 shadow dark:bg-black"
-            >
-                <table class="min-w-full table-fixed divide-y divide-blue-400">
-                    <thead class="">
-                        <tr>
-                            <td class="w-6 px-2 py-2 text-center">
-                                <input
-                                    type="checkbox"
-                                    v-model="selectAll"
-                                    class="h-4 w-4 align-middle accent-blue-600"
-                                />
-                            </td>
+            <!-- Tickets Table (Desktop) / Cards (Mobile) -->
+            <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                <!-- Desktop Table -->
+                <div class="hidden md:block overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
+                        <thead class="bg-gray-50 dark:bg-slate-900/50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left w-10">
+                                    <input type="checkbox" v-model="selectAll" class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 dark:bg-slate-900 dark:border-slate-600" />
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Ticket #</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Client</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Priority</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Description</th>
+                                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 dark:divide-slate-700">
+                            <tr v-for="ticket in tickets.data" :key="ticket.id" class="hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <input type="checkbox" :value="ticket.id" v-model="selectedTenantTickets" class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 dark:bg-slate-900 dark:border-slate-600" />
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="font-mono text-sm text-blue-600 dark:text-blue-400">#{{ ticket.ticket_number }}</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center gap-2">
+                                        <User class="w-4 h-4 text-gray-400" />
+                                        <div class="text-sm font-medium text-gray-900 dark:text-white">
+                                            {{ ticket.client?.full_name || ticket.client?.name || 'Unknown' }}
+                                        </div>
+                                        <span class="text-xs text-gray-500 dark:text-gray-400 capitalize">({{ ticket.client_type }})</span>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span :class="[
+                                        'px-2 py-0.5 text-xs font-semibold rounded-full capitalize',
+                                        ticket.priority === 'high' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
+                                        ticket.priority === 'medium' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400' :
+                                        'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                                    ]">
+                                        {{ ticket.priority }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span :class="[
+                                        'px-2 py-0.5 text-xs font-semibold rounded-full capitalize',
+                                        ticket.status === 'open' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' :
+                                        'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                                    ]">
+                                        {{ ticket.status }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <button @click="showDescription(ticket.description)" class="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400">
+                                        <FileText class="w-3 h-3" />
+                                        {{ truncateWords(ticket.description, 4) }}
+                                    </button>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <button @click="openActions(ticket)" class="text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors p-2 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700">
+                                        <MoreVertical class="w-5 h-5" />
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr v-if="tickets.data.length === 0">
+                                <td colspan="7" class="px-6 py-10 text-center text-gray-500 dark:text-gray-400">
+                                    <div class="flex flex-col items-center justify-center">
+                                        <Ticket class="w-12 h-12 text-gray-300 dark:text-gray-600 mb-3" />
+                                        <p class="text-lg font-medium">No tickets found</p>
+                                        <p class="text-sm">Create a new ticket to get started</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
 
-                            <th
-                                class="px-4 py-2 text-left text-xs font-semibold text-blue-600"
-                            >
-                                Ticket #
-                            </th>
-                            <th
-                                class="px-4 py-2 text-left text-xs font-semibold text-blue-600"
-                            >
-                                Client
-                            </th>
-                            <th
-                                class="px-4 py-2 text-left text-xs font-semibold text-blue-600"
-                            >
-                                Type
-                            </th>
-                            <th
-                                class="px-4 py-2 text-left text-xs font-semibold text-blue-600"
-                            >
-                                Priority
-                            </th>
-                            <th
-                                class="px-4 py-2 text-left text-xs font-semibold text-blue-600"
-                            >
-                                Status
-                            </th>
-                            <th
-                                class="px-4 py-2 text-left text-xs font-semibold text-blue-600"
-                            >
-                                Description
-                            </th>
-                            <th
-                                class="px-4 py-2 text-right text-xs font-semibold text-blue-600"
-                            >
-                                Actions
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-700">
-                        <tr
-                            v-for="ticket in tickets.data"
-                            :key="ticket.id"
-                            class="hover:bg-gray-50 dark:hover:bg-gray-700"
-                        >
-                            <td class="w-6 px-2 py-2 text-center">
-                                <input
-                                    type="checkbox"
-                                    :value="ticket.id"
-                                    v-model="selectedTenantTickets"
-                                    class="h-4 w-4 align-middle accent-blue-600"
-                                />
-                            </td>
-
-                            <td class="px-4 py-2 font-mono text-blue-600">
-                                {{ ticket.ticket_number }}
-                            </td>
-                            <td class="px-4 py-2">
-                                {{
-                                    ticket.client?.full_name ||
-                                    ticket.client?.name ||
-                                    '—'
-                                }}
-                            </td>
-                            <td class="px-4 py-2 capitalize">
-                                {{ ticket.client_type }}
-                            </td>
-                            <td class="px-4 py-2 capitalize">
-                                {{ ticket.priority }}
-                            </td>
-                            <td class="px-4 py-2 capitalize">
+                <!-- Mobile Cards -->
+                <div class="md:hidden divide-y divide-gray-200 dark:divide-slate-700">
+                    <div v-for="ticket in tickets.data" :key="ticket.id" class="p-4 space-y-3">
+                        <div class="flex items-start justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="h-10 w-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                                    <Ticket class="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <div class="text-sm font-medium text-gray-900 dark:text-white">#{{ ticket.ticket_number }}</div>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400">
+                                        {{ ticket.client?.full_name || ticket.client?.name || 'Unknown' }}
+                                    </div>
+                                </div>
+                            </div>
+                            <span :class="[
+                                'px-2 py-0.5 text-xs font-semibold rounded-full capitalize',
+                                ticket.status === 'open' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' :
+                                'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                            ]">
                                 {{ ticket.status }}
-                            </td>
-                            <td class="px-4 py-2">
-                                <span
-                                    @click="showDescription(ticket.description)"
-                                    class="cursor-pointer text-green-600 hover:underline"
-                                >
-                                    {{
-                                        truncateWords(ticket.description, 1)
-                                    }}</span
-                                >
-                            </td>
-                            <td
-                                class="flex justify-end gap-2 px-4 py-2 text-right"
-                            >
-                                <button
-                                    @click="openResolve(ticket)"
-                                    class="text-green-600 hover:underline"
-                                    v-if="ticket.status === 'open'"
-                                >
-                                    <CheckCheck class="h-4 w-4" />
-                                </button>
+                            </span>
+                        </div>
 
-                                <button
-                                    @click="openEdit(ticket)"
-                                    class="text-blue-600 hover:underline"
-                                >
-                                    <Edit class="h-4 w-4" />
-                                </button>
-                                <button
-                                    @click="remove(ticket.id)"
-                                    class="text-red-600 hover:underline"
-                                >
-                                    <Trash2 class="h-4 w-4" />
-                                </button>
-                            </td>
-                        </tr>
-                        <tr v-if="tickets.data.length === 0">
-                            <td
-                                colspan="7"
-                                class="py-6 text-center text-sm text-gray-500"
-                            >
-                                No tickets found.
-                            </td>
-                        </tr>
-                    </tbody>
-                    <!-- Pagination -->
-                    <Pagination
-                        :links="tickets.links"
-                        class="w-6 px-2 py-2 text-center"
-                    />
-                </table>
+                        <div class="flex items-center gap-4 text-xs">
+                            <div class="flex items-center gap-1">
+                                <span class="text-gray-500 dark:text-gray-400">Priority:</span>
+                                <span :class="[
+                                    'font-medium capitalize',
+                                    ticket.priority === 'high' ? 'text-red-600 dark:text-red-400' :
+                                    ticket.priority === 'medium' ? 'text-amber-600 dark:text-amber-400' :
+                                    'text-green-600 dark:text-green-400'
+                                ]">{{ ticket.priority }}</span>
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <span class="text-gray-500 dark:text-gray-400">Type:</span>
+                                <span class="font-medium text-gray-700 dark:text-gray-300 capitalize">{{ ticket.client_type }}</span>
+                            </div>
+                        </div>
+
+                        <div class="text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-slate-900/50 p-2 rounded-lg">
+                            {{ truncateWords(ticket.description, 10) }}
+                        </div>
+
+                        <button @click="openActions(ticket)" class="w-full flex items-center justify-center gap-2 py-2 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors">
+                            <MoreVertical class="w-4 h-4" /> Manage Ticket
+                        </button>
+                    </div>
+                    <div v-if="tickets.data.length === 0" class="p-8 text-center text-gray-500 dark:text-gray-400">
+                        No tickets found.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            <div v-if="tickets.links.length > 3" class="flex justify-center mt-6">
+                <Pagination :links="tickets.links" />
             </div>
         </div>
 
-        <!--Resolving modal-->
-        <Modal :show="!!resolving" @close="resolving = null">
-            <div class="space-y-4 p-6">
-                <h2 class="text-lg font-semibold">Resolve Ticket</h2>
-                <div>
-                    <InputLabel value="Resolution Note" />
-                    <TextArea
-                        v-model="form.resolution_note"
-                        rows="4"
-                        class="w-full"
-                    />
-                    <InputError :message="form.errors.resolution_note" />
-                </div>
-                <div class="flex justify-end gap-2">
-                    <DangerButton @click="resolving = null"
-                        >Cancel</DangerButton
-                    >
-                    <PrimaryButton
-                        @click="resolveTicket"
-                        :disabled="form.processing"
-                    >
-                        <Save class="mr-1 h-4 w-4" /> Mark as Resolved
-                    </PrimaryButton>
-                </div>
-            </div>
-        </Modal>
-
-        <!-- Modal -->
+        <!-- Create/Edit Modal -->
         <Modal :show="showModal" @close="showModal = false">
-            <div class="space-y-4 p-6">
-                <h2 class="text-lg font-semibold">
+            <div class="p-6 dark:bg-slate-800 dark:text-white">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
                     {{ editing ? 'Edit Ticket' : 'Create Ticket' }}
-                </h2>
+                </h3>
+                <form @submit.prevent="submit">
+                    <div class="space-y-4">
+                        <div>
+                            <InputLabel value="Client Type" />
+                            <select v-model="form.client_type" class="mt-1 block w-full rounded-md border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                <option value="user">User</option>
+                                <option value="lead">Lead</option>
+                            </select>
+                            <InputError :message="form.errors.client_type" />
+                        </div>
+                        <div>
+                            <InputLabel value="Client" />
+                            <select v-model="form.client_id" class="mt-1 block w-full rounded-md border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                <option disabled value="">Select Client</option>
+                                <option v-for="client in clients" :key="client.id" :value="client.id">
+                                    {{ client.full_name || client.name }}
+                                </option>
+                            </select>
+                            <InputError :message="form.errors.client_id" />
+                        </div>
+                        <div>
+                            <InputLabel value="Priority" />
+                            <select v-model="form.priority" class="mt-1 block w-full rounded-md border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                <option value="low">Low</option>
+                                <option value="medium">Medium</option>
+                                <option value="high">High</option>
+                            </select>
+                            <InputError :message="form.errors.priority" />
+                        </div>
+                        <div>
+                            <InputLabel value="Status" />
+                            <select v-model="form.status" class="mt-1 block w-full rounded-md border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                <option value="open">Open</option>
+                                <option value="closed">Closed</option>
+                            </select>
+                            <InputError :message="form.errors.status" />
+                        </div>
+                        <div>
+                            <InputLabel value="Description" />
+                            <TextArea v-model="form.description" class="mt-1 block w-full" rows="3" />
+                            <InputError :message="form.errors.description" />
+                        </div>
+                    </div>
+                    <div class="mt-6 flex justify-end gap-3">
+                        <DangerButton type="button" @click="showModal = false">Cancel</DangerButton>
+                        <PrimaryButton :disabled="form.processing">{{ editing ? 'Update' : 'Save' }}</PrimaryButton>
+                    </div>
+                </form>
+            </div>
+        </Modal>
 
-                <!-- Client Type -->
-                <div>
-                    <InputLabel value="Client Type" />
-                    <select
-                        v-model="form.client_type"
-                        class="mt-1 block w-full rounded-md border-gray-300"
-                    >
-                        <option value="user">User</option>
-                        <option value="lead">Lead</option>
-                    </select>
-                    <InputError :message="form.errors.client_type" />
+        <!-- Actions Modal (Compact) -->
+        <Modal :show="showActionsModal" @close="showActionsModal = false" maxWidth="sm">
+            <div class="p-4 dark:bg-slate-800 dark:text-white" v-if="selectedTicket">
+                <div class="flex items-center justify-between mb-4 pb-2 border-b border-gray-100 dark:border-slate-700">
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-white truncate pr-4">
+                        Ticket #{{ selectedTicket.ticket_number }}
+                    </h3>
+                    <button @click="showActionsModal = false" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
+                        <XCircle class="w-5 h-5" />
+                    </button>
                 </div>
 
-                <!-- Client Name -->
-                <div>
-                    <InputLabel value="Client" />
-                    <select
-                        v-model="form.client_id"
-                        class="mt-1 block w-full rounded-md border-gray-300"
-                    >
-                        <option disabled value="">Select Client</option>
-                        <option
-                            v-for="client in clients"
-                            :key="client.id"
-                            :value="client.id"
-                        >
-                            {{ client.full_name || client.name }}
-                        </option>
-                    </select>
-                    <InputError :message="form.errors.client_id" />
-                </div>
+                <div class="space-y-1">
+                    <button v-if="selectedTicket.status === 'open'" @click="openResolve(selectedTicket); showActionsModal = false" class="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-left group">
+                        <div class="p-1.5 rounded-md bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400 group-hover:bg-green-100 dark:group-hover:bg-green-900/40">
+                            <CheckCheck class="w-4 h-4" />
+                        </div>
+                        <span class="text-sm font-medium text-gray-700 dark:text-gray-200">Resolve Ticket</span>
+                    </button>
 
-                <!-- Priority -->
-                <div>
-                    <InputLabel value="Priority" />
-                    <select
-                        v-model="form.priority"
-                        class="mt-1 block w-full rounded-md border-gray-300"
-                    >
-                        <option value="low">Low</option>
-                        <option value="medium">Medium</option>
-                        <option value="high">High</option>
-                    </select>
-                    <InputError :message="form.errors.priority" />
-                </div>
+                    <button @click="openEdit(selectedTicket); showActionsModal = false" class="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-left group">
+                        <div class="p-1.5 rounded-md bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/40">
+                            <Edit class="w-4 h-4" />
+                        </div>
+                        <span class="text-sm font-medium text-gray-700 dark:text-gray-200">Edit Ticket</span>
+                    </button>
 
-                <!-- Status -->
-                <div>
-                    <InputLabel value="Status" />
-                    <select
-                        v-model="form.status"
-                        class="mt-1 block w-full rounded-md border-gray-300"
-                    >
-                        <option value="open">Open</option>
-                        <option value="closed">Closed</option>
-                    </select>
-                    <InputError :message="form.errors.status" />
-                </div>
+                    <button @click="showDescription(selectedTicket.description); showActionsModal = false" class="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-left group">
+                        <div class="p-1.5 rounded-md bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400 group-hover:bg-purple-100 dark:group-hover:bg-purple-900/40">
+                            <FileText class="w-4 h-4" />
+                        </div>
+                        <span class="text-sm font-medium text-gray-700 dark:text-gray-200">View Description</span>
+                    </button>
 
-                <!-- Description -->
-                <div>
-                    <InputLabel value="Description" />
-                    <TextArea
-                        v-model="form.description"
-                        class="mt-1 block w-full"
-                        rows="3"
-                    />
-                    <InputError :message="form.errors.description" />
-                </div>
+                    <div class="border-t border-gray-100 dark:border-slate-700 my-1"></div>
 
-                <div class="mt-4 flex justify-end gap-3">
-                    <DangerButton type="button" @click="showModal = false">
-                        <X class="mr-1 h-4 w-4" /> Cancel
-                    </DangerButton>
-                    <PrimaryButton :disabled="form.processing" @click="submit">
-                        <Save class="mr-1 h-4 w-4" />
-                        {{ editing ? 'Update' : 'Save' }}
+                    <button @click="remove(selectedTicket); showActionsModal = false" class="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-left group">
+                        <div class="p-1.5 rounded-md bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 group-hover:bg-red-100 dark:group-hover:bg-red-900/40">
+                            <Trash2 class="w-4 h-4" />
+                        </div>
+                        <span class="text-sm font-medium text-red-600 dark:text-red-400">Delete Ticket</span>
+                    </button>
+                </div>
+            </div>
+        </Modal>
+
+        <!-- Resolve Modal -->
+        <Modal :show="!!resolving" @close="resolving = null">
+            <div class="p-6 dark:bg-slate-800 dark:text-white">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Resolve Ticket</h3>
+                <div class="space-y-4">
+                    <div>
+                        <InputLabel value="Resolution Note" />
+                        <TextArea v-model="form.resolution_note" class="mt-1 block w-full" rows="4" />
+                        <InputError :message="form.errors.resolution_note" />
+                    </div>
+                </div>
+                <div class="mt-6 flex justify-end gap-3">
+                    <DangerButton type="button" @click="resolving = null">Cancel</DangerButton>
+                    <PrimaryButton :disabled="form.processing" @click="resolveTicket">
+                        <CheckCheck class="mr-1 h-4 w-4" /> Mark as Resolved
                     </PrimaryButton>
                 </div>
             </div>
         </Modal>
 
-        <Modal
-            :show="showDescriptionModal"
-            @close="showDescriptionModal = false"
-        >
-            <div class="p-6">
-                <h2 class="mb-4 text-lg font-semibold">Description</h2>
-                <p class="text-gray-700">{{ fullDescription }}</p>
-                <div class="mt-4 text-right">
-                    <PrimaryButton @click="showDescriptionModal = false"
-                        >Close</PrimaryButton
-                    >
+        <!-- Description Modal -->
+        <Modal :show="showDescriptionModal" @close="showDescriptionModal = false">
+            <div class="p-6 dark:bg-slate-800 dark:text-white">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Description</h3>
+                <div class="bg-gray-50 dark:bg-slate-700 p-4 rounded-lg text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                    {{ fullDescription }}
+                </div>
+                <div class="mt-6 flex justify-end">
+                    <PrimaryButton @click="showDescriptionModal = false">Close</PrimaryButton>
                 </div>
             </div>
         </Modal>

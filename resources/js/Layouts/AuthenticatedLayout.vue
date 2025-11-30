@@ -51,10 +51,6 @@ watch(collapsed, (val) => {
 const navigation = [
     { name: 'Dashboard', href: route('dashboard'), icon: LayoutDashboard, active: 'dashboard' },
     
-    { header: 'Network Management' },
-    { name: 'Mikrotiks', href: route('mikrotiks.index'), icon: Network, active: 'mikrotiks.*' },
-    { name: 'Hotspot', href: route('hotspot.index'), icon: Wifi, active: 'hotspot.*' },
-    
     { header: 'User Management' },
     { name: 'Active Users', href: route('activeusers.index'), icon: Activity, active: 'activeusers.*' },
     { name: 'All Users', href: route('users.index'), icon: Users, active: 'users.*' },
@@ -66,6 +62,10 @@ const navigation = [
     { name: 'Vouchers', href: route('vouchers.index'), icon: Gift, active: 'vouchers.*' },
     { name: 'Payments', href: route('payments.index'), icon: Banknote, active: 'payments.*' },
     { name: 'Invoices', href: route('invoices.index'), icon: FileText, active: 'invoices.*' },
+
+    { header: 'Network Management' },
+    { name: 'Mikrotiks', href: route('mikrotiks.index'), icon: Network, active: 'mikrotiks.*' },
+    { name: 'Hotspot', href: route('hotspot.index'), icon: Wifi, active: 'hotspot.*' },
     
     { header: 'Communication' },
     { name: 'SMS', href: route('sms.index'), icon: MessageSquare, active: 'sms.*' },
