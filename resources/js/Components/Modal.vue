@@ -17,11 +17,24 @@ watch(
         if (props.show) {
             document.body.style.overflow = 'hidden';
             showSlot.value = true;
-            dialog.value?.showModal();
+            // Try to use showModal if available, otherwise just show the modal
+            if (dialog.value && typeof dialog.value.showModal === 'function') {
+                try {
+                    dialog.value.showModal();
+                } catch (e) {
+                    console.warn('showModal() failed, falling back to display:', e);
+                }
+            }
         } else {
             document.body.style.overflow = '';
             setTimeout(() => {
-                dialog.value?.close();
+                if (dialog.value && typeof dialog.value.close === 'function') {
+                    try {
+                        dialog.value.close();
+                    } catch (e) {
+                        console.warn('close() failed:', e);
+                    }
+                }
                 showSlot.value = false;
             }, 200);
         }

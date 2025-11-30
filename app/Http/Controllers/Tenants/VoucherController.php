@@ -31,7 +31,7 @@ class VoucherController extends Controller
         if ($search = $request->query('search')) {
             $query->where(function ($q) use ($search) {
                 $q->where('code', 'like', "%{$search}%")
-                  ->orWhere('name', 'like', "%{$search}%");
+                    ->orWhere('name', 'like', "%{$search}%");
             });
         }
 
@@ -45,12 +45,13 @@ class VoucherController extends Controller
 
         return Inertia::render('Vouchers/Index', [
             'vouchers' => $vouchers,
-             'voucherCount' => Voucher::count(),
+            'voucherCount' => Voucher::count(),
             'filters' => $request->only('search', 'status', 'page'), // Pass current filters back for persistence
             'creating' => $request->boolean('create'), // Control modal state via query param
             'editing' => $request->boolean('edit'), // NEW: Control editing modal state via query param
             'voucherToEdit' => $request->boolean('edit') && $request->has('voucher_id') ?
-                                Voucher::find($request->query('voucher_id')) : null, // NEW: Load voucher if editing
+                Voucher::find($request->query('voucher_id')) : null, // NEW: Load voucher if editing
+            'packages' => Package::all(), // Pass packages for voucher creation
             'flash' => [ // Pass flash messages for display
                 'success' => session('success'),
                 'error' => session('error'),
@@ -66,9 +67,10 @@ class VoucherController extends Controller
      * @return \Inertia\Response
      */
     public function create(): \Inertia\Response
-    {   $packages = Package::all();
+    {
+        $packages = Package::all();
         return Inertia::render('Vouchers/Create', [
-            'packages'=>$packages,
+            'packages' => $packages,
         ]);  // Assumes a dedicated Create.vue component
     }
 
@@ -79,50 +81,50 @@ class VoucherController extends Controller
      * @return \Illuminate\Http\RedirectResponse
      */
     public function store(Request $request): \Illuminate\Http\RedirectResponse
-{
-    $validated = $request->validate([
-        'prefix' => ['nullable', 'string', 'max:4'],
-        'length' => ['required', 'integer', 'min:6'],
-        'quantity'=> ['required', 'integer','min:1','max:1000'],
-        'package_id'=> ['required', 'exists:packages,id'],
-    ]);
-
-    $package = Package::findOrFail($request->package_id); // ✅ Fixed semicolon and var name
-
-    $vouchers = [];
-
-    for ($i = 0; $i < $request->quantity; $i++) {
-        $code = strtoupper($request->prefix ?? '') . strtoupper(Str::random($request->length - strlen($request->prefix ?? '')));
-
-        $vouchers[] = [
-            'code' => $code,
-            'package_id' => $package->id,
-            'value' => $package->price,
-            'expires_at' => now()->addDays($package->validity_days ?? 30),
-            'created_by' => auth()->id(),
-            'created_at' => now(),
-            'updated_at' => now(),
-        ];
-    }
-
-    try {
-        Voucher::insert($vouchers); // ✅ Correct way to insert multiple vouchers
-
-        return redirect()
-            ->route('vouchers.index')
-            ->with('success', "{$request->quantity} vouchers created successfully.");
-    } catch (\Throwable $e) {
-        Log::error("Failed to create vouchers: " . $e->getMessage(), [
-            'trace' => $e->getTraceAsString(),
-            'user_id' => auth()->id(),
+    {
+        $validated = $request->validate([
+            'prefix' => ['nullable', 'string', 'max:4'],
+            'length' => ['required', 'integer', 'min:6'],
+            'quantity' => ['required', 'integer', 'min:1', 'max:1000'],
+            'package_id' => ['required', 'exists:packages,id'],
         ]);
 
-        return redirect()
-            ->route('vouchers.index', ['create' => true])
-            ->with('error', 'Failed to create vouchers. ' . $e->getMessage())
-            ->withInput();
+        $package = Package::findOrFail($request->package_id); // ✅ Fixed semicolon and var name
+
+        $vouchers = [];
+
+        for ($i = 0; $i < $request->quantity; $i++) {
+            $code = strtoupper($request->prefix ?? '') . strtoupper(Str::random($request->length - strlen($request->prefix ?? '')));
+
+            $vouchers[] = [
+                'code' => $code,
+                'package_id' => $package->id,
+                'value' => $package->price,
+                'expires_at' => now()->addDays($package->validity_days ?? 30),
+                'created_by' => auth()->id(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+
+        try {
+            Voucher::insert($vouchers); // ✅ Correct way to insert multiple vouchers
+
+            return redirect()
+                ->route('vouchers.index')
+                ->with('success', "{$request->quantity} vouchers created successfully.");
+        } catch (\Throwable $e) {
+            Log::error("Failed to create vouchers: " . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'user_id' => auth()->id(),
+            ]);
+
+            return redirect()
+                ->route('vouchers.index', ['create' => true])
+                ->with('error', 'Failed to create vouchers. ' . $e->getMessage())
+                ->withInput();
+        }
     }
-}
 
 
     /**
