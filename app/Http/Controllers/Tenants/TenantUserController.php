@@ -217,6 +217,12 @@ class TenantUserController extends Controller
                 // Remove password from update if not provided
                 unset($validated['password']);
             }
+
+            // Handle package_id - if empty string, keep current value
+            if (isset($validated['package_id']) && empty($validated['package_id'])) {
+                unset($validated['package_id']);
+            }
+
             $user->update($validated);
         });
 
