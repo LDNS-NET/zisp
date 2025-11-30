@@ -17,24 +17,9 @@ watch(
         if (props.show) {
             document.body.style.overflow = 'hidden';
             showSlot.value = true;
-            // Try to use showModal if available, otherwise just show the modal
-            if (dialog.value && typeof dialog.value.showModal === 'function') {
-                try {
-                    dialog.value.showModal();
-                } catch (e) {
-                    console.warn('showModal() failed, falling back to display:', e);
-                }
-            }
         } else {
             document.body.style.overflow = '';
             setTimeout(() => {
-                if (dialog.value && typeof dialog.value.close === 'function') {
-                    try {
-                        dialog.value.close();
-                    } catch (e) {
-                        console.warn('close() failed:', e);
-                    }
-                }
                 showSlot.value = false;
             }, 200);
         }
@@ -68,11 +53,12 @@ const maxWidthClass = computed(() => ({
 </script>
 
 <template>
-    <dialog
+    <div
+        v-if="show"
         ref="dialog"
-        class="z-50 m-0 min-h-full min-w-full overflow-y-auto bg-transparent backdrop:bg-transparent"
+        class="fixed inset-0 z-50 overflow-y-auto"
     >
-        <div class="fixed inset-0 z-50 overflow-y-auto px-4 py-6 sm:px-0" scroll-region>
+        <div class="flex min-h-full items-center justify-center p-4">
             <!-- Overlay -->
             <Transition
                 enter-active-class="ease-out duration-300"
@@ -84,11 +70,9 @@ const maxWidthClass = computed(() => ({
             >
                 <div
                     v-show="show"
-                    class="fixed inset-0 transform transition-all"
+                    class="fixed inset-0 bg-gray-500 dark:bg-gray-900 opacity-75"
                     @click="close"
-                >
-                    <div class="absolute inset-0 bg-gray-500 dark:bg-gray-900 opacity-75" />
-                </div>
+                />
             </Transition>
 
             <!-- Modal -->
@@ -104,7 +88,7 @@ const maxWidthClass = computed(() => ({
                     v-show="show"
                     :class="[
                         maxWidthClass,
-                        'mb-6 transform overflow-hidden rounded-2xl shadow-xl transition-all sm:mx-auto sm:w-full',
+                        'relative transform overflow-hidden rounded-2xl shadow-xl transition-all',
                         'bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700'
                     ]"
                 >
@@ -112,5 +96,5 @@ const maxWidthClass = computed(() => ({
                 </div>
             </Transition>
         </div>
-    </dialog>
+    </div>
 </template>
