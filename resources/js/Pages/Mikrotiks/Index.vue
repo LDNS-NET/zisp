@@ -9,8 +9,6 @@ import TextArea from '@/Components/TextArea.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import DangerButton from '@/Components/DangerButton.vue';
 import InputError from '@/Components/InputError.vue';
-import Dropdown from '@/Components/Dropdown.vue';
-import DropdownLink from '@/Components/DropdownLink.vue';
 import { useToast } from 'vue-toastification';
 import {
     Plus,
@@ -47,6 +45,7 @@ const showAddModal = ref(false);
 const showEditModal = ref(false);
 const showDetails = ref(false);
 const showRemoteModal = ref(false);
+const showActionsModal = ref(false);
 const selectedRouter = ref(null);
 const remoteLinks = ref({});
 const pinging = ref({});
@@ -105,7 +104,6 @@ function editForm() {
             onSuccess: () => {
                 toast.success('Router updated successfully');
                 closeModal();
-                // Optimistic update or reload handled by Inertia/Watch
             },
             onError: () => {
                 toast.error('Error updating router');
@@ -132,6 +130,11 @@ function openEdit(router) {
 function viewRouter(router) {
     selectedRouter.value = router;
     showDetails.value = true;
+}
+
+function openActions(router) {
+    selectedRouter.value = router;
+    showActionsModal.value = true;
 }
 
 function deleteRouter(mikrotik) {
@@ -378,37 +381,9 @@ watch([routersList, search], () => {
                                     </div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <Dropdown align="right" width="48">
-                                        <template #trigger>
-                                            <button class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors p-1 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700">
-                                                <MoreVertical class="w-5 h-5" />
-                                            </button>
-                                        </template>
-                                        <template #content>
-                                            <DropdownLink as="button" @click="viewRouter(router)" class="flex items-center gap-2">
-                                                <Eye class="w-4 h-4 text-blue-500" /> View Details
-                                            </DropdownLink>
-                                            <DropdownLink as="button" @click="openEdit(router)" class="flex items-center gap-2">
-                                                <Edit class="w-4 h-4 text-amber-500" /> Edit Router
-                                            </DropdownLink>
-                                            <DropdownLink as="button" @click="pingRouter(router)" :disabled="pinging[router.id]" class="flex items-center gap-2">
-                                                <Activity class="w-4 h-4 text-green-500" /> Ping Router
-                                            </DropdownLink>
-                                            <DropdownLink as="button" @click="showRemote(router)" class="flex items-center gap-2">
-                                                <ExternalLink class="w-4 h-4 text-purple-500" /> Remote Mgmt
-                                            </DropdownLink>
-                                            <DropdownLink as="button" @click="router.visit(route('mikrotiks.reprovision', router.id))" class="flex items-center gap-2">
-                                                <RotateCcw class="w-4 h-4 text-indigo-500" /> Reprovision
-                                            </DropdownLink>
-                                            <DropdownLink as="button" @click="downloadAdvancedConfig(router)" class="flex items-center gap-2">
-                                                <Download class="w-4 h-4 text-cyan-500" /> Download Config
-                                            </DropdownLink>
-                                            <div class="border-t border-gray-100 dark:border-slate-700 my-1"></div>
-                                            <DropdownLink as="button" @click="deleteRouter(router)" class="flex items-center gap-2 text-red-600 dark:text-red-400">
-                                                <Trash2 class="w-4 h-4" /> Delete
-                                            </DropdownLink>
-                                        </template>
-                                    </Dropdown>
+                                    <button @click="openActions(router)" class="text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors p-2 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700" title="Manage Router">
+                                        <MoreVertical class="w-5 h-5" />
+                                    </button>
                                 </td>
                             </tr>
                             <tr v-if="filteredRouters.length === 0">
@@ -434,7 +409,7 @@ watch([routersList, search], () => {
                                 </div>
                                 <div>
                                     <div class="text-sm font-medium text-gray-900 dark:text-white">{{ router.name }}</div>
-                                    <div class="text-xs text-gray-500 dark:text-gray-400">{{ router.model || 'Unknown Model' }}</div>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400">{{ router.wireguard_address || router.ip_address || 'No IP' }}</div>
                                 </div>
                             </div>
                             <span :class="[
@@ -447,40 +422,24 @@ watch([routersList, search], () => {
                             </span>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-2 text-sm">
-                            <div class="text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                                <Terminal class="w-3 h-3" /> {{ router.wireguard_address || 'No IP' }}
+                        <div class="grid grid-cols-3 gap-2 text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-slate-900/50 p-2 rounded-lg">
+                            <div class="flex flex-col items-center justify-center p-1">
+                                <span class="uppercase tracking-wider text-[10px] opacity-70">CPU</span>
+                                <span class="font-medium text-gray-700 dark:text-gray-300">{{ router.cpu ? router.cpu + '%' : '-' }}</span>
                             </div>
-                            <div class="text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                                <Clock class="w-3 h-3" /> {{ router.uptime ? formatUptime(router.uptime) : '-' }}
+                            <div class="flex flex-col items-center justify-center p-1 border-l border-gray-200 dark:border-slate-700">
+                                <span class="uppercase tracking-wider text-[10px] opacity-70">Mem</span>
+                                <span class="font-medium text-gray-700 dark:text-gray-300">{{ router.memory ? router.memory + '%' : '-' }}</span>
                             </div>
-                            <div class="text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                                <Cpu class="w-3 h-3" /> {{ router.cpu ? router.cpu + '%' : '-' }}
-                            </div>
-                            <div class="text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                                <HardDrive class="w-3 h-3" /> {{ router.memory ? router.memory + '%' : '-' }}
+                            <div class="flex flex-col items-center justify-center p-1 border-l border-gray-200 dark:border-slate-700">
+                                <span class="uppercase tracking-wider text-[10px] opacity-70">Uptime</span>
+                                <span class="font-medium text-gray-700 dark:text-gray-300">{{ router.uptime ? formatUptime(router.uptime).split(' ')[0] : '-' }}</span>
                             </div>
                         </div>
 
-                        <div class="flex items-center justify-end gap-3 pt-2 border-t border-gray-100 dark:border-slate-700/50">
-                            <button @click="viewRouter(router)" class="text-blue-600 dark:text-blue-400 text-sm font-medium">View</button>
-                            <button @click="openEdit(router)" class="text-amber-600 dark:text-amber-400 text-sm font-medium">Edit</button>
-                            <button @click="pingRouter(router)" class="text-green-600 dark:text-green-400 text-sm font-medium">Ping</button>
-                            <Dropdown align="right" width="48">
-                                <template #trigger>
-                                    <button class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-                                        <MoreVertical class="w-5 h-5" />
-                                    </button>
-                                </template>
-                                <template #content>
-                                    <DropdownLink as="button" @click="showRemote(router)">Remote Mgmt</DropdownLink>
-                                    <DropdownLink as="button" @click="router.visit(route('mikrotiks.reprovision', router.id))">Reprovision</DropdownLink>
-                                    <DropdownLink as="button" @click="downloadAdvancedConfig(router)">Download Config</DropdownLink>
-                                    <div class="border-t border-gray-100 dark:border-slate-700 my-1"></div>
-                                    <DropdownLink as="button" @click="deleteRouter(router)" class="text-red-600">Delete</DropdownLink>
-                                </template>
-                            </Dropdown>
-                        </div>
+                        <button @click="openActions(router)" class="w-full flex items-center justify-center gap-2 py-2 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors">
+                            <MoreVertical class="w-4 h-4" /> Manage Router
+                        </button>
                     </div>
                     <div v-if="filteredRouters.length === 0" class="p-8 text-center text-gray-500 dark:text-gray-400">
                         No routers found.
@@ -591,6 +550,56 @@ watch([routersList, search], () => {
                         <PrimaryButton :disabled="form.processing">Update Router</PrimaryButton>
                     </div>
                 </form>
+            </div>
+        </Modal>
+
+        <!-- Actions Modal -->
+        <Modal :show="showActionsModal" @close="showActionsModal = false">
+            <div class="p-6 dark:bg-slate-800 dark:text-white" v-if="selectedRouter">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-white">Manage {{ selectedRouter.name }}</h3>
+                    <button @click="showActionsModal = false" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
+                        <XCircle class="w-6 h-6" />
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <button @click="viewRouter(selectedRouter); showActionsModal = false" class="flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-slate-700 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 dark:hover:text-blue-400 transition-all group">
+                        <Eye class="w-8 h-8 mb-2 text-gray-400 group-hover:text-blue-500" />
+                        <span class="font-medium">View Details</span>
+                    </button>
+
+                    <button @click="openEdit(selectedRouter); showActionsModal = false" class="flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-slate-700 rounded-xl hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:text-amber-600 dark:hover:text-amber-400 transition-all group">
+                        <Edit class="w-8 h-8 mb-2 text-gray-400 group-hover:text-amber-500" />
+                        <span class="font-medium">Edit Router</span>
+                    </button>
+
+                    <button @click="pingRouter(selectedRouter); showActionsModal = false" :disabled="pinging[selectedRouter.id]" class="flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-slate-700 rounded-xl hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-600 dark:hover:text-green-400 transition-all group">
+                        <Activity class="w-8 h-8 mb-2 text-gray-400 group-hover:text-green-500" />
+                        <span class="font-medium">Ping Router</span>
+                    </button>
+
+                    <button @click="showRemote(selectedRouter); showActionsModal = false" class="flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-slate-700 rounded-xl hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-600 dark:hover:text-purple-400 transition-all group">
+                        <ExternalLink class="w-8 h-8 mb-2 text-gray-400 group-hover:text-purple-500" />
+                        <span class="font-medium">Remote Mgmt</span>
+                    </button>
+
+                    <button @click="selectedRouter.visit(route('mikrotiks.reprovision', selectedRouter.id)); showActionsModal = false" class="flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-slate-700 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all group">
+                        <RotateCcw class="w-8 h-8 mb-2 text-gray-400 group-hover:text-indigo-500" />
+                        <span class="font-medium">Reprovision</span>
+                    </button>
+
+                    <button @click="downloadAdvancedConfig(selectedRouter); showActionsModal = false" class="flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-slate-700 rounded-xl hover:bg-cyan-50 dark:hover:bg-cyan-900/20 hover:text-cyan-600 dark:hover:text-cyan-400 transition-all group">
+                        <Download class="w-8 h-8 mb-2 text-gray-400 group-hover:text-cyan-500" />
+                        <span class="font-medium">Download Config</span>
+                    </button>
+                </div>
+
+                <div class="mt-4 pt-4 border-t border-gray-100 dark:border-slate-700">
+                    <button @click="deleteRouter(selectedRouter); showActionsModal = false" class="w-full flex items-center justify-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors font-medium">
+                        <Trash2 class="w-5 h-5" /> Delete Router
+                    </button>
+                </div>
             </div>
         </Modal>
 
