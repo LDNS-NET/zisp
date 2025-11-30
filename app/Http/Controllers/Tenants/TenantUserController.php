@@ -272,7 +272,7 @@ class TenantUserController extends Controller
 
         // Update related payments in a transaction
         \DB::transaction(function () use ($ids) {
-            \App\Models\Tenants\TenantPayment::whereIn('user_id', $ids)
+            TenantPayment::whereIn('user_id', $ids)
                 ->update(['user_id' => null]);
 
             // Delete the users
