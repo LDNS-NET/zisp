@@ -170,7 +170,7 @@ function toggleSidebar() {
             <!-- Top Header -->
             <header class="h-16 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between px-4 sm:px-6 lg:px-8 z-30 sticky top-0">
                 
-                <!-- Left: Mobile Toggle & Title -->
+                <!-- Left: Mobile Toggle -->
                 <div class="flex items-center gap-4">
                     <button 
                         @click="toggleSidebar" 
@@ -178,10 +178,6 @@ function toggleSidebar() {
                     >
                         <Menu class="w-6 h-6" />
                     </button>
-                    
-                    <h1 class="text-xl font-semibold text-gray-800 dark:text-white hidden sm:block">
-                        <slot name="header" />
-                    </h1>
                 </div>
 
                 <!-- Right: Actions -->
@@ -232,6 +228,13 @@ function toggleSidebar() {
                     </Dropdown>
                 </div>
             </header>
+
+            <!-- Page Header (Title & Actions) -->
+            <div v-if="$slots.header" class="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800">
+                <div class="px-4 py-4 sm:px-6 lg:px-8">
+                    <slot name="header" />
+                </div>
+            </div>
 
             <!-- Page Content -->
             <main class="flex-1 overflow-y-auto bg-gray-50 dark:bg-slate-950 p-4 sm:p-6 lg:p-8">
