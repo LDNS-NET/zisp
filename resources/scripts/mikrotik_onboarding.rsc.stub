@@ -197,7 +197,7 @@
         :do {
             :put ("Attempting WireGuard register POST to: " . $wgRegisterUrl)
             :put ("  POST data: wg_public_key=<KEY>&wg_address=" . $wgAddr)
-            /tool fetch url=$wgRegisterUrl http-method=post http-data=$postData http-content-type="application/x-www-form-urlencoded" keep-result=no
+            /tool fetch url=$wgRegisterUrl http-method=post http-data=$postData http-header-field="Content-Type: application/x-www-form-urlencoded" keep-result=no
             :put "  status: success"
             :put "WireGuard register phone-home successful"
         } on-error={
@@ -209,7 +209,7 @@
             }
             :do {
                 :put ("Attempting WireGuard register POST to (fallback): " . $altUrl)
-                /tool fetch url=$altUrl http-method=post http-data=$postData http-content-type="application/x-www-form-urlencoded" keep-result=no
+                /tool fetch url=$altUrl http-method=post http-data=$postData http-header-field="Content-Type: application/x-www-form-urlencoded" keep-result=no
                 :put "  status: success"
                 :put "WireGuard register phone-home successful (HTTP fallback)"
             } on-error={ 
