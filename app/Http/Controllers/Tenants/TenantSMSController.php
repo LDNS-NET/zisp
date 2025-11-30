@@ -123,6 +123,19 @@ class TenantSMSController extends Controller
             ->with('success', 'SMS batch is being processed.');
     }
 
+    public function bulkDelete(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'exists:tenant_sms,id',
+        ]);
+
+        TenantSMS::whereIn('id', $request->ids)->delete();
+
+        return redirect()->route('sms.index')
+            ->with('success', 'Selected SMS logs deleted successfully.');
+    }
+
     public function destroy(TenantSMS $smsLog)
     {
         $smsLog->delete();

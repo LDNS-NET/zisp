@@ -80,6 +80,19 @@ class TenantSMSTemplateController extends Controller
         return redirect()->route('smstemplates.index')->with('success', 'SMS Template updated successfully.');
     }
 
+    public function bulkDelete(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'exists:tenant_sms_templates,id',
+        ]);
+
+        TenantSMSTemplate::whereIn('id', $request->ids)->delete();
+
+        return redirect()->route('smstemplates.index')
+            ->with('success', 'Selected templates deleted successfully.');
+    }
+
     public function destroy(TenantSMSTemplate $smstemplate)
     {
         $smstemplate->delete();

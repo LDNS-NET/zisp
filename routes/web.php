@@ -86,7 +86,7 @@ Route::middleware(['auth', 'verified', 'check.subscription', 'tenant.domain'])
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
         Route::get('/dashboard/data', [DashboardController::class, 'data'])->name('dashboard.data');
 
-     //Active Users
+        //Active Users
         Route::resource('activeusers', TenantActiveUsersController::class);
 
         //tenants packages
@@ -97,7 +97,7 @@ Route::middleware(['auth', 'verified', 'check.subscription', 'tenant.domain'])
         Route::resource('users', TenantUserController::class);
         Route::delete('/users/bulk-delete', [TenantUserController::class, 'bulkDelete'])->name('users.bulk-delete');
         Route::post('users/details', [TenantUserController::class, 'update'])->name('users.details.update');
-    
+
 
         //Leads
         Route::resource('leads', TenantLeadController::class)->only(['index', 'store', 'update', 'destroy']);
@@ -110,8 +110,8 @@ Route::middleware(['auth', 'verified', 'check.subscription', 'tenant.domain'])
 
         //Equipment
         Route::resource('equipment', TenantEquipmentController::class)->only(['index', 'store', 'update', 'destroy']);
-        Route::delete('/equipment/bulk-delete', [TenantEquipmentController::class, 'bulkDelete' ])->name('equipment.bulk-delete');
-        
+        Route::delete('/equipment/bulk-delete', [TenantEquipmentController::class, 'bulkDelete'])->name('equipment.bulk-delete');
+
         //vouchers
         Route::resource('vouchers', VoucherController::class);
         Route::post('/vouchers/{voucher}/send', [VoucherController::class, 'send'])->name('vouchers.send');
@@ -119,7 +119,7 @@ Route::middleware(['auth', 'verified', 'check.subscription', 'tenant.domain'])
 
         //Payments
         Route::resource('payments', TenantPaymentController::class)->only(['index', 'store', 'update', 'destroy']);
-        Route::delete('/payments/bulk-delete', [TenantPaymentController::class, 'bulkDelete' ])->name('payments.bulk-delete');
+        Route::delete('/payments/bulk-delete', [TenantPaymentController::class, 'bulkDelete'])->name('payments.bulk-delete');
 
         //Invoices
         Route::resource('invoices', TenantInvoiceController::class)->only(['index', 'store', 'update', 'destroy']);
@@ -127,13 +127,15 @@ Route::middleware(['auth', 'verified', 'check.subscription', 'tenant.domain'])
 
         //Expenses
         Route::resource('expenses', TenantExpensesController::class)->only(['index', 'store', 'update', 'destroy']);
-        Route::delete('/expenses/bulk-delete', [TenantExpensesController::class, 'bulkDelete' ])->name('expenses.bulk-delete');
-        
+        Route::delete('/expenses/bulk-delete', [TenantExpensesController::class, 'bulkDelete'])->name('expenses.bulk-delete');
+
         //SMS
-        Route::resource('sms', TenantSMSController::class)->only(['index','create', 'store', 'destroy']);
+        Route::resource('sms', TenantSMSController::class)->only(['index', 'create', 'store', 'destroy']);
+        Route::delete('/sms/bulk-delete', [TenantSMSController::class, 'bulkDelete'])->name('sms.bulk-delete');
 
         // SMS Templates
-        Route::resource('smstemplates', TenantSMSTemplateController::class)->only(['index', 'create','update', 'store', 'destroy']);
+        Route::resource('smstemplates', TenantSMSTemplateController::class)->only(['index', 'create', 'update', 'store', 'destroy']);
+        Route::delete('/smstemplates/bulk-delete', [TenantSMSTemplateController::class, 'bulkDelete'])->name('smstemplates.bulk-delete');
 
         //Hotspot Settings
         Route::get('settings/hotspot', [TenantHotspotSettingsController::class, 'edit'])->name('settings.hotspot.edit');
@@ -179,27 +181,27 @@ Route::middleware(['auth', 'verified', 'check.subscription', 'tenant.domain'])
         Route::get('hotspot-templates/{file}', function ($file) {
             // Allowed files
             $allowedFiles = ['login.html', 'alogin.html', 'rlogin.html', 'flogin.html', 'logout.html', 'redirect.html', 'error.html'];
-            
+
             if (!in_array($file, $allowedFiles)) {
                 abort(404, 'Template file not found');
             }
-            
+
             $templatePath = resource_path('scripts/zisp-hotspot/' . $file);
-            
+
             if (!file_exists($templatePath)) {
                 abort(404, 'Template file not found');
             }
-            
+
             // Get current tenant and replace domain placeholder
             $currentTenant = tenant();
             $tenantDomain = $currentTenant ? $currentTenant->domains()->first()->domain : null;
-            
+
             $content = file_get_contents($templatePath);
-            
+
             if ($tenantDomain) {
                 $content = str_replace('{{ $tenant->domain }}', $tenantDomain, $content);
             }
-            
+
             return response($content)
                 ->header('Content-Type', 'text/html')
                 ->header('Cache-Control', 'no-cache, no-store, must-revalidate')
@@ -210,12 +212,12 @@ Route::middleware(['auth', 'verified', 'check.subscription', 'tenant.domain'])
 
 
         //captive portal
-        
+    
 
 
         // Tenant settings routes
+    
 
-        
 
     });
 
@@ -237,7 +239,8 @@ Route::get('/payment/success', function () {
             'is_suspended' => false,
         ]);
     }
-    return redirect()->route('dashboard');})->name('payment.success');
+    return redirect()->route('dashboard');
+})->name('payment.success');
 
 
 
@@ -284,4 +287,4 @@ Route::middleware(['auth', 'superadmin'])
         // other superadmin routes
     });
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';
