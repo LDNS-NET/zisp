@@ -11,7 +11,7 @@ class MikrotikDetailsController extends Controller
 {
     public function index(Request $request)
     {
-        $tenantId = tenant('id'); // since you're using Stancl Tenancy
+        $tenantId = tenant('id'); // Stancl auto-resolved tenant ID
 
         $mikrotikDetails = TenantMikrotik::where('tenant_id', $tenantId)->first();
 
