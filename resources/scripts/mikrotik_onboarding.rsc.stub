@@ -35,7 +35,7 @@
     :put " - $ipAddr"
 }
 
-put: " ======= Applying Radius Configuration ======= "
+:put " ======= Applying Radius Configuration ======= "
 :do {
     /radius remove [find address=$radiusIp]
     :if ($radiusServerIp != $radiusIp) do={
