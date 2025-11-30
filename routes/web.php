@@ -34,6 +34,7 @@ use App\Http\Controllers\Tenants\TenantWhatsappGatewayController;
 use App\Http\Controllers\Tenants\VoucherController;
 use App\Http\Controllers\MikrotikController;
 use App\Http\Controllers\Tenants\TenantHotspotController;
+use App\Http\Controllers\Tenants\MikrotikDetailsController;
 
 /*
 |--------------------------------------------------------------------------
@@ -158,7 +159,8 @@ Route::middleware(['auth', 'verified', 'check.subscription', 'tenant.domain'])
         Route::post('settings/general', [TenantGeneralSettingsController::class, 'update'])->name('settings.general.update');
 
         //Mikrotik Details
-         Route::get('mikrotik-details/{tenantId}', [\App\Http\Controllers\Tenants\MikrotikDetailsController::class, 'index'])->name('mikrotik-details.index');
+        Route::resource('mikrotikdetails', MikrotikDetailsController::class)->only(['index']);
+
 
         //mikrotiks
         Route::resource('mikrotiks', TenantMikrotikController::class);

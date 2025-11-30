@@ -13,7 +13,7 @@ class MikrotikDetailsController extends Controller
     {
         $mikrotikDetails = TenantMikrotik::where('tenant_id', $tenantId)->first();
 
-        return Inertia::render('Tenants/MikrotikDetails/Index', [
+        return Inertia::render('Mikrotikdetails/Index', [
             'mikrotikDetails' => $mikrotikDetails,
             'tenantId' => $tenantId,
         ]);
