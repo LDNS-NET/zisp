@@ -155,6 +155,14 @@ const toggleSelectAll = (e) => {
         selectedUsers.value = [];
     }
 };
+
+const showActionsModal = ref(false);
+const selectedUserForActions = ref(null);
+
+const openActions = (user) => {
+    selectedUserForActions.value = user;
+    showActionsModal.value = true;
+};
 </script>
 
 <template>
@@ -324,50 +332,80 @@ const toggleSelectAll = (e) => {
                 </div>
 
                 <!-- Mobile Cards -->
-                <div class="md:hidden divide-y divide-gray-200 dark:divide-slate-700">
-                    <div v-for="user in users.data" :key="user.id" class="p-4 space-y-3">
-                        <div class="flex items-start justify-between">
-                            <Link :href="route('users.show', user.id)" class="flex items-center gap-3 group">
-                                <div class="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm group-hover:ring-2 group-hover:ring-blue-500 transition-all">
-                                    {{ user.username.charAt(0).toUpperCase() }}
-                                </div>
-                                <div>
-                                    <div class="text-sm font-medium text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{{ user.username }}</div>
-                                    <div class="text-xs text-gray-500 dark:text-gray-400">{{ user.full_name }}</div>
-                                </div>
-                            </Link>
-                            <span :class="[
-                                'px-2 py-0.5 text-xs font-semibold rounded-full',
-                                user.is_online 
-                                    ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' 
-                                    : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
-                            ]">
-                                {{ user.is_online ? 'Online' : 'Offline' }}
-                            </span>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-2 text-sm">
-                            <div class="text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                                <Smartphone class="w-3 h-3" /> {{ user.phone }}
-                            </div>
-                            <div class="text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                                <Wifi class="w-3 h-3" /> {{ user.package?.name || '-' }}
-                            </div>
-                        </div>
-
-                        <div class="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-slate-700/50">
-                            <div class="text-xs text-gray-400">
-                                Expires: {{ user.expiry_human }}
-                            </div>
-                            <div class="flex gap-3">
-                                <button @click="viewUser(user)" class="text-blue-600 dark:text-blue-400 text-sm font-medium">View</button>
-                                <button @click="openEdit(user)" class="text-amber-600 dark:text-amber-400 text-sm font-medium">Edit</button>
-                                <button @click="remove(user.id)" class="text-red-600 dark:text-red-400 text-sm font-medium">Delete</button>
-                            </div>
-                        </div>
+                <div class="md:hidden">
+                    <div v-if="selectedUsers.length > 0" class="p-4 bg-gray-50 dark:bg-slate-700/50 border-b border-gray-200 dark:border-slate-700">
+                        <label class="flex items-center">
+                            <input 
+                                type="checkbox"
+                                :checked="selectedUsers.length === users.data.length && users.data.length > 0"
+                                @change="toggleSelectAll"
+                                class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 dark:bg-slate-800 dark:border-slate-600"
+                            />
+                            <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Select All</span>
+                        </label>
                     </div>
-                    <div v-if="users.data.length === 0" class="p-8 text-center text-gray-500 dark:text-gray-400">
-                        No users found.
+
+                    <div class="divide-y divide-gray-200 dark:divide-slate-700">
+                        <div v-for="user in users.data" :key="user.id" class="p-4 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                            <div class="flex items-start gap-3">
+                                <input 
+                                    type="checkbox"
+                                    :value="user.id"
+                                    v-model="selectedUsers"
+                                    class="mt-1 rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 dark:bg-slate-800 dark:border-slate-600"
+                                />
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <div class="flex items-center gap-2">
+                                            <div class="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs">
+                                                {{ user.username.charAt(0).toUpperCase() }}
+                                            </div>
+                                            <h3 class="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                                {{ user.username }}
+                                            </h3>
+                                        </div>
+                                        <button @click="openActions(user)" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                                            <MoreVertical class="w-5 h-5" />
+                                        </button>
+                                    </div>
+                                    
+                                    <div class="ml-10 space-y-1">
+                                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                                            {{ user.full_name }}
+                                        </p>
+                                        <div class="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+                                            <span class="flex items-center gap-1">
+                                                <Smartphone class="w-3 h-3" /> {{ user.phone }}
+                                            </span>
+                                            <span class="flex items-center gap-1">
+                                                <Wifi class="w-3 h-3" /> {{ user.package?.name || '-' }}
+                                            </span>
+                                        </div>
+                                        <div class="flex items-center justify-between pt-1">
+                                            <span :class="[
+                                                'px-2 py-0.5 text-[10px] font-semibold rounded-full',
+                                                user.is_online 
+                                                    ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' 
+                                                    : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                                            ]">
+                                                {{ user.is_online ? 'Online' : 'Offline' }}
+                                            </span>
+                                            <span class="text-[10px] text-gray-400">
+                                                Exp: {{ user.expiry_human }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div v-if="users.data.length === 0" class="p-8 text-center text-gray-500 dark:text-gray-400">
+                            <div class="flex flex-col items-center justify-center">
+                                <UserCheck class="w-12 h-12 text-gray-300 dark:text-gray-600 mb-3" />
+                                <p class="text-lg font-medium">No users found</p>
+                                <p class="text-sm">Try adjusting your search or filters</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -497,6 +535,47 @@ const toggleSelectAll = (e) => {
 
                 <div class="flex justify-end">
                     <PrimaryButton @click="viewing = null">Close</PrimaryButton>
+                </div>
+            </div>
+        </Modal>
+        <!-- Actions Modal (Mobile) -->
+        <Modal :show="showActionsModal" @close="showActionsModal = false" maxWidth="sm">
+            <div class="p-6 dark:bg-slate-800" v-if="selectedUserForActions">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                    Actions for {{ selectedUserForActions.username }}
+                </h3>
+                <div class="space-y-3">
+                    <button 
+                        @click="viewUser(selectedUserForActions); showActionsModal = false"
+                        class="w-full flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                    >
+                        <Eye class="w-4 h-4 mr-3 text-blue-500" />
+                        View Details
+                    </button>
+                    
+                    <button 
+                        @click="openEdit(selectedUserForActions); showActionsModal = false"
+                        class="w-full flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                    >
+                        <Edit class="w-4 h-4 mr-3 text-amber-500" />
+                        Edit User
+                    </button>
+                    
+                    <button 
+                        @click="remove(selectedUserForActions.id); showActionsModal = false"
+                        class="w-full flex items-center px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                    >
+                        <Trash2 class="w-4 h-4 mr-3" />
+                        Delete User
+                    </button>
+                </div>
+                <div class="mt-6 flex justify-end">
+                    <button 
+                        @click="showActionsModal = false"
+                        class="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                    >
+                        Cancel
+                    </button>
                 </div>
             </div>
         </Modal>

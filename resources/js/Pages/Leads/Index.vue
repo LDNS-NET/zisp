@@ -266,44 +266,75 @@ watch(search, (value) => {
                 </div>
 
                 <!-- Mobile Cards -->
-                <div class="md:hidden divide-y divide-gray-200 dark:divide-slate-700">
-                    <div v-for="lead in leads.data" :key="lead.id" class="p-4 space-y-3">
-                        <div class="flex items-start justify-between">
-                            <div class="flex items-center gap-3">
-                                <div class="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold">
-                                    {{ lead.name.charAt(0).toUpperCase() }}
-                                </div>
-                                <div>
-                                    <div class="text-sm font-medium text-gray-900 dark:text-white">{{ lead.name }}</div>
-                                    <div class="text-xs text-gray-500 dark:text-gray-400">{{ lead.phone_number }}</div>
-                                </div>
-                            </div>
-                            <span :class="[
-                                'px-2 py-0.5 text-xs font-semibold rounded-full capitalize',
-                                lead.status === 'new' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' :
-                                lead.status === 'contacted' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400' :
-                                lead.status === 'converted' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
-                                'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
-                            ]">
-                                {{ lead.status }}
-                            </span>
-                        </div>
-
-                        <div class="grid grid-cols-1 gap-2 text-sm">
-                            <div v-if="lead.email_address" class="flex items-center gap-2 text-gray-600 dark:text-gray-300">
-                                <Mail class="w-4 h-4 text-gray-400" /> {{ lead.email_address }}
-                            </div>
-                            <div class="flex items-center gap-2 text-gray-600 dark:text-gray-300">
-                                <MapPin class="w-4 h-4 text-gray-400" /> {{ truncateWords(lead.address, 5) }}
-                            </div>
-                        </div>
-
-                        <button @click="openActions(lead)" class="w-full flex items-center justify-center gap-2 py-2 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors">
-                            <MoreVertical class="w-4 h-4" /> Manage Lead
-                        </button>
+                <div class="md:hidden">
+                    <div v-if="selectedTenantLeads.length > 0" class="p-4 bg-gray-50 dark:bg-slate-700/50 border-b border-gray-200 dark:border-slate-700">
+                        <label class="flex items-center">
+                            <input 
+                                type="checkbox"
+                                v-model="selectAll"
+                                class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 dark:bg-slate-900 dark:border-slate-600"
+                            />
+                            <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Select All</span>
+                        </label>
                     </div>
-                    <div v-if="leads.data.length === 0" class="p-8 text-center text-gray-500 dark:text-gray-400">
-                        No leads found.
+
+                    <div class="divide-y divide-gray-200 dark:divide-slate-700">
+                        <div v-for="lead in leads.data" :key="lead.id" class="p-4 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                            <div class="flex items-start gap-3">
+                                <input 
+                                    type="checkbox"
+                                    :value="lead.id"
+                                    v-model="selectedTenantLeads"
+                                    class="mt-1 rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 dark:bg-slate-900 dark:border-slate-600"
+                                />
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <div class="flex items-center gap-2">
+                                            <div class="h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-xs">
+                                                {{ lead.name.charAt(0).toUpperCase() }}
+                                            </div>
+                                            <h3 class="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                                {{ lead.name }}
+                                            </h3>
+                                        </div>
+                                        <button @click="openActions(lead)" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                                            <MoreVertical class="w-5 h-5" />
+                                        </button>
+                                    </div>
+                                    
+                                    <div class="ml-10 space-y-1">
+                                        <div class="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
+                                            <Phone class="w-3 h-3" /> {{ lead.phone_number }}
+                                        </div>
+                                        <div v-if="lead.email_address" class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                                            <Mail class="w-3 h-3" /> {{ lead.email_address }}
+                                        </div>
+                                        <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                                            <MapPin class="w-3 h-3" /> {{ truncateWords(lead.address, 5) }}
+                                        </div>
+                                        <div class="pt-1">
+                                            <span :class="[
+                                                'px-2 py-0.5 text-[10px] font-semibold rounded-full capitalize',
+                                                lead.status === 'new' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' :
+                                                lead.status === 'contacted' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400' :
+                                                lead.status === 'converted' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                                                'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                                            ]">
+                                                {{ lead.status }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div v-if="leads.data.length === 0" class="p-8 text-center text-gray-500 dark:text-gray-400">
+                            <div class="flex flex-col items-center justify-center">
+                                <User class="w-12 h-12 text-gray-300 dark:text-gray-600 mb-3" />
+                                <p class="text-lg font-medium">No leads found</p>
+                                <p class="text-sm">Try adding a new lead</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
