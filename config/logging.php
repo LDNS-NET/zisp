@@ -89,7 +89,7 @@ return [
             'handler_with' => [
                 'host' => env('PAPERTRAIL_URL'),
                 'port' => env('PAPERTRAIL_PORT'),
-                'connectionString' => 'tls://'.env('PAPERTRAIL_URL').':'.env('PAPERTRAIL_PORT'),
+                'connectionString' => 'tls://' . env('PAPERTRAIL_URL') . ':' . env('PAPERTRAIL_PORT'),
             ],
             'processors' => [PsrLogMessageProcessor::class],
         ],
@@ -121,6 +121,14 @@ return [
         'null' => [
             'driver' => 'monolog',
             'handler' => NullHandler::class,
+        ],
+
+        'wireguard' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/wireguard.log'),
+            'level' => env('LOG_LEVEL', 'info'),
+            'days' => 30,
+            'replace_placeholders' => true,
         ],
 
         'emergency' => [
