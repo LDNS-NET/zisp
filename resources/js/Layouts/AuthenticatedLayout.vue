@@ -70,7 +70,6 @@ const navigation = [
     { header: 'Communication' },
     { name: 'SMS', href: route('sms.index'), icon: MessageSquare, active: 'sms.*' },
     { name: 'Templates', href: route('smstemplates.index'), icon: Smartphone, active: 'smstemplates.*' },
-    { name: 'Mikrotik Details', href: route('mikrotikdetails.index'), icon: Send, active: 'mikrotikdetails.*' },
 ];
 
 const user = usePage().props.auth.user;
