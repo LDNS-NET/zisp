@@ -730,24 +730,8 @@ class TenantMikrotikController extends Controller
      */
     public function registerWireguard($mikrotik, Request $request)
     {
-        // Log all incoming requests for debugging
-        Log::info('WireGuard registration attempt', [
-            'router_id' => $mikrotik,
-            'client_ip' => $request->ip(),
-            'method' => $request->method(),
-            'url' => $request->fullUrl(),
-            'headers' => $request->headers->all(),
-            'all_input' => $request->all(),
-        ]);
-
         try {
             $router = TenantMikrotik::findOrFail($mikrotik);
-
-            Log::info('Router found for WireGuard registration', [
-                'router_id' => $router->id,
-                'router_name' => $router->name,
-                'sync_token_exists' => !empty($router->sync_token),
-            ]);
 
             // Validate sync token
             $token = $request->query('token') ?? $request->input('token');
@@ -755,7 +739,6 @@ class TenantMikrotikController extends Controller
                 Log::warning('Invalid WireGuard register token attempt', [
                     'router_id' => $router->id,
                     'provided_token' => $token ? 'present' : 'missing',
-                    'token_match' => $token === $router->sync_token,
                     'client_ip' => $request->ip(),
                 ]);
                 return response()->json([
@@ -767,26 +750,12 @@ class TenantMikrotikController extends Controller
             $wgPublicKey = $request->input('wg_public_key');
             $wgAddress = $request->input('wg_address');
 
-            Log::info('WireGuard data received', [
-                'router_id' => $router->id,
-                'wg_public_key_length' => $wgPublicKey ? strlen($wgPublicKey) : 0,
-                'wg_address' => $wgAddress ?? 'not provided',
-            ]);
-
             if (!$wgPublicKey) {
-                Log::error('Missing wg_public_key in request', [
-                    'router_id' => $router->id,
-                    'all_input' => $request->all(),
-                ]);
                 return response()->json(['success' => false, 'message' => 'Missing wg_public_key'], 422);
             }
 
             // Basic validation of public key length
             if (strlen($wgPublicKey) < 32 || strlen($wgPublicKey) > 128) {
-                Log::error('Invalid wg_public_key length', [
-                    'router_id' => $router->id,
-                    'key_length' => strlen($wgPublicKey),
-                ]);
                 return response()->json(['success' => false, 'message' => 'Invalid wg_public_key'], 422);
             }
 
@@ -827,21 +796,7 @@ class TenantMikrotikController extends Controller
                 $router->wireguard_allowed_ips = '10.100.0.0/16';
             }
             $router->wireguard_status = 'pending';
-
-            Log::info('Saving WireGuard data to database', [
-                'router_id' => $router->id,
-                'wireguard_public_key' => substr($wgPublicKey, 0, 16) . '...',
-                'wireguard_address' => $router->wireguard_address,
-                'wireguard_allowed_ips' => $router->wireguard_allowed_ips,
-                'wireguard_status' => $router->wireguard_status,
-            ]);
-
             $router->save();
-
-            Log::info('WireGuard data saved successfully', [
-                'router_id' => $router->id,
-                'wireguard_address' => $router->wireguard_address,
-            ]);
 
             // Log
             $router->logs()->create([
