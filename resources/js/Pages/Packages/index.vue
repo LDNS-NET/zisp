@@ -1,6 +1,6 @@
 <script setup>
-import { ref, watch, computed, Head } from 'vue';
-import { router, useForm } from '@inertiajs/vue3';
+import { ref, watch, computed } from 'vue';
+import { router, useForm, Head } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { 
     Plus, 
