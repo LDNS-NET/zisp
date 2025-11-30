@@ -218,8 +218,8 @@ class TenantUserController extends Controller
                 unset($validated['password']);
             }
 
-            // Handle package_id - if empty string, keep current value
-            if (isset($validated['package_id']) && empty($validated['package_id'])) {
+            // Handle package_id - if null or empty, remove it from update to keep current value
+            if (array_key_exists('package_id', $validated) && ($validated['package_id'] === null || $validated['package_id'] === '' || $validated['package_id'] === '0')) {
                 unset($validated['package_id']);
             }
 
