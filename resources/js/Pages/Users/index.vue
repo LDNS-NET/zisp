@@ -259,15 +259,15 @@ const toggleSelectAll = (e) => {
                                     />
                                 </td>
                                 <td class="px-6 py-4">
-                                    <div class="flex items-center">
-                                        <div class="h-10 w-10 flex-shrink-0 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
+                                    <Link :href="route('users.show', user.id)" class="flex items-center group cursor-pointer">
+                                        <div class="h-10 w-10 flex-shrink-0 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm group-hover:ring-2 group-hover:ring-blue-500 transition-all">
                                             {{ user.username.charAt(0).toUpperCase() }}
                                         </div>
                                         <div class="ml-4">
-                                            <div class="text-sm font-medium text-gray-900 dark:text-white">{{ user.username }}</div>
+                                            <div class="text-sm font-medium text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{{ user.username }}</div>
                                             <div class="text-sm text-gray-500 dark:text-gray-400">{{ user.full_name }}</div>
                                         </div>
-                                    </div>
+                                    </Link>
                                 </td>
                                 <td class="px-6 py-4">
                                     <div class="text-sm text-gray-900 dark:text-gray-300 flex items-center gap-2">
@@ -327,15 +327,15 @@ const toggleSelectAll = (e) => {
                 <div class="md:hidden divide-y divide-gray-200 dark:divide-slate-700">
                     <div v-for="user in users.data" :key="user.id" class="p-4 space-y-3">
                         <div class="flex items-start justify-between">
-                            <div class="flex items-center gap-3">
-                                <div class="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
+                            <Link :href="route('users.show', user.id)" class="flex items-center gap-3 group">
+                                <div class="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm group-hover:ring-2 group-hover:ring-blue-500 transition-all">
                                     {{ user.username.charAt(0).toUpperCase() }}
                                 </div>
                                 <div>
-                                    <div class="text-sm font-medium text-gray-900 dark:text-white">{{ user.username }}</div>
+                                    <div class="text-sm font-medium text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{{ user.username }}</div>
                                     <div class="text-xs text-gray-500 dark:text-gray-400">{{ user.full_name }}</div>
                                 </div>
-                            </div>
+                            </Link>
                             <span :class="[
                                 'px-2 py-0.5 text-xs font-semibold rounded-full',
                                 user.is_online 
