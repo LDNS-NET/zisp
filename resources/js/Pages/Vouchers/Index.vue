@@ -92,15 +92,6 @@ const resetForm = () => {
 
 const closeFormModal = () => {
     showFormModal.value = false;
-    router.get(
-        route('vouchers.index'),
-        {},
-        {
-            replace: true,
-            preserveState: true,
-            preserveScroll: true,
-        },
-    );
     resetForm();
 };
 
@@ -130,24 +121,11 @@ const isExpired = (dateString) => {
     return new Date(dateString) < new Date();
 };
 
-watch(
-    () => props.creating,
-    (newCreatingValue) => {
-        if (newCreatingValue) {
-            resetForm();
-            showFormModal.value = true;
-        } else {
-            showFormModal.value = false;
-        }
-    },
-    { immediate: true },
-);
+
 
 const openCreateModal = () => {
-    router.get(route('vouchers.index', { create: true }), {
-        preserveScroll: true,
-        preserveState: true,
-    });
+    resetForm();
+    showFormModal.value = true;
 };
 
 const openActions = (voucher) => {
