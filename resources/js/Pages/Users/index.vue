@@ -355,45 +355,43 @@ const openActions = (user) => {
                                     class="mt-1 rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 dark:bg-slate-800 dark:border-slate-600"
                                 />
                                 <div class="flex-1 min-w-0">
-                                    <div class="flex items-center justify-between mb-1">
-                                        <div class="flex items-center gap-2">
-                                            <div class="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs">
+                                    <div class="flex items-start justify-between mb-3">
+                                        <div class="flex items-center gap-3">
+                                            <div class="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
                                                 {{ user.username.charAt(0).toUpperCase() }}
                                             </div>
-                                            <h3 class="text-sm font-medium text-gray-900 dark:text-white truncate">
-                                                {{ user.username }}
-                                            </h3>
+                                            <div>
+                                                <div class="text-sm font-medium text-gray-900 dark:text-white">{{ user.username }}</div>
+                                                <div class="text-xs text-gray-500 dark:text-gray-400">{{ user.full_name }}</div>
+                                            </div>
                                         </div>
-                                        <button @click="openActions(user)" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                                        <span :class="[
+                                            'px-2 py-0.5 text-xs font-semibold rounded-full',
+                                            user.is_online 
+                                                ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' 
+                                                : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                                        ]">
+                                            {{ user.is_online ? 'Online' : 'Offline' }}
+                                        </span>
+                                    </div>
+
+                                    <div class="grid grid-cols-2 gap-2 text-sm mb-3">
+                                        <div class="text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                            <Smartphone class="w-3 h-3" /> {{ user.phone }}
+                                        </div>
+                                        <div class="text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                            <Wifi class="w-3 h-3" /> {{ user.package?.name || '-' }}
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-slate-700/50">
+                                        <div class="text-xs text-gray-400 flex items-center gap-1">
+                                            <Calendar class="w-3 h-3" />
+                                            Exp: {{ user.expiry_human }}
+                                        </div>
+                                        <button @click="openActions(user)" class="text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                                             <MoreVertical class="w-5 h-5" />
                                         </button>
-                                    </div>
-                                    
-                                    <div class="ml-10 space-y-1">
-                                        <p class="text-xs text-gray-500 dark:text-gray-400">
-                                            {{ user.full_name }}
-                                        </p>
-                                        <div class="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
-                                            <span class="flex items-center gap-1">
-                                                <Smartphone class="w-3 h-3" /> {{ user.phone }}
-                                            </span>
-                                            <span class="flex items-center gap-1">
-                                                <Wifi class="w-3 h-3" /> {{ user.package?.name || '-' }}
-                                            </span>
-                                        </div>
-                                        <div class="flex items-center justify-between pt-1">
-                                            <span :class="[
-                                                'px-2 py-0.5 text-[10px] font-semibold rounded-full',
-                                                user.is_online 
-                                                    ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' 
-                                                    : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
-                                            ]">
-                                                {{ user.is_online ? 'Online' : 'Offline' }}
-                                            </span>
-                                            <span class="text-[10px] text-gray-400">
-                                                Exp: {{ user.expiry_human }}
-                                            </span>
-                                        </div>
                                     </div>
                                 </div>
                             </div>
