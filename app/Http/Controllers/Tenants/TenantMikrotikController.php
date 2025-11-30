@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Tenants;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\Tenants\{ TenantMikrotik, TenantOpenVPNProfile, TenantRouterLog, TenantBandwidthUsage, TenantActiveSession };
+use App\Models\Tenants\{TenantMikrotik, TenantOpenVPNProfile, TenantRouterLog, TenantBandwidthUsage, TenantActiveSession};
 use App\Models\Radius\Nas;
 use App\Models\Tenants\TenantRouterAlert;
 use App\Services\{MikrotikService, MikrotikScriptGenerator, TenantHotspotService};
@@ -72,7 +72,7 @@ class TenantMikrotikController extends Controller
     public function getStatus($id)
     {
         $router = TenantMikrotik::findOrFail($id);
-        
+
         // Refresh router data from database
         $router->refresh();
 
@@ -109,37 +109,37 @@ class TenantMikrotikController extends Controller
             try {
                 $apiService = new RouterApiService($router);
                 $isOnline = $apiService->isOnline();
-                
+
                 if ($isOnline) {
                     // Get system resources
                     $resources = $apiService->getSystemResource();
-                    
+
                     $updateData = [
                         'status' => 'online',
                         'online' => true,
                         'last_seen_at' => now(),
                     ];
-                    
+
                     if ($resources !== false) {
                         // Update CPU, memory, uptime
                         if (isset($resources['cpu-load'])) {
-                            $cpuValue = (float)$resources['cpu-load'];
+                            $cpuValue = (float) $resources['cpu-load'];
                             $updateData['cpu_usage'] = $cpuValue;
                             $updateData['cpu'] = $cpuValue;
                         }
-                        
+
                         if (isset($resources['free-memory']) && isset($resources['total-memory'])) {
                             $memoryUsed = $resources['total-memory'] - $resources['free-memory'];
                             $memoryPercent = round(($memoryUsed / $resources['total-memory']) * 100, 2);
                             $updateData['memory_usage'] = $memoryPercent;
                             $updateData['memory'] = $memoryPercent;
                         }
-                        
+
                         if (isset($resources['uptime'])) {
-                            $updateData['uptime'] = (int)$resources['uptime'];
+                            $updateData['uptime'] = (int) $resources['uptime'];
                         }
                     }
-                    
+
                     $router->update($updateData);
                     $router->refresh();
                 } else {
@@ -163,7 +163,7 @@ class TenantMikrotikController extends Controller
         $hotspotUsers = 0;
         $pppoeUsers = 0;
         $identity = $router->name; // Default to router name
-        
+
         // Only fetch from API if router is online and data is fresh (< 2 minutes)
         if ($router->status === 'online' && $router->last_seen_at) {
             $secondsSinceLastSeen = now()->diffInSeconds($router->last_seen_at);
@@ -181,7 +181,7 @@ class TenantMikrotikController extends Controller
                 }
             }
         }
-        
+
         // Format uptime
         $uptimeFormatted = null;
         if ($router->uptime) {
@@ -190,7 +190,7 @@ class TenantMikrotikController extends Controller
             $minutes = floor(($router->uptime % 3600) / 60);
             $uptimeFormatted = "{$days}d {$hours}h {$minutes}m";
         }
-        
+
         return response()->json([
             'success' => true,
             'online' => $router->online ?? ($router->status === 'online'),
@@ -214,12 +214,12 @@ class TenantMikrotikController extends Controller
     {
         $routers = TenantMikrotik::all();
         $statuses = [];
-        
+
         foreach ($routers as $router) {
             $router->refresh();
-            
+
             $vpnIp = $router->wireguard_address ?? $router->ip_address;
-            
+
             // Format uptime
             $uptimeFormatted = null;
             if ($router->uptime) {
@@ -228,7 +228,7 @@ class TenantMikrotikController extends Controller
                 $minutes = floor(($router->uptime % 3600) / 60);
                 $uptimeFormatted = "{$days}d {$hours}h {$minutes}m";
             }
-            
+
             // Check if router should be marked offline (last_seen_at > 2 minutes)
             $isStale = false;
             if ($router->last_seen_at) {
@@ -239,7 +239,7 @@ class TenantMikrotikController extends Controller
             } elseif ($router->status === 'online') {
                 $isStale = true;
             }
-            
+
             $statuses[] = [
                 'id' => $router->id,
                 'online' => $isStale ? false : ($router->online ?? ($router->status === 'online')),
@@ -255,7 +255,7 @@ class TenantMikrotikController extends Controller
                 'pppoe_users' => 0, // Will be fetched on-demand for individual routers
             ];
         }
-        
+
         return response()->json([
             'success' => true,
             'routers' => $statuses,
@@ -269,24 +269,24 @@ class TenantMikrotikController extends Controller
     {
         try {
             $router = TenantMikrotik::findOrFail($id);
-            
+
             if (!$router->wireguard_address) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Router VPN IP not configured',
                 ], 400);
             }
-            
+
             $apiService = new RouterApiService($router);
             $resources = $apiService->getSystemResource();
-            
+
             if ($resources === false) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Failed to get router resources',
                 ], 500);
             }
-            
+
             return response()->json([
                 'success' => true,
                 'resources' => $resources,
@@ -296,7 +296,7 @@ class TenantMikrotikController extends Controller
                 'router_id' => $id,
                 'error' => $e->getMessage(),
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Error getting router resources: ' . $e->getMessage(),
@@ -311,17 +311,17 @@ class TenantMikrotikController extends Controller
     {
         try {
             $router = TenantMikrotik::findOrFail($id);
-            
+
             if (!$router->wireguard_address) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Router VPN IP not configured',
                 ], 400);
             }
-            
+
             $apiService = new RouterApiService($router);
             $interfaces = $apiService->getInterfaces();
-            
+
             return response()->json([
                 'success' => true,
                 'interfaces' => $interfaces,
@@ -331,7 +331,7 @@ class TenantMikrotikController extends Controller
                 'router_id' => $id,
                 'error' => $e->getMessage(),
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Error getting router interfaces: ' . $e->getMessage(),
@@ -346,18 +346,18 @@ class TenantMikrotikController extends Controller
     {
         try {
             $router = TenantMikrotik::findOrFail($id);
-            
+
             if (!$router->wireguard_address) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Router VPN IP not configured',
                 ], 400);
             }
-            
+
             $apiService = new RouterApiService($router);
             $hotspotActive = $apiService->getHotspotActive();
             $pppoeActive = $apiService->getPppoeActive();
-            
+
             return response()->json([
                 'success' => true,
                 'hotspot_active' => $hotspotActive,
@@ -369,7 +369,7 @@ class TenantMikrotikController extends Controller
                 'router_id' => $id,
                 'error' => $e->getMessage(),
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Error getting active sessions: ' . $e->getMessage(),
@@ -410,10 +410,10 @@ class TenantMikrotikController extends Controller
 
         // Get server IP (trusted IP) - use config or request IP
         $trustedIp = config('app.server_ip') ?? request()->server('SERVER_ADDR') ?? '159.89.111.189';
-        
+
         // Ensure API port is set (should already be set in create, but double-check)
         $apiPort = $router->api_port ?? 8728;
-        
+
         $script = $scriptGenerator->generate([
             'name' => $router->name,
             'username' => $router->router_username,
@@ -426,7 +426,7 @@ class TenantMikrotikController extends Controller
             'radius_ip' => env('RADIUS_IP', '159.89.111.189'), // TODO: Get from tenant settings
             'radius_secret' => env('RADIUS_SECRET', 'testing123'), // TODO: Get from tenant settings
         ]);
-        
+
         // Don't register NAS yet - router has no IP at creation time
         // NAS will be registered when IP is set during onboarding or update
 
@@ -464,7 +464,8 @@ class TenantMikrotikController extends Controller
             'notes' => 'nullable|string',
         ]);
 
-        if (empty($data['router_password'])) unset($data['router_password']);
+        if (empty($data['router_password']))
+            unset($data['router_password']);
         $router->update($data);
 
         // Register/Update RADIUS NAS entry when IP address is updated
@@ -474,7 +475,8 @@ class TenantMikrotikController extends Controller
 
         $isOnline = $this->testRouterConnection($router);
         $router->status = $isOnline ? 'online' : 'offline';
-        if ($isOnline) $router->last_seen_at = now();
+        if ($isOnline)
+            $router->last_seen_at = now();
         $router->save();
 
         $router->logs()->create([
@@ -573,13 +575,13 @@ class TenantMikrotikController extends Controller
     {
         try {
             $router = TenantMikrotik::findOrFail($id);
-            
+
             // Refresh router data from database
             $router->refresh();
-            
+
             // Get VPN IP from wireguard_address field (standardized VPN IP storage)
             $vpnIp = $router->wireguard_address;
-            
+
             // If wireguard_address is not set, check if ip_address is a VPN IP (10.100.0.0/16)
             if (!$vpnIp && $router->ip_address) {
                 $ip = $router->ip_address;
@@ -592,7 +594,7 @@ class TenantMikrotikController extends Controller
                     }
                 }
             }
-            
+
             // If still no VPN IP, return error
             if (!$vpnIp) {
                 return response()->json([
@@ -607,7 +609,7 @@ class TenantMikrotikController extends Controller
             // Use API-based ping via RouterApiService
             $apiService = new RouterApiService($router);
             $pingResult = $apiService->apiPing();
-            
+
             $isOnline = $pingResult['online'];
             $latency = $pingResult['latency'];
 
@@ -628,7 +630,7 @@ class TenantMikrotikController extends Controller
                 'online' => $isOnline,
                 'latency' => $latency,
                 'status' => $isOnline ? 'online' : 'offline',
-                'message' => $isOnline 
+                'message' => $isOnline
                     ? 'Router is online and responding via RouterOS API (latency: ' . ($latency ? $latency . 'ms' : 'N/A') . ').'
                     : 'Router is not responding via RouterOS API. Please verify: 1) WireGuard tunnel is established, 2) Router is powered on, 3) VPN IP is correct (' . $vpnIp . ').',
                 'last_seen_at' => $router->last_seen_at?->toIso8601String(),
@@ -663,7 +665,7 @@ class TenantMikrotikController extends Controller
 
         // Get server IP (trusted IP) - use config or request IP
         $trustedIp = config('app.server_ip') ?? request()->server('SERVER_ADDR') ?? '159.89.111.189';
-        
+
         $script = $scriptGenerator->generate([
             'name' => $router->name,
             'username' => $router->router_username,
@@ -701,7 +703,7 @@ class TenantMikrotikController extends Controller
 
         // Get server IP (trusted IP) - use config or request IP
         $trustedIp = config('app.server_ip') ?? request()->server('SERVER_ADDR') ?? '159.89.111.189';
-        
+
         $script = $scriptGenerator->generate([
             'name' => $router->name,
             'username' => $router->router_username,
@@ -728,8 +730,24 @@ class TenantMikrotikController extends Controller
      */
     public function registerWireguard($mikrotik, Request $request)
     {
+        // Log all incoming requests for debugging
+        Log::info('WireGuard registration attempt', [
+            'router_id' => $mikrotik,
+            'client_ip' => $request->ip(),
+            'method' => $request->method(),
+            'url' => $request->fullUrl(),
+            'headers' => $request->headers->all(),
+            'all_input' => $request->all(),
+        ]);
+
         try {
             $router = TenantMikrotik::findOrFail($mikrotik);
+
+            Log::info('Router found for WireGuard registration', [
+                'router_id' => $router->id,
+                'router_name' => $router->name,
+                'sync_token_exists' => !empty($router->sync_token),
+            ]);
 
             // Validate sync token
             $token = $request->query('token') ?? $request->input('token');
@@ -737,6 +755,7 @@ class TenantMikrotikController extends Controller
                 Log::warning('Invalid WireGuard register token attempt', [
                     'router_id' => $router->id,
                     'provided_token' => $token ? 'present' : 'missing',
+                    'token_match' => $token === $router->sync_token,
                     'client_ip' => $request->ip(),
                 ]);
                 return response()->json([
@@ -748,12 +767,26 @@ class TenantMikrotikController extends Controller
             $wgPublicKey = $request->input('wg_public_key');
             $wgAddress = $request->input('wg_address');
 
+            Log::info('WireGuard data received', [
+                'router_id' => $router->id,
+                'wg_public_key_length' => $wgPublicKey ? strlen($wgPublicKey) : 0,
+                'wg_address' => $wgAddress ?? 'not provided',
+            ]);
+
             if (!$wgPublicKey) {
+                Log::error('Missing wg_public_key in request', [
+                    'router_id' => $router->id,
+                    'all_input' => $request->all(),
+                ]);
                 return response()->json(['success' => false, 'message' => 'Missing wg_public_key'], 422);
             }
 
             // Basic validation of public key length
             if (strlen($wgPublicKey) < 32 || strlen($wgPublicKey) > 128) {
+                Log::error('Invalid wg_public_key length', [
+                    'router_id' => $router->id,
+                    'key_length' => strlen($wgPublicKey),
+                ]);
                 return response()->json(['success' => false, 'message' => 'Invalid wg_public_key'], 422);
             }
 
@@ -768,7 +801,7 @@ class TenantMikrotikController extends Controller
                 $subnet = config('wireguard.subnet') ?? env('WG_SUBNET', '10.100.0.0/16');
                 if (strpos($subnet, '/') !== false) {
                     [$network, $prefix] = explode('/', $subnet, 2);
-                    $prefix = (int)$prefix;
+                    $prefix = (int) $prefix;
                     $netLong = ip2long($network);
                     if ($netLong !== false && $prefix >= 0 && $prefix <= 32) {
                         $hostBits = 32 - $prefix;
@@ -794,7 +827,21 @@ class TenantMikrotikController extends Controller
                 $router->wireguard_allowed_ips = '10.100.0.0/16';
             }
             $router->wireguard_status = 'pending';
+
+            Log::info('Saving WireGuard data to database', [
+                'router_id' => $router->id,
+                'wireguard_public_key' => substr($wgPublicKey, 0, 16) . '...',
+                'wireguard_address' => $router->wireguard_address,
+                'wireguard_allowed_ips' => $router->wireguard_allowed_ips,
+                'wireguard_status' => $router->wireguard_status,
+            ]);
+
             $router->save();
+
+            Log::info('WireGuard data saved successfully', [
+                'router_id' => $router->id,
+                'wireguard_address' => $router->wireguard_address,
+            ]);
 
             // Log
             $router->logs()->create([
@@ -849,7 +896,7 @@ class TenantMikrotikController extends Controller
 
             // Get VPN IP from wireguard_address (standardized VPN IP storage)
             $vpnIp = $router->wireguard_address;
-            
+
             // Legacy fallback: if wireguard_address not set, check if ip_address is in VPN subnet
             if (!$vpnIp && $router->ip_address) {
                 $ip = $router->ip_address;
@@ -862,7 +909,7 @@ class TenantMikrotikController extends Controller
                     }
                 }
             }
-            
+
             if (!$vpnIp) {
                 Log::warning('Cannot test router connection: VPN IP not configured', [
                     'router_id' => $router->id,
@@ -888,19 +935,19 @@ class TenantMikrotikController extends Controller
                 // Update router status and last seen
                 $router->status = 'online';
                 $router->last_seen_at = now();
-                
+
                 // Optionally update router info from resources
                 if (is_array($resources) && !empty($resources[0])) {
                     $resource = $resources[0];
                     $router->model = $resource['board-name'] ?? $router->model;
                     $router->os_version = $resource['version'] ?? $router->os_version;
-                    $router->uptime = isset($resource['uptime']) ? (int)$resource['uptime'] : $router->uptime;
-                    $router->cpu_usage = isset($resource['cpu-load']) ? (float)$resource['cpu-load'] : $router->cpu_usage;
-                    $router->memory_usage = isset($resource['free-memory']) && isset($resource['total-memory']) 
+                    $router->uptime = isset($resource['uptime']) ? (int) $resource['uptime'] : $router->uptime;
+                    $router->cpu_usage = isset($resource['cpu-load']) ? (float) $resource['cpu-load'] : $router->cpu_usage;
+                    $router->memory_usage = isset($resource['free-memory']) && isset($resource['total-memory'])
                         ? round((1 - ($resource['free-memory'] / $resource['total-memory'])) * 100, 2)
                         : $router->memory_usage;
                 }
-                
+
                 Log::info('Router connection successful via VPN tunnel', [
                     'router_id' => $router->id,
                     'vpn_ip' => $vpnIp,
@@ -922,13 +969,13 @@ class TenantMikrotikController extends Controller
                     ]);
                 }
             }
-            
+
             $router->save();
 
             $router->logs()->create([
                 'action' => 'ping',
-                'message' => $isOnline 
-                    ? "Router responded successfully via API (port $apiPort)" 
+                'message' => $isOnline
+                    ? "Router responded successfully via API (port $apiPort)"
                     : "Router did not respond to API connection test (port $apiPort)",
                 'status' => $isOnline ? 'success' : 'failed',
             ]);
@@ -943,17 +990,17 @@ class TenantMikrotikController extends Controller
                 'error' => $errorMessage,
                 'trace' => $e->getTraceAsString(),
             ]);
-            
+
             $router->status = 'offline';
             $router->save();
-            
+
             $router->logs()->create([
                 'action' => 'ping',
                 'message' => 'Error during router connection test: ' . $errorMessage,
                 'status' => 'failed',
                 'response_data' => ['error' => $errorMessage],
             ]);
-            
+
             return false;
         }
     }
@@ -1015,7 +1062,7 @@ class TenantMikrotikController extends Controller
     public function downloadRadiusScript($id)
     {
         $router = TenantMikrotik::findOrFail($id);
-        
+
         // Load the RADIUS script template
         $templatePath = resource_path('scripts/mikrotik/setup-radius.rsc');
         $script = file_exists($templatePath) ? file_get_contents($templatePath) : '';
@@ -1046,7 +1093,7 @@ class TenantMikrotikController extends Controller
 
         // Get VPN IP from wireguard_address (standardized VPN IP storage)
         $vpnIp = $router->wireguard_address;
-        
+
         // Legacy fallback: if wireguard_address not set, check if ip_address is in VPN subnet
         if (!$vpnIp && $router->ip_address) {
             $ip = $router->ip_address;
@@ -1069,7 +1116,7 @@ class TenantMikrotikController extends Controller
 
         $sshPort = $router->ssh_port ?? 22;
         $apiPort = $router->api_port ?? 8728;
-        
+
         // All management links use VPN IP only
         $links = [
             'winbox' => "winbox://{$vpnIp}",
@@ -1086,7 +1133,7 @@ class TenantMikrotikController extends Controller
     public function downloadCACert($id)
     {
         $router = TenantMikrotik::findOrFail($id);
-        
+
         if (!$router->openvpnProfile || !$router->openvpnProfile->ca_cert_path) {
             return response()->json([
                 'success' => false,
@@ -1095,7 +1142,7 @@ class TenantMikrotikController extends Controller
         }
 
         $certPath = storage_path('app/' . $router->openvpnProfile->ca_cert_path);
-        
+
         if (!file_exists($certPath)) {
             return response()->json([
                 'success' => false,
@@ -1189,7 +1236,7 @@ class TenantMikrotikController extends Controller
         try {
             // Get VPN IP from wireguard_address (standardized VPN IP storage)
             $nasIp = $router->wireguard_address;
-            
+
             // Legacy fallback: if wireguard_address not set, check if ip_address is in VPN subnet
             if (!$nasIp && $router->ip_address) {
                 $ip = $router->ip_address;
@@ -1221,10 +1268,10 @@ class TenantMikrotikController extends Controller
 
             if ($existing) {
                 $existing->update([
-                    'nasname'   => $nasIp,
-                    'secret'    => $secret,
-                    'type'      => 'mikrotik',
-                    'server'    => $radiusServer,
+                    'nasname' => $nasIp,
+                    'secret' => $secret,
+                    'type' => 'mikrotik',
+                    'server' => $radiusServer,
                     'description' => "Tenant router {$router->id} - {$router->name}",
                 ]);
 
@@ -1233,11 +1280,11 @@ class TenantMikrotikController extends Controller
             }
 
             Nas::create([
-                'nasname'     => $nasIp,
-                'shortname'   => $shortname,
-                'type'        => 'mikrotik',
-                'secret'      => $secret,
-                'server'      => $radiusServer,
+                'nasname' => $nasIp,
+                'shortname' => $shortname,
+                'type' => 'mikrotik',
+                'secret' => $secret,
+                'server' => $radiusServer,
                 'description' => "Tenant router {$router->id} - {$router->name}",
             ]);
 
@@ -1280,69 +1327,69 @@ class TenantMikrotikController extends Controller
     public function downloadHotspotTemplates($id)
     {
         $router = TenantMikrotik::findOrFail($id);
-        
+
         // Get current tenant for proper URL replacement
         $currentTenant = tenant();
         $tenantDomain = $currentTenant ? $currentTenant->domains()->first()->domain : null;
-        
+
         // Path to hotspot template files
         $templatePath = resource_path('scripts/zisp-hotspot');
-        
+
         if (!is_dir($templatePath)) {
             return response()->json(['error' => 'Hotspot template directory not found'], 404);
         }
-        
+
         // Create ZIP file in memory
         $zipFileName = "hotspot_templates_{$router->id}_{$router->name}.zip";
         $zipPath = storage_path("app/temp/{$zipFileName}");
-        
+
         // Ensure temp directory exists
         $tempDir = storage_path('app/temp');
         if (!is_dir($tempDir)) {
             mkdir($tempDir, 0755, true);
         }
-        
+
         $zip = new ZipArchive();
         if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== TRUE) {
             return response()->json(['error' => 'Failed to create ZIP file'], 500);
         }
-        
+
         // Template files to include
         $templateFiles = [
             'login.html',
-            'alogin.html', 
+            'alogin.html',
             'rlogin.html',
             'flogin.html',
             'logout.html',
             'redirect.html',
             'error.html'
         ];
-        
+
         foreach ($templateFiles as $file) {
             $filePath = $templatePath . '/' . $file;
             if (file_exists($filePath)) {
                 // Read the template content
                 $content = file_get_contents($filePath);
-                
+
                 // Replace tenant domain placeholder if needed
                 if ($tenantDomain) {
                     $content = str_replace('{{ $tenant->domain }}', $tenantDomain, $content);
                 }
-                
+
                 // Add to ZIP
                 $zip->addFromString($file, $content);
             }
         }
-        
+
         $zip->close();
-        
+
         // Log the download
         $router->logs()->create([
             'action' => 'download_hotspot_templates',
             'message' => 'Hotspot template files downloaded as ZIP',
             'status' => 'success',
         ]);
-        
+
         // Return the ZIP file for download
         return response()->download($zipPath, $zipFileName, [
             'Content-Type' => 'application/zip',
@@ -1356,11 +1403,11 @@ class TenantMikrotikController extends Controller
     public function getHotspotUploadScript($id)
     {
         $router = TenantMikrotik::findOrFail($id);
-        
+
         // Get current tenant domain
         $currentTenant = tenant();
         $tenantDomain = $currentTenant ? $currentTenant->domains()->first()->domain : null;
-        
+
         $script = "# ZiSP Hotspot Template Upload Script
 # Generated for router: {$router->name}
 # Router ID: {$router->id}
@@ -1390,14 +1437,14 @@ class TenantMikrotikController extends Controller
 :put \" =================== Hotspot HTML templates configured =================== \"
 
 :put \"==================== HOTSPOT TEMPLATE UPLOAD COMPLETE ====================\"";
-        
+
         // Log the script generation
         $router->logs()->create([
             'action' => 'generate_hotspot_upload_script',
             'message' => 'Hotspot template upload script generated',
             'status' => 'success',
         ]);
-        
+
         return response($script)
             ->header('Content-Type', 'text/plain')
             ->header('Content-Disposition', "attachment; filename=hotspot_upload_{$router->id}.rsc");
