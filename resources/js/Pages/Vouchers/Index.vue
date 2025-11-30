@@ -92,6 +92,15 @@ const resetForm = () => {
 
 const closeFormModal = () => {
     showFormModal.value = false;
+    router.get(
+        route('vouchers.index'),
+        {},
+        {
+            replace: true, // Clean URL (remove ?create=true)
+            preserveState: true,
+            preserveScroll: true,
+        },
+    );
     resetForm();
 };
 
@@ -121,11 +130,28 @@ const isExpired = (dateString) => {
     return new Date(dateString) < new Date();
 };
 
-
+// --- Watchers ---
+// Watch for changes in `props.creating` to open/close modal and reset form
+watch(
+    () => props.creating,
+    (newCreatingValue) => {
+        if (newCreatingValue) {
+            // Only reset form and show modal if it's truly entering the 'create' state
+            resetForm();
+            showFormModal.value = true;
+        } else {
+            showFormModal.value = false;
+        }
+    },
+    { immediate: true },
+); // `immediate: true` runs the watch on component mount
 
 const openCreateModal = () => {
-    resetForm();
-    showFormModal.value = true;
+    // This is the correct way to open the modal via Inertia and query parameter
+    router.get(route('vouchers.index', { create: true }), {
+        preserveScroll: true, // Keep scroll position
+        preserveState: true, // Keep component state (important for modal)
+    });
 };
 
 const openActions = (voucher) => {
