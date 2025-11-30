@@ -758,6 +758,7 @@ class TenantMikrotikController extends Controller
 
             $wgPublicKey = $request->input('wg_public_key');
             $wgAddress = $request->input('wg_address');
+            $routerModel = $request->input('router_model');
 
             if (!$wgPublicKey) {
                 Log::warning('WireGuard registration missing public key', [
@@ -774,6 +775,11 @@ class TenantMikrotikController extends Controller
                     'key_length' => strlen($wgPublicKey),
                 ]);
                 return response()->json(['success' => false, 'message' => 'Invalid wg_public_key'], 422);
+            }
+
+            // Store router model if provided
+            if ($routerModel) {
+                $router->model = $routerModel;
             }
 
             // Store public key and address (derive if missing) and mark pending
@@ -819,6 +825,7 @@ class TenantMikrotikController extends Controller
             Log::info('WireGuard registration successful', [
                 'router_id' => $router->id,
                 'router_name' => $router->name,
+                'router_model' => $routerModel ?? 'not provided',
                 'wg_public_key' => substr($wgPublicKey, 0, 16) . '...',
                 'wg_address' => $assignedAddress ?? 'not assigned',
                 'wireguard_status' => 'pending',

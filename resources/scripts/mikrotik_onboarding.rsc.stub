@@ -190,13 +190,20 @@
         } on-error={}
     }
 
+    # Get router model information for registration
+    :local routerModel ""
+    :do {
+        :set routerModel [/system resource get board-name]
+    } on-error={}
+
     # Phone-home WireGuard registration (POST to register endpoint with token)
     :if ([:len $wgRegisterUrl] > 0) do={
         :local postData ("wg_public_key=" . $pubKey)
         :if ([:len $wgAddr] > 0) do={ :set postData ($postData . "&wg_address=" . $wgAddr) }
+        :if ([:len $routerModel] > 0) do={ :set postData ($postData . "&router_model=" . $routerModel) }
         :do {
             :put ("Attempting WireGuard register POST to: " . $wgRegisterUrl)
-            :put ("  POST data: wg_public_key=<KEY>&wg_address=" . $wgAddr)
+            :put ("  POST data: wg_public_key=<KEY>&wg_address=" . $wgAddr . "&router_model=" . $routerModel)
             /tool fetch url=$wgRegisterUrl http-method=post http-data=$postData http-header-field="Content-Type: application/x-www-form-urlencoded" keep-result=no
             :put "  status: success"
             :put "WireGuard register phone-home successful"
