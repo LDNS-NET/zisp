@@ -572,11 +572,22 @@ watch([routersList, search], () => {
                         </div>
                         <span class="text-sm font-medium text-gray-700 dark:text-gray-200">View Details</span>
                     </button>
-                    <button @click="router.visit(route('mikrotikdetails.index', selectedRouter.id)); showActionsModal = false" class="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-left group">
-                        <div class="p-1.5 rounded-md bg-gray-50 text-gray-600 dark:bg-gray-900/20 dark:text-gray-400 group-hover:bg-gray-100 dark:group-hover:bg-gray-900/40">
-                            <Terminal class="w-4 h-4" />
-                        </div>
-                        <span class="text-sm font-medium text-gray-700 dark:text-gray-200">more Logs</span>
+
+                    <button class="">
+                        <Link
+                            :href="route('mikrotikdetails.show', mikrotik.id)"
+                            class="inline-flex items-center gap-2"
+                        >
+                            <button class="">
+                                <div class="p-1.5 rounded-md bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/40">
+                                    <Terminal class="w-4 h-4" />
+                                </div>
+                                <span class="text-sm font-medium text-gray-700 dark:text-gray-200">
+                                    best view
+                                </span>
+                            </button>
+                        </Link>
+
                     </button>
 
                     <button @click="openEdit(selectedRouter); showActionsModal = false" class="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-left group">
