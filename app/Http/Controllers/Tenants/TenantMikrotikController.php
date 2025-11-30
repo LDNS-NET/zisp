@@ -4,20 +4,14 @@ namespace App\Http\Controllers\Tenants;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\Tenants\{
-    TenantMikrotik,
-    TenantOpenVPNProfile,
-    TenantRouterLog,
-    TenantBandwidthUsage,
-    TenantActiveSession,
-};
+use App\Models\Tenants\{ TenantMikrotik, TenantOpenVPNProfile, TenantRouterLog, TenantBandwidthUsage, TenantActiveSession };
 use App\Models\Radius\Nas;
 use App\Models\Tenants\TenantRouterAlert;
 use App\Services\{MikrotikService, MikrotikScriptGenerator, TenantHotspotService};
 use App\Services\Mikrotik\RouterApiService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Str;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\ZipArchive;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;

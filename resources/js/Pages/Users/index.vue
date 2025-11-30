@@ -10,22 +10,39 @@ import DangerButton from '@/Components/DangerButton.vue';
 import InputError from '@/Components/InputError.vue';
 import Pagination from '@/Components/Pagination.vue';
 import { useToast } from 'vue-toastification';
+import { 
+    UserPlus, 
+    UserCheck, 
+    Search, 
+    Filter, 
+    MoreVertical, 
+    Edit, 
+    Trash2, 
+    Eye, 
+    CheckCircle, 
+    XCircle,
+    Smartphone,
+    MapPin,
+    Calendar,
+    Wifi
+} from 'lucide-vue-next';
+import Dropdown from '@/Components/Dropdown.vue';
+import DropdownLink from '@/Components/DropdownLink.vue';
 
 const toast = useToast();
-
-import { UserPlus, UserCheck } from 'lucide-vue-next';
 
 const props = defineProps({
     users: Object,
     filters: Object,
     counts: Object,
-    packages: Object, // comes from controller
+    packages: Object,
 });
 
 const showModal = ref(false);
 const editing = ref(null);
 const viewing = ref(null);
-const selectedFilter = ref('all');
+const selectedFilter = ref(props.filters?.type || 'all');
+const search = ref(props.filters?.search || '');
 
 const form = useForm({
     full_name: '',
@@ -39,8 +56,25 @@ const form = useForm({
     expires_at: '',
 });
 
+// Watchers for filters
 watch(selectedFilter, (value) => {
-    router.get(route('users.index'), { type: value }, { preserveScroll: true });
+    router.get(
+        route('users.index'), 
+        { type: value, search: search.value }, 
+        { preserveScroll: true, preserveState: true }
+    );
+});
+
+let searchTimeout;
+watch(search, (value) => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        router.get(
+            route('users.index'),
+            { type: selectedFilter.value, search: value },
+            { preserveScroll: true, preserveState: true }
+        );
+    }, 300);
 });
 
 function openCreate() {
@@ -50,16 +84,15 @@ function openCreate() {
     showModal.value = true;
 }
 
-const selected = ref([]);
+const selectedUsers = ref([]);
 
-const bulkForm = useForm({ ids: [] });
-
-const confirmBulkDelete = () => {
-    bulkForm.ids = selected.value;
-    if (bulkForm.ids.length) {
-        bulkForm.post(route('users.bulk-delete'), {
+const bulkDelete = () => {
+    if (selectedUsers.value.length && confirm(`Are you sure you want to delete ${selectedUsers.value.length} users?`)) {
+        router.delete(route('users.bulk-delete'), {
+            data: { ids: selectedUsers.value },
             onSuccess: () => {
-                selected.value = [];
+                selectedUsers.value = [];
+                toast.success('Users successfully deleted');
             },
         });
     }
@@ -69,7 +102,7 @@ function openEdit(user) {
     editing.value = user.id;
     form.full_name = user.full_name ?? '';
     form.username = user.username ?? '';
-    form.password = '';
+    form.password = ''; // Don't show current password
     form.phone = user.phone ?? '';
     form.email = user.email ?? '';
     form.location = user.location ?? '';
@@ -83,15 +116,10 @@ function submit() {
     const options = {
         onSuccess: () => {
             showModal.value = false;
-            router.reload({ only: ['users'], preserveScroll: true });
-            toast.success(
-                editing.value
-                    ? 'User updated successfully'
-                    : 'User created successfully',
-            );
+            toast.success(editing.value ? 'User updated successfully' : 'User created successfully');
         },
         onError: () => {
-            toast.error('Something went wrong. Please check the form.');
+            toast.error('Please check the form for errors.');
         },
     };
 
@@ -106,33 +134,11 @@ function remove(id) {
     if (confirm('Are you sure you want to delete this User?')) {
         router.delete(route('users.destroy', id), {
             preserveScroll: true,
-            onSuccess: () => {
-                toast.success('User deleted successfully');
-            },
-            onError: () => {
-                toast.error('Failed to delete user');
-            },
+            onSuccess: () => toast.success('User deleted successfully'),
+            onError: () => toast.error('Failed to delete user'),
         });
     }
 }
-
-const selectedUsers = ref([]);
-
-const bulkDelete = () => {
-    if (selectedUsers.value.length && confirm('Delete selected Users?')) {
-        router.delete(route('users.bulk-delete'), {
-            data: { ids: selectedUsers.value },
-            onSuccess: () => {
-                selectedUsers.value = [];
-                router.visit(route('users.index'), {
-                    preserveScroll: true,
-                    preserveState: false,
-                });
-                toast.success('Users successfully deleted');
-            },
-        });
-    }
-};
 
 function viewUser(user) {
     viewing.value = user;
@@ -141,512 +147,355 @@ function viewUser(user) {
 const packagesByType = computed(() => {
     return props.packages[form.type] || [];
 });
+
+const toggleSelectAll = (e) => {
+    if (e.target.checked) {
+        selectedUsers.value = props.users.data.map(u => u.id);
+    } else {
+        selectedUsers.value = [];
+    }
+};
 </script>
 
 <template>
     <AuthenticatedLayout>
         <template #header>
-            <div class="flex items-center justify-between">
-                <h2
-                    class="flex items-center gap-2 text-2xl font-semibold text-gray-800"
-                >
-                    <UserCheck class="h-6 w-6 text-blue-600" />
-                    Users
-                </h2>
-                <PrimaryButton
-                    @click="openCreate"
-                    class="flex items-center gap-2 bg-green-700"
-                >
-                    <UserPlus class="h-4 w-4" />
-                    Add User
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
+                        <UserCheck class="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                        User Management
+                    </h2>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                        Manage your hotspot and PPPoE subscribers
+                    </p>
+                </div>
+                <PrimaryButton @click="openCreate" class="flex items-center gap-2">
+                    <UserPlus class="w-4 h-4" />
+                    <span>Add User</span>
                 </PrimaryButton>
             </div>
         </template>
 
-        <div class="px-4 py-6 sm:px-6 lg:px-8">
-            <!-- Filters -->
-            <!-- Filter Buttons -->
-            <div class="mb-4 flex flex-wrap gap-3">
-                <button
-                    v-for="type in ['all', 'hotspot', 'pppoe', 'static']"
-                    :key="type"
-                    @click="selectedFilter = type"
-                    class="rounded-full border px-4 py-1.5 text-sm font-medium transition-all duration-150"
-                    :class="{
-                        'border-blue-600 bg-blue-600 text-white shadow-sm dark:border-blue-500 dark:bg-blue-500':
-                            selectedFilter === type,
-                        'border-gray-300 bg-white text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700':
-                            selectedFilter !== type,
-                    }"
-                >
-                    {{ type.charAt(0).toUpperCase() + type.slice(1) }}
-                    <span class="ml-1 text-xs opacity-80"
-                        >({{ counts[type] || 0 }})</span
+        <div class="space-y-6">
+            <!-- Filters & Search -->
+            <div class="flex flex-col sm:flex-row gap-4 justify-between items-center bg-white dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm">
+                <!-- Tabs -->
+                <div class="flex p-1 space-x-1 bg-gray-100 dark:bg-slate-900 rounded-lg w-full sm:w-auto overflow-x-auto">
+                    <button
+                        v-for="type in ['all', 'hotspot', 'pppoe', 'static']"
+                        :key="type"
+                        @click="selectedFilter = type"
+                        :class="[
+                            'px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 whitespace-nowrap',
+                            selectedFilter === type
+                                ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm'
+                                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                        ]"
                     >
-                </button>
-            </div>
-
-            <!-- Bulk Delete Actions -->
-            <div
-                v-if="selectedUsers.length"
-                class="mb-4 flex flex-wrap items-center justify-between rounded-lg border border-yellow-300 bg-yellow-50 p-3 dark:border-yellow-700 dark:bg-yellow-900/30"
-            >
-                <div class="flex gap-3">
-                    <DangerButton @click="bulkDelete">
-                        Delete ({{ selectedUsers.length }})
-                    </DangerButton>
-                    <!-- Add more bulk actions here if needed -->
+                        {{ type.charAt(0).toUpperCase() + type.slice(1) }}
+                        <span class="ml-1 text-xs opacity-70 bg-gray-200 dark:bg-slate-800 px-1.5 py-0.5 rounded-full">
+                            {{ counts[type] || 0 }}
+                        </span>
+                    </button>
                 </div>
 
-                <p class="text-sm text-yellow-700 dark:text-yellow-300">
-                    {{ selectedUsers.length }} user<span
-                        v-if="selectedUsers.length > 1"
-                        >s</span
-                    >
-                    selected
-                </p>
+                <!-- Search -->
+                <div class="relative w-full sm:w-72">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Search class="h-4 w-4 text-gray-400" />
+                    </div>
+                    <input
+                        v-model="search"
+                        type="text"
+                        placeholder="Search users..."
+                        class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg leading-5 bg-white dark:bg-slate-900 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150 ease-in-out"
+                    />
+                </div>
             </div>
 
-            <!-- Users Table -->
-            <div
-                class="overflow-x-auto rounded-xl border border-blue-400 bg-white shadow dark:bg-gray-900"
-            >
-                <!-- Table wrapper for responsiveness -->
-                <div class="w-full min-w-[600px] sm:min-w-full">
-                    <table
-                        class="w-full divide-y divide-gray-200 text-sm dark:divide-gray-700"
-                    >
-                        <thead class="bg-gray-50 dark:bg-gray-800">
+            <!-- Bulk Actions -->
+            <div v-if="selectedUsers.length" class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 flex items-center justify-between animate-fade-in">
+                <div class="flex items-center gap-2 text-blue-700 dark:text-blue-300">
+                    <CheckCircle class="w-5 h-5" />
+                    <span class="font-medium">{{ selectedUsers.length }} users selected</span>
+                </div>
+                <DangerButton @click="bulkDelete" class="flex items-center gap-2">
+                    <Trash2 class="w-4 h-4" />
+                    Delete Selected
+                </DangerButton>
+            </div>
+
+            <!-- Users Table (Desktop) / Cards (Mobile) -->
+            <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                <!-- Desktop Table -->
+                <div class="hidden md:block overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
+                        <thead class="bg-gray-50 dark:bg-slate-900/50">
                             <tr>
-                                <th class="px-3 py-3">
+                                <th scope="col" class="px-6 py-3 text-left">
                                     <input
                                         type="checkbox"
-                                        :checked="
-                                            selectedUsers.length ===
-                                            users.data.length
-                                        "
-                                        @change="
-                                            selectedUsers = $event.target
-                                                .checked
-                                                ? users.data.map((u) => u.id)
-                                                : []
-                                        "
+                                        :checked="selectedUsers.length === users.data.length && users.data.length > 0"
+                                        @change="toggleSelectAll"
+                                        class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 dark:bg-slate-800 dark:border-slate-600"
                                     />
                                 </th>
-                                <th
-                                    class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold sm:text-sm dark:text-blue-400"
-                                >
-                                    Username
-                                </th>
-                                <th
-                                    class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold sm:text-sm dark:text-blue-400"
-                                >
-                                    Account No
-                                </th>
-                                <th
-                                    class="px-4 py-3 text-left text-xs font-semibold sm:text-sm dark:text-blue-400"
-                                >
-                                    Phone
-                                </th>
-                                <th
-                                    class="px-4 py-3 text-left text-xs font-semibold sm:text-sm dark:text-blue-400"
-                                >
-                                    Package
-                                </th>
-                                <th
-                                    class="px-4 py-3 text-left text-xs font-semibold sm:text-sm dark:text-blue-400"
-                                >
-                                    Expiry
-                                </th>
-                                <th
-                                    class="px-4 py-3 text-left text-xs font-semibold sm:text-sm dark:text-blue-400"
-                                >
-                                    Status
-                                </th>
-                                <th
-                                    class="px-4 py-3 text-right text-xs font-semibold sm:text-sm dark:text-blue-400"
-                                >
-                                    Actions
-                                </th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">User Details</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Contact</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Package</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
-
-                        <tbody
-                            class="divide-y divide-blue-200 dark:divide-blue-900"
-                        >
-                            <tr
-                                v-for="user in users.data"
-                                :key="user.id"
-                                class="transition hover:bg-gray-100 dark:hover:bg-gray-800"
-                            >
-                                <td class="px-3 py-3 align-top">
+                        <tbody class="divide-y divide-gray-200 dark:divide-slate-700">
+                            <tr v-for="user in users.data" :key="user.id" class="hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                                <td class="px-6 py-4 whitespace-nowrap">
                                     <input
                                         type="checkbox"
                                         :value="user.id"
                                         v-model="selectedUsers"
+                                        class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 dark:bg-slate-800 dark:border-slate-600"
                                     />
                                 </td>
-
-                                <td class="px-4 py-3 align-top">
-                                    <Link
-                                        :href="route('users.show', user.id)"
-                                        class="block break-words font-semibold hover:text-blue-500 dark:hover:text-green-400"
-                                    >
-                                        {{ user.username }}
-                                        <div
-                                            class="max-w-[160px] truncate text-xs text-gray-500 sm:max-w-none dark:text-gray-400"
-                                        >
-                                            {{ user.full_name }}
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center">
+                                        <div class="h-10 w-10 flex-shrink-0 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
+                                            {{ user.username.charAt(0).toUpperCase() }}
                                         </div>
-                                    </Link>
-                                </td>
-
-                                <td
-                                    class="px-4 py-3 align-top font-mono text-xs"
-                                >
-                                    <span v-if="user.account_number">
-                                        {{
-                                            user.account_number?.substring(
-                                                0,
-                                                10,
-                                            )
-                                        }}
-                                    </span>
-                                    <span v-else>—</span>
-                                </td>
-
-                                <td class="px-4 py-3 align-top text-sm">
-                                    {{ user.phone }}
-                                </td>
-
-                                <td class="px-4 py-3 align-top text-sm">
-                                    {{ user.package?.name || '-' }}
-                                </td>
-
-                                <td
-                                    class="whitespace-nowrap px-4 py-3 align-top text-sm"
-                                >
-                                    {{ user.expiry_human }}
-                                </td>
-
-                                <td class="px-4 py-3 align-top">
-                                    <span
-                                        class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium"
-                                        :class="
-                                            user.is_online
-                                                ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300'
-                                                : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
-                                        "
-                                    >
-                                        {{
-                                            user.is_online
-                                                ? 'Online'
-                                                : 'Offline'
-                                        }}
-                                    </span>
-                                </td>
-
-                                <td class="px-4 py-3 text-right align-top">
-                                    <div
-                                        class="relative inline-block text-left"
-                                    >
-                                        <button
-                                            @click="
-                                                user.showActions =
-                                                    !user.showActions
-                                            "
-                                            class="rounded p-1 hover:bg-gray-100 focus:outline-none dark:hover:bg-gray-700"
-                                        >
-                                            <svg
-                                                class="h-5 w-5"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                viewBox="0 0 24 24"
-                                            >
-                                                <circle
-                                                    cx="12"
-                                                    cy="12"
-                                                    r="1.5"
-                                                />
-                                                <circle
-                                                    cx="19.5"
-                                                    cy="12"
-                                                    r="1.5"
-                                                />
-                                                <circle
-                                                    cx="4.5"
-                                                    cy="12"
-                                                    r="1.5"
-                                                />
-                                            </svg>
-                                        </button>
-
-                                        <div
-                                            v-if="user.showActions"
-                                            class="absolute right-0 z-10 mt-2 w-32 origin-top-right rounded-md border bg-white shadow-lg ring-1 ring-black ring-opacity-5 dark:border-gray-700 dark:bg-gray-800"
-                                        >
-                                            <div class="py-1">
-                                                <button
-                                                    @click="
-                                                        viewUser(user);
-                                                        user.showActions = false;
-                                                    "
-                                                    class="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
-                                                >
-                                                    View
-                                                </button>
-                                                <button
-                                                    @click="
-                                                        openEdit(user);
-                                                        user.showActions = false;
-                                                    "
-                                                    class="block w-full px-4 py-2 text-left text-sm text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-700/50"
-                                                >
-                                                    Edit
-                                                </button>
-                                                <button
-                                                    @click="
-                                                        remove(user.id);
-                                                        user.showActions = false;
-                                                    "
-                                                    class="block w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-700/50"
-                                                >
-                                                    Delete
-                                                </button>
-                                            </div>
+                                        <div class="ml-4">
+                                            <div class="text-sm font-medium text-gray-900 dark:text-white">{{ user.username }}</div>
+                                            <div class="text-sm text-gray-500 dark:text-gray-400">{{ user.full_name }}</div>
                                         </div>
                                     </div>
                                 </td>
+                                <td class="px-6 py-4">
+                                    <div class="text-sm text-gray-900 dark:text-gray-300 flex items-center gap-2">
+                                        <Smartphone class="w-3 h-3 text-gray-400" />
+                                        {{ user.phone }}
+                                    </div>
+                                    <div v-if="user.location" class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-2 mt-1">
+                                        <MapPin class="w-3 h-3" />
+                                        {{ user.location }}
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="text-sm text-gray-900 dark:text-white font-medium">{{ user.package?.name || 'No Package' }}</div>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-1">
+                                        <Calendar class="w-3 h-3" />
+                                        {{ user.expiry_human }}
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span :class="[
+                                        'px-2 inline-flex text-xs leading-5 font-semibold rounded-full',
+                                        user.is_online 
+                                            ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' 
+                                            : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                                    ]">
+                                        {{ user.is_online ? 'Online' : 'Offline' }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <div class="flex items-center justify-end gap-2">
+                                        <button @click="viewUser(user)" class="text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" title="View Details">
+                                            <Eye class="w-5 h-5" />
+                                        </button>
+                                        <button @click="openEdit(user)" class="text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors" title="Edit">
+                                            <Edit class="w-5 h-5" />
+                                        </button>
+                                        <button @click="remove(user.id)" class="text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors" title="Delete">
+                                            <Trash2 class="w-5 h-5" />
+                                        </button>
+                                    </div>
+                                </td>
                             </tr>
-
                             <tr v-if="users.data.length === 0">
-                                <td
-                                    colspan="8"
-                                    class="py-6 text-center text-gray-500 dark:text-gray-400"
-                                >
-                                    No users found.
+                                <td colspan="6" class="px-6 py-10 text-center text-gray-500 dark:text-gray-400">
+                                    <div class="flex flex-col items-center justify-center">
+                                        <UserCheck class="w-12 h-12 text-gray-300 dark:text-gray-600 mb-3" />
+                                        <p class="text-lg font-medium">No users found</p>
+                                        <p class="text-sm">Try adjusting your search or filters</p>
+                                    </div>
                                 </td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
 
-                <!-- Pagination -->
-                <div class="p-3 sm:p-4">
-                    <Pagination class="mt-3 sm:mt-4" :links="users.links" />
+                <!-- Mobile Cards -->
+                <div class="md:hidden divide-y divide-gray-200 dark:divide-slate-700">
+                    <div v-for="user in users.data" :key="user.id" class="p-4 space-y-3">
+                        <div class="flex items-start justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
+                                    {{ user.username.charAt(0).toUpperCase() }}
+                                </div>
+                                <div>
+                                    <div class="text-sm font-medium text-gray-900 dark:text-white">{{ user.username }}</div>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400">{{ user.full_name }}</div>
+                                </div>
+                            </div>
+                            <span :class="[
+                                'px-2 py-0.5 text-xs font-semibold rounded-full',
+                                user.is_online 
+                                    ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' 
+                                    : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                            ]">
+                                {{ user.is_online ? 'Online' : 'Offline' }}
+                            </span>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2 text-sm">
+                            <div class="text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                <Smartphone class="w-3 h-3" /> {{ user.phone }}
+                            </div>
+                            <div class="text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                <Wifi class="w-3 h-3" /> {{ user.package?.name || '-' }}
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-slate-700/50">
+                            <div class="text-xs text-gray-400">
+                                Expires: {{ user.expiry_human }}
+                            </div>
+                            <div class="flex gap-3">
+                                <button @click="viewUser(user)" class="text-blue-600 dark:text-blue-400 text-sm font-medium">View</button>
+                                <button @click="openEdit(user)" class="text-amber-600 dark:text-amber-400 text-sm font-medium">Edit</button>
+                                <button @click="remove(user.id)" class="text-red-600 dark:text-red-400 text-sm font-medium">Delete</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div v-if="users.data.length === 0" class="p-8 text-center text-gray-500 dark:text-gray-400">
+                        No users found.
+                    </div>
                 </div>
             </div>
+
+            <Pagination :links="users.links" />
         </div>
 
-        <!-- Modal Form -->
+        <!-- Create/Edit Modal -->
         <Modal :show="showModal" @close="showModal = false">
-            <div class="p-6">
-                <h3 class="mb-4 text-lg font-semibold">
-                    {{ editing ? 'Edit User' : 'Create User' }}
+            <div class="p-6 dark:bg-slate-800 dark:text-white">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                    {{ editing ? 'Edit User' : 'Create New User' }}
                 </h3>
                 <form @submit.prevent="submit" class="space-y-4">
-                    <div>
-                        <InputLabel for="full_name" value="Full Name" />
-                        <TextInput
-                            v-model="form.full_name"
-                            id="full_name"
-                            class="mt-1 block w-full"
-                        />
-                        <InputError :message="form.errors.full_name" />
-                    </div>
-
-                    <div>
-                        <InputLabel for="username" value="Username" />
-                        <TextInput
-                            v-model="form.username"
-                            id="username"
-                            class="mt-1 block w-full"
-                        />
-                        <InputError :message="form.errors.username" />
-                    </div>
-
-                    <div>
-                        <InputLabel for="password" value="Password" />
-                        <TextInput
-                            v-model="form.password"
-                            id="password"
-                            class="mt-1 block w-full"
-                            type="text"
-                            autocomplete="off"
-                        />
-                        <InputError :message="form.errors.password" />
-                    </div>
-
-                    <div>
-                        <InputLabel for="phone" value="Phone" />
-                        <TextInput
-                            v-model="form.phone"
-                            id="phone"
-                            class="mt-1 block w-full"
-                        />
-                        <InputError :message="form.errors.phone" />
-                    </div>
-
-                    <div>
-                        <InputLabel for="email" value="Email" />
-                        <TextInput
-                            v-model="form.email"
-                            id="email"
-                            class="mt-1 block w-full"
-                        />
-                        <InputError :message="form.errors.email" />
-                    </div>
-
-                    <div>
-                        <InputLabel for="location" value="Location" />
-                        <TextInput
-                            v-model="form.location"
-                            id="location"
-                            class="mt-1 block w-full"
-                        />
-                        <InputError :message="form.errors.location" />
-                    </div>
-
-                    <div>
-                        <InputLabel for="expires_at" value="Expiry Date" />
-                        <TextInput
-                            id="expires_at"
-                            type="datetime-local"
-                            v-model="form.expires_at"
-                            class="mt-1 block w-full"
-                        />
-                        <InputError :message="form.errors.expires_at" />
-                    </div>
-
-                    <div>
-                        <InputLabel for="type" value="User Type" />
-                        <select
-                            v-model="form.type"
-                            id="type"
-                            class="mt-1 w-full rounded-md border-gray-300 dark:bg-black"
-                        >
-                            <option value="hotspot">Hotspot</option>
-                            <option value="pppoe">PPPoE</option>
-                            <option value="static">Static</option>
-                        </select>
-                        <InputError :message="form.errors.type" />
-                    </div>
-
-                    <div>
-                        <InputLabel for="package_id" value="Package" />
-                        <select
-                            v-model="form.package_id"
-                            id="package_id"
-                            class="mt-1 w-full rounded-md border-gray-300 dark:bg-black"
-                        >
-                            <option
-                                v-for="pkg in packagesByType"
-                                :key="pkg.id"
-                                :value="pkg.id"
-                            >
-                                {{ pkg.name }}
-                            </option>
-                        </select>
-                        <InputError :message="form.errors.package_id" />
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <InputLabel for="full_name" value="Full Name" />
+                            <TextInput v-model="form.full_name" id="full_name" class="mt-1 block w-full" />
+                            <InputError :message="form.errors.full_name" />
+                        </div>
+                        <div>
+                            <InputLabel for="username" value="Username" />
+                            <TextInput v-model="form.username" id="username" class="mt-1 block w-full" />
+                            <InputError :message="form.errors.username" />
+                        </div>
+                        <div>
+                            <InputLabel for="password" value="Password" />
+                            <TextInput v-model="form.password" id="password" type="text" class="mt-1 block w-full" placeholder="Leave empty to keep current" />
+                            <InputError :message="form.errors.password" />
+                        </div>
+                        <div>
+                            <InputLabel for="phone" value="Phone Number" />
+                            <TextInput v-model="form.phone" id="phone" class="mt-1 block w-full" />
+                            <InputError :message="form.errors.phone" />
+                        </div>
+                        <div>
+                            <InputLabel for="email" value="Email Address" />
+                            <TextInput v-model="form.email" id="email" type="email" class="mt-1 block w-full" />
+                            <InputError :message="form.errors.email" />
+                        </div>
+                        <div>
+                            <InputLabel for="location" value="Location" />
+                            <TextInput v-model="form.location" id="location" class="mt-1 block w-full" />
+                            <InputError :message="form.errors.location" />
+                        </div>
+                        <div>
+                            <InputLabel for="type" value="User Type" />
+                            <select v-model="form.type" id="type" class="mt-1 block w-full border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white focus:border-blue-500 focus:ring-blue-500 rounded-md shadow-sm">
+                                <option value="hotspot">Hotspot</option>
+                                <option value="pppoe">PPPoE</option>
+                                <option value="static">Static</option>
+                            </select>
+                            <InputError :message="form.errors.type" />
+                        </div>
+                        <div>
+                            <InputLabel for="package_id" value="Package" />
+                            <select v-model="form.package_id" id="package_id" class="mt-1 block w-full border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white focus:border-blue-500 focus:ring-blue-500 rounded-md shadow-sm">
+                                <option value="">Select Package</option>
+                                <option v-for="pkg in packagesByType" :key="pkg.id" :value="pkg.id">
+                                    {{ pkg.name }}
+                                </option>
+                            </select>
+                            <InputError :message="form.errors.package_id" />
+                        </div>
+                        <div class="md:col-span-2">
+                            <InputLabel for="expires_at" value="Expiry Date" />
+                            <TextInput id="expires_at" type="datetime-local" v-model="form.expires_at" class="mt-1 block w-full" />
+                            <InputError :message="form.errors.expires_at" />
+                        </div>
                     </div>
 
                     <div class="mt-6 flex justify-end gap-3">
-                        <DangerButton @click="showModal = false" type="button"
-                            >Cancel</DangerButton
-                        >
-                        <PrimaryButton :disabled="form.processing">{{
-                            editing ? 'Update' : 'Save'
-                        }}</PrimaryButton>
+                        <DangerButton type="button" @click="showModal = false">Cancel</DangerButton>
+                        <PrimaryButton :disabled="form.processing">{{ editing ? 'Update User' : 'Create User' }}</PrimaryButton>
                     </div>
                 </form>
             </div>
         </Modal>
 
-        <!-- View Modal -->
-        <Modal :show="viewing" @close="viewing = null">
-            <div
-                class="mx-auto max-w-2xl space-y-6 rounded-lg bg-gradient-to-r from-cyan-100 to-violet-100 p-6 shadow-xl"
-            >
-                <div class="text-center">
-                    <h2 class="text-2xl font-bold text-gray-800">
-                        User Profile
-                    </h2>
-                    <p class="mt-1 text-sm text-gray-500">
-                        Complete access details for client configuration
-                    </p>
+        <!-- View User Modal -->
+        <Modal :show="!!viewing" @close="viewing = null">
+            <div class="p-6 dark:bg-slate-800 dark:text-white" v-if="viewing">
+                <div class="text-center mb-6">
+                    <div class="h-16 w-16 mx-auto rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 text-2xl font-bold mb-3">
+                        {{ viewing.username.charAt(0).toUpperCase() }}
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white">{{ viewing.full_name }}</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">{{ viewing.username }}</p>
                 </div>
 
-                <!-- Credentials Section -->
-                <div class="rounded-md border bg-indigo-200 p-4">
-                    <h3 class="mb-2 text-sm font-semibold text-blue-700">
-                        Login Credentials
-                    </h3>
-                    <div
-                        class="grid grid-cols-1 gap-4 text-sm text-gray-800 sm:grid-cols-2"
-                    >
+                <div class="bg-gray-50 dark:bg-slate-700/50 rounded-lg p-4 mb-6 border border-gray-100 dark:border-slate-600">
+                    <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Account Details</h4>
+                    <div class="grid grid-cols-2 gap-4 text-sm">
                         <div>
-                            <span class="text-blue-700">Username:</span>
-                            <div class="font-mono text-green-700">
-                                {{ viewing?.username }}
-                            </div>
-                            <div
-                                v-if="viewing?.account_number"
-                                class="text-xs text-gray-500"
-                            >
-                                Account No:
-                                {{ viewing?.account_number.substring(0, 6) }}
-                            </div>
+                            <span class="text-gray-500 dark:text-gray-400 block">Password</span>
+                            <span class="font-mono font-medium text-gray-900 dark:text-white">{{ viewing.password }}</span>
                         </div>
                         <div>
-                            <span class="text-blue-700">Password:</span>
-                            <div class="flex items-center space-x-2">
-                                <span class="font-mono text-red-600">{{
-                                    viewing?.password
-                                }}</span>
-                            </div>
+                            <span class="text-gray-500 dark:text-gray-400 block">Type</span>
+                            <span class="capitalize font-medium text-gray-900 dark:text-white">{{ viewing.type }}</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-500 dark:text-gray-400 block">Package</span>
+                            <span class="font-medium text-gray-900 dark:text-white">{{ viewing.package?.name || '-' }}</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-500 dark:text-gray-400 block">Expires</span>
+                            <span class="font-medium text-gray-900 dark:text-white">{{ viewing.expiry_human }}</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- Personal Info -->
-                <div
-                    class="grid grid-cols-1 gap-4 text-sm text-gray-700 sm:grid-cols-2"
-                >
+                <div class="grid grid-cols-2 gap-4 text-sm mb-6">
                     <div>
-                        <span class="font-semibold text-black">Full Name:</span>
-                        <p>{{ viewing?.full_name }}</p>
+                        <span class="text-gray-500 dark:text-gray-400 block">Phone</span>
+                        <span class="text-gray-900 dark:text-white">{{ viewing.phone }}</span>
                     </div>
                     <div>
-                        <span class="font-semibold text-black">Phone:</span>
-                        <p>{{ viewing?.phone }}</p>
+                        <span class="text-gray-500 dark:text-gray-400 block">Email</span>
+                        <span class="text-gray-900 dark:text-white">{{ viewing.email || '-' }}</span>
                     </div>
-                    <div>
-                        <span class="font-semibold text-black">Email:</span>
-                        <p>{{ viewing?.email || '—' }}</p>
-                    </div>
-                    <div>
-                        <span class="font-semibold text-black">Location:</span>
-                        <p>{{ viewing?.location || '—' }}</p>
-                    </div>
-                    <div>
-                        <span class="font-semibold text-black">Package:</span>
-                        <p>{{ viewing?.package?.name || '—' }}</p>
-                    </div>
-                    <div>
-                        <span class="font-semibold text-black">Type:</span>
-                        <span
-                            class="inline-block rounded bg-blue-100 px-2 py-1 text-xs font-semibold text-blue-800"
-                        >
-                            {{ viewing?.type }}
-                        </span>
-                    </div>
-                    <div>
-                        <span class="font-semibold text-black">Expiry:</span>
-                        <p>{{ viewing?.expiry_human }}</p>
+                    <div class="col-span-2">
+                        <span class="text-gray-500 dark:text-gray-400 block">Location</span>
+                        <span class="text-gray-900 dark:text-white">{{ viewing.location || '-' }}</span>
                     </div>
                 </div>
 
-                <div class="flex justify-end pt-4">
+                <div class="flex justify-end">
                     <PrimaryButton @click="viewing = null">Close</PrimaryButton>
                 </div>
             </div>
