@@ -17,9 +17,10 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
         ]);
 
-        // Exempt sync endpoint from CSRF (uses token-based auth)
+        // Exempt sync and WireGuard registration endpoints from CSRF (use token-based auth)
         $middleware->validateCsrfTokens(except: [
             'mikrotiks/*/sync',
+            'mikrotiks/*/register-wireguard',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

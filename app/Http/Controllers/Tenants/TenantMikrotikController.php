@@ -733,6 +733,15 @@ class TenantMikrotikController extends Controller
         try {
             $router = TenantMikrotik::findOrFail($mikrotik);
 
+            // Log incoming request for debugging
+            Log::info('WireGuard registration attempt', [
+                'router_id' => $mikrotik,
+                'router_name' => $router->name,
+                'client_ip' => $request->ip(),
+                'has_token' => $request->has('token') || $request->query('token') ? 'yes' : 'no',
+                'post_data' => $request->except(['token']), // Log POST data without token
+            ]);
+
             // Validate sync token
             $token = $request->query('token') ?? $request->input('token');
             if (!$token || $token !== $router->sync_token) {
@@ -751,11 +760,19 @@ class TenantMikrotikController extends Controller
             $wgAddress = $request->input('wg_address');
 
             if (!$wgPublicKey) {
+                Log::warning('WireGuard registration missing public key', [
+                    'router_id' => $router->id,
+                    'post_data' => $request->all(),
+                ]);
                 return response()->json(['success' => false, 'message' => 'Missing wg_public_key'], 422);
             }
 
             // Basic validation of public key length
             if (strlen($wgPublicKey) < 32 || strlen($wgPublicKey) > 128) {
+                Log::warning('WireGuard registration invalid public key length', [
+                    'router_id' => $router->id,
+                    'key_length' => strlen($wgPublicKey),
+                ]);
                 return response()->json(['success' => false, 'message' => 'Invalid wg_public_key'], 422);
             }
 
@@ -798,13 +815,23 @@ class TenantMikrotikController extends Controller
             $router->wireguard_status = 'pending';
             $router->save();
 
+            // Log successful registration
+            Log::info('WireGuard registration successful', [
+                'router_id' => $router->id,
+                'router_name' => $router->name,
+                'wg_public_key' => substr($wgPublicKey, 0, 16) . '...',
+                'wg_address' => $assignedAddress ?? 'not assigned',
+                'wireguard_status' => 'pending',
+            ]);
+
             // Log
             $router->logs()->create([
                 'action' => 'wg_register',
                 'message' => 'WireGuard public key received and stored',
                 'status' => 'success',
                 'response_data' => [
-                    'wg_public_key' => substr($wgPublicKey, 0, 16) . '...'
+                    'wg_public_key' => substr($wgPublicKey, 0, 16) . '...',
+                    'wg_address' => $assignedAddress ?? 'not assigned',
                 ],
             ]);
 

@@ -196,9 +196,12 @@
         :if ([:len $wgAddr] > 0) do={ :set postData ($postData . "&wg_address=" . $wgAddr) }
         :do {
             :put ("Attempting WireGuard register POST to: " . $wgRegisterUrl)
-            /tool fetch url=$wgRegisterUrl http-method=post http-data=$postData keep-result=no
+            :put ("  POST data: wg_public_key=<KEY>&wg_address=" . $wgAddr)
+            /tool fetch url=$wgRegisterUrl http-method=post http-data=$postData http-content-type="application/x-www-form-urlencoded" keep-result=no
+            :put "  status: success"
             :put "WireGuard register phone-home successful"
         } on-error={
+            :put "  status: failed"
             :put "Warning: WireGuard register phone-home failed over HTTPS; attempting HTTP fallback"
             :local altUrl $wgRegisterUrl
             :if ([:len $altUrl] > 8 && [:pick $altUrl 0 8] = "https://") do={
@@ -206,9 +209,13 @@
             }
             :do {
                 :put ("Attempting WireGuard register POST to (fallback): " . $altUrl)
-                /tool fetch url=$altUrl http-method=post http-data=$postData keep-result=no
+                /tool fetch url=$altUrl http-method=post http-data=$postData http-content-type="application/x-www-form-urlencoded" keep-result=no
+                :put "  status: success"
                 :put "WireGuard register phone-home successful (HTTP fallback)"
-            } on-error={ :put "Warning: WireGuard register phone-home failed (both HTTPS and HTTP)" }
+            } on-error={ 
+                :put "  status: failed"
+                :put "Warning: WireGuard register phone-home failed (both HTTPS and HTTP)" 
+            }
         }
     } else={
         :put "No WireGuard register URL configured; skipping WG register phone-home"
