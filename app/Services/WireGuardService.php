@@ -267,18 +267,43 @@ class WireGuardService
     protected function applyConfigSafely(): bool
     {
         try {
-            // Use wg syncconf for zero-downtime updates
-            $cmd = sprintf(
-                "sudo %s syncconf %s <(sudo %s strip %s)",
-                escapeshellarg($this->wgBinary),
-                escapeshellarg($this->wgInterface),
+            // Create temp file for stripped config (process substitution doesn't work with sudo)
+            $tempFile = '/tmp/wg-sync-' . time() . '.conf';
+
+            // Strip config to temp file
+            $stripCmd = sprintf(
+                "sudo %s strip %s > %s",
                 escapeshellarg($this->wgQuickBinary),
-                escapeshellarg($this->wgInterface)
+                escapeshellarg($this->wgInterface),
+                escapeshellarg($tempFile)
             );
 
-            $process = Process::fromShellCommandline($cmd);
+            $stripProcess = Process::fromShellCommandline($stripCmd);
+            $stripProcess->setTimeout(30);
+            $stripProcess->run();
+
+            if (!$stripProcess->isSuccessful()) {
+                Log::channel('wireguard')->error('wg-quick strip failed', [
+                    'output' => $stripProcess->getErrorOutput() ?: $stripProcess->getOutput(),
+                ]);
+                @unlink($tempFile);
+                return false;
+            }
+
+            // Apply using wg syncconf
+            $syncCmd = sprintf(
+                "sudo %s syncconf %s %s",
+                escapeshellarg($this->wgBinary),
+                escapeshellarg($this->wgInterface),
+                escapeshellarg($tempFile)
+            );
+
+            $process = Process::fromShellCommandline($syncCmd);
             $process->setTimeout(60);
             $process->run();
+
+            // Clean up temp file
+            @unlink($tempFile);
 
             if (!$process->isSuccessful()) {
                 Log::channel('wireguard')->error('wg syncconf failed', [
