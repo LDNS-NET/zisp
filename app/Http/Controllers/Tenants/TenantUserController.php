@@ -16,10 +16,10 @@ class TenantUserController extends Controller
     public function index(Request $request)
     {
         $type = $request->get('type', 'all');
-        
+
         $query = NetworkUser::query()
             ->with('package')
-            ->when($type !== 'all', function($q) use ($type) {
+            ->when($type !== 'all', function ($q) use ($type) {
                 return $q->where('type', $type);
             })
             ->latest();
@@ -32,7 +32,7 @@ class TenantUserController extends Controller
             'pppoe' => Package::where('type', 'pppoe')->get(),
             'static' => Package::where('type', 'static')->get(),
         ];
-        
+
         // Get user counts by type for filters
         $counts = [
             'all' => NetworkUser::count(),
@@ -42,7 +42,7 @@ class TenantUserController extends Controller
         ];
 
         return inertia('Users/index', [
-            'users' => $users->through(fn ($user) => [
+            'users' => $users->through(fn($user) => [
                 'id' => $user->id,
                 'full_name' => $user->full_name,
                 'username' => $user->username,
@@ -82,7 +82,7 @@ class TenantUserController extends Controller
 
         // Generate account number
         $accountNumber = 'NU' . str_pad(NetworkUser::max('id') + 1, 6, '0', STR_PAD_LEFT);
-        
+
         // Create the user in a database transaction
         $user = \DB::transaction(function () use ($validated, $accountNumber) {
             return NetworkUser::create([
@@ -119,74 +119,74 @@ class TenantUserController extends Controller
         'user' => $userDetails,
         'payments' => $payments, // 👈 now Vue receives this
 
-        
+
     ]);
 }*/
 
-public function show($id)
-{
-    $user = NetworkUser::with('package')->findOrFail($id);
+    public function show($id)
+    {
+        $user = NetworkUser::with('package')->findOrFail($id);
 
-    // Fetch user payments
-    $userPayments = TenantPayment::where('user_id', $id)
-        ->orderBy('paid_at', 'desc')
-        ->get();
+        // Fetch user payments
+        $userPayments = TenantPayment::where('user_id', $id)
+            ->orderBy('paid_at', 'desc')
+            ->get();
 
-    // Lifetime Total
-    $lifetimeTotal = $userPayments->sum('amount');
+        // Lifetime Total
+        $lifetimeTotal = $userPayments->sum('amount');
 
-    // Payment Reliability Score
-    $now = now();
-    $delays = [];
+        // Payment Reliability Score
+        $now = now();
+        $delays = [];
 
-    foreach ($userPayments as $payment) {
-        if ($payment->due_date) {
-            if ($payment->paid_at) {
-                // days late = paid_at - due_date
-                $delay = $payment->paid_at->greaterThan($payment->due_date)
-                    ? $payment->due_date->diffInDays($payment->paid_at)
-                    : 0;
-                $delays[] = $delay;
-            } else {
-                // unpaid & overdue → delay until now
-                if ($payment->due_date->isPast()) {
-                    $delays[] = $payment->due_date->diffInDays($now);
+        foreach ($userPayments as $payment) {
+            if ($payment->due_date) {
+                if ($payment->paid_at) {
+                    // days late = paid_at - due_date
+                    $delay = $payment->paid_at->greaterThan($payment->due_date)
+                        ? $payment->due_date->diffInDays($payment->paid_at)
+                        : 0;
+                    $delays[] = $delay;
+                } else {
+                    // unpaid & overdue → delay until now
+                    if ($payment->due_date->isPast()) {
+                        $delays[] = $payment->due_date->diffInDays($now);
+                    }
                 }
             }
         }
+
+        $avgDelay = count($delays) > 0 ? collect($delays)->avg() : 0;
+
+        // Reliability %: 
+        // 0 delay → 100%
+        // 1-2 days late → 80-90%
+        // 3-7 days late → 50-70%
+        // 8+ → 20%
+        if ($avgDelay == 0) {
+            $paymentReliability = "100";
+        } elseif ($avgDelay <= 2) {
+            $paymentReliability = "90";
+        } elseif ($avgDelay <= 7) {
+            $paymentReliability = "70";
+        } else {
+            $paymentReliability = "30";
+        }
+
+        // Client Value (compare with all clients)
+        $totalAllClients = TenantPayment::sum('amount');
+        $clientValue = $totalAllClients > 0
+            ? round(($lifetimeTotal / $totalAllClients) * 100, 1)
+            : 0;
+
+        return inertia('Users/Details', [
+            'user' => $user,
+            'payments' => $userPayments,
+            'lifetimeTotal' => $lifetimeTotal,
+            'paymentReliability' => $paymentReliability,
+            'clientValue' => $clientValue,
+        ]);
     }
-
-    $avgDelay = count($delays) > 0 ? collect($delays)->avg() : 0;
-
-    // Reliability %: 
-    // 0 delay → 100%
-    // 1-2 days late → 80-90%
-    // 3-7 days late → 50-70%
-    // 8+ → 20%
-    if ($avgDelay == 0) {
-        $paymentReliability = "100";
-    } elseif ($avgDelay <= 2) {
-        $paymentReliability = "90";
-    } elseif ($avgDelay <= 7) {
-        $paymentReliability = "70";
-    } else {
-        $paymentReliability = "30";
-    }
-
-    // Client Value (compare with all clients)
-    $totalAllClients = TenantPayment::sum('amount');
-    $clientValue = $totalAllClients > 0
-        ? round(($lifetimeTotal / $totalAllClients) * 100, 1)
-        : 0;
-
-    return inertia('Users/Details', [
-        'user' => $user,
-        'payments' => $userPayments,
-        'lifetimeTotal' => $lifetimeTotal,
-        'paymentReliability' => $paymentReliability,
-        'clientValue' => $clientValue,
-    ]);
-}
 
 
 
@@ -207,15 +207,18 @@ public function show($id)
 
         // Store original package ID for comparison
         $originalPackageId = $user->package_id;
-        $passwordChanged = isset($validated['password']);
-        
+
         // Update the user in a transaction
-       /* \DB::transaction(function () use ($user, $validated) {
-            if ($passwordChanged) {
+        \DB::transaction(function () use ($user, $validated) {
+            // Only hash password if it's provided
+            if (!empty($validated['password'])) {
                 $validated['password'] = Hash::make($validated['password']);
+            } else {
+                // Remove password from update if not provided
+                unset($validated['password']);
             }
             $user->update($validated);
-        });*/
+        });
 
         return back()->with([
             'success' => 'User updated successfully.',
@@ -230,10 +233,10 @@ public function show($id)
         $userId = $user->id;
         $mikrotikId = $user->mikrotik_id;
         $userType = $user->type;
-        
+
         // Delete the user first
         $user->delete();
-        
+
         // If there's a MikroTik ID, dispatch a job to clean up
         if ($mikrotikId) {
             // Create a temporary user object with just the needed data
@@ -242,7 +245,7 @@ public function show($id)
                 'mikrotik_id' => $mikrotikId,
                 'type' => $userType,
             ]);
-            
+
             // Dispatch the delete job
             \App\Jobs\SyncUserToMikrotik::dispatch($tempUser, 'delete')
                 ->onQueue('mikrotik');
@@ -260,16 +263,16 @@ public function show($id)
 
         // Get users before deletion
         $users = NetworkUser::whereIn('id', $ids)->get();
-        
+
         // Update related payments in a transaction
         \DB::transaction(function () use ($ids) {
             \App\Models\Tenants\TenantPayment::whereIn('user_id', $ids)
                 ->update(['user_id' => null]);
-                
+
             // Delete the users
             NetworkUser::whereIn('id', $ids)->delete();
         });
-        
+
         // Dispatch jobs for MikroTik cleanup
         foreach ($users as $user) {
             if ($user->mikrotik_id) {
@@ -278,7 +281,7 @@ public function show($id)
                     'mikrotik_id' => $user->mikrotik_id,
                     'type' => $user->type,
                 ]);
-                
+
                 \App\Jobs\SyncUserToMikrotik::dispatch($tempUser, 'delete')
                     ->onQueue('mikrotik');
             }
