@@ -573,7 +573,7 @@ watch([routersList, search], () => {
                         <span class="text-sm font-medium text-gray-700 dark:text-gray-200">View Details</span>
                     </button>
                         <Link
-                            :href="route('mikrotikdetails.show', selectedRouter.id)"
+                            :href="route('mikrotiks.show', selectedRouter.id)"
                             class="inline-flex items-center gap-2"
                         >
                             <button class="">
