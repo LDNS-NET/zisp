@@ -1,11 +1,8 @@
 <script setup>
 import { ref } from 'vue';
-import { usePage } from '@inertiajs/inertia-vue3';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
-import SecondaryButton from '@/Components/SecondaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Inertia } from '@inertiajs/inertia';
 
 const props = defineProps({
     mikrotikDetails: Object,
