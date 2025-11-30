@@ -157,6 +157,9 @@ Route::middleware(['auth', 'verified', 'check.subscription', 'tenant.domain'])
         Route::get('settings/general', [TenantGeneralSettingsController::class, 'edit'])->name('settings.general.edit');
         Route::post('settings/general', [TenantGeneralSettingsController::class, 'update'])->name('settings.general.update');
 
+        //Mikrotik Details
+         Route::get('mikrotik-details/{tenantId}', [\App\Http\Controllers\Tenants\MikrotikDetailsController::class, 'index'])->name('mikrotik-details.index');
+
         //mikrotiks
         Route::resource('mikrotiks', TenantMikrotikController::class);
         Route::get('mikrotiks/{mikrotik}/test-connection', [TenantMikrotikController::class, 'testConnection'])->name('mikrotiks.testConnection');
