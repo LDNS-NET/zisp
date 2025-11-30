@@ -814,9 +814,9 @@ class TenantMikrotikController extends Controller
 
             if ($assignedAddress) {
                 $router->wireguard_address = $assignedAddress;
-                // All routers use the unified /16 subnet (10.100.0.0/16)
-                // No longer using /32 per-peer subnets
-                $router->wireguard_allowed_ips = '10.100.0.0/16';
+                // Server needs to know specifically which IP belongs to this peer
+                // So we use /32 mask for the peer's AllowedIPs on the server side
+                $router->wireguard_allowed_ips = $assignedAddress . '/32';
             }
             $router->wireguard_status = 'pending';
             $router->save();
