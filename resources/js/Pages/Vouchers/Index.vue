@@ -31,6 +31,7 @@ const props = defineProps({
     voucherCount: Number,
     creating: { type: Boolean, default: false },
     flash: Object,
+    packages: Array,
 });
 
 const showFormModal = ref(false);
@@ -40,14 +41,10 @@ const selected = ref([]);
 const selectAll = ref(false);
 
 const form = useForm({
-    code: '',
-    name: '',
-    value: '',
-    type: 'fixed',
-    usage_limit: '',
-    expires_at: '',
-    is_active: true,
-    note: '',
+    prefix: '',
+    length: 8,
+    quantity: 1,
+    package_id: '',
 });
 
 const toggleSelectAll = () => {
@@ -336,63 +333,52 @@ const openActions = (voucher) => {
                 </h2>
 
                 <form @submit.prevent="submitForm">
-                    <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+                    <div class="space-y-4">
                         <div>
-                            <InputLabel for="code" value="Voucher Code" />
-                            <TextInput id="code" type="text" class="mt-1 block w-full" v-model="form.code" required autofocus />
-                            <InputError class="mt-2" :message="form.errors.code" />
-                        </div>
-
-                        <div>
-                            <InputLabel for="name" value="Voucher Name" />
-                            <TextInput id="name" type="text" class="mt-1 block w-full" v-model="form.name" required />
-                            <InputError class="mt-2" :message="form.errors.name" />
-                        </div>
-
-                        <div>
-                            <InputLabel for="value" value="Value" />
-                            <TextInput id="value" type="number" step="0.01" class="mt-1 block w-full" v-model="form.value" required />
-                            <InputError class="mt-2" :message="form.errors.value" />
-                        </div>
-
-                        <div>
-                            <InputLabel for="type" value="Type" />
-                            <select id="type" v-model="form.type" class="mt-1 block w-full rounded-md border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
-                                <option value="fixed">Fixed Amount</option>
-                                <option value="percentage">Percentage</option>
+                            <InputLabel for="package_id" value="Package" />
+                            <select id="package_id" v-model="form.package_id" class="mt-1 block w-full rounded-md border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
+                                <option value="">Select a package</option>
+                                <option v-for="pkg in packages" :key="pkg.id" :value="pkg.id">
+                                    {{ pkg.name }} - KES {{ pkg.price }}
+                                </option>
                             </select>
-                            <InputError class="mt-2" :message="form.errors.type" />
+                            <InputError class="mt-2" :message="form.errors.package_id" />
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <InputLabel for="prefix" value="Prefix (Optional)" />
+                                <TextInput id="prefix" type="text" maxlength="4" class="mt-1 block w-full uppercase" v-model="form.prefix" placeholder="e.g., VOC" />
+                                <InputError class="mt-2" :message="form.errors.prefix" />
+                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                    Max 4 characters
+                                </p>
+                            </div>
+
+                            <div>
+                                <InputLabel for="length" value="Code Length" />
+                                <TextInput id="length" type="number" min="6" max="20" class="mt-1 block w-full" v-model="form.length" required />
+                                <InputError class="mt-2" :message="form.errors.length" />
+                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                    Minimum 6 characters
+                                </p>
+                            </div>
                         </div>
 
                         <div>
-                            <InputLabel for="usage_limit" value="Usage Limit (Optional)" />
-                            <TextInput id="usage_limit" type="number" class="mt-1 block w-full" v-model="form.usage_limit" min="1" />
-                            <InputError class="mt-2" :message="form.errors.usage_limit" />
+                            <InputLabel for="quantity" value="Quantity" />
+                            <TextInput id="quantity" type="number" min="1" max="1000" class="mt-1 block w-full" v-model="form.quantity" required />
+                            <InputError class="mt-2" :message="form.errors.quantity" />
                             <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                                Leave empty for unlimited usage.
+                                Number of vouchers to generate (max 1000)
                             </p>
-                        </div>
-
-                        <div>
-                            <InputLabel for="expires_at" value="Expires At (Optional)" />
-                            <TextInput id="expires_at" type="date" class="mt-1 block w-full" v-model="form.expires_at" />
-                            <InputError class="mt-2" :message="form.errors.expires_at" />
-                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                                Leave empty for no expiry date.
-                            </p>
-                        </div>
-
-                        <div class="mt-4 flex items-center md:col-span-2">
-                            <Checkbox id="is_active" v-model:checked="form.is_active" />
-                            <InputLabel for="is_active" class="ml-2">Is Active</InputLabel>
-                            <InputError class="mt-2" :message="form.errors.is_active" />
                         </div>
                     </div>
 
                     <div class="mt-6 flex items-center justify-end gap-3">
                         <DangerButton type="button" @click="closeFormModal">Cancel</DangerButton>
                         <PrimaryButton :class="{ 'opacity-25': form.processing }" :disabled="form.processing">
-                            Create Voucher
+                            Generate Vouchers
                         </PrimaryButton>
                     </div>
                 </form>
