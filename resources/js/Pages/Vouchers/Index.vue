@@ -35,7 +35,7 @@ const props = defineProps({
 });
 
 // Debug: Log props when component mounts
-console.log('Vouchers Index props:', props);
+// console.log('Vouchers Index props:', props);
 
 const showFormModal = ref(false);
 const showActionsModal = ref(false);
@@ -62,7 +62,7 @@ const bulkDelete = () => {
     if (selected.value.length === 0) return;
 
     if (confirm('Are you sure you want to delete selected vouchers?')) {
-        router.delete(route('vouchers.bulk-delete'), {
+        router.delete('/vouchers/bulk-delete', {
             data: { ids: selected.value },
             preserveScroll: true,
             onSuccess: () => {
@@ -135,22 +135,22 @@ const isExpired = (dateString) => {
 watch(
     () => props.creating,
     (newCreatingValue) => {
-        console.log('Creating prop changed:', newCreatingValue);
+        // console.log('Creating prop changed:', newCreatingValue);
         if (newCreatingValue) {
             // Only reset form and show modal if it's truly entering the 'create' state
             resetForm();
             showFormModal.value = true;
-            console.log('Modal should be showing now');
+            // console.log('Modal should be showing now');
         } else {
             showFormModal.value = false;
-            console.log('Modal should be hidden now');
+            // console.log('Modal should be hidden now');
         }
     },
     { immediate: true },
 ); // `immediate: true` runs the watch on component mount
 
 const openCreateModal = () => {
-    console.log('Opening create modal...');
+    // console.log('Opening create modal...');
     // This is the correct way to open the modal via Inertia and query parameter
     router.get(route('vouchers.index', { create: true }), {
         preserveScroll: true, // Keep scroll position
