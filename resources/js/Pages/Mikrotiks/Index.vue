@@ -553,51 +553,68 @@ watch([routersList, search], () => {
             </div>
         </Modal>
 
-        <!-- Actions Modal -->
-        <Modal :show="showActionsModal" @close="showActionsModal = false">
-            <div class="p-6 dark:bg-slate-800 dark:text-white" v-if="selectedRouter">
-                <div class="flex items-center justify-between mb-6">
-                    <h3 class="text-lg font-medium text-gray-900 dark:text-white">Manage {{ selectedRouter.name }}</h3>
+        <!-- Actions Modal (Compact) -->
+        <Modal :show="showActionsModal" @close="showActionsModal = false" maxWidth="sm">
+            <div class="p-4 dark:bg-slate-800 dark:text-white" v-if="selectedRouter">
+                <div class="flex items-center justify-between mb-4 pb-2 border-b border-gray-100 dark:border-slate-700">
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-white truncate pr-4">
+                        {{ selectedRouter.name }}
+                    </h3>
                     <button @click="showActionsModal = false" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
-                        <XCircle class="w-6 h-6" />
+                        <XCircle class="w-5 h-5" />
                     </button>
                 </div>
 
-                <div class="grid grid-cols-2 gap-4">
-                    <button @click="viewRouter(selectedRouter); showActionsModal = false" class="flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-slate-700 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 dark:hover:text-blue-400 transition-all group">
-                        <Eye class="w-8 h-8 mb-2 text-gray-400 group-hover:text-blue-500" />
-                        <span class="font-medium">View Details</span>
+                <div class="space-y-1">
+                    <button @click="viewRouter(selectedRouter); showActionsModal = false" class="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-left group">
+                        <div class="p-1.5 rounded-md bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/40">
+                            <Eye class="w-4 h-4" />
+                        </div>
+                        <span class="text-sm font-medium text-gray-700 dark:text-gray-200">View Details</span>
                     </button>
 
-                    <button @click="openEdit(selectedRouter); showActionsModal = false" class="flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-slate-700 rounded-xl hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:text-amber-600 dark:hover:text-amber-400 transition-all group">
-                        <Edit class="w-8 h-8 mb-2 text-gray-400 group-hover:text-amber-500" />
-                        <span class="font-medium">Edit Router</span>
+                    <button @click="openEdit(selectedRouter); showActionsModal = false" class="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-left group">
+                        <div class="p-1.5 rounded-md bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400 group-hover:bg-amber-100 dark:group-hover:bg-amber-900/40">
+                            <Edit class="w-4 h-4" />
+                        </div>
+                        <span class="text-sm font-medium text-gray-700 dark:text-gray-200">Edit Router</span>
                     </button>
 
-                    <button @click="pingRouter(selectedRouter); showActionsModal = false" :disabled="pinging[selectedRouter.id]" class="flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-slate-700 rounded-xl hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-600 dark:hover:text-green-400 transition-all group">
-                        <Activity class="w-8 h-8 mb-2 text-gray-400 group-hover:text-green-500" />
-                        <span class="font-medium">Ping Router</span>
+                    <button @click="pingRouter(selectedRouter); showActionsModal = false" :disabled="pinging[selectedRouter.id]" class="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-left group disabled:opacity-50">
+                        <div class="p-1.5 rounded-md bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400 group-hover:bg-green-100 dark:group-hover:bg-green-900/40">
+                            <Activity class="w-4 h-4" />
+                        </div>
+                        <span class="text-sm font-medium text-gray-700 dark:text-gray-200">Ping Router</span>
                     </button>
 
-                    <button @click="showRemote(selectedRouter); showActionsModal = false" class="flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-slate-700 rounded-xl hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-600 dark:hover:text-purple-400 transition-all group">
-                        <ExternalLink class="w-8 h-8 mb-2 text-gray-400 group-hover:text-purple-500" />
-                        <span class="font-medium">Remote Mgmt</span>
+                    <button @click="showRemote(selectedRouter); showActionsModal = false" class="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-left group">
+                        <div class="p-1.5 rounded-md bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400 group-hover:bg-purple-100 dark:group-hover:bg-purple-900/40">
+                            <ExternalLink class="w-4 h-4" />
+                        </div>
+                        <span class="text-sm font-medium text-gray-700 dark:text-gray-200">Remote Mgmt</span>
                     </button>
 
-                    <button @click="selectedRouter.visit(route('mikrotiks.reprovision', selectedRouter.id)); showActionsModal = false" class="flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-slate-700 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all group">
-                        <RotateCcw class="w-8 h-8 mb-2 text-gray-400 group-hover:text-indigo-500" />
-                        <span class="font-medium">Reprovision</span>
+                    <button @click="router.visit(route('mikrotiks.reprovision', selectedRouter.id)); showActionsModal = false" class="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-left group">
+                        <div class="p-1.5 rounded-md bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/40">
+                            <RotateCcw class="w-4 h-4" />
+                        </div>
+                        <span class="text-sm font-medium text-gray-700 dark:text-gray-200">Reprovision</span>
                     </button>
 
-                    <button @click="downloadAdvancedConfig(selectedRouter); showActionsModal = false" class="flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-slate-700 rounded-xl hover:bg-cyan-50 dark:hover:bg-cyan-900/20 hover:text-cyan-600 dark:hover:text-cyan-400 transition-all group">
-                        <Download class="w-8 h-8 mb-2 text-gray-400 group-hover:text-cyan-500" />
-                        <span class="font-medium">Download Config</span>
+                    <button @click="downloadAdvancedConfig(selectedRouter); showActionsModal = false" class="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-left group">
+                        <div class="p-1.5 rounded-md bg-cyan-50 text-cyan-600 dark:bg-cyan-900/20 dark:text-cyan-400 group-hover:bg-cyan-100 dark:group-hover:bg-cyan-900/40">
+                            <Download class="w-4 h-4" />
+                        </div>
+                        <span class="text-sm font-medium text-gray-700 dark:text-gray-200">Download Config</span>
                     </button>
-                </div>
 
-                <div class="mt-4 pt-4 border-t border-gray-100 dark:border-slate-700">
-                    <button @click="deleteRouter(selectedRouter); showActionsModal = false" class="w-full flex items-center justify-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors font-medium">
-                        <Trash2 class="w-5 h-5" /> Delete Router
+                    <div class="border-t border-gray-100 dark:border-slate-700 my-1"></div>
+
+                    <button @click="deleteRouter(selectedRouter); showActionsModal = false" class="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-left group">
+                        <div class="p-1.5 rounded-md bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 group-hover:bg-red-100 dark:group-hover:bg-red-900/40">
+                            <Trash2 class="w-4 h-4" />
+                        </div>
+                        <span class="text-sm font-medium text-red-600 dark:text-red-400">Delete Router</span>
                     </button>
                 </div>
             </div>
