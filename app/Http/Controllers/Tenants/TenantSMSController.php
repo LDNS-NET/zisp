@@ -136,9 +136,9 @@ class TenantSMSController extends Controller
             ->with('success', 'Selected SMS logs deleted successfully.');
     }
 
-    public function destroy(TenantSMS $smsLog)
+    public function destroy(TenantSMS $sms)
     {
-        $smsLog->delete();
+        $sms->delete();
 
         return redirect()->route('sms.index')
             ->with('success', 'SMS log deleted successfully.');
