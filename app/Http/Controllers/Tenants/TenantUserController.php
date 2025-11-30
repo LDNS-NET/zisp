@@ -209,18 +209,13 @@ public function show($id)
         $originalPackageId = $user->package_id;
         $passwordChanged = isset($validated['password']);
         
-        // Update the user
-        $updateData = $validated;
-        
-        // Only hash password if it's provided and not empty
-        if (isset($validated['password']) && !empty($validated['password'])) {
-            $updateData['password'] = Hash::make($validated['password']);
-        } else {
-            // Remove password from update data if it's empty to avoid clearing existing password
-            unset($updateData['password']);
-        }
-        
-        $user->update($updateData);
+        // Update the user in a transaction
+       /* \DB::transaction(function () use ($user, $validated) {
+            if ($passwordChanged) {
+                $validated['password'] = Hash::make($validated['password']);
+            }
+            $user->update($validated);
+        });*/
 
         return back()->with([
             'success' => 'User updated successfully.',

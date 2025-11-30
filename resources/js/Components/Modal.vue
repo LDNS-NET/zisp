@@ -91,44 +91,11 @@ const maxWidthClass = computed(() => ({
                     v-show="show"
                     :class="[
                         maxWidthClass,
-                        'mb-6 transform overflow-hidden rounded-2xl shadow-2xl transition-all sm:mx-auto sm:w-full border',
-                        'bg-white border-gray-200 dark:bg-gray-800 dark:border-gray-700'
+                        'mb-6 transform overflow-hidden rounded-2xl shadow-xl transition-all sm:mx-auto sm:w-full',
+                        'bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700'
                     ]"
                 >
-                    <!-- Header -->
-                    <div
-                        class="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-green-400 via-green-600 to-green-800 text-white dark:from-green-700 dark:via-green-800 dark:to-green-900"
-                    >
-                        <div class="flex items-center gap-2">
-                            <svg
-                                class="w-6 h-6 text-white opacity-90"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                viewBox="0 0 24 24"
-                            >
-                                <circle cx="12" cy="12" r="10" fill="none" />
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="M12 8v4l3 3"
-                                />
-                            </svg>
-                        </div>
-                        <button
-                            @click="close"
-                            class="text-white hover:text-gray-200 text-2xl font-bold focus:outline-none"
-                        >
-                            &times;
-                        </button>
-                    </div>
-
-                    <!-- Body -->
-                    <div
-                        class="px-6 py-6 bg-gradient-to-br from-white via-blue-50 to-cyan-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 text-gray-900 dark:text-gray-100"
-                    >
-                        <slot v-if="showSlot" />
-                    </div>
+                    <slot v-if="showSlot" />
                 </div>
             </Transition>
         </div>
