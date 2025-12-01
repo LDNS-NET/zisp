@@ -23,9 +23,10 @@ import {
 } from 'lucide-vue-next';
 
 const props = defineProps({
-    router: Object,
+    mikrotik: Object,
     realtime: Object,
 });
+
 
 const activeTab = ref('overview');
 const isRefreshing = ref(false);
