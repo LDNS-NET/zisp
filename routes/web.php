@@ -71,10 +71,10 @@ Route::get('mikrotiks/status', [MikrotikController::class, 'status'])->name('mik
 */
 
 // WireGuard registration endpoint (public, token-authenticated)
-Route::post('mikrotiks/{mikrotik}/register-wireguard', [\App\Http\Controllers\Tenants\TenantMikrotikController::class, 'registerWireguard'])->name('mikrotiks.registerWireguard');
+Route::post('mikrotiks/{mikrotik}/register-wireguard', [TenantMikrotikController::class, 'registerWireguard'])->name('mikrotiks.registerWireguard');
 
 // Public route for downloading setup script (uses token authentication)
-Route::get('mikrotiks/{mikrotik}/download-script', [\App\Http\Controllers\Tenants\TenantMikrotikController::class, 'downloadScriptPublic'])->name('mikrotiks.downloadScriptPublic');
+Route::get('mikrotiks/{mikrotik}/download-script', [TenantMikrotikController::class, 'downloadScriptPublic'])->name('mikrotiks.downloadScriptPublic');
 
 /*
 |--------------------------------------------------------------------------
