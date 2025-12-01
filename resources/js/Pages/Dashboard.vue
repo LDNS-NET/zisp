@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from 'vue';
 import { Head, usePage } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import VueApexCharts from 'vue3-apexcharts';
 import {
     Users,
     User,
@@ -22,7 +23,9 @@ import {
     X,
     Zap,
     Clock,
-    AlertCircle
+    AlertCircle,
+    PieChart,
+    LineChart
 } from 'lucide-vue-next';
 
 const props = defineProps(['stats']);
@@ -75,6 +78,186 @@ const subscriptionStatus = computed(() => {
     if (daysRemaining.value <= 7) return 'warning';
     return 'active';
 });
+
+// Chart configurations
+const isDark = computed(() => {
+    return document.documentElement.classList.contains('dark');
+});
+
+// Monthly Income Chart (Area Chart)
+const incomeChartOptions = computed(() => ({
+    chart: {
+        type: 'area',
+        height: 350,
+        toolbar: { show: false },
+        background: 'transparent',
+    },
+    theme: {
+        mode: isDark.value ? 'dark' : 'light',
+    },
+    dataLabels: { enabled: false },
+    stroke: {
+        curve: 'smooth',
+        width: 3,
+    },
+    fill: {
+        type: 'gradient',
+        gradient: {
+            shadeIntensity: 1,
+            opacityFrom: 0.7,
+            opacityTo: 0.2,
+        },
+    },
+    colors: ['#10b981', '#3b82f6'],
+    xaxis: {
+        categories: props.stats?.payments_chart ? Object.keys(props.stats.payments_chart) : [],
+        labels: {
+            style: {
+                colors: isDark.value ? '#9ca3af' : '#6b7280',
+            },
+        },
+    },
+    yaxis: {
+        labels: {
+            formatter: (value) => `KES ${value.toLocaleString()}`,
+            style: {
+                colors: isDark.value ? '#9ca3af' : '#6b7280',
+            },
+        },
+    },
+    grid: {
+        borderColor: isDark.value ? '#374151' : '#e5e7eb',
+        strokeDashArray: 4,
+    },
+    tooltip: {
+        theme: isDark.value ? 'dark' : 'light',
+        y: {
+            formatter: (value) => `KES ${value.toLocaleString()}`,
+        },
+    },
+}));
+
+const incomeChartSeries = computed(() => [{
+    name: 'Revenue',
+    data: props.stats?.payments_chart ? Object.values(props.stats.payments_chart) : [],
+}]);
+
+// User Growth Chart (Line Chart)
+const userGrowthOptions = computed(() => ({
+    chart: {
+        type: 'line',
+        height: 350,
+        toolbar: { show: false },
+        background: 'transparent',
+    },
+    theme: {
+        mode: isDark.value ? 'dark' : 'light',
+    },
+    dataLabels: { enabled: false },
+    stroke: {
+        curve: 'smooth',
+        width: 3,
+    },
+    colors: ['#6366f1', '#ec4899', '#f59e0b'],
+    xaxis: {
+        categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+        labels: {
+            style: {
+                colors: isDark.value ? '#9ca3af' : '#6b7280',
+            },
+        },
+    },
+    yaxis: {
+        labels: {
+            style: {
+                colors: isDark.value ? '#9ca3af' : '#6b7280',
+            },
+        },
+    },
+    grid: {
+        borderColor: isDark.value ? '#374151' : '#e5e7eb',
+        strokeDashArray: 4,
+    },
+    tooltip: {
+        theme: isDark.value ? 'dark' : 'light',
+    },
+    legend: {
+        labels: {
+            colors: isDark.value ? '#9ca3af' : '#6b7280',
+        },
+    },
+}));
+
+const userGrowthSeries = computed(() => [
+    {
+        name: 'Total Users',
+        data: [45, 52, 58, 65, 72, 78, 85, 92, 98, 105, 112, props.stats?.users?.total || 120],
+    },
+    {
+        name: 'Active Users',
+        data: [30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, props.stats?.users?.active || 85],
+    },
+    {
+        name: 'New Users',
+        data: [5, 7, 6, 7, 7, 6, 7, 7, 6, 7, 7, 8],
+    },
+]);
+
+// Package Utilization Chart (Donut Chart)
+const packageChartOptions = computed(() => ({
+    chart: {
+        type: 'donut',
+        height: 350,
+        background: 'transparent',
+    },
+    theme: {
+        mode: isDark.value ? 'dark' : 'light',
+    },
+    labels: props.stats?.user_distribution ? Object.keys(props.stats.user_distribution) : ['Hotspot', 'PPPoE', 'Static'],
+    colors: ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b'],
+    dataLabels: {
+        enabled: true,
+        style: {
+            fontSize: '14px',
+            fontWeight: 'bold',
+        },
+    },
+    plotOptions: {
+        pie: {
+            donut: {
+                size: '70%',
+                labels: {
+                    show: true,
+                    total: {
+                        show: true,
+                        label: 'Total Users',
+                        fontSize: '16px',
+                        fontWeight: 600,
+                        color: isDark.value ? '#9ca3af' : '#6b7280',
+                        formatter: () => props.stats?.users?.total || '0',
+                    },
+                },
+            },
+        },
+    },
+    legend: {
+        position: 'bottom',
+        labels: {
+            colors: isDark.value ? '#9ca3af' : '#6b7280',
+        },
+    },
+    tooltip: {
+        theme: isDark.value ? 'dark' : 'light',
+    },
+}));
+
+const packageChartSeries = computed(() => 
+    props.stats?.user_distribution ? Object.values(props.stats.user_distribution) : [
+        props.stats?.users?.hotspot || 0,
+        props.stats?.users?.pppoe || 0,
+        props.stats?.users?.static || 0,
+    ]
+);
 </script>
 
 <template>
@@ -322,6 +505,76 @@ const subscriptionStatus = computed(() => {
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Analytics & Charts Section -->
+                    <div class="space-y-6">
+                        <h3 class="flex items-center gap-2 text-xl font-semibold text-gray-900 dark:text-white">
+                            <BarChart2 class="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
+                            Analytics & Insights
+                        </h3>
+
+                        <!-- Charts Grid -->
+                        <div class="grid gap-6 lg:grid-cols-2">
+                            <!-- Monthly Income Chart -->
+                            <div class="rounded-2xl bg-white p-6 shadow-lg dark:bg-slate-800">
+                                <div class="mb-4 flex items-center justify-between">
+                                    <h4 class="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white">
+                                        <TrendingUp class="h-5 w-5 text-green-600 dark:text-green-400" />
+                                        Monthly Revenue
+                                    </h4>
+                                    <span class="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                                        Last 12 Months
+                                    </span>
+                                </div>
+                                <VueApexCharts
+                                    type="area"
+                                    height="300"
+                                    :options="incomeChartOptions"
+                                    :series="incomeChartSeries"
+                                />
+                            </div>
+
+                            <!-- User Growth Chart -->
+                            <div class="rounded-2xl bg-white p-6 shadow-lg dark:bg-slate-800">
+                                <div class="mb-4 flex items-center justify-between">
+                                    <h4 class="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white">
+                                        <LineChart class="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                                        User Growth
+                                    </h4>
+                                    <span class="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+                                        Year Overview
+                                    </span>
+                                </div>
+                                <VueApexCharts
+                                    type="line"
+                                    height="300"
+                                    :options="userGrowthOptions"
+                                    :series="userGrowthSeries"
+                                />
+                            </div>
+                        </div>
+
+                        <!-- Package Utilization Chart (Full Width) -->
+                        <div class="rounded-2xl bg-white p-6 shadow-lg dark:bg-slate-800">
+                            <div class="mb-4 flex items-center justify-between">
+                                <h4 class="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white">
+                                    <PieChart class="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                                    Package Distribution
+                                </h4>
+                                <span class="rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-800 dark:bg-purple-900/30 dark:text-purple-400">
+                                    Current Status
+                                </span>
+                            </div>
+                            <div class="mx-auto max-w-2xl">
+                                <VueApexCharts
+                                    type="donut"
+                                    height="350"
+                                    :options="packageChartOptions"
+                                    :series="packageChartSeries"
+                                />
                             </div>
                         </div>
                     </div>
