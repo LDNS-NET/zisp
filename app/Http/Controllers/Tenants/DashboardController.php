@@ -22,11 +22,11 @@ class DashboardController extends Controller
     public function index()
     {
         $now = Carbon::now();
-    $userId = Auth::id();
+        $userId = Auth::id();
 
         $tenant = tenant();
         $subscription = \App\Models\TenantSubscription::where('tenant_id', $tenant->id)->first();
-        
+
         // Create subscription if it doesn't exist (for existing tenants)
         if (!$subscription && $tenant) {
             $subscription = \App\Models\TenantSubscription::createForTenant($tenant);
@@ -35,7 +35,7 @@ class DashboardController extends Controller
                 'subscription_id' => $subscription->id
             ]);
         }
-        
+
         // Debug subscription data
         if ($subscription) {
             Log::info('Subscription data for dashboard', [
@@ -46,7 +46,7 @@ class DashboardController extends Controller
                 'trial_ends_at' => $subscription->trial_ends_at,
             ]);
         }
-        
+
         $trialDuration = $subscription ? $subscription->getTrialDurationRemaining() : ['days' => 0, 'hours' => 0];
         return inertia('Tenants/Dashboard/Index', [
             'stats' => [
@@ -73,6 +73,7 @@ class DashboardController extends Controller
                     ->groupBy('type')
                     ->pluck('total', 'type')
                     ->toArray(),
+                'user_growth_chart' => $this->getUserGrowthData(),
                 // Users Summary
                 'users' => [
                     'total' => NetworkUser::count(),
@@ -167,6 +168,57 @@ class DashboardController extends Controller
             ->toArray();
 
         return $this->fillMissingMonths($data);
+    }
+
+    protected function getUserGrowthData()
+    {
+        $currentYear = now()->year;
+
+        // Get total users per month (cumulative)
+        $totalUsers = [];
+        // Get active users per month
+        $activeUsers = [];
+        // Get new users per month
+        $newUsers = [];
+
+        for ($month = 1; $month <= 12; $month++) {
+            // Total users created up to this month
+            $totalUsers[] = NetworkUser::whereYear('created_at', '<=', $currentYear)
+                ->where(function ($query) use ($currentYear, $month) {
+                    $query->whereYear('created_at', '<', $currentYear)
+                        ->orWhere(function ($q) use ($currentYear, $month) {
+                            $q->whereYear('created_at', $currentYear)
+                                ->whereMonth('created_at', '<=', $month);
+                        });
+                })
+                ->count();
+
+            // Active users in this month (users that were online or not expired)
+            $activeUsers[] = NetworkUser::whereYear('created_at', '<=', $currentYear)
+                ->where(function ($query) use ($currentYear, $month) {
+                    $query->whereYear('created_at', '<', $currentYear)
+                        ->orWhere(function ($q) use ($currentYear, $month) {
+                            $q->whereYear('created_at', $currentYear)
+                                ->whereMonth('created_at', '<=', $month);
+                        });
+                })
+                ->where(function ($query) use ($currentYear, $month) {
+                    $query->where('expires_at', '>', Carbon::create($currentYear, $month, 1)->endOfMonth())
+                        ->orWhereNull('expires_at');
+                })
+                ->count();
+
+            // New users created in this specific month
+            $newUsers[] = NetworkUser::whereYear('created_at', $currentYear)
+                ->whereMonth('created_at', $month)
+                ->count();
+        }
+
+        return [
+            'total_users' => $totalUsers,
+            'active_users' => $activeUsers,
+            'new_users' => $newUsers,
+        ];
     }
 
     protected function fillMissingMonths(array $data)

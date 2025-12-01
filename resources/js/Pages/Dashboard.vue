@@ -191,15 +191,15 @@ const userGrowthOptions = computed(() => ({
 const userGrowthSeries = computed(() => [
     {
         name: 'Total Users',
-        data: [45, 52, 58, 65, 72, 78, 85, 92, 98, 105, 112, props.stats?.users?.total || 120],
+        data: props.stats?.user_growth_chart?.total_users || [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     },
     {
         name: 'Active Users',
-        data: [30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, props.stats?.users?.active || 85],
+        data: props.stats?.user_growth_chart?.active_users || [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     },
     {
         name: 'New Users',
-        data: [5, 7, 6, 7, 7, 6, 7, 7, 6, 7, 7, 8],
+        data: props.stats?.user_growth_chart?.new_users || [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     },
 ]);
 
