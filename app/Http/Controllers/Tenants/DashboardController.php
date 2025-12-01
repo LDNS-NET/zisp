@@ -48,7 +48,7 @@ class DashboardController extends Controller
         }
 
         $trialDuration = $subscription ? $subscription->getTrialDurationRemaining() : ['days' => 0, 'hours' => 0];
-        return inertia('Dashboard', [
+        return inertia('Tenants/Dashboard/Index', [
             'stats' => [
                 'account_balance' => $tenant ? $tenant->wallet_balance : 0,
                 'wallet_id' => $tenant ? $tenant->wallet_id : null,
@@ -68,18 +68,11 @@ class DashboardController extends Controller
                 ] : null,
                 // Charts
                 'sms_chart' => $this->monthlyCount(TenantSms::class, 'created_at'),
-                'payments_chart' => [
-                    'daily' => $this->getDailyRevenue(),
-                    'weekly' => $this->getWeeklyRevenue(),
-                    'monthly' => $this->getMonthlyRevenue(),
-                    'yearly' => $this->getYearlyRevenue(),
-                ],
-                'user_distribution' => NetworkUser::leftJoin('packages', 'network_users.package_id', '=', 'packages.id')
-                    ->select(DB::raw('COALESCE(packages.name, "No Package") as package_name'), DB::raw('COUNT(*) as total'))
-                    ->groupBy('package_name')
-                    ->pluck('total', 'package_name')
+                'payments_chart' => $this->monthlySum(TenantPayment::class, 'paid_at', 'amount'),
+                'user_distribution' => NetworkUser::select('type', DB::raw('COUNT(*) as total'))
+                    ->groupBy('type')
+                    ->pluck('total', 'type')
                     ->toArray(),
-                'user_growth_chart' => $this->getUserGrowthData(),
                 // Users Summary
                 'users' => [
                     'total' => NetworkUser::count(),
@@ -174,121 +167,6 @@ class DashboardController extends Controller
             ->toArray();
 
         return $this->fillMissingMonths($data);
-    }
-
-    protected function getDailyRevenue()
-    {
-        $data = [];
-        $labels = [];
-
-        for ($i = 29; $i >= 0; $i--) {
-            $date = now()->subDays($i);
-            $labels[] = $date->format('M d');
-            $amount = TenantPayment::whereDate('paid_at', $date->toDateString())
-                ->sum('amount');
-            $data[] = (float) ($amount ?? 0);
-        }
-
-        return [
-            'labels' => $labels,
-            'data' => $data,
-        ];
-    }
-
-    protected function getWeeklyRevenue()
-    {
-        $data = [];
-        $labels = [];
-
-        for ($i = 11; $i >= 0; $i--) {
-            $weekStart = now()->subWeeks($i)->startOfWeek();
-            $weekEnd = now()->subWeeks($i)->endOfWeek();
-            $labels[] = $weekStart->format('M d') . '-' . $weekEnd->format('d');
-            $amount = TenantPayment::whereBetween('paid_at', [$weekStart, $weekEnd])
-                ->sum('amount');
-            $data[] = (float) ($amount ?? 0);
-        }
-
-        return [
-            'labels' => $labels,
-            'data' => $data,
-        ];
-    }
-
-    protected function getMonthlyRevenue()
-    {
-        $data = [];
-        $labels = [];
-
-        for ($i = 11; $i >= 0; $i--) {
-            $month = now()->subMonths($i);
-            $labels[] = $month->format('M Y');
-            $amount = TenantPayment::whereYear('paid_at', $month->year)
-                ->whereMonth('paid_at', $month->month)
-                ->sum('amount');
-            $data[] = (float) ($amount ?? 0);
-        }
-
-        return [
-            'labels' => $labels,
-            'data' => $data,
-        ];
-    }
-
-    protected function getYearlyRevenue()
-    {
-        $data = [];
-        $labels = [];
-
-        for ($i = 4; $i >= 0; $i--) {
-            $year = now()->subYears($i)->year;
-            $labels[] = (string) $year;
-            $amount = TenantPayment::whereYear('paid_at', $year)
-                ->sum('amount');
-            $data[] = (float) ($amount ?? 0);
-        }
-
-        return [
-            'labels' => $labels,
-            'data' => $data,
-        ];
-    }
-
-    protected function getUserGrowthData()
-    {
-        $currentYear = now()->year;
-        $totalUsers = [];
-        $activeUsers = [];
-        $newUsers = [];
-
-        for ($month = 1; $month <= 12; $month++) {
-            $endOfMonth = Carbon::create($currentYear, $month, 1)->endOfMonth();
-
-            // Total users created by end of this month
-            $total = NetworkUser::where('created_at', '<=', $endOfMonth)->count();
-            $totalUsers[] = (int) $total;
-
-            // Active users (not expired) at end of this month
-            $active = NetworkUser::where('created_at', '<=', $endOfMonth)
-                ->where(function ($query) use ($endOfMonth) {
-                    $query->where('expires_at', '>', $endOfMonth)
-                        ->orWhereNull('expires_at');
-                })
-                ->count();
-            $activeUsers[] = (int) $active;
-
-            // New users created in this month
-            $new = NetworkUser::whereYear('created_at', $currentYear)
-                ->whereMonth('created_at', $month)
-                ->count();
-            $newUsers[] = (int) $new;
-        }
-
-        return [
-            'total_users' => $totalUsers,
-            'active_users' => $activeUsers,
-            'new_users' => $newUsers,
-        ];
     }
 
     protected function fillMissingMonths(array $data)

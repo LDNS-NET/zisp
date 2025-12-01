@@ -38,11 +38,9 @@ const daysRemaining = ref(0);
 // Dynamic greeting based on time of day
 const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 4) return 'Good night';
     if (hour < 12) return 'Good morning';
     if (hour < 18) return 'Good afternoon';
-    if (hour < 24) return 'Good evening';
-    return 'Good night';
+    return 'Good evening';
 };
 
 const greeting = ref(getGreeting());
@@ -71,17 +69,6 @@ function updateCountdown() {
 onMounted(() => {
     updateCountdown();
     setInterval(updateCountdown, 1000);
-    
-    // Debug: Log chart data
-    console.log('=== DASHBOARD DEBUG ===');
-    console.log('Full Stats Object:', props.stats);
-    console.log('Payments Chart:', props.stats?.payments_chart);
-    console.log('  - Daily:', props.stats?.payments_chart?.daily);
-    console.log('  - Monthly:', props.stats?.payments_chart?.monthly);
-    console.log('User Growth Chart:', props.stats?.user_growth_chart);
-    console.log('User Distribution:', props.stats?.user_distribution);
-    console.log('Revenue Filter:', revenueFilter.value);
-    console.log('======================');
 });
 
 // Compute subscription status color
@@ -92,25 +79,15 @@ const subscriptionStatus = computed(() => {
     return 'active';
 });
 
-// Revenue chart filter
-const revenueFilter = ref('monthly');
-
-const revenueFilterOptions = [
-    { value: 'daily', label: 'Daily (30 days)' },
-    { value: 'weekly', label: 'Weekly (12 weeks)' },
-    { value: 'monthly', label: 'Monthly (12 months)' },
-    { value: 'yearly', label: 'Yearly (5 years)' },
-];
-
 // Chart configurations
 const isDark = computed(() => {
     return document.documentElement.classList.contains('dark');
 });
 
-// Monthly Income Chart (Bar Chart with filters)
+// Monthly Income Chart (Area Chart)
 const incomeChartOptions = computed(() => ({
     chart: {
-        type: 'bar',
+        type: 'area',
         height: 350,
         toolbar: { show: false },
         background: 'transparent',
@@ -119,21 +96,25 @@ const incomeChartOptions = computed(() => ({
         mode: isDark.value ? 'dark' : 'light',
     },
     dataLabels: { enabled: false },
-    plotOptions: {
-        bar: {
-            borderRadius: 8,
-            columnWidth: '60%',
+    stroke: {
+        curve: 'smooth',
+        width: 3,
+    },
+    fill: {
+        type: 'gradient',
+        gradient: {
+            shadeIntensity: 1,
+            opacityFrom: 0.7,
+            opacityTo: 0.2,
         },
     },
-    colors: ['#10b981'],
+    colors: ['#10b981', '#3b82f6'],
     xaxis: {
-        categories: props.stats?.payments_chart?.[revenueFilter.value]?.labels || [],
+        categories: props.stats?.payments_chart ? Object.keys(props.stats.payments_chart) : [],
         labels: {
             style: {
                 colors: isDark.value ? '#9ca3af' : '#6b7280',
             },
-            rotate: -45,
-            rotateAlways: false,
         },
     },
     yaxis: {
@@ -156,14 +137,10 @@ const incomeChartOptions = computed(() => ({
     },
 }));
 
-const incomeChartSeries = computed(() => {
-    const filterData = props.stats?.payments_chart?.[revenueFilter.value];
-    console.log('Income Chart Series - Filter:', revenueFilter.value, 'Data:', filterData);
-    return [{
-        name: 'Revenue',
-        data: filterData?.data || [],
-    }];
-});
+const incomeChartSeries = computed(() => [{
+    name: 'Revenue',
+    data: props.stats?.payments_chart ? Object.values(props.stats.payments_chart) : [],
+}]);
 
 // User Growth Chart (Line Chart)
 const userGrowthOptions = computed(() => ({
@@ -211,24 +188,20 @@ const userGrowthOptions = computed(() => ({
     },
 }));
 
-const userGrowthSeries = computed(() => {
-    const growthData = props.stats?.user_growth_chart;
-    console.log('User Growth Series Data:', growthData);
-    return [
-        {
-            name: 'Total Users',
-            data: growthData?.total_users || [],
-        },
-        {
-            name: 'Active Users',
-            data: growthData?.active_users || [],
-        },
-        {
-            name: 'New Users',
-            data: growthData?.new_users || [],
-        },
-    ];
-});
+const userGrowthSeries = computed(() => [
+    {
+        name: 'Total Users',
+        data: [45, 52, 58, 65, 72, 78, 85, 92, 98, 105, 112, props.stats?.users?.total || 120],
+    },
+    {
+        name: 'Active Users',
+        data: [30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, props.stats?.users?.active || 85],
+    },
+    {
+        name: 'New Users',
+        data: [5, 7, 6, 7, 7, 6, 7, 7, 6, 7, 7, 8],
+    },
+]);
 
 // Package Utilization Chart (Donut Chart)
 const packageChartOptions = computed(() => ({
@@ -240,8 +213,8 @@ const packageChartOptions = computed(() => ({
     theme: {
         mode: isDark.value ? 'dark' : 'light',
     },
-    labels: props.stats?.user_distribution ? Object.keys(props.stats.user_distribution) : [],
-    colors: ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4', '#f97316'],
+    labels: props.stats?.user_distribution ? Object.keys(props.stats.user_distribution) : ['Hotspot', 'PPPoE', 'Static'],
+    colors: ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b'],
     dataLabels: {
         enabled: true,
         style: {
@@ -279,7 +252,11 @@ const packageChartOptions = computed(() => ({
 }));
 
 const packageChartSeries = computed(() => 
-    props.stats?.user_distribution ? Object.values(props.stats.user_distribution) : []
+    props.stats?.user_distribution ? Object.values(props.stats.user_distribution) : [
+        props.stats?.users?.hotspot || 0,
+        props.stats?.users?.pppoe || 0,
+        props.stats?.users?.static || 0,
+    ]
 );
 </script>
 
@@ -546,19 +523,14 @@ const packageChartSeries = computed(() =>
                                 <div class="mb-4 flex items-center justify-between">
                                     <h4 class="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white">
                                         <TrendingUp class="h-5 w-5 text-green-600 dark:text-green-400" />
-                                        Revenue Analytics
+                                        Monthly Revenue
                                     </h4>
-                                    <select 
-                                        v-model="revenueFilter"
-                                        class="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/20 dark:border-slate-600 dark:bg-slate-700 dark:text-gray-200 dark:hover:bg-slate-600"
-                                    >
-                                        <option v-for="option in revenueFilterOptions" :key="option.value" :value="option.value">
-                                            {{ option.label }}
-                                        </option>
-                                    </select>
+                                    <span class="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                                        Last 12 Months
+                                    </span>
                                 </div>
                                 <VueApexCharts
-                                    type="bar"
+                                    type="area"
                                     height="300"
                                     :options="incomeChartOptions"
                                     :series="incomeChartSeries"
