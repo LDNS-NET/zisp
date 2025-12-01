@@ -134,11 +134,11 @@
 
     # Ensure there's a /16 mask
     :local clientIpWithMask $wgClientIp
-    :if ([:find $clientIpWithMask "/"] = -1) do={
+    :if ([:typeof [:find $clientIpWithMask "/"]] = "nil") do={
         :set clientIpWithMask ($clientIpWithMask . "/16")
     }
 
-    :if ([:find $clientIpWithMask "10.100."] = -1) do={
+    :if ([:typeof [:find $clientIpWithMask "10.100."]] = "nil") do={
         :put ("Error: " . $clientIpWithMask . " is not in the 10.100.0.0/16 subnet")
     } else={
 
