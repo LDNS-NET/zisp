@@ -460,16 +460,6 @@ watch([routersList, search], () => {
                             <InputError :message="form.errors.name" />
                         </div>
                         <div>
-                            <InputLabel for="router_username" value="Username" />
-                            <TextInput id="router_username" v-model="form.router_username" class="mt-1 block w-full" required autocomplete="username" />
-                            <InputError :message="form.errors.router_username" />
-                        </div>
-                        <div>
-                            <InputLabel for="router_password" value="Password" />
-                            <TextInput id="router_password" v-model="form.router_password" type="password" class="mt-1 block w-full" required autocomplete="current-password" />
-                            <InputError :message="form.errors.router_password" />
-                        </div>
-                        <div>
                             <InputLabel for="notes" value="Notes (optional)" />
                             <TextArea id="notes" v-model="form.notes" class="mt-1 block w-full" rows="3" />
                             <InputError :message="form.errors.notes" />
@@ -478,76 +468,6 @@ watch([routersList, search], () => {
                     <div class="mt-6 flex justify-end gap-3">
                         <DangerButton type="button" @click="closeModal">Cancel</DangerButton>
                         <PrimaryButton :disabled="form.processing">Add Router</PrimaryButton>
-                    </div>
-                </form>
-            </div>
-        </Modal>
-
-        <!-- Edit Router Modal -->
-        <Modal :show="showEditModal" @close="closeModal">
-            <div class="p-6 dark:bg-slate-800 dark:text-white">
-                <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Edit Mikrotik Router</h3>
-                <form @submit.prevent="editForm">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <InputLabel value="Router Name" />
-                            <TextInput v-model="form.name" class="mt-1 block w-full" />
-                            <InputError :message="form.errors.name" />
-                        </div>
-                        <div>
-                            <InputLabel value="VPN IP Address (10.100.0.0/16)" />
-                            <TextInput v-model="form.ip_address" placeholder="e.g. 10.100.0.2" class="mt-1 block w-full" />
-                            <InputError :message="form.errors.ip_address" />
-                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Communication uses VPN tunnel IP only</p>
-                        </div>
-                        <div>
-                            <InputLabel value="API Port" />
-                            <TextInput v-model="form.api_port" type="number" class="mt-1 block w-full" />
-                            <InputError :message="form.errors.api_port" />
-                        </div>
-                        <div>
-                            <InputLabel value="SSH Port" />
-                            <TextInput v-model="form.ssh_port" type="number" class="mt-1 block w-full" />
-                            <InputError :message="form.errors.ssh_port" />
-                        </div>
-                        <div>
-                            <InputLabel value="Username" />
-                            <TextInput v-model="form.router_username" class="mt-1 block w-full" autocomplete="username" />
-                            <InputError :message="form.errors.router_username" />
-                        </div>
-                        <div>
-                            <InputLabel value="Password (leave blank to keep)" />
-                            <TextInput v-model="form.router_password" type="password" class="mt-1 block w-full" autocomplete="current-password" />
-                            <InputError :message="form.errors.router_password" />
-                        </div>
-                        <div class="md:col-span-2">
-                            <InputLabel value="Connection Type" />
-                            <select v-model="form.connection_type" class="mt-1 block w-full rounded-md border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                <option value="api">API</option>
-                                <option value="ssh">SSH</option>
-                                <option value="ovpn">OVPN</option>
-                            </select>
-                            <InputError :message="form.errors.connection_type" />
-                        </div>
-                        <div class="md:col-span-2">
-                            <InputLabel value="OpenVPN Profile (optional)" />
-                            <select v-model="form.openvpn_profile_id" class="mt-1 block w-full rounded-md border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                <option :value="null">None</option>
-                                <option v-for="profile in openvpnProfiles" :key="profile.id" :value="profile.id">
-                                    {{ profile.config_path }}
-                                </option>
-                            </select>
-                            <InputError :message="form.errors.openvpn_profile_id" />
-                        </div>
-                        <div class="md:col-span-2">
-                            <InputLabel value="Notes" />
-                            <TextArea v-model="form.notes" class="mt-1 block w-full" rows="3" />
-                            <InputError :message="form.errors.notes" />
-                        </div>
-                    </div>
-                    <div class="mt-6 flex justify-end gap-3">
-                        <DangerButton type="button" @click="closeModal">Cancel</DangerButton>
-                        <PrimaryButton :disabled="form.processing">Update Router</PrimaryButton>
                     </div>
                 </form>
             </div>
@@ -571,13 +491,6 @@ watch([routersList, search], () => {
                             <Eye class="w-4 h-4" />
                         </div>
                         <span class="text-sm font-medium text-gray-700 dark:text-gray-200">View Details</span>
-                    </button>
-
-                    <button @click="openEdit(selectedRouter); showActionsModal = false" class="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-left group">
-                        <div class="p-1.5 rounded-md bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400 group-hover:bg-amber-100 dark:group-hover:bg-amber-900/40">
-                            <Edit class="w-4 h-4" />
-                        </div>
-                        <span class="text-sm font-medium text-gray-700 dark:text-gray-200">Edit Router</span>
                     </button>
 
                     <button @click="pingRouter(selectedRouter); showActionsModal = false" :disabled="pinging[selectedRouter.id]" class="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-left group disabled:opacity-50">
