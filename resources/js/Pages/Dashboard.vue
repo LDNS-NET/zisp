@@ -69,6 +69,12 @@ function updateCountdown() {
 onMounted(() => {
     updateCountdown();
     setInterval(updateCountdown, 1000);
+    
+    // Debug: Log chart data
+    console.log('Dashboard Stats:', props.stats);
+    console.log('Payments Chart Data:', props.stats?.payments_chart);
+    console.log('User Growth Chart Data:', props.stats?.user_growth_chart);
+    console.log('User Distribution:', props.stats?.user_distribution);
 });
 
 // Compute subscription status color

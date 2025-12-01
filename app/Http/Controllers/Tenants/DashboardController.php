@@ -48,7 +48,7 @@ class DashboardController extends Controller
         }
 
         $trialDuration = $subscription ? $subscription->getTrialDurationRemaining() : ['days' => 0, 'hours' => 0];
-        return inertia('Tenants/Dashboard/Index', [
+        return inertia('Dashboard', [
             'stats' => [
                 'account_balance' => $tenant ? $tenant->wallet_balance : 0,
                 'wallet_id' => $tenant ? $tenant->wallet_id : null,
