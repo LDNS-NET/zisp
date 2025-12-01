@@ -186,6 +186,61 @@ class RouterApiService
     }
 
     /**
+     * Get WireGuard peers.
+     *
+     * @return array
+     */
+    public function getWireGuardPeers(): array
+    {
+        try {
+            $client = $this->getClient();
+            // Try to get peers (RouterOS v7+)
+            $peers = $client->query('/interface/wireguard/peers/print')->read();
+
+            return is_array($peers) ? $peers : [];
+        } catch (Exception $e) {
+            Log::error('Failed to get WireGuard peers', [
+                'router_id' => $this->mikrotik->id,
+                'error' => $e->getMessage(),
+            ]);
+            return [];
+        }
+    }
+
+    /**
+     * Get recent logs.
+     *
+     * @param int $limit
+     * @return array
+     */
+    public function getLogs(int $limit = 50): array
+    {
+        try {
+            $client = $this->getClient();
+            // Get logs, sorted by time desc (though API returns in order, we might need to sort)
+            // RouterOS API doesn't support 'limit' directly in print usually, but we can try
+            // Or just get all and slice. Logs buffer can be large, so be careful.
+            // Better to use /log/print without follow
+            $logs = $client->query('/log/print')->read();
+
+            if (!is_array($logs)) {
+                return [];
+            }
+
+            // Reverse to get newest first
+            $logs = array_reverse($logs);
+
+            return array_slice($logs, 0, $limit);
+        } catch (Exception $e) {
+            Log::error('Failed to get logs', [
+                'router_id' => $this->mikrotik->id,
+                'error' => $e->getMessage(),
+            ]);
+            return [];
+        }
+    }
+
+    /**
      * API-based ping test.
      * Uses RouterOS API to test connectivity instead of ICMP.
      *
