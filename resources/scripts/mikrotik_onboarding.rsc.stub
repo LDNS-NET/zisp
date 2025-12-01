@@ -84,28 +84,80 @@
     /ip firewall filter add chain=output action=accept dst-address=$trustedIp comment="zisp-api"
 
     # Remove previous WireGuard-related rules to avoid duplicates
-    :do { /ip firewall filter remove [find comment="zisp-wireguard"] } on-error={}
+    :do { /ip firewall filter remove [find comment~"zisp-wg"] } on-error={}
+    :do { /ip firewall nat remove [find comment~"zisp-wg"] } on-error={}
 
     # Resolve WG server endpoint to IP (if hostname provided)
     :local wgServerIp ""
     :do { :set wgServerIp [:resolve $wgServerEndpoint] } on-error={}
 
+    # ========== FIREWALL FILTER RULES ==========
+    
     # Allow outgoing UDP to WireGuard server (if IP resolved), otherwise allow by port only
     :if ([:len $wgServerIp] > 0) do={
-        /ip firewall filter add chain=output action=accept protocol=udp dst-address=$wgServerIp dst-port=$wgPort comment="zisp-wg"
-        /ip firewall filter add chain=input action=accept protocol=udp src-address=$wgServerIp dst-port=$wgPort comment="zisp-wg"
+        /ip firewall filter add chain=output action=accept protocol=udp dst-address=$wgServerIp dst-port=$wgPort comment="zisp-wg-output"
+        /ip firewall filter add chain=input action=accept protocol=udp src-address=$wgServerIp dst-port=$wgPort comment="zisp-wg-input"
     } else={
-        /ip firewall filter add chain=output action=accept protocol=udp dst-port=$wgPort comment="zisp-wg"
-        /ip firewall filter add chain=input action=accept protocol=udp dst-port=$wgPort comment="zisp-wg"
+        /ip firewall filter add chain=output action=accept protocol=udp dst-port=$wgPort comment="zisp-wg-output"
+        /ip firewall filter add chain=input action=accept protocol=udp dst-port=$wgPort comment="zisp-wg-input"
     }
-    # Allow any traffic via the zisp-wg interface (tunnel)
-    /ip firewall filter add chain=input action=accept in-interface="zisp-wireguard" comment="zisp-wireguard-interface"
-    # Accept forwarding from the tunnel to other interfaces
-    /ip firewall filter add chain=forward action=accept in-interface="zisp-wireguard" comment="zisp-wireguard-forward"
+    
+    # Allow all traffic on WireGuard interface (input chain)
+    /ip firewall filter add chain=input action=accept in-interface="zisp-wireguard" comment="zisp-wg-interface-input"
+    
+    # Allow established and related connections for WireGuard
+    /ip firewall filter add chain=forward action=accept connection-state=established,related in-interface="zisp-wireguard" comment="zisp-wg-forward-established"
+    /ip firewall filter add chain=forward action=accept connection-state=established,related out-interface="zisp-wireguard" comment="zisp-wg-forward-established-out"
+    
+    # Allow forwarding FROM WireGuard tunnel to LAN
+    /ip firewall filter add chain=forward action=accept in-interface="zisp-wireguard" comment="zisp-wg-forward-in"
+    
+    # Allow forwarding FROM LAN to WireGuard tunnel
+    /ip firewall filter add chain=forward action=accept out-interface="zisp-wireguard" comment="zisp-wg-forward-out"
 
-    :put "Firewall rules configured"
+    # ========== NAT MASQUERADE RULES ==========
+    
+    # Get the WAN interface name (first interface that has a gateway)
+    :local wanInterface ""
+    :foreach route in=[/ip route find where gateway!="" and dst-address="0.0.0.0/0"] do={
+        :set wanInterface [/ip route get $route gateway]
+        # Extract interface name if gateway is an interface
+        :if ([:typeof $wanInterface] = "str") do={
+            :local ifList [/interface find name=$wanInterface]
+            :if ([:len $ifList] > 0) do={
+                :set wanInterface $wanInterface
+            } else={
+                # Gateway is an IP, find the interface
+                :foreach iface in=[/interface find] do={
+                    :local ifName [/interface get $iface name]
+                    :foreach addr in=[/ip address find interface=$ifName] do={
+                        :local network [/ip address get $addr network]
+                        :if ([:typeof [:find [:tostr $wanInterface] [:tostr $network]]] != "nil") do={
+                            :set wanInterface $ifName
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    # If we couldn't determine WAN interface automatically, use ether1 as fallback
+    :if ([:len $wanInterface] = 0) do={
+        :set wanInterface "ether1"
+        :put "Warning: Could not auto-detect WAN interface, using ether1 as default"
+    }
+    
+    :put ("Detected WAN interface: " . $wanInterface)
+    
+    # Masquerade traffic from WireGuard to WAN (allows VPN clients to access internet through this router)
+    /ip firewall nat add chain=srcnat action=masquerade out-interface=$wanInterface src-address=10.100.0.0/16 comment="zisp-wg-masquerade-wan"
+    
+    # Masquerade traffic from LAN to WireGuard (allows LAN devices to communicate with VPN network)
+    /ip firewall nat add chain=srcnat action=masquerade out-interface="zisp-wireguard" comment="zisp-wg-masquerade-vpn"
+
+    :put "Firewall and NAT rules configured successfully"
 } on-error={
-    :put "Warning: Firewall configuration failed"
+    :put "Warning: Firewall/NAT configuration failed"
 }
 
 # ---------- Enable API Service ----------
