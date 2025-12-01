@@ -69,8 +69,6 @@ onUnmounted(() => {
 
 const form = useForm({
     name: '',
-    router_username: '',
-    router_password: '',
     notes: '',
     ip_address: '',
     api_port: '',
@@ -118,8 +116,6 @@ function openEdit(router) {
     form.ip_address = router.ip_address || '';
     form.api_port = router.api_port || '';
     form.ssh_port = router.ssh_port || '';
-    form.router_username = router.router_username;
-    form.router_password = '';
     form.connection_type = router.connection_type || 'api';
     form.openvpn_profile_id = router.openvpn_profile_id || null;
     form.notes = router.notes;
@@ -460,16 +456,6 @@ watch([routersList, search], () => {
                             <InputError :message="form.errors.name" />
                         </div>
                         <div>
-                            <InputLabel for="router_username" value="Username" />
-                            <TextInput id="router_username" v-model="form.router_username" class="mt-1 block w-full" required autocomplete="username" />
-                            <InputError :message="form.errors.router_username" />
-                        </div>
-                        <div>
-                            <InputLabel for="router_password" value="Password" />
-                            <TextInput id="router_password" v-model="form.router_password" type="password" class="mt-1 block w-full" required autocomplete="current-password" />
-                            <InputError :message="form.errors.router_password" />
-                        </div>
-                        <div>
                             <InputLabel for="notes" value="Notes (optional)" />
                             <TextArea id="notes" v-model="form.notes" class="mt-1 block w-full" rows="3" />
                             <InputError :message="form.errors.notes" />
@@ -630,38 +616,5 @@ watch([routersList, search], () => {
                 </div>
             </div>
         </Modal>
-
-        <!-- View Details Modal (Simple) -->
-        <Modal :show="showDetails" @close="showDetails = false">
-            <div class="p-6 dark:bg-slate-800 dark:text-white" v-if="selectedRouter">
-                <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">{{ selectedRouter.name }} Details</h3>
-                <div class="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                        <span class="block text-gray-500 dark:text-gray-400">IP Address</span>
-                        <span class="font-medium">{{ selectedRouter.ip_address || '-' }}</span>
-                    </div>
-                    <div>
-                        <span class="block text-gray-500 dark:text-gray-400">VPN IP</span>
-                        <span class="font-medium">{{ selectedRouter.wireguard_address || '-' }}</span>
-                    </div>
-                    <div>
-                        <span class="block text-gray-500 dark:text-gray-400">Model</span>
-                        <span class="font-medium">{{ selectedRouter.model || '-' }}</span>
-                    </div>
-                    <div>
-                        <span class="block text-gray-500 dark:text-gray-400">OS Version</span>
-                        <span class="font-medium">{{ selectedRouter.os_version || '-' }}</span>
-                    </div>
-                    <div class="col-span-2">
-                        <span class="block text-gray-500 dark:text-gray-400">Notes</span>
-                        <p class="mt-1 text-gray-700 dark:text-gray-300">{{ selectedRouter.notes || 'No notes' }}</p>
-                    </div>
-                </div>
-                <div class="mt-6 flex justify-end">
-                    <PrimaryButton @click="showDetails = false">Close</PrimaryButton>
-                </div>
-            </div>
-        </Modal>
-
     </AuthenticatedLayout>
 </template>

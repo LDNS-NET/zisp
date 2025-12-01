@@ -482,8 +482,6 @@ class TenantMikrotikController extends Controller
     {
         $data = $request->validate([
             'name' => 'required|string|max:255',
-            'router_username' => 'required|string|max:255',
-            'router_password' => 'required|string|min:1',
             'notes' => 'nullable|string',
             'api_port' => 'nullable|integer|min:1|max:65535',
         ]);
@@ -495,10 +493,14 @@ class TenantMikrotikController extends Controller
         $apiUsername = 'zisp_user';
         $apiPassword = Str::random(rand(18, 24));
 
+        // Use default router credentials (admin/blank) if not provided
+        $routerUsername = 'admin';
+        $routerPassword = '';
+
         $router = TenantMikrotik::create([
             'name' => $data['name'],
-            'router_username' => $data['router_username'],
-            'router_password' => $data['router_password'],
+            'router_username' => $routerUsername,
+            'router_password' => $routerPassword,
             'api_username' => $apiUsername,
             'api_password' => $apiPassword,
             'api_port' => $apiPort,
