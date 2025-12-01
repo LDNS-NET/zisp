@@ -17,6 +17,8 @@ class TenantMikrotik extends Model
         'openvpn_profile_id',
         'router_username',
         'router_password',
+        'api_username',
+        'api_password',
         'connection_type',
         'last_seen_at',
         'status',
@@ -58,6 +60,7 @@ class TenantMikrotik extends Model
 
     protected $hidden = [
         'router_password',
+        'api_password',
     ];
 
     /* Encrypt password when setting
@@ -117,12 +120,13 @@ class TenantMikrotik extends Model
 
     public function getUptimeFormatted(): string
     {
-        if (!$this->uptime) return 'Unknown';
-        
+        if (!$this->uptime)
+            return 'Unknown';
+
         $days = floor($this->uptime / 86400);
         $hours = floor(($this->uptime % 86400) / 3600);
         $minutes = floor(($this->uptime % 3600) / 60);
-        
+
         return "{$days}d {$hours}h {$minutes}m";
     }
 

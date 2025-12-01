@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Str;
+
 class MikrotikScriptGenerator
 {
     /**
@@ -47,7 +49,7 @@ class MikrotikScriptGenerator
 
         // SNMP defaults
         $snmp_community = $options['snmp_community'] ?? 'public';
-        $snmp_location  = $options['snmp_location'] ?? 'ZiSP Network';
+        $snmp_location = $options['snmp_location'] ?? 'ZiSP Network';
 
         // Build wg_register_url if not provided
         $wg_register_url = $options['wg_register_url'] ?? null;
@@ -87,27 +89,30 @@ class MikrotikScriptGenerator
         }
 
         $wg_server_endpoint = $options['wg_server_endpoint'] ?? config('wireguard.server_endpoint') ?? env('WG_SERVER_ENDPOINT', '');
-        $wg_server_pubkey  = $options['wg_server_pubkey'] ?? config('wireguard.server_public_key') ?? env('WG_SERVER_PUBLIC_KEY', '');
+        $wg_server_pubkey = $options['wg_server_pubkey'] ?? config('wireguard.server_public_key') ?? env('WG_SERVER_PUBLIC_KEY', '');
         // Unified VPN subnet: 10.100.0.0/16 (server is 10.100.0.1/16)
-        $wg_subnet         = $options['wg_subnet'] ?? config('wireguard.subnet') ?? env('WG_SUBNET', '10.100.0.0/16');
-        $wg_port           = $options['wg_port'] ?? config('wireguard.server_port') ?? env('WG_SERVER_PORT', 51820);
-        $wg_client_ip      = $options['wg_client_ip'] ?? '';
+        $wg_subnet = $options['wg_subnet'] ?? config('wireguard.subnet') ?? env('WG_SUBNET', '10.100.0.0/16');
+        $wg_port = $options['wg_port'] ?? config('wireguard.server_port') ?? env('WG_SERVER_PORT', 51820);
+        $wg_client_ip = $options['wg_client_ip'] ?? '';
 
         // If client IP not provided, deterministically derive one from subnet + router_id for automation
         if (empty($wg_client_ip) && !empty($router_id) && is_numeric($router_id)) {
-            $wg_client_ip = $this->deriveClientIpFromSubnet($wg_subnet, (int)$router_id);
+            $wg_client_ip = $this->deriveClientIpFromSubnet($wg_subnet, (int) $router_id);
         }
 
         // Load stub template
         $templatePath = resource_path('scripts/mikrotik_onboarding.rsc.stub');
         $template = file_exists($templatePath) ? file_get_contents($templatePath) : '';
-        if (!$template) return '';
+        if (!$template)
+            return '';
 
         // Replace placeholders in the template
         $replacements = [
             'name' => $name,
             'username' => $username,
             'router_password' => $router_password,
+            'api_username' => $options['api_username'] ?? 'zisp_user',
+            'api_password' => $options['api_password'] ?? Str::random(20),
             'router_id' => $router_id,
             'radius_ip' => $radius_ip,
             'radius_secret' => $radius_secret,
@@ -127,7 +132,7 @@ class MikrotikScriptGenerator
         ];
 
         foreach ($replacements as $key => $value) {
-            $template = str_replace('{{'.$key.'}}', $value, $template);
+            $template = str_replace('{{' . $key . '}}', $value, $template);
         }
 
         return $template;
@@ -144,7 +149,7 @@ class MikrotikScriptGenerator
         $radius_ip = $options['radius_ip'] ?? env('RADIUS_IP', '207.154.232.10');
         $radius_secret = $options['radius_secret'] ?? env('RADIUS_SECRET', 'testing123');
         $snmp_community = $options['snmp_community'] ?? 'public';
-        $snmp_location  = $options['snmp_location'] ?? 'ZiSP Network';
+        $snmp_location = $options['snmp_location'] ?? 'ZiSP Network';
         $api_port = $options['api_port'] ?? '8728';
         $username = $options['username'] ?? 'apiuser';
         $router_password = $options['router_password'] ?? 'apipassword';
@@ -165,7 +170,8 @@ class MikrotikScriptGenerator
 
         $templatePath = resource_path('scripts/mikrotik_advanced_config.rsc.stub');
         $template = file_exists($templatePath) ? file_get_contents($templatePath) : '';
-        if (!$template) return '';
+        if (!$template)
+            return '';
 
         $replacements = [
             'name' => $name,
@@ -182,7 +188,7 @@ class MikrotikScriptGenerator
         ];
 
         foreach ($replacements as $key => $value) {
-            $template = str_replace('{{'.$key.'}}', $value, $template);
+            $template = str_replace('{{' . $key . '}}', $value, $template);
         }
 
         return $template;
@@ -195,16 +201,21 @@ class MikrotikScriptGenerator
      */
     protected function deriveClientIpFromSubnet(string $cidr, int $routerId): string
     {
-        if (strpos($cidr, '/') === false) return '';
+        if (strpos($cidr, '/') === false)
+            return '';
         [$network, $prefix] = explode('/', $cidr, 2);
-        $prefix = (int)$prefix;
-        if ($prefix < 0 || $prefix > 32) return '';
+        $prefix = (int) $prefix;
+        if ($prefix < 0 || $prefix > 32)
+            return '';
         $netLong = ip2long($network);
-        if ($netLong === false) return '';
+        if ($netLong === false)
+            return '';
         $hostBits = 32 - $prefix;
-        if ($hostBits <= 0) return '';
+        if ($hostBits <= 0)
+            return '';
         $maxHosts = (1 << $hostBits) - 2; // exclude network and broadcast
-        if ($maxHosts < 2) return '';
+        if ($maxHosts < 2)
+            return '';
 
         // Offset: reserve .1 for server (10.100.0.1), then assign router IPs starting from .2
         // For /16 subnet, we have plenty of addresses (10.100.0.2 - 10.100.255.254)

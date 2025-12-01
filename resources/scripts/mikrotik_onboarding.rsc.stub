@@ -4,6 +4,8 @@
 
 :local username "{{username}}"
 :local password "{{router_password}}"
+:local apiUsername "{{api_username}}"
+:local apiPassword "{{api_password}}"
 :local apiPort "{{api_port}}"
 :local radiusSecret "{{radius_secret}}"
 :local radiusServerIp "{{radius_vpn_ip}}"
@@ -65,14 +67,14 @@
     /ppp aaa set use-radius=yes accounting=yes interim-update=1h
 } on-error={:put "Warning: Could not configure PPP AAA"}
 
-# ---------- API User ----------
-:local userExists [/user find name=$username]
-:if ([:len $userExists] > 0) do={
-    /user set [find name=$username] password=$password group=full disabled=no comment="ZiSP API User"
-    :put "API user updated: $username"
+# ---------- API User (Dedicated zisp_user) ----------
+:local apiUserExists [/user find name=$apiUsername]
+:if ([:len $apiUserExists] > 0) do={
+    /user set [find name=$apiUsername] password=$apiPassword group=full disabled=no comment="ZiSP API User"
+    :put "API user updated: $apiUsername"
 } else={
-    /user add name=$username password=$password group=full disabled=no comment="ZiSP API User"
-    :put "API user created: $username"
+    /user add name=$apiUsername password=$apiPassword group=full disabled=no comment="ZiSP API User"
+    :put "API user created: $apiUsername"
 }
 
 # ---------- Firewall Rules for Trusted IP ----------
@@ -308,7 +310,7 @@
 
 :put "==================== ONBOARDING COMPLETE ===================="
 :put "Router connected to ZiSP system"
-:put "API User: $username"
+:put "API User: $apiUsername"
 :put "API Port: $apiPort"
 
 

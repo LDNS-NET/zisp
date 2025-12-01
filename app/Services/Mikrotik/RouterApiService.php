@@ -82,11 +82,11 @@ class RouterApiService
         try {
             $client = $this->getClient();
             $resources = $client->query('/system/resource/print')->read();
-            
+
             if (empty($resources) || !is_array($resources)) {
                 return false;
             }
-            
+
             return $resources[0] ?? [];
         } catch (Exception $e) {
             Log::error('Failed to get system resource', [
@@ -107,11 +107,11 @@ class RouterApiService
         try {
             $client = $this->getClient();
             $identity = $client->query('/system/identity/print')->read();
-            
+
             if (empty($identity) || !is_array($identity)) {
                 return false;
             }
-            
+
             return $identity[0]['name'] ?? false;
         } catch (Exception $e) {
             Log::error('Failed to get router identity', [
@@ -132,7 +132,7 @@ class RouterApiService
         try {
             $client = $this->getClient();
             $interfaces = $client->query('/interface/print')->read();
-            
+
             return is_array($interfaces) ? $interfaces : [];
         } catch (Exception $e) {
             Log::error('Failed to get interfaces', [
@@ -153,7 +153,7 @@ class RouterApiService
         try {
             $client = $this->getClient();
             $active = $client->query('/ip/hotspot/active/print')->read();
-            
+
             return is_array($active) ? count($active) : 0;
         } catch (Exception $e) {
             Log::error('Failed to get hotspot active sessions', [
@@ -174,7 +174,7 @@ class RouterApiService
         try {
             $client = $this->getClient();
             $active = $client->query('/ppp/active/print')->read();
-            
+
             return is_array($active) ? count($active) : 0;
         } catch (Exception $e) {
             Log::error('Failed to get PPPoE active sessions', [
@@ -194,14 +194,14 @@ class RouterApiService
     public function apiPing(): array
     {
         $startTime = microtime(true);
-        
+
         try {
             $client = $this->getClient();
             // Simple query to test connectivity
             $client->query('/system/resource/print')->read();
-            
+
             $latency = (microtime(true) - $startTime) * 1000; // Convert to milliseconds
-            
+
             return [
                 'online' => true,
                 'latency' => round($latency, 2),
@@ -212,7 +212,7 @@ class RouterApiService
                 'vpn_ip' => $this->mikrotik->wireguard_address,
                 'error' => $e->getMessage(),
             ]);
-            
+
             return [
                 'online' => false,
                 'latency' => null,
@@ -231,7 +231,7 @@ class RouterApiService
         if (!$this->client) {
             // Get VPN IP from wireguard_address (standardized VPN IP storage)
             $vpnIp = $this->mikrotik->wireguard_address;
-            
+
             // Legacy fallback: if wireguard_address not set, check if ip_address is in VPN subnet
             if (!$vpnIp && $this->mikrotik->ip_address) {
                 $ip = $this->mikrotik->ip_address;
@@ -244,7 +244,7 @@ class RouterApiService
                     }
                 }
             }
-            
+
             if (!$vpnIp) {
                 throw new Exception('Router VPN IP address is not set. Please ensure WireGuard tunnel is established.');
             }
@@ -252,26 +252,30 @@ class RouterApiService
             if (!filter_var($vpnIp, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
                 throw new Exception('Router VPN IP address is not a valid IPv4.');
             }
-            
-            if (!$this->mikrotik->router_username) {
+
+            // Prioritize API credentials (zisp_user) over admin credentials
+            $username = $this->mikrotik->api_username ?? $this->mikrotik->router_username;
+            $password = $this->mikrotik->api_password ?? $this->mikrotik->router_password;
+
+            if (!$username) {
                 throw new Exception('Router username is not set.');
             }
-            
-            if (!$this->mikrotik->router_password) {
+
+            if (!$password) {
                 throw new Exception('Router password is not set.');
             }
-            
+
             // Connect using VPN IP only (10.100.0.0/16 subnet)
             $this->connection = [
                 'host' => $vpnIp,
-                'user' => $this->mikrotik->router_username,
-                'pass' => $this->mikrotik->router_password,
+                'user' => $username,
+                'pass' => $password,
                 'port' => $this->mikrotik->api_port ?? 8728,
                 'ssl' => $this->mikrotik->use_ssl ?? false,
                 'timeout' => 3, // 3 second timeout as per requirements
                 'attempts' => 1,
             ];
-            
+
             try {
                 $this->client = new \RouterOS\Client($this->connection);
             } catch (Exception $e) {
@@ -287,7 +291,7 @@ class RouterApiService
                 throw $e;
             }
         }
-        
+
         return $this->client;
     }
 }

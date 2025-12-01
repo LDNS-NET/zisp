@@ -45,7 +45,7 @@ class MikrotikService
     {
         return new static($mikrotik);
     }
-    
+
     /**
      * Set up the connection to the MikroTik router
      */
@@ -55,7 +55,7 @@ class MikrotikService
         $this->username = $username;
         $this->password = $password;
         $this->port = $port;
-        
+
         $this->connection = [
             'host' => $host,
             'user' => $username,
@@ -63,10 +63,10 @@ class MikrotikService
             'port' => $port,
             'ssl' => $useSsl,
         ];
-        
+
         // Reset the client to force reconnection with new settings
         $this->client = null;
-        
+
         return $this;
     }
 
@@ -79,14 +79,14 @@ class MikrotikService
             $client = $this->getClient();
             $query = (new \RouterOS\Query('/ip/hotspot/user/remove'))
                 ->equal('.id', $username);
-                
+
             $response = $client->query($query)->read();
-            
+
             Log::info('User removed from MikroTik', [
                 'username' => $username,
                 'mikrotik' => $this->connection['host'] ?? null
             ]);
-            
+
             return $response;
         } catch (\Exception $e) {
             Log::error('Failed to remove user from MikroTik', [
@@ -94,12 +94,12 @@ class MikrotikService
                 'mikrotik' => $this->connection['host'] ?? null,
                 'error' => $e->getMessage()
             ]);
-            
+
             // If the user doesn't exist, we can consider it a success
             if (str_contains($e->getMessage(), 'no such item')) {
                 return true;
             }
-            
+
             throw $e;
         }
     }
@@ -107,37 +107,37 @@ class MikrotikService
     /**
      * Update a user on the MikroTik
      */
-   /* public function updateUser($username, $userData)
-    {
-        try {
-            $client = $this->getClient();
-            $query = (new \RouterOS\Query('/ip/hotspot/user/set'))
-                ->equal('.id', $username);
-            
-            foreach ($userData as $key => $value) {
-                if ($value !== null) {
-                    $query->equal($key, $value);
-                }
-            }
-            
-            $response = $client->query($query)->read();
-            
-            Log::info('User updated on MikroTik', [
-                'username' => $username,
-                'mikrotik' => $this->connection['host'] ?? null,
-                'updates' => array_keys($userData)
-            ]);
-            
-            return $response;
-        } catch (\Exception $e) {
-            Log::error('Failed to update user on MikroTik', [
-                'username' => $username,
-                'mikrotik' => $this->connection['host'] ?? null,
-                'error' => $e->getMessage()
-            ]);
-            throw $e;
-        }
-    }*/
+    /* public function updateUser($username, $userData)
+     {
+         try {
+             $client = $this->getClient();
+             $query = (new \RouterOS\Query('/ip/hotspot/user/set'))
+                 ->equal('.id', $username);
+
+             foreach ($userData as $key => $value) {
+                 if ($value !== null) {
+                     $query->equal($key, $value);
+                 }
+             }
+
+             $response = $client->query($query)->read();
+
+             Log::info('User updated on MikroTik', [
+                 'username' => $username,
+                 'mikrotik' => $this->connection['host'] ?? null,
+                 'updates' => array_keys($userData)
+             ]);
+
+             return $response;
+         } catch (\Exception $e) {
+             Log::error('Failed to update user on MikroTik', [
+                 'username' => $username,
+                 'mikrotik' => $this->connection['host'] ?? null,
+                 'error' => $e->getMessage()
+             ]);
+             throw $e;
+         }
+     }*/
 
     /**
      * Add a user to the MikroTik
@@ -147,21 +147,21 @@ class MikrotikService
         try {
             $client = $this->getClient();
             $query = new \RouterOS\Query('/ip/hotspot/user/add');
-            
+
             foreach ($userData as $key => $value) {
                 if ($value !== null) {
                     $query->equal($key, $value);
                 }
             }
-            
+
             $response = $client->query($query)->read();
-            
+
             Log::info('User added to MikroTik', [
                 'username' => $userData['name'] ?? null,
                 'mikrotik' => $this->connection['host'] ?? null,
                 'response' => $response
             ]);
-            
+
             return $response;
         } catch (\Exception $e) {
             Log::error('Failed to add user to MikroTik', [
@@ -190,10 +190,10 @@ class MikrotikService
                 if (!$this->mikrotik) {
                     throw new Exception('No Mikrotik model or connection configured.');
                 }
-                
+
                 // Get VPN IP from wireguard_address (standardized VPN IP storage)
                 $vpnIp = $this->mikrotik->wireguard_address;
-                
+
                 // Legacy fallback: if wireguard_address not set, check if ip_address is in VPN subnet
                 if (!$vpnIp && $this->mikrotik->ip_address) {
                     $ip = $this->mikrotik->ip_address;
@@ -206,7 +206,7 @@ class MikrotikService
                         }
                     }
                 }
-                
+
                 if (!$vpnIp) {
                     throw new Exception('Router VPN IP address is not set. Please ensure WireGuard tunnel is established.');
                 }
@@ -215,28 +215,32 @@ class MikrotikService
                 if (!filter_var($vpnIp, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
                     throw new Exception('Router VPN IP address is not a valid IPv4.');
                 }
-                
-                if (!$this->mikrotik->router_username) {
+
+                // Prioritize API credentials (zisp_user) over admin credentials
+                $username = $this->mikrotik->api_username ?? $this->mikrotik->router_username;
+                $password = $this->mikrotik->api_password ?? $this->mikrotik->router_password;
+
+                if (!$username) {
                     throw new Exception('Router username is not set.');
                 }
-                
-                if (!$this->mikrotik->router_password) {
+
+                if (!$password) {
                     throw new Exception('Router password is not set.');
                 }
-                
+
                 // Connect using VPN IP only (10.100.0.0/16 subnet)
                 // Use shorter timeout for scheduler (2-3 seconds max to avoid blocking)
                 $this->connection = [
                     'host' => $vpnIp,
-                    'user' => $this->mikrotik->router_username,
-                    'pass' => $this->mikrotik->router_password,
+                    'user' => $username,
+                    'pass' => $password,
                     'port' => $this->mikrotik->api_port ?? 8728,
                     'ssl' => $this->mikrotik->use_ssl ?? false,
                     'timeout' => 3, // 3 second timeout for scheduler (was 10)
                     'attempts' => 1, // Single attempt for faster failure (was 2)
                 ];
             }
-            
+
             try {
                 $this->client = new \RouterOS\Client($this->connection);
             } catch (\Exception $e) {
@@ -264,10 +268,10 @@ class MikrotikService
     {
         try {
             $client = $this->getClient();
-            
+
             // Test connection with a simple query that works on all RouterOS versions
             $resources = $client->query('/system/resource/print')->read();
-            
+
             // Validate response
             if (empty($resources) || !is_array($resources)) {
                 Log::warning('Mikrotik testConnection: Empty or invalid response', [
@@ -276,12 +280,12 @@ class MikrotikService
                 ]);
                 return false;
             }
-            
+
             Log::debug('Mikrotik connection test successful', [
                 'host' => $this->connection['host'] ?? null,
                 'port' => $this->connection['port'] ?? null,
             ]);
-            
+
             return $resources;
         } catch (Exception $e) {
             $errorMessage = $e->getMessage();
@@ -601,6 +605,125 @@ class MikrotikService
             return true;
         } catch (Exception $e) {
             Log::error('Mikrotik unsuspendUser error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Create a system user on the MikroTik router.
+     * This is used to create the dedicated API user (zisp_user).
+     *
+     * @param string $username Username to create
+     * @param string $password Password for the user
+     * @param string $group Group/permissions (default: 'full')
+     * @return bool True on success, false on failure
+     */
+    public function createSystemUser(string $username, string $password, string $group = 'full'): bool
+    {
+        try {
+            $client = $this->getClient();
+
+            // Check if user already exists
+            $existingUsers = $client->query('/user/print')->read();
+            $userExists = false;
+            $userId = null;
+
+            foreach ($existingUsers as $user) {
+                if (isset($user['name']) && $user['name'] === $username) {
+                    $userExists = true;
+                    $userId = $user['.id'] ?? null;
+                    break;
+                }
+            }
+
+            if ($userExists && $userId) {
+                // User exists, update password
+                $client->query('/user/set', [
+                    '.id' => $userId,
+                    'password' => $password,
+                    'group' => $group,
+                ])->read();
+
+                Log::info('MikroTik system user updated', [
+                    'mikrotik_id' => $this->mikrotik->id ?? null,
+                    'username' => $username,
+                    'group' => $group,
+                ]);
+            } else {
+                // User doesn't exist, create it
+                $client->query('/user/add', [
+                    'name' => $username,
+                    'password' => $password,
+                    'group' => $group,
+                ])->read();
+
+                Log::info('MikroTik system user created', [
+                    'mikrotik_id' => $this->mikrotik->id ?? null,
+                    'username' => $username,
+                    'group' => $group,
+                ]);
+            }
+
+            return true;
+        } catch (Exception $e) {
+            Log::error('Failed to create/update MikroTik system user', [
+                'mikrotik_id' => $this->mikrotik->id ?? null,
+                'username' => $username,
+                'error' => $e->getMessage(),
+            ]);
+            return false;
+        }
+    }
+
+    /**
+     * Update a system user's password on the MikroTik router.
+     *
+     * @param string $username Username to update
+     * @param string $password New password
+     * @return bool True on success, false on failure
+     */
+    public function updateSystemUser(string $username, string $password): bool
+    {
+        try {
+            $client = $this->getClient();
+
+            // Find the user
+            $users = $client->query('/user/print')->read();
+            $userId = null;
+
+            foreach ($users as $user) {
+                if (isset($user['name']) && $user['name'] === $username) {
+                    $userId = $user['.id'] ?? null;
+                    break;
+                }
+            }
+
+            if (!$userId) {
+                Log::warning('Cannot update system user: user not found', [
+                    'mikrotik_id' => $this->mikrotik->id ?? null,
+                    'username' => $username,
+                ]);
+                return false;
+            }
+
+            // Update password
+            $client->query('/user/set', [
+                '.id' => $userId,
+                'password' => $password,
+            ])->read();
+
+            Log::info('MikroTik system user password updated', [
+                'mikrotik_id' => $this->mikrotik->id ?? null,
+                'username' => $username,
+            ]);
+
+            return true;
+        } catch (Exception $e) {
+            Log::error('Failed to update MikroTik system user password', [
+                'mikrotik_id' => $this->mikrotik->id ?? null,
+                'username' => $username,
+                'error' => $e->getMessage(),
+            ]);
             return false;
         }
     }

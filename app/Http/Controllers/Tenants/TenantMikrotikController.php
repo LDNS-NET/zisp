@@ -395,10 +395,16 @@ class TenantMikrotikController extends Controller
         // Ensure API port is set (default 8728)
         $apiPort = $data['api_port'] ?? 8728;
 
+        // Generate API credentials immediately
+        $apiUsername = 'zisp_user';
+        $apiPassword = Str::random(rand(18, 24));
+
         $router = TenantMikrotik::create([
             'name' => $data['name'],
             'router_username' => $data['router_username'],
             'router_password' => $data['router_password'],
+            'api_username' => $apiUsername,
+            'api_password' => $apiPassword,
             'api_port' => $apiPort,
             'connection_type' => 'api',
             'notes' => $data['notes'] ?? null,
@@ -420,6 +426,8 @@ class TenantMikrotikController extends Controller
             'name' => $router->name,
             'username' => $router->router_username,
             'router_password' => $router->router_password,
+            'api_username' => $router->api_username,
+            'api_password' => $router->api_password,
             'router_id' => $router->id,
             'sync_token' => $router->sync_token,
             'ca_url' => $caUrl,
@@ -621,6 +629,16 @@ class TenantMikrotikController extends Controller
                 $router->online = true;
                 $router->last_seen_at = now();
                 $router->save();
+
+                // If API credentials are not configured, dispatch job to set them up
+                if (!$router->api_username || !$router->api_password) {
+                    \App\Jobs\SetupMikrotikApiUser::dispatch($router)->onQueue('default');
+
+                    Log::info('Dispatched SetupMikrotikApiUser job for router', [
+                        'router_id' => $router->id,
+                        'router_name' => $router->name,
+                    ]);
+                }
             } else {
                 $router->status = 'offline';
                 $router->online = false;
