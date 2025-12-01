@@ -38,6 +38,7 @@ const daysRemaining = ref(0);
 // Dynamic greeting based on time of day
 const getGreeting = () => {
     const hour = new Date().getHours();
+    if (hour < 4) return 'Good night';
     if (hour < 12) return 'Good morning';
     if (hour < 18) return 'Good afternoon';
     if (hour < 24) return 'Good evening';
@@ -155,10 +156,14 @@ const incomeChartOptions = computed(() => ({
     },
 }));
 
-const incomeChartSeries = computed(() => [{
-    name: 'Revenue',
-    data: props.stats?.payments_chart?.[revenueFilter.value]?.data || [],
-}]);
+const incomeChartSeries = computed(() => {
+    const filterData = props.stats?.payments_chart?.[revenueFilter.value];
+    console.log('Income Chart Series - Filter:', revenueFilter.value, 'Data:', filterData);
+    return [{
+        name: 'Revenue',
+        data: filterData?.data || [],
+    }];
+});
 
 // User Growth Chart (Line Chart)
 const userGrowthOptions = computed(() => ({
@@ -206,20 +211,24 @@ const userGrowthOptions = computed(() => ({
     },
 }));
 
-const userGrowthSeries = computed(() => [
-    {
-        name: 'Total Users',
-        data: props.stats?.user_growth_chart?.total_users || [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    },
-    {
-        name: 'Active Users',
-        data: props.stats?.user_growth_chart?.active_users || [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    },
-    {
-        name: 'New Users',
-        data: props.stats?.user_growth_chart?.new_users || [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    },
-]);
+const userGrowthSeries = computed(() => {
+    const growthData = props.stats?.user_growth_chart;
+    console.log('User Growth Series Data:', growthData);
+    return [
+        {
+            name: 'Total Users',
+            data: growthData?.total_users || [],
+        },
+        {
+            name: 'Active Users',
+            data: growthData?.active_users || [],
+        },
+        {
+            name: 'New Users',
+            data: growthData?.new_users || [],
+        },
+    ];
+});
 
 // Package Utilization Chart (Donut Chart)
 const packageChartOptions = computed(() => ({

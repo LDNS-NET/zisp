@@ -178,15 +178,15 @@ class DashboardController extends Controller
 
     protected function getDailyRevenue()
     {
-        // Last 30 days
         $data = [];
         $labels = [];
 
         for ($i = 29; $i >= 0; $i--) {
             $date = now()->subDays($i);
             $labels[] = $date->format('M d');
-            $data[] = TenantPayment::whereDate('paid_at', $date->toDateString())
-                ->sum('amount') ?? 0;
+            $amount = TenantPayment::whereDate('paid_at', $date->toDateString())
+                ->sum('amount');
+            $data[] = (float) ($amount ?? 0);
         }
 
         return [
@@ -197,16 +197,16 @@ class DashboardController extends Controller
 
     protected function getWeeklyRevenue()
     {
-        // Last 12 weeks
         $data = [];
         $labels = [];
 
         for ($i = 11; $i >= 0; $i--) {
             $weekStart = now()->subWeeks($i)->startOfWeek();
             $weekEnd = now()->subWeeks($i)->endOfWeek();
-            $labels[] = $weekStart->format('M d') . ' - ' . $weekEnd->format('M d');
-            $data[] = TenantPayment::whereBetween('paid_at', [$weekStart, $weekEnd])
-                ->sum('amount') ?? 0;
+            $labels[] = $weekStart->format('M d') . '-' . $weekEnd->format('d');
+            $amount = TenantPayment::whereBetween('paid_at', [$weekStart, $weekEnd])
+                ->sum('amount');
+            $data[] = (float) ($amount ?? 0);
         }
 
         return [
@@ -217,16 +217,16 @@ class DashboardController extends Controller
 
     protected function getMonthlyRevenue()
     {
-        // Last 12 months
         $data = [];
         $labels = [];
 
         for ($i = 11; $i >= 0; $i--) {
             $month = now()->subMonths($i);
             $labels[] = $month->format('M Y');
-            $data[] = TenantPayment::whereYear('paid_at', $month->year)
+            $amount = TenantPayment::whereYear('paid_at', $month->year)
                 ->whereMonth('paid_at', $month->month)
-                ->sum('amount') ?? 0;
+                ->sum('amount');
+            $data[] = (float) ($amount ?? 0);
         }
 
         return [
@@ -237,15 +237,15 @@ class DashboardController extends Controller
 
     protected function getYearlyRevenue()
     {
-        // Last 5 years
         $data = [];
         $labels = [];
 
         for ($i = 4; $i >= 0; $i--) {
             $year = now()->subYears($i)->year;
             $labels[] = (string) $year;
-            $data[] = TenantPayment::whereYear('paid_at', $year)
-                ->sum('amount') ?? 0;
+            $amount = TenantPayment::whereYear('paid_at', $year)
+                ->sum('amount');
+            $data[] = (float) ($amount ?? 0);
         }
 
         return [
@@ -257,33 +257,31 @@ class DashboardController extends Controller
     protected function getUserGrowthData()
     {
         $currentYear = now()->year;
-
-        // Get total users per month (cumulative)
         $totalUsers = [];
-        // Get active users per month
         $activeUsers = [];
-        // Get new users per month
         $newUsers = [];
 
         for ($month = 1; $month <= 12; $month++) {
             $endOfMonth = Carbon::create($currentYear, $month, 1)->endOfMonth();
 
-            // Total users that existed by the end of this month
-            $totalUsers[] = NetworkUser::where('created_at', '<=', $endOfMonth)
-                ->count();
+            // Total users created by end of this month
+            $total = NetworkUser::where('created_at', '<=', $endOfMonth)->count();
+            $totalUsers[] = (int) $total;
 
-            // Active users (not expired) at the end of this month
-            $activeUsers[] = NetworkUser::where('created_at', '<=', $endOfMonth)
+            // Active users (not expired) at end of this month
+            $active = NetworkUser::where('created_at', '<=', $endOfMonth)
                 ->where(function ($query) use ($endOfMonth) {
                     $query->where('expires_at', '>', $endOfMonth)
                         ->orWhereNull('expires_at');
                 })
                 ->count();
+            $activeUsers[] = (int) $active;
 
-            // New users created in this specific month
-            $newUsers[] = NetworkUser::whereYear('created_at', $currentYear)
+            // New users created in this month
+            $new = NetworkUser::whereYear('created_at', $currentYear)
                 ->whereMonth('created_at', $month)
                 ->count();
+            $newUsers[] = (int) $new;
         }
 
         return [
