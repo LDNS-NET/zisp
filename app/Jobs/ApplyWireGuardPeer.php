@@ -32,14 +32,7 @@ class ApplyWireGuardPeer implements ShouldQueue
     public function handle(WireGuardService $wgService)
     {
         try {
-            // 1. Add to config ONLY (no reload yet)
-            // This is fast and safe to do multiple times
-            $wgService->applyPeer($this->router, false);
-
-            // 2. Dispatch activation job
-            // This job is unique (debounced) so it will only run once even if multiple peers are added
-            ActivateWireGuardChanges::dispatch();
-
+            $wgService->applyPeer($this->router);
         } catch (\Exception $e) {
             Log::error('ApplyWireGuardPeer job failed', ['router_id' => $this->router->id, 'error' => $e->getMessage()]);
         }
