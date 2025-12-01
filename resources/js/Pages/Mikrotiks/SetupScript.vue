@@ -4,9 +4,6 @@ import { route } from 'ziggy-js';
 import { Head, router } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
-import InputLabel from '@/Components/InputLabel.vue';
-import InputError from '@/Components/InputError.vue';
 
 const props = defineProps({
     router: Object,
@@ -17,14 +14,11 @@ const fetchCommandCopied = ref(false);
 const waiting = ref(false);
 const online = ref(false);
 const pollingError = ref('');
-const ipAddress = ref(props.router?.wireguard_address || '');
-const ipError = ref('');
-const settingIp = ref(false);
+const detectedIp = ref(props.router?.wireguard_address || '');
 let statusCheckInterval = null;
 
 const STATUS_CHECK_INTERVAL = 3000;
 const MAX_WAIT_TIME = 5 * 60 * 1000;
-const hasIpAddress = computed(() => ipAddress.value && ipAddress.value.trim() !== '');
 
 // Generate the Mikrotik fetch command using public route with token
 const scriptUrl = computed(() => {
@@ -38,50 +32,19 @@ function copyFetchCommand() {
     navigator.clipboard.writeText(fetchCommand.value);
     fetchCommandCopied.value = true;
     setTimeout(() => (fetchCommandCopied.value = false), 2000);
+    
+    // Start polling automatically when command is copied
+    if (!waiting.value && !online.value) {
+        startStatusChecking();
+    }
 }
 
 function downloadScript() {
     window.location.href = scriptUrl.value;
-}
-
-async function setIpAddress() {
-    if (!ipAddress.value || !ipAddress.value.trim()) {
-        ipError.value = 'Please enter a valid IP address';
-        return;
-    }
-
-    const ipRegex = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
-    if (!ipRegex.test(ipAddress.value.trim())) {
-        ipError.value = 'Please enter a valid IP address (e.g., 10.100.0.14)';
-        return;
-    }
-
-    settingIp.value = true;
-    ipError.value = '';
-
-    try {
-        const response = await fetch(route('mikrotiks.setIp', props.router.id), {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
-            },
-            body: JSON.stringify({ ip_address: ipAddress.value.trim() }),
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            throw new Error(data.message || 'Failed to set IP address');
-        }
-
-        if (data.ip_address) {
-            ipAddress.value = data.ip_address;
-        }
-    } catch (err) {
-        ipError.value = err.message || 'Failed to set IP address';
-    } finally {
-        settingIp.value = false;
+    
+    // Start polling automatically when script is downloaded
+    if (!waiting.value && !online.value) {
+        setTimeout(() => startStatusChecking(), 500);
     }
 }
 
@@ -101,18 +64,16 @@ function checkRouterStatus() {
                 waiting.value = false;
                 stopStatusChecking();
                 
-                // Auto-populate WireGuard IP if available
+                // Update detected IP
                 if (data.wireguard_address) {
-                    ipAddress.value = data.wireguard_address;
-                    ipError.value = '';
+                    detectedIp.value = data.wireguard_address;
                 }
                 
                 window.toast?.success('Router is online and ready!') || console.log('Router is online!');
             } else {
                 // Check if WireGuard address was registered (phone-home happened)
-                if (data.wireguard_address && !ipAddress.value) {
-                    ipAddress.value = data.wireguard_address;
-                    ipError.value = '';
+                if (data.wireguard_address) {
+                    detectedIp.value = data.wireguard_address;
                 }
                 pollingError.value = '';
             }
@@ -122,20 +83,8 @@ function checkRouterStatus() {
         });
 }
 
-async function startStatusChecking() {
+function startStatusChecking() {
     if (statusCheckInterval) return;
-    
-    if (!hasIpAddress.value) {
-        pollingError.value = 'Please enter the router WireGuard IP address first';
-        return;
-    }
-
-    if (!props.router?.ip_address || ipAddress.value.trim() !== props.router.ip_address) {
-        await setIpAddress();
-        if (ipError.value) {
-            return;
-        }
-    }
     
     waiting.value = true;
     pollingError.value = '';
@@ -150,8 +99,8 @@ async function startStatusChecking() {
         if (elapsed >= MAX_WAIT_TIME) {
             stopStatusChecking();
             waiting.value = false;
-            pollingError.value = 'Router did not come online. Please check your internet connection and try again.';
-            window.toast?.error('Router is offline. Please check the connection.') || 
+            pollingError.value = 'Router did not come online within 5 minutes. Please check your connection and try again.';
+            window.toast?.error('Router connection timeout. Please verify the script ran successfully.') || 
                 alert('Router is offline. Please check if the router is connected to the internet.');
             return;
         }
@@ -240,92 +189,84 @@ function proceed() {
                 </div>
             </div>
 
-            <!-- Step 2: Enter IP -->
+            <!-- Step 2: Wait for Connection -->
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
                 <div class="bg-gradient-to-r from-purple-500 to-purple-600 px-6 py-4">
                     <h3 class="text-lg font-semibold text-white flex items-center gap-2">
                         <span class="flex items-center justify-center w-8 h-8 rounded-full bg-white/20 text-white font-bold">2</span>
-                        Enter Router IP Address
+                        Waiting for Router Connection
                     </h3>
                 </div>
                 
                 <div class="p-6 space-y-4">
                     <p class="text-gray-700 dark:text-gray-300">
-                        After running the script, the WireGuard VPN IP will automatically appear below. If it doesn't auto-populate, you can manually enter it:
+                        The system is automatically monitoring for your router to come online...
                     </p>
 
-                    <div class="flex gap-3">
-                        <div class="flex-1">
-                            <TextInput
-                                id="ip_address"
-                                v-model="ipAddress"
-                                type="text"
-                                placeholder="e.g., 192.168.88.1"
-                                class="w-full"
-                                :class="{ 'border-red-500': ipError }"
-                                @keyup.enter="setIpAddress"
-                            />
-                            <InputError :message="ipError" class="mt-2" />
-                            <p v-if="ipAddress && !ipError" class="mt-2 text-sm text-green-600 dark:text-green-400 flex items-center gap-1">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                </svg>
-                                IP Address saved: {{ ipAddress }}
-                            </p>
-                        </div>
-                        <PrimaryButton
-                            @click="setIpAddress"
-                            :disabled="settingIp || !ipAddress"
-                            class="self-start"
-                        >
-                            {{ settingIp ? 'Saving...' : 'Save IP' }}
-                        </PrimaryButton>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Step 3: Verify -->
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-                <div class="bg-gradient-to-r from-green-500 to-green-600 px-6 py-4">
-                    <h3 class="text-lg font-semibold text-white flex items-center gap-2">
-                        <span class="flex items-center justify-center w-8 h-8 rounded-full bg-white/20 text-white font-bold">3</span>
-                        Verify Connection
-                    </h3>
-                </div>
-                
-                <div class="p-6 space-y-4">
-                    <p class="text-gray-700 dark:text-gray-300">
-                        Click the button below to verify the router is online and connected to our system:
-                    </p>
-
-                    <div class="flex flex-wrap items-center gap-4">
-                        <PrimaryButton
-                            @click="startStatusChecking"
-                            :disabled="waiting || online || !hasIpAddress"
-                            class="px-6"
-                        >
-                            {{ waiting ? 'Checking...' : online ? 'Verified ✓' : 'Verify Connection' }}
-                        </PrimaryButton>
-
-                        <!-- Status Indicators -->
-                        <div v-if="waiting" class="flex items-center gap-2 text-blue-600 dark:text-blue-400">
-                            <svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <!-- Status Display -->
+                    <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 space-y-3">
+                        <!-- Waiting State -->
+                        <div v-if="waiting" class="flex items-center gap-3">
+                            <svg class="w-6 h-6 animate-spin text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24">
                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
                             </svg>
-                            <span class="text-sm">Checking status... (up to 5 minutes)</span>
+                            <div class="flex-1">
+                                <p class="font-medium text-gray-900 dark:text-gray-100">Checking for router...</p>
+                                <p class="text-sm text-gray-600 dark:text-gray-400">Waiting for phone-home signal (up to 5 minutes)</p>
+                            </div>
                         </div>
 
-                        <div v-if="online" class="flex items-center gap-2 text-green-600 dark:text-green-400 font-semibold">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <!-- Detected IP -->
+                        <div v-if="detectedIp" class="flex items-center gap-3 text-green-600 dark:text-green-400">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <div>
+                                <p class="font-medium">WireGuard VPN IP Detected</p>
+                                <p class="text-sm font-mono">{{ detectedIp }}</p>
+                            </div>
+                        </div>
+
+                        <!-- Online State -->
+                        <div v-if="online" class="flex items-center gap-3 text-green-600 dark:text-green-400">
+                            <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
-                            <span>Router is online!</span>
+                            <div>
+                                <p class="text-lg font-semibold">Router is Online!</p>
+                                <p class="text-sm">Successfully connected and ready for management</p>
+                            </div>
                         </div>
 
-                        <div v-if="pollingError" class="text-red-600 dark:text-red-400 text-sm">
-                            {{ pollingError }}
+                        <!-- Error State -->
+                        <div v-if="pollingError" class="flex items-center gap-3 text-red-600 dark:text-red-400">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <div>
+                                <p class="font-medium">Connection Timeout</p>
+                                <p class="text-sm">{{ pollingError }}</p>
+                            </div>
                         </div>
+
+                        <!-- Idle State -->
+                        <div v-if="!waiting && !online && !pollingError" class="flex items-center gap-3 text-gray-600 dark:text-gray-400">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <p>Copy or download the script above to begin monitoring</p>
+                        </div>
+                    </div>
+
+                    <!-- Manual retry -->
+                    <div v-if="pollingError" class="flex justify-center">
+                        <button
+                            @click="startStatusChecking"
+                            class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                        >
+                            Retry Connection Check
+                        </button>
                     </div>
                 </div>
             </div>
