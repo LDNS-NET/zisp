@@ -25,7 +25,7 @@ import {
 
 // Props
 const props = defineProps({
-    router: Object,
+    mikrotik: Object,
     realtime: Object,
 });
 
@@ -73,7 +73,7 @@ const syncRouter = () => {
 </script>
 
 <template>
-    <Head :title="router.name + ' - Details'" />
+    <Head :title="mikrotik.name + ' - Details'" />
 
     <AuthenticatedLayout>
         <!-- HEADER -->
@@ -81,13 +81,13 @@ const syncRouter = () => {
             <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
                     <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200">
-                        {{ router.name }}
+                        {{ mikrotik.name }}
                     </h2>
 
                     <div class="mt-1 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                         <StatusBadge :status="realtime.is_online ? 'online' : 'offline'" />
 
-                        <span>{{ router.ip_address }}</span>
+                        <span>{{ mikrotik.ip_address }}</span>
 
                         <span v-if="realtime.resources?.['board-name']">
                             • {{ realtime.resources["board-name"] }}
@@ -107,7 +107,7 @@ const syncRouter = () => {
 
                     <PrimaryButton
                         as="a"
-                        :href="route('mikrotiks.downloadSetupScript', { mikrotik: router.id })"
+                        :href="route('mikrotiks.downloadSetupScript', { mikrotik: mikrotik.id })"
                     >
                         <Download class="mr-2 h-4 w-4" />
                         Script

@@ -99,7 +99,7 @@ class TenantMikrotikController extends Controller
         }
 
         return Inertia::render('Mikrotiks/Show', [
-            'router' => $router,
+            'mikrotik' => $router,
             'realtime' => $realtimeData,
         ]);
     }
