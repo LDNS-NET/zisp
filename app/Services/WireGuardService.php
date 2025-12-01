@@ -609,13 +609,13 @@ class WireGuardService
 
             // 1. Fetch all active routers with keys from DB
             $routers = TenantMikrotik::whereNotNull('wireguard_public_key')->get()->keyBy('wireguard_public_key');
-            
+
             // 2. Read current config
             try {
                 $currentConfigContent = $this->readConfig();
             } catch (\Exception $e) {
                 // If file doesn't exist or can't be read, start empty
-                $currentConfigContent = "[Interface]\n"; 
+                $currentConfigContent = "[Interface]\n";
             }
 
             // 3. Parse existing peers from config to preserve comments/structure if needed
@@ -630,20 +630,20 @@ class WireGuardService
 
             // 4. Build new peer list
             $newPeers = [];
-            
+
             foreach ($routers as $publicKey => $router) {
                 $newPeers[] = $this->buildPeerArray($router);
-                
+
                 if (!isset($existingPeersMap[$publicKey])) {
                     $results['added']++;
                 } else {
                     // Check if actually changed (simple check)
                     $oldPeer = $existingPeersMap[$publicKey];
                     $newPeer = $this->buildPeerArray($router);
-                    
+
                     // Compare critical fields
                     if (($oldPeer['AllowedIPs'] ?? '') !== ($newPeer['AllowedIPs'] ?? '')) {
-                         $results['updated']++;
+                        $results['updated']++;
                     }
                 }
             }
@@ -677,7 +677,7 @@ class WireGuardService
 
             // 7. Write and Apply
             $this->backupConfig();
-            
+
             $tempPath = $this->configPath . '.tmp';
             if (!$this->writeConfigSecurely($tempPath, $newConfigContent)) {
                 throw new \RuntimeException('Failed to write new configuration');
@@ -692,9 +692,30 @@ class WireGuardService
                 throw new \RuntimeException('Failed to move config file: ' . $process->getErrorOutput());
             }
 
+            // VERIFICATION STEP: Read back the file to ensure it was updated
+            $verificationCmd = sprintf("sudo cat %s", escapeshellarg($this->configPath));
+            $verifyProcess = Process::fromShellCommandline($verificationCmd);
+            $verifyProcess->run();
+            $actualContent = $verifyProcess->getOutput();
+
+            // Normalize for comparison
+            $actualNormalized = trim(str_replace("\r\n", "\n", $actualContent));
+            $expectedNormalized = trim(str_replace("\r\n", "\n", $newConfigContent));
+
+            if ($actualNormalized !== $expectedNormalized) {
+                Log::channel('wireguard')->error('Config file verification FAILED. File content does not match what was written.', [
+                    'expected_length' => strlen($expectedNormalized),
+                    'actual_length' => strlen($actualNormalized),
+                    'diff' => 'Content mismatch'
+                ]);
+                // We don't throw exception here to allow restart attempt, but this is critical
+            } else {
+                Log::channel('wireguard')->info('Config file verification PASSED.');
+            }
+
             // 8. Restart Interface
             if (!$this->applyConfigSafely()) {
-                 throw new \RuntimeException('Failed to restart WireGuard interface');
+                throw new \RuntimeException('Failed to restart WireGuard interface');
             }
 
             // 9. Update statuses in DB
