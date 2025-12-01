@@ -194,21 +194,26 @@
         :put ("Error: " . $clientIpWithMask . " is not in the 10.100.0.0/16 subnet")
     } else={
 
-        # Check if this exact address/mask is already present
-        :local existing [/ip/address/find where address=$clientIpWithMask]
-        :if ([:len $existing] > 0) do={
-            :put ("Notice: " . $clientIpWithMask . " already assigned on this router")
-        } else={
-
-            # Add the address to the interface, with safe on-error handling
-            :do {
-                /ip/address/add interface="zisp-wireguard" address=$clientIpWithMask comment="wireguard assigned by registration script"
-                :put ("Success: added " . $clientIpWithMask . " to interface zisp-wireguard")
-            } on-error={
-                :local errStr ("Failed to add " . $clientIpWithMask . " - " . [:tostr $error])
-                :put $errStr
-                /log warning $errStr
+        # Remove ALL existing WireGuard IP addresses (by comment) to prevent duplicates
+        :put "Removing any existing WireGuard IP addresses..."
+        :do {
+            :foreach addr in=[/ip/address/find where comment="wireguard assigned by registration script"] do={
+                :local oldAddr [/ip/address/get $addr address]
+                /ip/address/remove $addr
+                :put ("Removed old WireGuard IP: " . $oldAddr)
             }
+        } on-error={
+            :put "Warning: Could not remove old WireGuard addresses"
+        }
+
+        # Now add the new address
+        :do {
+            /ip/address/add interface="zisp-wireguard" address=$clientIpWithMask comment="wireguard assigned by registration script"
+            :put ("Success: added " . $clientIpWithMask . " to interface zisp-wireguard")
+        } on-error={
+            :local errStr ("Failed to add " . $clientIpWithMask)
+            :put $errStr
+            /log warning $errStr
         }
     }
 }
