@@ -41,7 +41,14 @@ class WireGuardService
      * Apply or update a peer for the given router on the server WireGuard interface.
      * Uses unified /16 subnet (10.100.0.0/16) for all routers.
      */
-    public function applyPeer(TenantMikrotik $router): bool
+    /**
+     * Apply or update a peer for the given router on the server WireGuard interface.
+     * Uses unified /16 subnet (10.100.0.0/16) for all routers.
+     * 
+     * @param TenantMikrotik $router
+     * @param bool $reload Whether to restart the interface immediately
+     */
+    public function applyPeer(TenantMikrotik $router, bool $reload = true): bool
     {
         if (empty($router->wireguard_public_key)) {
             Log::channel('wireguard')->warning('applyPeer called without public key', ['router_id' => $router->id]);
@@ -55,22 +62,30 @@ class WireGuardService
                 return false;
             }
 
-            // Step 2: Apply to running interface without disruption
-            if (!$this->applyConfigSafely()) {
-                Log::channel('wireguard')->error('Failed to apply config safely', ['router_id' => $router->id]);
-                return false;
+            // Step 2: Apply to running interface (if requested)
+            if ($reload) {
+                if (!$this->applyConfigSafely()) {
+                    Log::channel('wireguard')->error('Failed to apply config safely', ['router_id' => $router->id]);
+                    return false;
+                }
+
+                Log::channel('wireguard')->info('WireGuard peer applied successfully', [
+                    'router_id' => $router->id,
+                    'router_name' => $router->name,
+                    'router_model' => $router->model,
+                    'public_key' => substr($router->wireguard_public_key, 0, 16) . '...',
+                    'address' => $router->wireguard_address,
+                ]);
+
+                $router->wireguard_status = 'active';
+                $router->save();
+            } else {
+                Log::channel('wireguard')->info('WireGuard peer added to config (reload pending)', [
+                    'router_id' => $router->id,
+                ]);
+                // Do not update status to active yet - wait for reload
             }
 
-            Log::channel('wireguard')->info('WireGuard peer applied successfully', [
-                'router_id' => $router->id,
-                'router_name' => $router->name,
-                'router_model' => $router->model,
-                'public_key' => substr($router->wireguard_public_key, 0, 16) . '...',
-                'address' => $router->wireguard_address,
-            ]);
-
-            $router->wireguard_status = 'active';
-            $router->save();
             return true;
 
         } catch (\Exception $e) {

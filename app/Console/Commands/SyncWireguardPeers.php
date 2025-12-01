@@ -51,10 +51,14 @@ class SyncWireguardPeers extends Command
 
         $success = 0;
         $failed = 0;
+        $processedRouters = [];
 
+        // 1. Update config file for all peers (without reloading interface)
         foreach ($routers as $router) {
-            if ($this->wgService->applyPeer($router)) {
+            // Pass false to skip reload
+            if ($this->wgService->applyPeer($router, false)) {
                 $success++;
+                $processedRouters[] = $router;
             } else {
                 $failed++;
             }
@@ -63,6 +67,25 @@ class SyncWireguardPeers extends Command
 
         $bar->finish();
         $this->newLine();
+
+        // 2. Reload interface once if there were successes
+        if ($success > 0) {
+            $this->info('Reloading WireGuard interface...');
+
+            if ($this->wgService->applyConfigSafely()) {
+                $this->info('Interface reloaded successfully.');
+
+                // 3. Update status to active for all processed routers
+                foreach ($processedRouters as $router) {
+                    $router->wireguard_status = 'active';
+                    $router->save();
+                }
+                $this->info("Updated status for {$success} peers.");
+            } else {
+                $this->error('Failed to reload interface. Peers added to config but not active.');
+                return 1;
+            }
+        }
 
         $this->info("Sync complete: {$success} succeeded, {$failed} failed");
 
