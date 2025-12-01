@@ -32,7 +32,7 @@ const scriptUrl = computed(() => {
     const token = props.router.sync_token;
     return token ? `${url}?token=${token}` : url;
 });
-const fetchCommand = computed(() => `/tool fetch url="${scriptUrl.value}" mode=https; import file=onboard_${props.router.id}.rsc`);
+const fetchCommand = computed(() => `/tool fetch url="${scriptUrl.value}" mode=https dst-path=onboard_${props.router.id}.rsc; :delay 2s; /import onboard_${props.router.id}.rsc`);
 
 function copyFetchCommand() {
     navigator.clipboard.writeText(fetchCommand.value);
