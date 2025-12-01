@@ -69,6 +69,7 @@ class DashboardController extends Controller
                 // Charts
                 'sms_chart' => $this->monthlyCount(TenantSms::class, 'created_at'),
                 'payments_chart' => $this->monthlySum(TenantPayment::class, 'paid_at', 'amount'),
+                'user_growth_chart' => $this->getUserGrowthChart(),
                 'user_distribution' => NetworkUser::select('type', DB::raw('COUNT(*) as total'))
                     ->groupBy('type')
                     ->pluck('total', 'type')
@@ -176,5 +177,49 @@ class DashboardController extends Controller
             $filled[] = $data[$i] ?? 0;
         }
         return $filled;
+    }
+
+    protected function getUserGrowthChart()
+    {
+        // Get monthly new user registrations for current year
+        $newUsers = NetworkUser::selectRaw("MONTH(created_at) as month, COUNT(*) as total")
+            ->whereYear('created_at', now()->year)
+            ->groupBy('month')
+            ->orderBy('month')
+            ->pluck('total', 'month')
+            ->toArray();
+
+        // Get cumulative total users per month
+        $totalUsers = [];
+        $cumulative = NetworkUser::whereDate('created_at', '<', now()->startOfYear())->count();
+
+        for ($i = 1; $i <= 12; $i++) {
+            $cumulative += $newUsers[$i] ?? 0;
+            $totalUsers[$i] = $cumulative;
+        }
+
+        // Get active users per month (users who were online or had activity)
+        $activeUsers = [];
+        for ($i = 1; $i <= 12; $i++) {
+            $monthStart = now()->month($i)->startOfMonth();
+            $monthEnd = now()->month($i)->endOfMonth();
+
+            // Count users who were active (online) or had recent activity within that month
+            $count = NetworkUser::where(function ($query) use ($monthStart, $monthEnd) {
+                $query->whereBetween('last_login_at', [$monthStart, $monthEnd])
+                    ->orWhere(function ($q) use ($monthEnd) {
+                        $q->where('online', true)
+                            ->where('created_at', '<=', $monthEnd);
+                    });
+            })->count();
+
+            $activeUsers[$i] = $count;
+        }
+
+        return [
+            'new_users' => $this->fillMissingMonths($newUsers),
+            'total_users' => $this->fillMissingMonths($totalUsers),
+            'active_users' => $this->fillMissingMonths($activeUsers),
+        ];
     }
 }
