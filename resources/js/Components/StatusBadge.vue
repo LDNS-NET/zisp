@@ -20,6 +20,16 @@ const statusMap = {
     color: 'green',
     icon: CheckCircle,
   },
+  online: {
+    label: 'Online',
+    color: 'green',
+    icon: CheckCircle,
+  },
+  offline: {
+    label: 'Offline',
+    color: 'red',
+    icon: XCircle,
+  },
   inactive: {
     label: 'Inactive',
     color: 'gray',

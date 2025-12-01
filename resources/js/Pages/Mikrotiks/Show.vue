@@ -9,6 +9,10 @@ import SecondaryButton from "@/Components/SecondaryButton.vue";
 import StatusBadge from "@/Components/StatusBadge.vue";
 import Dropdown from "@/Components/Dropdown.vue";
 import DropdownLink from "@/Components/DropdownLink.vue";
+import Modal from "@/Components/Modal.vue";
+import TextInput from "@/Components/TextInput.vue";
+import InputLabel from "@/Components/InputLabel.vue";
+import InputError from "@/Components/InputError.vue";
 
 import {
     Activity,
@@ -17,6 +21,7 @@ import {
     Power,
     MoreVertical,
     Cpu,
+    Edit,
     HardDrive,
     Clock,
     Users,
@@ -66,6 +71,34 @@ const rebootRouter = () => {
         });
     }
 };
+
+// Identity Modal
+const showIdentityModal = ref(false);
+const identityForm = useForm({
+    identity: props.mikrotik.name,
+});
+
+const openIdentityModal = () => {
+    identityForm.identity = props.mikrotik.name;
+    showIdentityModal.value = true;
+};
+
+const closeIdentityModal = () => {
+    showIdentityModal.value = false;
+    identityForm.reset();
+};
+
+const updateIdentity = () => {
+    identityForm.post(route("mikrotiks.updateIdentity", props.mikrotik.id), {
+        onSuccess: () => {
+            closeIdentityModal();
+            // alert("Identity updated successfully.");
+        },
+        onError: () => {
+            // alert("Failed to update identity.");
+        },
+    });
+};
 </script>
 
 <template>
@@ -96,11 +129,6 @@ const rebootRouter = () => {
                 </div>
 
                 <div class="flex gap-2">
-                    <SecondaryButton @click="refreshData" :disabled="isRefreshing">
-                        <RefreshCw class="mr-2 h-4 w-4" :class="{ 'animate-spin': isRefreshing }" />
-                        Refresh
-                    </SecondaryButton>
-
                     <!-- Actions Dropdown -->
                     <Dropdown align="right" width="48">
                         <template #trigger>
@@ -111,6 +139,22 @@ const rebootRouter = () => {
                         </template>
 
                         <template #content>
+                            <DropdownLink as="button" @click="refreshData">
+                                <div class="flex items-center">
+                                    <RefreshCw class="mr-2 h-4 w-4" :class="{ 'animate-spin': isRefreshing }" />
+                                    Refresh Data
+                                </div>
+                            </DropdownLink>
+
+                            <DropdownLink as="button" @click="openIdentityModal">
+                                <div class="flex items-center">
+                                    <Edit class="mr-2 h-4 w-4" />
+                                    Change Identity
+                                </div>
+                            </DropdownLink>
+
+                            <div class="border-t border-gray-100 dark:border-gray-700"></div>
+
                             <DropdownLink as="button" @click="rebootRouter" class="text-red-600 dark:text-red-400">
                                 <div class="flex items-center">
                                     <Power class="mr-2 h-4 w-4" />
@@ -361,6 +405,47 @@ const rebootRouter = () => {
             </div>
         </div>
     </AuthenticatedLayout>
+
+    <!-- Identity Modal -->
+    <Modal :show="showIdentityModal" @close="closeIdentityModal">
+        <div class="p-6">
+            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+                Change Router Identity
+            </h2>
+
+            <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                Update the router's identity name. This will change the name on the device and in the system.
+            </p>
+
+            <div class="mt-6">
+                <InputLabel for="identity" value="New Identity Name" />
+
+                <TextInput
+                    id="identity"
+                    type="text"
+                    class="mt-1 block w-full"
+                    v-model="identityForm.identity"
+                    placeholder="Router Name"
+                    @keyup.enter="updateIdentity"
+                />
+
+                <InputError :message="identityForm.errors.identity" class="mt-2" />
+            </div>
+
+            <div class="mt-6 flex justify-end">
+                <SecondaryButton @click="closeIdentityModal"> Cancel </SecondaryButton>
+
+                <PrimaryButton
+                    class="ml-3"
+                    :class="{ 'opacity-25': identityForm.processing }"
+                    :disabled="identityForm.processing"
+                    @click="updateIdentity"
+                >
+                    Save Changes
+                </PrimaryButton>
+            </div>
+        </div>
+    </Modal>
 </template>
 
 

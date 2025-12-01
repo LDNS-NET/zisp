@@ -123,6 +123,31 @@ class RouterApiService
     }
 
     /**
+     * Set router identity (name).
+     *
+     * @param string $name
+     * @return bool
+     */
+    public function setIdentity(string $name): bool
+    {
+        try {
+            $client = $this->getClient();
+            $query = (new \RouterOS\Query('/system/identity/set'))
+                ->equal('name', $name);
+
+            $client->query($query)->read();
+            return true;
+        } catch (Exception $e) {
+            Log::error('Failed to set router identity', [
+                'router_id' => $this->mikrotik->id,
+                'name' => $name,
+                'error' => $e->getMessage(),
+            ]);
+            return false;
+        }
+    }
+
+    /**
      * Get router interfaces.
      *
      * @return array

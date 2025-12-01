@@ -127,6 +127,40 @@ class TenantMikrotikController extends Controller
     }
 
     /**
+     * Update router identity.
+     */
+    public function updateIdentity(Request $request, $id)
+    {
+        $router = TenantMikrotik::findOrFail($id);
+
+        $request->validate([
+            'identity' => 'required|string|max:255|min:1',
+        ]);
+
+        try {
+            $apiService = new \App\Services\Mikrotik\RouterApiService($router);
+            $success = $apiService->setIdentity($request->identity);
+
+            if ($success) {
+                // Update local DB as well
+                $router->name = $request->identity;
+                $router->save();
+
+                return back()->with('success', 'Router identity updated successfully.');
+            }
+
+            return back()->with('error', 'Failed to update router identity on device.');
+        } catch (\Exception $e) {
+            Log::error('Failed to update router identity', [
+                'router_id' => $id,
+                'error' => $e->getMessage()
+            ]);
+
+            return back()->with('error', 'Failed to update identity: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Get router status (for frontend status checking).
      * Returns current router status from database, and performs real-time check if data is stale.
      * All router communication uses VPN IP (wireguard_address) only.
