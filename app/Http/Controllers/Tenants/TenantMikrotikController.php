@@ -197,6 +197,8 @@ class TenantMikrotikController extends Controller
             'status' => $router->status,
             'last_seen_at' => $router->last_seen_at?->toIso8601String(),
             'vpn_ip' => $vpnIp,
+            'wireguard_address' => $router->wireguard_address,
+            'ip_address' => $router->ip_address,
             'cpu' => $router->cpu ?? $router->cpu_usage ?? null,
             'memory' => $router->memory ?? $router->memory_usage ?? null,
             'uptime' => $router->uptime ?? null,

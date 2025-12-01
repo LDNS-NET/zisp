@@ -17,7 +17,7 @@ const fetchCommandCopied = ref(false);
 const waiting = ref(false);
 const online = ref(false);
 const pollingError = ref('');
-const ipAddress = ref(props.router?.ip_address || '');
+const ipAddress = ref(props.router?.wireguard_address || '');
 const ipError = ref('');
 const settingIp = ref(false);
 let statusCheckInterval = null;
@@ -52,7 +52,7 @@ async function setIpAddress() {
 
     const ipRegex = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
     if (!ipRegex.test(ipAddress.value.trim())) {
-        ipError.value = 'Please enter a valid IP address (e.g., 192.168.88.1)';
+        ipError.value = 'Please enter a valid IP address (e.g., 10.100.0.14)';
         return;
     }
 
@@ -100,11 +100,20 @@ function checkRouterStatus() {
                 online.value = true;
                 waiting.value = false;
                 stopStatusChecking();
-                if (data.ip_address) {
-                    ipAddress.value = data.ip_address;
+                
+                // Auto-populate WireGuard IP if available
+                if (data.wireguard_address) {
+                    ipAddress.value = data.wireguard_address;
+                    ipError.value = '';
                 }
+                
                 window.toast?.success('Router is online and ready!') || console.log('Router is online!');
             } else {
+                // Check if WireGuard address was registered (phone-home happened)
+                if (data.wireguard_address && !ipAddress.value) {
+                    ipAddress.value = data.wireguard_address;
+                    ipError.value = '';
+                }
                 pollingError.value = '';
             }
         })
@@ -117,7 +126,7 @@ async function startStatusChecking() {
     if (statusCheckInterval) return;
     
     if (!hasIpAddress.value) {
-        pollingError.value = 'Please enter the router IP address first';
+        pollingError.value = 'Please enter the router WireGuard IP address first';
         return;
     }
 
@@ -242,7 +251,7 @@ function proceed() {
                 
                 <div class="p-6 space-y-4">
                     <p class="text-gray-700 dark:text-gray-300">
-                        After running the script, copy one of the IP addresses shown in the output and enter it below:
+                        After running the script, the WireGuard VPN IP will automatically appear below. If it doesn't auto-populate, you can manually enter it:
                     </p>
 
                     <div class="flex gap-3">
