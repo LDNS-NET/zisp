@@ -566,25 +566,12 @@ watch([routersList, search], () => {
                 </div>
 
                 <div class="space-y-1">
-                    <button @click="viewRouter(selectedRouter); showActionsModal = false" class="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-left group">
+                    <button @click="router.visit(route('mikrotiks.show', selectedRouter.id)); showActionsModal = false" class="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-left group">
                         <div class="p-1.5 rounded-md bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/40">
                             <Eye class="w-4 h-4" />
                         </div>
                         <span class="text-sm font-medium text-gray-700 dark:text-gray-200">View Details</span>
                     </button>
-                        <Link
-                            :href="route('mikrotiks.show', selectedRouter.id)"
-                            class="inline-flex items-center gap-2"
-                        >
-                            <button class="">
-                                <div class="p-1.5 rounded-md bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/40">
-                                    <Terminal class="w-4 h-4" />
-                                </div>
-                                <span class="text-sm font-medium text-gray-700 dark:text-gray-200">
-                                    best view
-                                </span>
-                            </button>
-                        </Link>
 
                     <button @click="openEdit(selectedRouter); showActionsModal = false" class="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-left group">
                         <div class="p-1.5 rounded-md bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400 group-hover:bg-amber-100 dark:group-hover:bg-amber-900/40">
