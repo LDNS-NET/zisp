@@ -160,6 +160,27 @@ function proceed() {
                         </button>
                     </div>
 
+                    <!-- Device Mode Warning -->
+                    <div class="rounded-lg border-l-4 border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20 p-4">
+                        <div class="flex gap-3">
+                            <svg class="w-5 h-5 text-yellow-600 dark:text-yellow-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                            </svg>
+                            <div class="flex-1">
+                                <p class="font-semibold text-yellow-800 dark:text-yellow-300 mb-1">Mikrotik v7 Device Mode Issue</p>
+                                <p class="text-sm text-yellow-700 dark:text-yellow-400 mb-2">
+                                    If the command fails with <span class="font-mono bg-yellow-100 dark:bg-yellow-900/40 px-1 rounded">"device mode not allowed"</span>, follow these steps:
+                                </p>
+                                <ol class="text-sm text-yellow-700 dark:text-yellow-400 space-y-1 list-decimal list-inside">
+                                    <li>Run: <code class="font-mono bg-yellow-100 dark:bg-yellow-900/40 px-1 rounded">/system/device-mode update mode=advanced</code></li>
+                                    <li>Unplug the power cord for 10 seconds</li>
+                                    <li>Restore power and wait for the router to boot</li>
+                                    <li>Retry the provisioning command above</li>
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Alternative: Download -->
                     <div class="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
                         <span>Or</span>
