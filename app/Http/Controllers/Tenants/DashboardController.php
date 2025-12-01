@@ -74,9 +74,10 @@ class DashboardController extends Controller
                     'monthly' => $this->getMonthlyRevenue(),
                     'yearly' => $this->getYearlyRevenue(),
                 ],
-                'user_distribution' => NetworkUser::select('type', DB::raw('COUNT(*) as total'))
-                    ->groupBy('type')
-                    ->pluck('total', 'type')
+                'user_distribution' => NetworkUser::join('packages', 'network_users.package_id', '=', 'packages.id')
+                    ->select('packages.name', DB::raw('COUNT(*) as total'))
+                    ->groupBy('packages.name')
+                    ->pluck('total', 'packages.name')
                     ->toArray(),
                 'user_growth_chart' => $this->getUserGrowthData(),
                 // Users Summary
@@ -265,28 +266,16 @@ class DashboardController extends Controller
         $newUsers = [];
 
         for ($month = 1; $month <= 12; $month++) {
-            // Total users created up to this month
-            $totalUsers[] = NetworkUser::whereYear('created_at', '<=', $currentYear)
-                ->where(function ($query) use ($currentYear, $month) {
-                    $query->whereYear('created_at', '<', $currentYear)
-                        ->orWhere(function ($q) use ($currentYear, $month) {
-                            $q->whereYear('created_at', $currentYear)
-                                ->whereMonth('created_at', '<=', $month);
-                        });
-                })
+            $endOfMonth = Carbon::create($currentYear, $month, 1)->endOfMonth();
+
+            // Total users that existed by the end of this month
+            $totalUsers[] = NetworkUser::where('created_at', '<=', $endOfMonth)
                 ->count();
 
-            // Active users in this month (users that were online or not expired)
-            $activeUsers[] = NetworkUser::whereYear('created_at', '<=', $currentYear)
-                ->where(function ($query) use ($currentYear, $month) {
-                    $query->whereYear('created_at', '<', $currentYear)
-                        ->orWhere(function ($q) use ($currentYear, $month) {
-                            $q->whereYear('created_at', $currentYear)
-                                ->whereMonth('created_at', '<=', $month);
-                        });
-                })
-                ->where(function ($query) use ($currentYear, $month) {
-                    $query->where('expires_at', '>', Carbon::create($currentYear, $month, 1)->endOfMonth())
+            // Active users (not expired) at the end of this month
+            $activeUsers[] = NetworkUser::where('created_at', '<=', $endOfMonth)
+                ->where(function ($query) use ($endOfMonth) {
+                    $query->where('expires_at', '>', $endOfMonth)
                         ->orWhereNull('expires_at');
                 })
                 ->count();

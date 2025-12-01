@@ -219,8 +219,8 @@ const packageChartOptions = computed(() => ({
     theme: {
         mode: isDark.value ? 'dark' : 'light',
     },
-    labels: props.stats?.user_distribution ? Object.keys(props.stats.user_distribution) : ['Hotspot', 'PPPoE', 'Static'],
-    colors: ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b'],
+    labels: props.stats?.user_distribution ? Object.keys(props.stats.user_distribution) : [],
+    colors: ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4', '#f97316'],
     dataLabels: {
         enabled: true,
         style: {
@@ -258,11 +258,7 @@ const packageChartOptions = computed(() => ({
 }));
 
 const packageChartSeries = computed(() => 
-    props.stats?.user_distribution ? Object.values(props.stats.user_distribution) : [
-        props.stats?.users?.hotspot || 0,
-        props.stats?.users?.pppoe || 0,
-        props.stats?.users?.static || 0,
-    ]
+    props.stats?.user_distribution ? Object.values(props.stats.user_distribution) : []
 );
 </script>
 
