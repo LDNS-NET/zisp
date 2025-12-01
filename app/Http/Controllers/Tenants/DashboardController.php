@@ -181,9 +181,11 @@ class DashboardController extends Controller
 
     protected function getUserGrowthChart()
     {
+        $currentYear = now()->year;
+
         // Get monthly new user registrations for current year
         $newUsers = NetworkUser::selectRaw("MONTH(created_at) as month, COUNT(*) as total")
-            ->whereYear('created_at', now()->year)
+            ->whereYear('created_at', $currentYear)
             ->groupBy('month')
             ->orderBy('month')
             ->pluck('total', 'month')
@@ -191,29 +193,32 @@ class DashboardController extends Controller
 
         // Get cumulative total users per month
         $totalUsers = [];
-        $cumulative = NetworkUser::whereDate('created_at', '<', now()->startOfYear())->count();
+        $cumulative = NetworkUser::whereYear('created_at', '<', $currentYear)->count();
 
         for ($i = 1; $i <= 12; $i++) {
             $cumulative += $newUsers[$i] ?? 0;
             $totalUsers[$i] = $cumulative;
         }
 
-        // Get active users per month (users who were online or had activity)
+        // Get active users per month (users who are currently online or not expired)
         $activeUsers = [];
         for ($i = 1; $i <= 12; $i++) {
-            $monthStart = now()->month($i)->startOfMonth();
-            $monthEnd = now()->month($i)->endOfMonth();
-
-            // Count users who were active (online) or had recent activity within that month
-            $count = NetworkUser::where(function ($query) use ($monthStart, $monthEnd) {
-                $query->whereBetween('last_login_at', [$monthStart, $monthEnd])
-                    ->orWhere(function ($q) use ($monthEnd) {
-                        $q->where('online', true)
-                            ->where('created_at', '<=', $monthEnd);
-                    });
-            })->count();
-
-            $activeUsers[$i] = $count;
+            // For months that have passed, count users who were not expired
+            // For future months, use current active count
+            if ($i <= now()->month) {
+                $monthEnd = now()->setYear($currentYear)->setMonth($i)->endOfMonth();
+                $count = NetworkUser::where('created_at', '<=', $monthEnd)
+                    ->where(function ($q) use ($monthEnd) {
+                        $q->where('expires_at', '>', $monthEnd)
+                            ->orWhereNull('expires_at')
+                            ->orWhere('online', true);
+                    })
+                    ->count();
+                $activeUsers[$i] = $count;
+            } else {
+                // Future months - use current active count
+                $activeUsers[$i] = 0;
+            }
         }
 
         return [
