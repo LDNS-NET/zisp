@@ -36,8 +36,6 @@ const isRefreshing = ref(false);
 const tabs = [
     { id: "overview", name: "Overview", icon: Activity },
     { id: "interfaces", name: "Interfaces", icon: Wifi },
-    { id: "wireguard", name: "WireGuard", icon: Shield },
-    { id: "logs", name: "Logs", icon: FileText },
 ];
 
 // Helpers
@@ -63,7 +61,10 @@ const refreshData = () => {
 // Simulated Actions
 const rebootRouter = () => {
     if (confirm("Are you sure you want to reboot this router?")) {
-        alert("Reboot command sent (simulated)");
+        inertiaRouter.post(route("mikrotiks.reboot", props.mikrotik.id), {}, {
+            onSuccess: () => alert("Reboot command sent successfully."),
+            onError: (errors) => alert("Failed to send reboot command."),
+        });
     }
 };
 
@@ -230,6 +231,60 @@ const syncRouter = () => {
                                 </dl>
                             </div>
 
+                            <!-- CONNECTION DETAILS -->
+                            <div class="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
+                                <h3 class="mb-4 text-lg font-medium text-gray-900 dark:text-gray-100">
+                                    Connection Details
+                                </h3>
+
+                                <dl class="divide-y divide-gray-200 dark:divide-gray-700">
+                                    <div class="flex justify-between py-3">
+                                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">
+                                            Management IP
+                                        </dt>
+                                        <dd class="text-sm text-gray-900 dark:text-gray-100">
+                                            {{ mikrotik.wireguard_address || "N/A" }}
+                                        </dd>
+                                    </div>
+
+                                    <div class="flex justify-between py-3">
+                                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">
+                                            API Port
+                                        </dt>
+                                        <dd class="text-sm text-gray-900 dark:text-gray-100">
+                                            {{ mikrotik.api_port || "8728" }}
+                                        </dd>
+                                    </div>
+
+                                    <div class="flex justify-between py-3">
+                                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">
+                                            Last Seen
+                                        </dt>
+                                        <dd class="text-sm text-gray-900 dark:text-gray-100">
+                                            {{ mikrotik.last_seen_at || "Never" }}
+                                        </dd>
+                                    </div>
+
+                                    <div class="flex justify-between py-3">
+                                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">
+                                            WireGuard Status
+                                        </dt>
+                                        <dd class="text-sm">
+                                            <span
+                                                :class="[
+                                                    mikrotik.wireguard_public_key
+                                                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
+                                                        : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
+                                                    'inline-flex rounded-full px-2 text-xs font-semibold'
+                                                ]"
+                                            >
+                                                {{ mikrotik.wireguard_public_key ? "Registered" : "Pending" }}
+                                            </span>
+                                        </dd>
+                                    </div>
+                                </dl>
+                            </div>
+
                             <!-- ACTIONS -->
                             <div class="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
                                 <h3 class="mb-4 text-lg font-medium text-gray-900 dark:text-gray-100">
@@ -329,127 +384,7 @@ const syncRouter = () => {
                         </div>
                     </div>
 
-                    <!-- ========== WIREGUARD TAB ========== -->
-                    <div
-                        v-if="activeTab === 'wireguard'"
-                        class="overflow-hidden rounded-lg bg-white shadow dark:bg-gray-800"
-                    >
-                        <div class="overflow-x-auto">
-                            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                                <thead class="bg-gray-50 dark:bg-gray-700">
-                                    <tr>
-                                        <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
-                                            Interface
-                                        </th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
-                                            Public Key
-                                        </th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
-                                            Endpoint
-                                        </th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
-                                            Last Handshake
-                                        </th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
-                                            Transfer (Rx/Tx)
-                                        </th>
-                                    </tr>
-                                </thead>
 
-                                <tbody class="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-800">
-                                    <tr v-for="peer in realtime.wireguard_peers" :key="peer['.id']">
-                                        <td class="px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100">
-                                            {{ peer.interface }}
-                                        </td>
-
-                                        <td
-                                            class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400"
-                                            :title="peer['public-key']"
-                                        >
-                                            {{ peer["public-key"]?.substring(0, 10) }}...
-                                        </td>
-
-                                        <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                                            {{ peer["endpoint-address"] }}:{{ peer["endpoint-port"] }}
-                                        </td>
-
-                                        <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                                            {{ peer["last-handshake"] || "Never" }}
-                                        </td>
-
-                                        <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                                            {{ formatBytes(peer.rx) }} /
-                                            {{ formatBytes(peer.tx) }}
-                                        </td>
-                                    </tr>
-
-                                    <tr v-if="!realtime.wireguard_peers.length">
-                                        <td
-                                            colspan="5"
-                                            class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400"
-                                        >
-                                            No WireGuard peers found
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <!-- ========== LOGS TAB ========== -->
-                    <div
-                        v-if="activeTab === 'logs'"
-                        class="overflow-hidden rounded-lg bg-white shadow dark:bg-gray-800"
-                    >
-                        <div class="overflow-x-auto">
-                            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                                <thead class="bg-gray-50 dark:bg-gray-700">
-                                    <tr>
-                                        <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
-                                            Time
-                                        </th>
-
-                                        <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
-                                            Topics
-                                        </th>
-
-                                        <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
-                                            Message
-                                        </th>
-                                    </tr>
-                                </thead>
-
-                                <tbody class="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-800">
-                                    <tr v-for="log in realtime.router_logs" :key="log['.id']">
-                                        <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                                            {{ log.time }}
-                                        </td>
-
-                                        <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                                            <span
-                                                class="inline-flex rounded-full bg-gray-100 px-2 text-xs font-semibold text-gray-800 dark:bg-gray-700 dark:text-gray-300"
-                                            >
-                                                {{ log.topics }}
-                                            </span>
-                                        </td>
-
-                                        <td class="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
-                                            {{ log.message }}
-                                        </td>
-                                    </tr>
-
-                                    <tr v-if="!realtime.router_logs.length">
-                                        <td
-                                            colspan="3"
-                                            class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400"
-                                        >
-                                            No logs available
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>

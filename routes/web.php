@@ -166,6 +166,7 @@ Route::middleware(['auth', 'verified', 'check.subscription', 'tenant.domain'])
 
 
         //mikrotiks
+        Route::post('mikrotiks/{mikrotik}/reboot', [TenantMikrotikController::class, 'reboot'])->name('mikrotiks.reboot');
         Route::resource('mikrotiks', TenantMikrotikController::class);
         Route::get('mikrotiks/{mikrotik}/test-connection', [TenantMikrotikController::class, 'testConnection'])->name('mikrotiks.testConnection');
         Route::get('mikrotiks/{mikrotik}/ping', [TenantMikrotikController::class, 'pingRouter'])->name('mikrotiks.ping');

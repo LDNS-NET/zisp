@@ -276,6 +276,18 @@ class RouterApiService
     }
 
     /**
+     * Reboot the router.
+     *
+     * @return array
+     */
+    public function reboot()
+    {
+        $client = $this->getClient();
+        $query = new \RouterOS\Query('/system/reboot');
+        return $client->query($query)->read();
+    }
+
+    /**
      * Get RouterOS client instance.
      * 
      * @return \RouterOS\Client

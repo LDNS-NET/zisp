@@ -105,6 +105,28 @@ class TenantMikrotikController extends Controller
     }
 
     /**
+     * Reboot the router.
+     */
+    public function reboot($id)
+    {
+        $router = TenantMikrotik::findOrFail($id);
+
+        try {
+            $apiService = new \App\Services\Mikrotik\RouterApiService($router);
+            $apiService->reboot();
+
+            return back()->with('success', 'Router reboot command sent successfully.');
+        } catch (\Exception $e) {
+            Log::error('Failed to reboot router', [
+                'router_id' => $id,
+                'error' => $e->getMessage()
+            ]);
+
+            return back()->with('error', 'Failed to reboot router: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Get router status (for frontend status checking).
      * Returns current router status from database, and performs real-time check if data is stale.
      * All router communication uses VPN IP (wireguard_address) only.
