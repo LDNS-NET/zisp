@@ -95,7 +95,7 @@ const syncRouter = () => {
                         <RefreshCw class="mr-2 h-4 w-4" :class="{ 'animate-spin': isRefreshing }" />
                         Refresh
                     </SecondaryButton>
-                    <PrimaryButton as="a" :href="route('mikrotiks.downloadSetupScript', router.id)">
+                    <PrimaryButton as="a" :href="route('mikrotiks.downloadSetupScript', { mikrotik: router.id })">
                         <Download class="mr-2 h-4 w-4" />
                         Script
                     </PrimaryButton>
@@ -193,7 +193,7 @@ const syncRouter = () => {
                                     <SecondaryButton @click="rebootRouter" class="justify-center text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20">
                                         <Power class="mr-2 h-4 w-4" /> Reboot
                                     </SecondaryButton>
-                                    <SecondaryButton as="a" :href="route('mikrotiks.downloadSetupScript', router.id)" class="justify-center">
+                                    <SecondaryButton as="a" :href="route('mikrotiks.downloadSetupScript', { mikrotik: router.id })" class="justify-center">
                                         <Download class="mr-2 h-4 w-4" /> Setup Script
                                     </SecondaryButton>
                                     <SecondaryButton disabled class="justify-center opacity-50 cursor-not-allowed">
