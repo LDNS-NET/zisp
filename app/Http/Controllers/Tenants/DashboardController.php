@@ -74,10 +74,10 @@ class DashboardController extends Controller
                     'monthly' => $this->getMonthlyRevenue(),
                     'yearly' => $this->getYearlyRevenue(),
                 ],
-                'user_distribution' => NetworkUser::join('packages', 'network_users.package_id', '=', 'packages.id')
-                    ->select('packages.name', DB::raw('COUNT(*) as total'))
-                    ->groupBy('packages.name')
-                    ->pluck('total', 'packages.name')
+                'user_distribution' => NetworkUser::leftJoin('packages', 'network_users.package_id', '=', 'packages.id')
+                    ->select(DB::raw('COALESCE(packages.name, "No Package") as package_name'), DB::raw('COUNT(*) as total'))
+                    ->groupBy('package_name')
+                    ->pluck('total', 'package_name')
                     ->toArray(),
                 'user_growth_chart' => $this->getUserGrowthData(),
                 // Users Summary

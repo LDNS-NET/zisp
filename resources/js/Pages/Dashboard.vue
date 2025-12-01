@@ -71,10 +71,15 @@ onMounted(() => {
     setInterval(updateCountdown, 1000);
     
     // Debug: Log chart data
-    console.log('Dashboard Stats:', props.stats);
-    console.log('Payments Chart Data:', props.stats?.payments_chart);
-    console.log('User Growth Chart Data:', props.stats?.user_growth_chart);
+    console.log('=== DASHBOARD DEBUG ===');
+    console.log('Full Stats Object:', props.stats);
+    console.log('Payments Chart:', props.stats?.payments_chart);
+    console.log('  - Daily:', props.stats?.payments_chart?.daily);
+    console.log('  - Monthly:', props.stats?.payments_chart?.monthly);
+    console.log('User Growth Chart:', props.stats?.user_growth_chart);
     console.log('User Distribution:', props.stats?.user_distribution);
+    console.log('Revenue Filter:', revenueFilter.value);
+    console.log('======================');
 });
 
 // Compute subscription status color
