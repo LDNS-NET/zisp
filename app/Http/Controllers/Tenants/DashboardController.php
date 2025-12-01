@@ -68,7 +68,12 @@ class DashboardController extends Controller
                 ] : null,
                 // Charts
                 'sms_chart' => $this->monthlyCount(TenantSms::class, 'created_at'),
-                'payments_chart' => $this->monthlySum(TenantPayment::class, 'paid_at', 'amount'),
+                'payments_chart' => [
+                    'daily' => $this->getDailyRevenue(),
+                    'weekly' => $this->getWeeklyRevenue(),
+                    'monthly' => $this->getMonthlyRevenue(),
+                    'yearly' => $this->getYearlyRevenue(),
+                ],
                 'user_distribution' => NetworkUser::select('type', DB::raw('COUNT(*) as total'))
                     ->groupBy('type')
                     ->pluck('total', 'type')
@@ -168,6 +173,84 @@ class DashboardController extends Controller
             ->toArray();
 
         return $this->fillMissingMonths($data);
+    }
+
+    protected function getDailyRevenue()
+    {
+        // Last 30 days
+        $data = [];
+        $labels = [];
+
+        for ($i = 29; $i >= 0; $i--) {
+            $date = now()->subDays($i);
+            $labels[] = $date->format('M d');
+            $data[] = TenantPayment::whereDate('paid_at', $date->toDateString())
+                ->sum('amount') ?? 0;
+        }
+
+        return [
+            'labels' => $labels,
+            'data' => $data,
+        ];
+    }
+
+    protected function getWeeklyRevenue()
+    {
+        // Last 12 weeks
+        $data = [];
+        $labels = [];
+
+        for ($i = 11; $i >= 0; $i--) {
+            $weekStart = now()->subWeeks($i)->startOfWeek();
+            $weekEnd = now()->subWeeks($i)->endOfWeek();
+            $labels[] = $weekStart->format('M d') . ' - ' . $weekEnd->format('M d');
+            $data[] = TenantPayment::whereBetween('paid_at', [$weekStart, $weekEnd])
+                ->sum('amount') ?? 0;
+        }
+
+        return [
+            'labels' => $labels,
+            'data' => $data,
+        ];
+    }
+
+    protected function getMonthlyRevenue()
+    {
+        // Last 12 months
+        $data = [];
+        $labels = [];
+
+        for ($i = 11; $i >= 0; $i--) {
+            $month = now()->subMonths($i);
+            $labels[] = $month->format('M Y');
+            $data[] = TenantPayment::whereYear('paid_at', $month->year)
+                ->whereMonth('paid_at', $month->month)
+                ->sum('amount') ?? 0;
+        }
+
+        return [
+            'labels' => $labels,
+            'data' => $data,
+        ];
+    }
+
+    protected function getYearlyRevenue()
+    {
+        // Last 5 years
+        $data = [];
+        $labels = [];
+
+        for ($i = 4; $i >= 0; $i--) {
+            $year = now()->subYears($i)->year;
+            $labels[] = (string) $year;
+            $data[] = TenantPayment::whereYear('paid_at', $year)
+                ->sum('amount') ?? 0;
+        }
+
+        return [
+            'labels' => $labels,
+            'data' => $data,
+        ];
     }
 
     protected function getUserGrowthData()

@@ -79,15 +79,25 @@ const subscriptionStatus = computed(() => {
     return 'active';
 });
 
+// Revenue chart filter
+const revenueFilter = ref('monthly');
+
+const revenueFilterOptions = [
+    { value: 'daily', label: 'Daily (30 days)' },
+    { value: 'weekly', label: 'Weekly (12 weeks)' },
+    { value: 'monthly', label: 'Monthly (12 months)' },
+    { value: 'yearly', label: 'Yearly (5 years)' },
+];
+
 // Chart configurations
 const isDark = computed(() => {
     return document.documentElement.classList.contains('dark');
 });
 
-// Monthly Income Chart (Area Chart)
+// Monthly Income Chart (Bar Chart with filters)
 const incomeChartOptions = computed(() => ({
     chart: {
-        type: 'area',
+        type: 'bar',
         height: 350,
         toolbar: { show: false },
         background: 'transparent',
@@ -96,25 +106,21 @@ const incomeChartOptions = computed(() => ({
         mode: isDark.value ? 'dark' : 'light',
     },
     dataLabels: { enabled: false },
-    stroke: {
-        curve: 'smooth',
-        width: 3,
-    },
-    fill: {
-        type: 'gradient',
-        gradient: {
-            shadeIntensity: 1,
-            opacityFrom: 0.7,
-            opacityTo: 0.2,
+    plotOptions: {
+        bar: {
+            borderRadius: 8,
+            columnWidth: '60%',
         },
     },
-    colors: ['#10b981', '#3b82f6'],
+    colors: ['#10b981'],
     xaxis: {
-        categories: props.stats?.payments_chart ? Object.keys(props.stats.payments_chart) : [],
+        categories: props.stats?.payments_chart?.[revenueFilter.value]?.labels || [],
         labels: {
             style: {
                 colors: isDark.value ? '#9ca3af' : '#6b7280',
             },
+            rotate: -45,
+            rotateAlways: false,
         },
     },
     yaxis: {
@@ -139,7 +145,7 @@ const incomeChartOptions = computed(() => ({
 
 const incomeChartSeries = computed(() => [{
     name: 'Revenue',
-    data: props.stats?.payments_chart ? Object.values(props.stats.payments_chart) : [],
+    data: props.stats?.payments_chart?.[revenueFilter.value]?.data || [],
 }]);
 
 // User Growth Chart (Line Chart)
@@ -523,14 +529,19 @@ const packageChartSeries = computed(() =>
                                 <div class="mb-4 flex items-center justify-between">
                                     <h4 class="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white">
                                         <TrendingUp class="h-5 w-5 text-green-600 dark:text-green-400" />
-                                        Monthly Revenue
+                                        Revenue Analytics
                                     </h4>
-                                    <span class="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-800 dark:bg-green-900/30 dark:text-green-400">
-                                        Last 12 Months
-                                    </span>
+                                    <select 
+                                        v-model="revenueFilter"
+                                        class="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/20 dark:border-slate-600 dark:bg-slate-700 dark:text-gray-200 dark:hover:bg-slate-600"
+                                    >
+                                        <option v-for="option in revenueFilterOptions" :key="option.value" :value="option.value">
+                                            {{ option.label }}
+                                        </option>
+                                    </select>
                                 </div>
                                 <VueApexCharts
-                                    type="area"
+                                    type="bar"
                                     height="300"
                                     :options="incomeChartOptions"
                                     :series="incomeChartSeries"
