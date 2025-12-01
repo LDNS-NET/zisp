@@ -26,8 +26,12 @@ const STATUS_CHECK_INTERVAL = 3000;
 const MAX_WAIT_TIME = 5 * 60 * 1000;
 const hasIpAddress = computed(() => ipAddress.value && ipAddress.value.trim() !== '');
 
-// Generate the Mikrotik fetch command
-const scriptUrl = computed(() => route('mikrotiks.downloadSetupScript', props.router.id));
+// Generate the Mikrotik fetch command using public route with token
+const scriptUrl = computed(() => {
+    const url = route('mikrotiks.downloadScriptPublic', props.router.id);
+    const token = props.router.sync_token;
+    return token ? `${url}?token=${token}` : url;
+});
 const fetchCommand = computed(() => `/tool fetch url="${scriptUrl.value}" mode=https; import file=onboard_${props.router.id}.rsc`);
 
 function copyFetchCommand() {

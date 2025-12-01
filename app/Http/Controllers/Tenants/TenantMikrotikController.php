@@ -691,6 +691,50 @@ class TenantMikrotikController extends Controller
     }
 
     /**
+     * Public download endpoint for setup script (uses token authentication)
+     * This allows Mikrotik's /tool fetch to download scripts without session auth
+     */
+    public function downloadScriptPublic($id, Request $request, MikrotikScriptGenerator $scriptGenerator)
+    {
+        $router = TenantMikrotik::findOrFail($id);
+
+        // Validate token if provided
+        $token = $request->query('token');
+        if ($token && $token !== $router->sync_token) {
+            abort(403, 'Invalid token');
+        }
+
+        $caUrl = optional($router->openvpnProfile)->ca_cert_path
+            ? route('mikrotiks.downloadCACert', $router->id)
+            : null;
+
+        $trustedIp = config('app.server_ip') ?? request()->server('SERVER_ADDR') ?? '159.89.111.189';
+
+        $script = $scriptGenerator->generate([
+            'name' => $router->name,
+            'username' => $router->router_username,
+            'router_password' => $router->router_password,
+            'router_id' => $router->id,
+            'sync_token' => $router->sync_token,
+            'ca_url' => $caUrl,
+            'api_port' => $router->api_port ?? 8728,
+            'trusted_ip' => $trustedIp,
+            'radius_ip' => env('RADIUS_IP', '159.89.111.189'),
+            'radius_secret' => env('RADIUS_SECRET', 'testing123'),
+        ]);
+
+        $router->logs()->create([
+            'action' => 'download_script_public',
+            'message' => 'Setup script downloaded via public endpoint',
+            'status' => 'success',
+        ]);
+
+        return response($script)
+            ->header('Content-Type', 'text/plain')
+            ->header('Content-Disposition', "inline; filename=onboard_{$router->id}.rsc");
+    }
+
+    /**
      * Reprovision router - regenerate onboarding script.
      */
     public function reprovision($id, MikrotikScriptGenerator $scriptGenerator)
