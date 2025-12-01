@@ -261,62 +261,55 @@ class WireGuardService
     }
 
     /**
-     * Apply configuration to running interface without disrupting connections
-     * Uses 'wg syncconf' which doesn't drop existing connections
+     * Apply configuration by restarting the interface
+     * User requested full restart (down/up) to ensure handshakes work
      */
     protected function applyConfigSafely(): bool
     {
         try {
-            // Create temp file for stripped config (process substitution doesn't work with sudo)
-            $tempFile = '/tmp/wg-sync-' . time() . '.conf';
+            Log::channel('wireguard')->info('Restarting WireGuard interface (wg-quick down/up)...');
 
-            // Strip config to temp file
-            $stripCmd = sprintf(
-                "sudo %s strip %s > %s",
+            // 1. Bring down interface (ignore errors if it's already down)
+            $downCmd = sprintf(
+                "sudo %s down %s",
                 escapeshellarg($this->wgQuickBinary),
-                escapeshellarg($this->wgInterface),
-                escapeshellarg($tempFile)
+                escapeshellarg($this->wgInterface)
             );
 
-            $stripProcess = Process::fromShellCommandline($stripCmd);
-            $stripProcess->setTimeout(30);
-            $stripProcess->run();
+            $downProcess = Process::fromShellCommandline($downCmd);
+            $downProcess->setTimeout(60);
+            $downProcess->run();
 
-            if (!$stripProcess->isSuccessful()) {
-                Log::channel('wireguard')->error('wg-quick strip failed', [
-                    'output' => $stripProcess->getErrorOutput() ?: $stripProcess->getOutput(),
+            // Log down result but don't stop - it might be already down
+            if (!$downProcess->isSuccessful()) {
+                Log::channel('wireguard')->info('wg-quick down result (may be normal if already down)', [
+                    'output' => $downProcess->getErrorOutput() ?: $downProcess->getOutput(),
                 ]);
-                @unlink($tempFile);
-                return false;
             }
 
-            // Apply using wg syncconf
-            $syncCmd = sprintf(
-                "sudo %s syncconf %s %s",
-                escapeshellarg($this->wgBinary),
-                escapeshellarg($this->wgInterface),
-                escapeshellarg($tempFile)
+            // 2. Bring up interface
+            $upCmd = sprintf(
+                "sudo %s up %s",
+                escapeshellarg($this->wgQuickBinary),
+                escapeshellarg($this->wgInterface)
             );
 
-            $process = Process::fromShellCommandline($syncCmd);
-            $process->setTimeout(60);
-            $process->run();
+            $upProcess = Process::fromShellCommandline($upCmd);
+            $upProcess->setTimeout(60);
+            $upProcess->run();
 
-            // Clean up temp file
-            @unlink($tempFile);
-
-            if (!$process->isSuccessful()) {
-                Log::channel('wireguard')->error('wg syncconf failed', [
-                    'output' => $process->getErrorOutput() ?: $process->getOutput(),
+            if (!$upProcess->isSuccessful()) {
+                Log::channel('wireguard')->error('wg-quick up failed', [
+                    'output' => $upProcess->getErrorOutput() ?: $upProcess->getOutput(),
                 ]);
                 return false;
             }
 
-            Log::channel('wireguard')->info('Configuration applied successfully via wg syncconf');
+            Log::channel('wireguard')->info('WireGuard interface restarted successfully');
             return true;
 
         } catch (\Exception $e) {
-            Log::channel('wireguard')->error('Failed to apply config safely', [
+            Log::channel('wireguard')->error('Failed to restart interface', [
                 'error' => $e->getMessage(),
             ]);
             return false;

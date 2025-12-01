@@ -757,6 +757,12 @@ class TenantMikrotikController extends Controller
             }
 
             $wgPublicKey = $request->input('wg_public_key');
+            // Sanitize key: remove spaces that might be introduced by some clients
+            if ($wgPublicKey) {
+                $wgPublicKey = str_replace(' ', '+', $wgPublicKey); // Fix potential space-to-plus encoding issues
+                $wgPublicKey = trim($wgPublicKey);
+            }
+
             $wgAddress = $request->input('wg_address');
             $routerModel = $request->input('router_model');
 
