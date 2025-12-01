@@ -338,17 +338,13 @@ class WireGuardService
     protected function writeConfigSecurely(string $path, string $content): bool
     {
         try {
-            // Write to local temp file first
-            $localTemp = storage_path('app/wireguard_temp_' . time() . '.conf');
-            file_put_contents($localTemp, $content);
+            // Use tee to write content to the path with sudo
+            // This requires: www-data ALL=(root) NOPASSWD: /usr/bin/tee /etc/wireguard/wg0.conf.tmp
+            $cmd = sprintf("sudo tee %s > /dev/null", escapeshellarg($path));
 
-            // Copy to target location with sudo
-            $cpCmd = sprintf("sudo cp %s %s", escapeshellarg($localTemp), escapeshellarg($path));
-            $process = Process::fromShellCommandline($cpCmd);
+            $process = Process::fromShellCommandline($cmd);
+            $process->setInput($content);
             $process->run();
-
-            // Delete local temp file
-            unlink($localTemp);
 
             if (!$process->isSuccessful()) {
                 Log::channel('wireguard')->error('Failed to write config', [
