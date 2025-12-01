@@ -590,42 +590,130 @@ class WireGuardService
     }
 
     /**
-     * Sync all peers from database to configuration
+     * Sync all peers from database to configuration (Batch Operation)
+     * Reads config ONCE, updates ALL peers in memory, writes ONCE if changes detected.
      */
     public function syncAllPeers(): array
     {
         $results = [
             'added' => 0,
             'updated' => 0,
+            'removed' => 0,
             'failed' => 0,
             'errors' => [],
+            'changes_detected' => false,
         ];
 
         try {
-            $routers = TenantMikrotik::whereNotNull('wireguard_public_key')->get();
+            Log::channel('wireguard')->info('Starting batch sync of all peers');
 
-            foreach ($routers as $router) {
-                try {
-                    if ($this->applyPeer($router)) {
-                        if ($router->wireguard_status === 'pending') {
-                            $results['added']++;
-                        } else {
-                            $results['updated']++;
-                        }
-                    } else {
-                        $results['failed']++;
-                    }
-                } catch (\Exception $e) {
-                    $results['failed']++;
-                    $results['errors'][] = sprintf('Router %d: %s', $router->id, $e->getMessage());
+            // 1. Fetch all active routers with keys from DB
+            $routers = TenantMikrotik::whereNotNull('wireguard_public_key')->get()->keyBy('wireguard_public_key');
+            
+            // 2. Read current config
+            try {
+                $currentConfigContent = $this->readConfig();
+            } catch (\Exception $e) {
+                // If file doesn't exist or can't be read, start empty
+                $currentConfigContent = "[Interface]\n"; 
+            }
+
+            // 3. Parse existing peers from config to preserve comments/structure if needed
+            // But for full sync, we largely rebuild based on DB truth
+            $existingPeers = $this->parsePeers($currentConfigContent);
+            $existingPeersMap = [];
+            foreach ($existingPeers as $peer) {
+                if (isset($peer['PublicKey'])) {
+                    $existingPeersMap[$peer['PublicKey']] = $peer;
                 }
             }
 
+            // 4. Build new peer list
+            $newPeers = [];
+            
+            foreach ($routers as $publicKey => $router) {
+                $newPeers[] = $this->buildPeerArray($router);
+                
+                if (!isset($existingPeersMap[$publicKey])) {
+                    $results['added']++;
+                } else {
+                    // Check if actually changed (simple check)
+                    $oldPeer = $existingPeersMap[$publicKey];
+                    $newPeer = $this->buildPeerArray($router);
+                    
+                    // Compare critical fields
+                    if (($oldPeer['AllowedIPs'] ?? '') !== ($newPeer['AllowedIPs'] ?? '')) {
+                         $results['updated']++;
+                    }
+                }
+            }
+
+            // Check for removals (peers in config but not in DB)
+            foreach ($existingPeersMap as $publicKey => $peer) {
+                if (!$routers->has($publicKey)) {
+                    $results['removed']++;
+                }
+            }
+
+            // 5. Build new configuration content
+            $newConfigContent = $this->buildConfigContent($currentConfigContent, $newPeers);
+
+            // 6. Compare content to see if write is needed
+            // Normalize line endings and trim for comparison
+            $currentNormalized = trim(str_replace("\r\n", "\n", $currentConfigContent));
+            $newNormalized = trim(str_replace("\r\n", "\n", $newConfigContent));
+
+            if ($currentNormalized === $newNormalized) {
+                Log::channel('wireguard')->info('No configuration changes detected. Skipping write/reload.');
+                return $results;
+            }
+
+            $results['changes_detected'] = true;
+            Log::channel('wireguard')->info('Configuration changes detected. Applying updates...', [
+                'added' => $results['added'],
+                'updated' => $results['updated'],
+                'removed' => $results['removed']
+            ]);
+
+            // 7. Write and Apply
+            $this->backupConfig();
+            
+            $tempPath = $this->configPath . '.tmp';
+            if (!$this->writeConfigSecurely($tempPath, $newConfigContent)) {
+                throw new \RuntimeException('Failed to write new configuration');
+            }
+
+            // Move temp file
+            $mvCmd = sprintf("sudo mv %s %s", escapeshellarg($tempPath), escapeshellarg($this->configPath));
+            $process = Process::fromShellCommandline($mvCmd);
+            $process->run();
+
+            if (!$process->isSuccessful()) {
+                throw new \RuntimeException('Failed to move config file: ' . $process->getErrorOutput());
+            }
+
+            // 8. Restart Interface
+            if (!$this->applyConfigSafely()) {
+                 throw new \RuntimeException('Failed to restart WireGuard interface');
+            }
+
+            // 9. Update statuses in DB
+            foreach ($routers as $router) {
+                if ($router->wireguard_status !== 'active') {
+                    $router->wireguard_status = 'active';
+                    $router->saveQuietly(); // Don't trigger observer again
+                }
+            }
+
+            Log::channel('wireguard')->info('Batch sync completed successfully');
+
         } catch (\Exception $e) {
-            Log::channel('wireguard')->error('Sync all peers failed', [
+            Log::channel('wireguard')->error('Batch sync failed', [
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
             $results['errors'][] = $e->getMessage();
+            $results['failed']++;
         }
 
         return $results;

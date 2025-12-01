@@ -52,13 +52,37 @@ class SyncWireguardPeers extends Command
         $success = 0;
         $failed = 0;
 
-        foreach ($routers as $router) {
-            if ($this->wgService->applyPeer($router)) {
-                $success++;
-            } else {
-                $failed++;
+        // Use the optimized batch sync method for all operations
+        // This handles both "sync all" and "sync pending" efficiently
+        // and includes idempotency checks to prevent unnecessary reloads.
+
+        $this->info('Running optimized batch sync...');
+
+        $results = $this->wgService->syncAllPeers();
+
+        $success = $results['added'] + $results['updated'];
+        $failed = $results['failed'];
+        $removed = $results['removed'] ?? 0;
+
+        $this->newLine();
+        $this->info("Sync complete:");
+        $this->line("  - Added: {$results['added']}");
+        $this->line("  - Updated: {$results['updated']}");
+        $this->line("  - Removed: {$removed}");
+        $this->line("  - Failed: {$failed}");
+
+        if ($results['changes_detected'] ?? false) {
+            $this->info("✅ Configuration updated and interface reloaded.");
+        } else {
+            $this->info("ℹ️ No changes detected. Interface reload skipped.");
+        }
+
+        if (!empty($results['errors'])) {
+            $this->newLine();
+            $this->error('Errors encountered:');
+            foreach ($results['errors'] as $error) {
+                $this->line('  - ' . $error);
             }
-            $bar->advance();
         }
 
         $bar->finish();
