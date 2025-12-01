@@ -145,14 +145,18 @@ class WireGuardService
     protected function addPeerToConfig(TenantMikrotik $router): bool
     {
         try {
+            Log::channel('wireguard')->info('Starting addPeerToConfig', ['router_id' => $router->id]);
+
             // Backup current config
             $this->backupConfig();
 
             // Read current config
             $configContent = $this->readConfig();
+            Log::channel('wireguard')->info('Config read successfully', ['length' => strlen($configContent)]);
 
             // Parse existing peers
             $peers = $this->parsePeers($configContent);
+            Log::channel('wireguard')->info('Parsed existing peers', ['count' => count($peers)]);
 
             // Check if peer already exists
             $publicKey = $router->wireguard_public_key;
@@ -163,6 +167,7 @@ class WireGuardService
                     $peerExists = true;
                     // Update existing peer
                     $peers[$index] = $this->buildPeerArray($router);
+                    Log::channel('wireguard')->info('Updating existing peer', ['public_key' => $publicKey]);
                     break;
                 }
             }
@@ -170,31 +175,37 @@ class WireGuardService
             // Add new peer if it doesn't exist
             if (!$peerExists) {
                 $peers[] = $this->buildPeerArray($router);
+                Log::channel('wireguard')->info('Adding new peer', ['public_key' => $publicKey]);
             }
 
             // Rebuild config with updated peers
             $newConfig = $this->buildConfigContent($configContent, $peers);
+            Log::channel('wireguard')->info('Rebuilt config content', ['length' => strlen($newConfig)]);
 
             // Write to temporary file
             $tempPath = $this->configPath . '.tmp';
             $result = $this->writeConfigSecurely($tempPath, $newConfig);
 
             if (!$result) {
+                Log::channel('wireguard')->error('Failed to write config securely');
                 return false;
             }
 
             // Move temp file to actual config
             $mvCmd = sprintf("sudo mv %s %s", escapeshellarg($tempPath), escapeshellarg($this->configPath));
+            Log::channel('wireguard')->info('Executing move command', ['cmd' => $mvCmd]);
+
             $process = Process::fromShellCommandline($mvCmd);
             $process->run();
 
             if (!$process->isSuccessful()) {
                 Log::channel('wireguard')->error('Failed to move temp config', [
-                    'output' => $process->getErrorOutput(),
+                    'output' => $process->getErrorOutput() ?: $process->getOutput(),
                 ]);
                 return false;
             }
 
+            Log::channel('wireguard')->info('Config updated successfully');
             return true;
 
         } catch (\Exception $e) {
