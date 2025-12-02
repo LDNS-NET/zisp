@@ -77,13 +77,13 @@ class TenantMikrotikController extends Controller
         $realtimeData = [
             'resources' => [
                 'board-name' => $router->model,
-                'architecture-name' => $router->architecture ?? null,
+                'architecture-name' => $router->architecture_name ?? null,
                 'version' => $router->os_version,
                 'build-time' => $router->build_time ?? null,
                 'cpu-load' => $router->cpu_usage,
                 'free-memory' => null,
                 'total-memory' => null,
-                'uptime' => $router->uptime,
+                'uptime' => $router->getUptimeFormatted(),
             ],
             'interfaces' => [],
             'hotspot_active' => $hotspotActiveDb,
