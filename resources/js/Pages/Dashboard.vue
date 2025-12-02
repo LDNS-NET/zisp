@@ -203,7 +203,11 @@ const userGrowthSeries = computed(() => {
     // Use real data from backend based on actual created_at dates
     const typesData = props.stats?.user_types_chart;
     
+    console.log('User Types Chart Data from Backend:', typesData);
+    console.log('Props Stats:', props.stats);
+    
     if (!typesData) {
+        console.warn('No user_types_chart data available');
         // Fallback if no data
         return [
             { name: 'Hotspot Users', data: Array(12).fill(0) },
@@ -212,7 +216,7 @@ const userGrowthSeries = computed(() => {
         ];
     }
 
-    return [
+    const chartSeries = [
         {
             name: 'Hotspot Users',
             data: typesData.hotspot || Array(12).fill(0),
@@ -226,6 +230,10 @@ const userGrowthSeries = computed(() => {
             data: typesData.static || Array(12).fill(0),
         },
     ];
+    
+    console.log('Chart Series Being Passed:', chartSeries);
+    
+    return chartSeries;
 });
 
 // Package Utilization Chart (Donut Chart)
