@@ -92,7 +92,12 @@ class TenantUserController extends Controller
             'username' => 'required|string|max:255|unique:network_users',
             'password' => 'nullable|string|min:6',
             'phone' => 'required|string|max:15',
-            'email' => 'nullable|email|max:255|unique:network_users,email',
+            'email' => [
+                'nullable',
+                'email',
+                'max:255',
+                Rule::unique('network_users', 'email')->whereNotNull('email')
+            ],
             'location' => 'nullable|string|max:255',
             'type' => 'required|in:hotspot,pppoe,static',
             'package_id' => 'nullable|exists:packages,id',
@@ -235,7 +240,12 @@ class TenantUserController extends Controller
             'username' => ['required', 'string', 'max:255', Rule::unique('network_users')->ignore($user->id)],
             'password' => 'nullable|string|min:4',
             'phone' => 'required|string|max:15',
-            'email' => ['nullable', 'email', 'max:255', Rule::unique('network_users', 'email')->ignore($user->id)],
+            'email' => [
+                'nullable',
+                'email',
+                'max:255',
+                Rule::unique('network_users', 'email')->ignore($user->id)->whereNotNull('email')
+            ],
             'location' => 'nullable|string|max:255',
             'type' => ['required', Rule::in(['hotspot', 'pppoe', 'static'])],
             'package_id' => 'nullable|exists:packages,id',
