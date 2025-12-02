@@ -35,6 +35,7 @@ class DashboardController extends Controller
                 // Charts
                 'sms_chart' => $this->monthlyCount(TenantSMS::class, 'created_at'),
                 'payments_chart' => $this->monthlySum(TenantPayment::class, 'paid_at', 'amount'),
+                'user_types_chart' => $this->getUserTypesByMonth(),
 
                 // User Distribution
                 'user_distribution' => NetworkUser::select('type', DB::raw('COUNT(*) as total'))
@@ -143,46 +144,46 @@ class DashboardController extends Controller
     }
 
     protected function monthlyCount($model, $dateColumn)
-{
-    $connection = DB::connection()->getDriverName();
+    {
+        $connection = DB::connection()->getDriverName();
 
-    if ($connection === 'sqlite') {
-        $data = $model::selectRaw("strftime('%m', $dateColumn) as month, COUNT(*) as total")
-            ->groupBy('month')
-            ->orderBy('month')
-            ->pluck('total', 'month')
-            ->toArray();
-    } else {
-        $data = $model::selectRaw("MONTH($dateColumn) as month, COUNT(*) as total")
-            ->groupBy('month')
-            ->orderBy('month')
-            ->pluck('total', 'month')
-            ->toArray();
+        if ($connection === 'sqlite') {
+            $data = $model::selectRaw("strftime('%m', $dateColumn) as month, COUNT(*) as total")
+                ->groupBy('month')
+                ->orderBy('month')
+                ->pluck('total', 'month')
+                ->toArray();
+        } else {
+            $data = $model::selectRaw("MONTH($dateColumn) as month, COUNT(*) as total")
+                ->groupBy('month')
+                ->orderBy('month')
+                ->pluck('total', 'month')
+                ->toArray();
+        }
+
+        return $this->fillMissingMonths($data);
     }
 
-    return $this->fillMissingMonths($data);
-}
+    protected function monthlySum($model, $dateColumn, $sumColumn)
+    {
+        $connection = DB::connection()->getDriverName();
 
-protected function monthlySum($model, $dateColumn, $sumColumn)
-{
-    $connection = DB::connection()->getDriverName();
+        if ($connection === 'sqlite') {
+            $data = $model::selectRaw("strftime('%m', $dateColumn) as month, SUM($sumColumn) as total")
+                ->groupBy('month')
+                ->orderBy('month')
+                ->pluck('total', 'month')
+                ->toArray();
+        } else {
+            $data = $model::selectRaw("MONTH($dateColumn) as month, SUM($sumColumn) as total")
+                ->groupBy('month')
+                ->orderBy('month')
+                ->pluck('total', 'month')
+                ->toArray();
+        }
 
-    if ($connection === 'sqlite') {
-        $data = $model::selectRaw("strftime('%m', $dateColumn) as month, SUM($sumColumn) as total")
-            ->groupBy('month')
-            ->orderBy('month')
-            ->pluck('total', 'month')
-            ->toArray();
-    } else {
-        $data = $model::selectRaw("MONTH($dateColumn) as month, SUM($sumColumn) as total")
-            ->groupBy('month')
-            ->orderBy('month')
-            ->pluck('total', 'month')
-            ->toArray();
+        return $this->fillMissingMonths($data);
     }
-
-    return $this->fillMissingMonths($data);
-}
 
 
     protected function fillMissingMonths(array $data)
@@ -192,5 +193,68 @@ protected function monthlySum($model, $dateColumn, $sumColumn)
             $filled[] = $data[$i] ?? 0;
         }
         return $filled;
+    }
+
+    protected function getUserTypesByMonth()
+    {
+        $currentYear = now()->year;
+        $connection = DB::connection()->getDriverName();
+
+        // Get monthly user counts by type for current year
+        if ($connection === 'sqlite') {
+            $hotspotUsers = NetworkUser::where('type', 'hotspot')
+                ->selectRaw("strftime('%m', created_at) as month, COUNT(*) as total")
+                ->whereYear('created_at', $currentYear)
+                ->groupBy('month')
+                ->orderBy('month')
+                ->pluck('total', 'month')
+                ->toArray();
+
+            $pppoeUsers = NetworkUser::where('type', 'pppoe')
+                ->selectRaw("strftime('%m', created_at) as month, COUNT(*) as total")
+                ->whereYear('created_at', $currentYear)
+                ->groupBy('month')
+                ->orderBy('month')
+                ->pluck('total', 'month')
+                ->toArray();
+
+            $staticUsers = NetworkUser::where('type', 'static')
+                ->selectRaw("strftime('%m', created_at) as month, COUNT(*) as total")
+                ->whereYear('created_at', $currentYear)
+                ->groupBy('month')
+                ->orderBy('month')
+                ->pluck('total', 'month')
+                ->toArray();
+        } else {
+            $hotspotUsers = NetworkUser::where('type', 'hotspot')
+                ->selectRaw("MONTH(created_at) as month, COUNT(*) as total")
+                ->whereYear('created_at', $currentYear)
+                ->groupBy('month')
+                ->orderBy('month')
+                ->pluck('total', 'month')
+                ->toArray();
+
+            $pppoeUsers = NetworkUser::where('type', 'pppoe')
+                ->selectRaw("MONTH(created_at) as month, COUNT(*) as total")
+                ->whereYear('created_at', $currentYear)
+                ->groupBy('month')
+                ->orderBy('month')
+                ->pluck('total', 'month')
+                ->toArray();
+
+            $staticUsers = NetworkUser::where('type', 'static')
+                ->selectRaw("MONTH(created_at) as month, COUNT(*) as total")
+                ->whereYear('created_at', $currentYear)
+                ->groupBy('month')
+                ->orderBy('month')
+                ->pluck('total', 'month')
+                ->toArray();
+        }
+
+        return [
+            'hotspot' => $this->fillMissingMonths($hotspotUsers),
+            'pppoe' => $this->fillMissingMonths($pppoeUsers),
+            'static' => $this->fillMissingMonths($staticUsers),
+        ];
     }
 }
