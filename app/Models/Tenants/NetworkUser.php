@@ -37,8 +37,8 @@ class NetworkUser extends Model
 
     protected $casts = [
         'registered_at' => 'datetime',
-        'expires_at'    => 'datetime',
-        'online'        => 'boolean',
+        'expires_at' => 'datetime',
+        'online' => 'boolean',
     ];
 
     public function package(): BelongsTo
@@ -81,30 +81,49 @@ class NetworkUser extends Model
         static::created(function ($user) {
             // Create radcheck entry (password)
             Radcheck::create([
-                'username'  => $user->username,
+                'username' => $user->username,
                 'attribute' => 'Cleartext-Password',
-                'op'        => ':=',
-                'value'     => $user->password,
+                'op' => ':=',
+                'value' => $user->password,
             ]);
+
+            // Add expiration to radcheck if expires_at is set
+            if ($user->expires_at) {
+                Radcheck::create([
+                    'username' => $user->username,
+                    'attribute' => 'Expiration',
+                    'op' => ':=',
+                    'value' => $user->expires_at->format('d M Y H:i:s'),
+                ]);
+            }
 
             // Package speed handling
             $package = $user->package;
             if ($package) {
                 $rateValue = "{$package->upload_speed}M/{$package->download_speed}M";
                 Radreply::create([
-                    'username'  => $user->username,
+                    'username' => $user->username,
                     'attribute' => 'Mikrotik-Rate-Limit',
-                    'op'        => ':=',
-                    'value'     => $rateValue,
+                    'op' => ':=',
+                    'value' => $rateValue,
                 ]);
 
                 // Group name can be package name or type
                 Radusergroup::create([
-                    'username'  => $user->username,
+                    'username' => $user->username,
                     'groupname' => $package->name ?? 'default',
-                    'priority'  => 1,
+                    'priority' => 1,
                 ]);
             }
+
+            // Add Session-Timeout for periodic re-authentication (5 minutes)
+            // This ensures expired users are disconnected within 5 minutes
+            Radreply::create([
+                'username' => $user->username,
+                'attribute' => 'Session-Timeout',
+                'op' => ':=',
+                'value' => '300', // 300 seconds = 5 minutes
+            ]);
         });
 
         /**
@@ -116,6 +135,19 @@ class NetworkUser extends Model
                 ['username' => $user->username, 'attribute' => 'Cleartext-Password'],
                 ['op' => ':=', 'value' => $user->password]
             );
+
+            // Update or create expiration
+            if ($user->expires_at) {
+                Radcheck::updateOrCreate(
+                    ['username' => $user->username, 'attribute' => 'Expiration'],
+                    ['op' => ':=', 'value' => $user->expires_at->format('d M Y H:i:s')]
+                );
+            } else {
+                // Remove expiration if expires_at is null
+                Radcheck::where('username', $user->username)
+                    ->where('attribute', 'Expiration')
+                    ->delete();
+            }
 
             // Update package-related entries
             $package = $user->package;
@@ -131,12 +163,19 @@ class NetworkUser extends Model
                     ['groupname' => $package->name ?? 'default', 'priority' => 1]
                 );
             }
+
+            // Ensure Session-Timeout exists (in case of old users)
+            Radreply::updateOrCreate(
+                ['username' => $user->username, 'attribute' => 'Session-Timeout'],
+                ['op' => ':=', 'value' => '300']
+            );
         });
 
         /**
          *  Cleanup RADIUS entries when user is deleted
          */
         static::deleted(function ($user) {
+            // Cleanup all RADIUS entries for this user
             Radcheck::where('username', $user->username)->delete();
             Radreply::where('username', $user->username)->delete();
             Radusergroup::where('username', $user->username)->delete();
