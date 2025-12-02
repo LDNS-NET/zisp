@@ -120,6 +120,7 @@ class TenantPaymentController extends Controller
         ]);
 
         $user = NetworkUser::findOrFail($data['user_id']);
+
         if (Schema::hasColumn('tenant_payments', 'phone')) {
             $data['phone'] = $user->phone;
         }
@@ -130,23 +131,25 @@ class TenantPaymentController extends Controller
 
         $payment = TenantPayment::create($data);
 
-        // Mikrotik suspend/unsuspend logic
-        $routerHost = config('mikrotik.host', '192.168.88.1');
-        $routerUser = config('mikrotik.username', 'admin');
-        $routerPass = config('mikrotik.password', 'password');
-        $routerPort = config('mikrotik.port', 8728);
-        $mikrotik = new \App\Services\MikrotikService($routerHost, $routerUser, $routerPass, $routerPort);
-        // If payment is pending/withheld, suspend user; if disbursed, unsuspend
-        if (in_array($data['disbursement_type'], ['pending', 'withheld'])) {
-            $mikrotik->suspendUser($user->type, $user->mikrotik_id ?? '');
-        } elseif ($data['disbursement_type'] === 'disbursed') {
-            $mikrotik->unsuspendUser($user->type, $user->mikrotik_id ?? '');
+        // 🔥 Load tenant router config from DB, not strings
+        $tenantMikrotik = \App\Models\Tenants\TenantMikrotik::where('created_by', auth()->id())->first();
+
+        if ($tenantMikrotik) {
+            $mikrotik = new \App\Services\MikrotikService($tenantMikrotik);
+
+            // Suspend/unsuspend based on disbursement status
+            if (in_array($data['disbursement_type'], ['pending', 'withheld'])) {
+                $mikrotik->suspendUser($user->type, $user->mikrotik_id ?? '');
+            } elseif ($data['disbursement_type'] === 'disbursed') {
+                $mikrotik->unsuspendUser($user->type, $user->mikrotik_id ?? '');
+            }
         }
 
         $this->sendPaymentSMS($payment);
 
         return back()->with('success', 'Payment added and SMS sent.');
     }
+
 
     public function update(Request $request, $id)
     {
@@ -156,7 +159,7 @@ class TenantPaymentController extends Controller
             'user_id'           => 'sometimes|exists:network_users,id',
             'receipt_number'    => 'required|string|max:255',
             'amount'            => 'required|numeric|min:0',
-            'checked'           => 'required|boolean',   // 👈 boolean
+            'checked'           => 'required|boolean',
             'paid_at'           => 'required|date',
             'disbursement_type' => 'required|string|in:pending,disbursed,withheld',
         ]);
