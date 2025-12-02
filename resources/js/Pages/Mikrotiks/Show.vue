@@ -56,8 +56,9 @@ const formatBytes = (bytes) => {
 // Refresh
 const refreshData = () => {
     isRefreshing.value = true;
-    inertiaRouter.reload({
-        only: ["realtime"],
+    inertiaRouter.get(route('mikrotiks.show', props.mikrotik.id), { force: 1 }, {
+        only: ['realtime'],
+        preserveScroll: true,
         onFinish: () => (isRefreshing.value = false),
     });
 };

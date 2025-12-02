@@ -93,8 +93,9 @@ class TenantMikrotikController extends Controller
             'is_online' => $router->status === 'online',
         ];
 
-        // Only poll router if last_seen_at is stale (>180s)
-        $shouldPoll = !$router->last_seen_at || now()->diffInSeconds($router->last_seen_at) > 180;
+        $force = $request->boolean('force');
+        // Poll router if forced or cache is stale (>180s)
+        $shouldPoll = $force || !$router->last_seen_at || now()->diffInSeconds($router->last_seen_at) > 180;
 
         if ($shouldPoll) try {
             $apiService = new \App\Services\Mikrotik\RouterApiService($router);
@@ -634,6 +635,7 @@ class TenantMikrotikController extends Controller
 
         $data = $request->validate([
             'ip_address' => 'required|string|max:255', // Accepts VPN IP
+            'force' => 'nullable|boolean',
         ]);
 
         // Extract IP from CIDR notation if present (e.g., "10.100.0.2/16" -> "10.100.0.2")
