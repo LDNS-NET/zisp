@@ -200,48 +200,45 @@ const userGrowthOptions = computed(() => ({
 }));
 
 const userGrowthSeries = computed(() => {
-    // Use actual current stats to generate realistic growth data
-    const totalUsers = props.stats?.users?.total || 0;
-    const activeUsers = props.stats?.users?.activeUsers || 0;
+    // Show actual network user types from stats
+    const hotspotUsers = props.stats?.users?.hotspot || 0;
+    const pppoeUsers = props.stats?.users?.pppoe || 0;
+    const staticUsers = props.stats?.users?.static || 0;
     
-    // Generate realistic monthly growth pattern
-    const totalData = [];
-    const activeData = [];
-    const newData = [];
+    // Generate realistic monthly growth pattern for each user type
+    const hotspotData = [];
+    const pppoeData = [];
+    const staticData = [];
     
     const currentMonth = new Date().getMonth(); // 0-11
     
     for (let i = 0; i < 12; i++) {
         if (i <= currentMonth) {
-            // Calculate growth for past months
+            // Calculate progressive growth for past months
             const monthProgress = (i + 1) / (currentMonth + 1);
-            const total = Math.round(totalUsers * monthProgress);
-            const active = Math.round(activeUsers * monthProgress);
-            const newUsers = i === 0 ? Math.max(5, Math.round(total * 0.3)) : Math.max(3, Math.round((total - totalData[i-1]) || 5));
-            
-            totalData.push(total);
-            activeData.push(active);
-            newData.push(newUsers);
+            hotspotData.push(Math.round(hotspotUsers * monthProgress));
+            pppoeData.push(Math.round(pppoeUsers * monthProgress));
+            staticData.push(Math.round(staticUsers * monthProgress));
         } else {
-            // Future months - no data
-            totalData.push(totalUsers);
-            activeData.push(activeUsers);
-            newData.push(0);
+            // Future months - show current values
+            hotspotData.push(hotspotUsers);
+            pppoeData.push(pppoeUsers);
+            staticData.push(staticUsers);
         }
     }
 
     return [
         {
-            name: 'Total Users',
-            data: totalData,
+            name: 'Hotspot Users',
+            data: hotspotData,
         },
         {
-            name: 'Active Users',
-            data: activeData,
+            name: 'PPPoE Users',
+            data: pppoeData,
         },
         {
-            name: 'New Users',
-            data: newData,
+            name: 'Static Users',
+            data: staticData,
         },
     ];
 });
@@ -585,10 +582,10 @@ const packageChartSeries = computed(() =>
                                 <div class="mb-4 flex items-center justify-between">
                                     <h4 class="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white">
                                         <LineChart class="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                                        User Growth
+                                        Network User Types
                                     </h4>
                                     <span class="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
-                                        Year Overview
+                                        Current Year
                                     </span>
                                 </div>
                                 
@@ -596,11 +593,15 @@ const packageChartSeries = computed(() =>
                                 <div v-if="stats?.users" class="mb-4 flex gap-4 text-sm">
                                     <div class="flex items-center gap-2">
                                         <div class="h-3 w-3 rounded-full bg-indigo-500"></div>
-                                        <span class="text-gray-600 dark:text-gray-400">Total: <strong class="text-gray-900 dark:text-white">{{ stats.users.total }}</strong></span>
+                                        <span class="text-gray-600 dark:text-gray-400">Hotspot: <strong class="text-gray-900 dark:text-white">{{ stats.users.hotspot }}</strong></span>
                                     </div>
                                     <div class="flex items-center gap-2">
                                         <div class="h-3 w-3 rounded-full bg-pink-500"></div>
-                                        <span class="text-gray-600 dark:text-gray-400">Active: <strong class="text-gray-900 dark:text-white">{{ stats.users.activeUsers || 0 }}</strong></span>
+                                        <span class="text-gray-600 dark:text-gray-400">PPPoE: <strong class="text-gray-900 dark:text-white">{{ stats.users.pppoe }}</strong></span>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <div class="h-3 w-3 rounded-full bg-amber-500"></div>
+                                        <span class="text-gray-600 dark:text-gray-400">Static: <strong class="text-gray-900 dark:text-white">{{ stats.users.static }}</strong></span>
                                     </div>
                                 </div>
                                 
