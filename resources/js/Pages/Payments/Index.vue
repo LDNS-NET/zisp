@@ -494,30 +494,30 @@ function generatePaymentConfirmation() {
 
         <Head title="Payments" />
 
-        <div class="mx-auto max-w-7xl space-y-6 p-6">
+        <div class="mx-auto max-w-7xl space-y-6 p-6 dark:bg-slate-900">
             <div class="flex items-center justify-between">
-                <div class="flex items-center">
-                    <Banknote class="h-7 w-7 gap-3 text-blue-600" />
-                    <h2 class="text-2xl font-bold">Payments</h2>
+                <div class="flex items-center gap-3">
+                    <Banknote class="h-7 w-7 text-blue-600 dark:text-blue-400" />
+                    <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Payments</h2>
                 </div>
                 <PrimaryButton @click="openAddModal" class="flex items-center gap-2">
-                    <Plus class="h-5 w-5 text-blue-600" /> Record Payment
+                    <Plus class="h-5 w-5" /> Record Payment
                 </PrimaryButton>
             </div>
 
             <br />
 
             <div class="mb-2 flex justify-between gap-2">
-                <button @click="showFilters = !showFilters" class="rounded bg-blue-600 px-4 py-2 text-white shadow">
+                <button @click="showFilters = !showFilters" class="rounded bg-blue-600 px-4 py-2 text-white shadow hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600">
                     {{ showFilters ? 'Hide Filters' : 'Filters' }}
                 </button>
-                <button @click="showExport = !showExport" class="rounded bg-green-600 px-4 py-2 text-white shadow">
+                <button @click="showExport = !showExport" class="rounded bg-green-600 px-4 py-2 text-white shadow hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600">
                     {{ showExport ? 'Hide Export' : 'Export' }}
                 </button>
             </div>
-            <div v-if="showFilters" class="mb-4 flex flex-wrap items-center gap-4">
-                <label class="font-semibold">General Filter:</label>
-                <select v-model="filterYear" class="rounded border px-2 py-1">
+            <div v-if="showFilters" class="mb-4 flex flex-wrap items-center gap-4 rounded-lg bg-white p-4 shadow dark:bg-slate-800">
+                <label class="font-semibold text-gray-700 dark:text-gray-300">General Filter:</label>
+                <select v-model="filterYear" class="rounded border border-gray-300 bg-white px-2 py-1 dark:border-gray-600 dark:bg-slate-700 dark:text-white">
                     <option v-for="y in [
                         today.getFullYear(),
                         today.getFullYear() - 1,
@@ -528,7 +528,7 @@ function generatePaymentConfirmation() {
                         {{ y }}
                     </option>
                 </select>
-                <select v-model="filterMonth" class="rounded border px-2 py-1">
+                <select v-model="filterMonth" class="rounded border border-gray-300 bg-white px-2 py-1 dark:border-gray-600 dark:bg-slate-700 dark:text-white">
                     <option :value="0">All Months</option>
                     <option v-for="m in 12" :key="m" :value="m">
                         {{
@@ -538,33 +538,33 @@ function generatePaymentConfirmation() {
                         }}
                     </option>
                 </select>
-                <select v-model="filterWeek" class="rounded border px-2 py-1">
+                <select v-model="filterWeek" class="rounded border border-gray-300 bg-white px-2 py-1 dark:border-gray-600 dark:bg-slate-700 dark:text-white">
                     <option :value="0">All Weeks</option>
                     <option v-for="w in 52" :key="w" :value="w">
                         Week {{ w }}
                     </option>
                 </select>
-                <label class="ml-4 font-semibold">User/Phone:</label>
+                <label class="ml-4 font-semibold text-gray-700 dark:text-gray-300">User/Phone:</label>
                 <input v-model="globalSearch" type="text" placeholder="Type to filter..."
-                    class="rounded border px-2 py-1" />
-                <label class="ml-4 font-semibold">Status:</label>
-                <select v-model="filterStatus" class="rounded border px-2 py-1">
+                    class="rounded border border-gray-300 bg-white px-2 py-1 dark:border-gray-600 dark:bg-slate-700 dark:text-white dark:placeholder-gray-400" />
+                <label class="ml-4 font-semibold text-gray-700 dark:text-gray-300">Status:</label>
+                <select v-model="filterStatus" class="rounded border border-gray-300 bg-white px-2 py-1 dark:border-gray-600 dark:bg-slate-700 dark:text-white">
                     <option value="">All</option>
                     <option value="pending">Pending</option>
                     <option value="disbursed">Disbursed</option>
                     <option value="withheld">Withheld</option>
                 </select>
             </div>
-            <div v-if="showExport" class="mb-4 flex flex-wrap items-center gap-4">
-                <label class="ml-4 font-semibold">Export Format:</label>
-                <select v-model="exportFormat" class="rounded border px-2 py-1">
+            <div v-if="showExport" class="mb-4 flex flex-wrap items-center gap-4 rounded-lg bg-white p-4 shadow dark:bg-slate-800">
+                <label class="ml-4 font-semibold text-gray-700 dark:text-gray-300">Export Format:</label>
+                <select v-model="exportFormat" class="rounded border border-gray-300 bg-white px-2 py-1 dark:border-gray-600 dark:bg-slate-700 dark:text-white">
                     <option value="csv">CSV</option>
                     <option value="pdf">PDF</option>
                 </select>
-                <button @click="exportPayments" class="ml-4 rounded bg-green-600 px-3 py-1 text-white shadow">
+                <button @click="exportPayments" class="ml-4 rounded bg-green-600 px-3 py-1 text-white shadow hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600">
                     Export
                 </button>
-                <span v-if="isLoading" class="ml-2 text-xs text-gray-500">Loading...</span>
+                <span v-if="isLoading" class="ml-2 text-xs text-gray-500 dark:text-gray-400">Loading...</span>
             </div>
             <div class="mb-6 grid grid-cols-1 gap-4 md:grid-cols-4">
                 <!-- Daily Card -->
@@ -719,44 +719,44 @@ function generatePaymentConfirmation() {
                 </DangerButton>
             </div>
 
-            <div class="rounded-xl border border-black dark:border-blue-500">
-                <table class="w-full overflow-hidden rounded shadow">
-                    <thead class="text-left">
+            <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow dark:border-gray-700 dark:bg-slate-800">
+                <table class="w-full">
+                    <thead class="bg-gray-50 text-left dark:bg-slate-700">
                         <tr>
                             <td class="px-4 py-3">
-                                <input type="checkbox" v-model="selectAll" />
+                                <input type="checkbox" v-model="selectAll" class="rounded border-gray-300 dark:border-gray-600 dark:bg-slate-700" />
                             </td>
-                            <th class="px-4 py-2">User</th>
-                            <th class="px-4 py-2">Phone</th>
-                            <th class="px-4 py-2">Receipt</th>
-                            <th class="px-4 py-2">Amount</th>
-                            <th class="px-4 py-2">Checked</th>
-                            <th class="px-4 py-2">Paid At</th>
-                            <th class="px-4 py-2">Disbursement</th>
-                            <th class="px-4 py-2">Actions</th>
+                            <th class="px-4 py-2 text-gray-700 dark:text-gray-200">User</th>
+                            <th class="px-4 py-2 text-gray-700 dark:text-gray-200">Phone</th>
+                            <th class="px-4 py-2 text-gray-700 dark:text-gray-200">Receipt</th>
+                            <th class="px-4 py-2 text-gray-700 dark:text-gray-200">Amount</th>
+                            <th class="px-4 py-2 text-gray-700 dark:text-gray-200">Checked</th>
+                            <th class="px-4 py-2 text-gray-700 dark:text-gray-200">Paid At</th>
+                            <th class="px-4 py-2 text-gray-700 dark:text-gray-200">Disbursement</th>
+                            <th class="px-4 py-2 text-gray-700 dark:text-gray-200">Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <tr v-for="item in paymentsData" :key="item.id" class="border-t">
+                    <tbody class="bg-white dark:bg-slate-800">
+                        <tr v-for="item in paymentsData" :key="item.id" class="border-t border-gray-200 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-slate-700/50">
                             <td class="px-6 py-3">
                                 <input type="checkbox" :value="item.id" v-model="selectedTenantPayments"
-                                    @change="toggleSelectAll" />
+                                    @change="toggleSelectAll" class="rounded border-gray-300 dark:border-gray-600 dark:bg-slate-700" />
                             </td>
-                            <td class="px-4 py-2">{{ item.user }}</td>
-                            <td class="px-4 py-2">{{ item.phone }}</td>
-                            <td class="px-4 py-2">{{ item.receipt_number }}</td>
-                            <td class="px-4 py-2">{{ item.amount }}</td>
-                            <td class="px-4 py-2">{{ item.checked_label }}</td>
-                            <td class="px-4 py-2">{{ item.paid_at }}</td>
-                            <td class="px-4 py-2">{{ item.disbursement_label }}</td>
+                            <td class="px-4 py-2 text-gray-900 dark:text-gray-100">{{ item.user }}</td>
+                            <td class="px-4 py-2 text-gray-900 dark:text-gray-100">{{ item.phone }}</td>
+                            <td class="px-4 py-2 text-gray-900 dark:text-gray-100">{{ item.receipt_number }}</td>
+                            <td class="px-4 py-2 text-gray-900 dark:text-gray-100">{{ item.amount }}</td>
+                            <td class="px-4 py-2 text-gray-900 dark:text-gray-100">{{ item.checked_label }}</td>
+                            <td class="px-4 py-2 text-gray-900 dark:text-gray-100">{{ item.paid_at }}</td>
+                            <td class="px-4 py-2 text-gray-900 dark:text-gray-100">{{ item.disbursement_label }}</td>
                             <td class="space-x-2 px-4 py-2">
-                                <button @click="openEditModal(item)" class="text-blue-600 hover:underline">
+                                <button @click="openEditModal(item)" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
                                     <Edit class="h-4 w-4" />
                                 </button>
-                                <button @click="confirmPaymentDeletion(item.id)">
-                                    <Trash2 class="h-4 w-4 text-red-600" />
+                                <button @click="confirmPaymentDeletion(item.id)" class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300">
+                                    <Trash2 class="h-4 w-4" />
                                 </button>
-                                <button @click="showPaymentDetails(item)" class="text-green-600 hover:underline">
+                                <button @click="showPaymentDetails(item)" class="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300">
                                     <Eye class="h-4 w-4" />
                                 </button>
                             </td>
