@@ -98,12 +98,7 @@
 
 # ============================================================================
 
-:put "==================== Creating PPPoE IP pool ==================="
-:do {
-    /ip pool remove [find name=$poolName]
-} on-error={}
-/ip pool add name=$poolName ranges=172.20.0.2-172.20.255.254
-:put " =================== PPPoE IP pool created ==================="
+
 
 
 :put " =================== Creating PPPoE profile =================== "
