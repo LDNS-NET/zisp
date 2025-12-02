@@ -1,9 +1,5 @@
 <script setup>
 import { ref, watch, computed } from 'vue';
-const today = new Date();
-const filterYear = ref(today.getFullYear());
-const filterMonth = ref(0); // 0 means all months
-const filterWeek = ref(0); // 0 means all weeks
 import { Head, useForm, router } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import TextInput from '@/Components/TextInput.vue';
@@ -30,6 +26,12 @@ const showMonthly = ref(false);
 const showYearly = ref(false);
 import Card from '@/Components/Card.vue';
 // ...existing code...
+
+
+const today = new Date();
+const filterYear = ref(today.getFullYear());
+const filterMonth = ref(0); // 0 means all months
+const filterWeek = ref(0); // 0 means all weeks
 
 // Use all payments for summary calculations, not just paginated page
 const allPayments = computed(() => props.payments.allData ?? []);
