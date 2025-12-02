@@ -52,7 +52,7 @@ const navigation = [
     { name: 'Dashboard', href: route('dashboard'), icon: LayoutDashboard, active: 'dashboard' },
     
     { header: 'User Management' },
-    { name: 'Active Users', href: route('activeusers.index'), icon: Activity, active: 'activeusers.*' },
+    { name: 'Online Users', href: route('activeusers.index'), icon: Activity, active: 'activeusers.*' },
     { name: 'All Users', href: route('users.index'), icon: Users, active: 'users.*' },
     { name: 'Leads', href: route('leads.index'), icon: Layers, active: 'leads.*' },
     { name: 'Tickets', href: route('tickets.index'), icon: HelpCircle, active: 'tickets.*' },
