@@ -116,14 +116,7 @@ class NetworkUser extends Model
                 ]);
             }
 
-            // Add Session-Timeout for periodic re-authentication (5 minutes)
-            // This ensures expired users are disconnected within 5 minutes
-            Radreply::create([
-                'username' => $user->username,
-                'attribute' => 'Session-Timeout',
-                'op' => ':=',
-                'value' => '300', // 300 seconds = 5 minutes
-            ]);
+
         });
 
         /**
@@ -164,11 +157,7 @@ class NetworkUser extends Model
                 );
             }
 
-            // Ensure Session-Timeout exists (in case of old users)
-            Radreply::updateOrCreate(
-                ['username' => $user->username, 'attribute' => 'Session-Timeout'],
-                ['op' => ':=', 'value' => '300']
-            );
+
         });
 
         /**

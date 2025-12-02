@@ -451,5 +451,52 @@ class RouterApiService
 
         return $this->client;
     }
+
+    /**
+     * Disconnect a specific user from the router.
+     *
+     * @param string $username
+     * @param string $type 'hotspot' or 'pppoe'
+     * @return bool
+     */
+    public function disconnectUser(string $username, string $type): bool
+    {
+        try {
+            $client = $this->getClient();
+
+            if ($type === 'hotspot') {
+                // Disconnect hotspot user
+                $active = $client->query('/ip/hotspot/active/print')
+                    ->where('user', $username)
+                    ->read();
+
+                foreach ($active as $session) {
+                    $client->query('/ip/hotspot/active/remove')
+                        ->equal('.id', $session['.id'])
+                        ->read();
+                }
+            } elseif ($type === 'pppoe') {
+                // Disconnect PPPoE user
+                $active = $client->query('/ppp/active/print')
+                    ->where('name', $username)
+                    ->read();
+
+                foreach ($active as $session) {
+                    $client->query('/ppp/active/remove')
+                        ->equal('.id', $session['.id'])
+                        ->read();
+                }
+            }
+
+            return true;
+        } catch (Exception $e) {
+            Log::error('Failed to disconnect user', [
+                'username' => $username,
+                'type' => $type,
+                'error' => $e->getMessage(),
+            ]);
+            return false;
+        }
+    }
 }
 
