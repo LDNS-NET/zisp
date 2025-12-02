@@ -22,9 +22,11 @@ class TenantPaymentController extends Controller
 
         // 🔍 Search filter
         if ($request->search) {
-            $query->whereHas('user', fn($q) =>
+            $query->whereHas(
+                'user',
+                fn($q) =>
                 $q->where('username', 'like', "%{$request->search}%")
-                  ->orWhere('phone', 'like', "%{$request->search}%")
+                    ->orWhere('phone', 'like', "%{$request->search}%")
             )->orWhere('phone', 'like', "%{$request->search}%");
         }
 
@@ -33,8 +35,8 @@ class TenantPaymentController extends Controller
             if ($request->disbursement === 'pending') {
                 $query->where(function ($q) {
                     $q->whereNull('disbursement_type')
-                      ->orWhere('disbursement_type', '')
-                      ->orWhere('disbursement_type', 'pending');
+                        ->orWhere('disbursement_type', '')
+                        ->orWhere('disbursement_type', 'pending');
                 });
             } else {
                 $query->where('disbursement_type', $request->disbursement);
@@ -44,21 +46,21 @@ class TenantPaymentController extends Controller
         $businessName = \App\Models\Tenant::first()?->business_name ?? '';
         $payments = $query->latest()->paginate(10)->through(function ($payment) use ($businessName) {
             $disb = $payment->disbursement_type ?? 'pending';
-            $checkedBool = (bool)$payment->checked;
+            $checkedBool = (bool) $payment->checked;
             $userDisplay = $payment->user_id === null ? 'Deleted User' : ($payment->user?->username ?? 'Unknown');
             return [
-                'id'                 => $payment->id,
-                'user'               => $userDisplay,
-                'user_id'            => $payment->user_id,
-                'phone'              => $payment->phone ?? ($payment->user?->phone ?? 'N/A'),
-                'receipt_number'     => $payment->receipt_number,
-                'amount'             => $payment->amount,
-                'checked'            => $checkedBool,
-                'paid_at'            => optional($payment->paid_at)->toDateTimeString(),
-                'disbursement_type'  => $disb,
-                'checked_label'      => $checkedBool ? 'Yes' : 'No',
+                'id' => $payment->id,
+                'user' => $userDisplay,
+                'user_id' => $payment->user_id,
+                'phone' => $payment->phone ?? ($payment->user?->phone ?? 'N/A'),
+                'receipt_number' => $payment->receipt_number,
+                'amount' => $payment->amount,
+                'checked' => $checkedBool,
+                'paid_at' => optional($payment->paid_at)->toDateTimeString(),
+                'disbursement_type' => $disb,
+                'checked_label' => $checkedBool ? 'Yes' : 'No',
                 'disbursement_label' => ucfirst($disb),
-                'business_name'      => $businessName,
+                'business_name' => $businessName,
             ];
         });
 
@@ -66,56 +68,58 @@ class TenantPaymentController extends Controller
         // Get all payments for summary (no pagination, ignore pagination and filters except search/disbursement)
         $allPayments = TenantPayment::query()->with('user')
             ->when($request->search, function ($q) use ($request) {
-                $q->whereHas('user', fn($q2) =>
+                $q->whereHas(
+                    'user',
+                    fn($q2) =>
                     $q2->where('username', 'like', "%{$request->search}%")
-                      ->orWhere('phone', 'like', "%{$request->search}%")
+                        ->orWhere('phone', 'like', "%{$request->search}%")
                 )->orWhere('phone', 'like', "%{$request->search}%");
             })
             ->when($request->disbursement, function ($q) use ($request) {
                 if ($request->disbursement === 'pending') {
                     $q->where(function ($q2) {
                         $q2->whereNull('disbursement_type')
-                          ->orWhere('disbursement_type', '')
-                          ->orWhere('disbursement_type', 'pending');
+                            ->orWhere('disbursement_type', '')
+                            ->orWhere('disbursement_type', 'pending');
                     });
                 } else {
                     $q->where('disbursement_type', $request->disbursement);
                 }
             })
             ->get()->map(function ($payment) use ($businessName) {
-            $disb = $payment->disbursement_type ?? 'pending';
-            $checkedBool = (bool)$payment->checked;
-            return [
-                'id'                 => $payment->id,
-                'user'               => $payment->user?->username ?? 'Unknown',
-                'user_id'            => $payment->user_id,
-                'phone'              => $payment->phone ?? ($payment->user?->phone ?? 'N/A'),
-                'receipt_number'     => $payment->receipt_number,
-                'amount'             => $payment->amount,
-                'checked'            => $checkedBool,
-                'paid_at'            => optional($payment->paid_at)->toDateTimeString(),
-                'disbursement_type'  => $disb,
-                'checked_label'      => $checkedBool ? 'Yes' : 'No',
-                'disbursement_label' => ucfirst($disb),
-                'business_name'      => $businessName,
-            ];
-        });
+                $disb = $payment->disbursement_type ?? 'pending';
+                $checkedBool = (bool) $payment->checked;
+                return [
+                    'id' => $payment->id,
+                    'user' => $payment->user?->username ?? 'Unknown',
+                    'user_id' => $payment->user_id,
+                    'phone' => $payment->phone ?? ($payment->user?->phone ?? 'N/A'),
+                    'receipt_number' => $payment->receipt_number,
+                    'amount' => $payment->amount,
+                    'checked' => $checkedBool,
+                    'paid_at' => optional($payment->paid_at)->toDateTimeString(),
+                    'disbursement_type' => $disb,
+                    'checked_label' => $checkedBool ? 'Yes' : 'No',
+                    'disbursement_label' => ucfirst($disb),
+                    'business_name' => $businessName,
+                ];
+            });
 
         return Inertia::render('Payments/Index', [
             'payments' => array_merge($payments->toArray(), ['allData' => $allPayments]),
-            'filters'  => $request->only('search', 'disbursement'),
-            'users'    => NetworkUser::select('id', 'username', 'phone')->get(),
+            'filters' => $request->only('search', 'disbursement'),
+            'users' => NetworkUser::select('id', 'username', 'phone')->get(),
         ]);
     }
 
     public function store(Request $request)
     {
         $data = $request->validate([
-            'user_id'           => 'required|exists:network_users,id',
-            'receipt_number'    => 'required|string|max:255',
-            'amount'            => 'required|numeric|min:0',
-            'checked'           => 'required|boolean',
-            'paid_at'           => 'required|date',
+            'user_id' => 'required|exists:network_users,id',
+            'receipt_number' => 'required|string|max:255|unique:tenant_payments,receipt_number',
+            'amount' => 'required|numeric|min:0',
+            'checked' => 'required|boolean',
+            'paid_at' => 'required|date',
             'disbursement_type' => 'required|string|in:pending,disbursed,withheld',
         ]);
 
@@ -156,11 +160,11 @@ class TenantPaymentController extends Controller
         $tenantPayment = TenantPayment::findOrFail($id);
 
         $data = $request->validate([
-            'user_id'           => 'sometimes|exists:network_users,id',
-            'receipt_number'    => 'required|string|max:255',
-            'amount'            => 'required|numeric|min:0',
-            'checked'           => 'required|boolean',
-            'paid_at'           => 'required|date',
+            'user_id' => 'sometimes|exists:network_users,id',
+            'receipt_number' => 'required|string|max:255|unique:tenant_payments,receipt_number,' . $id,
+            'amount' => 'required|numeric|min:0',
+            'checked' => 'required|boolean',
+            'paid_at' => 'required|date',
             'disbursement_type' => 'required|string|in:pending,disbursed,withheld',
         ]);
 
@@ -175,15 +179,18 @@ class TenantPaymentController extends Controller
 
         // Mikrotik suspend/unsuspend logic
         $user = isset($data['user_id']) ? NetworkUser::findOrFail($data['user_id']) : $tenantPayment->user;
-        $routerHost = config('mikrotik.host', '192.168.88.1');
-        $routerUser = config('mikrotik.username', 'admin');
-        $routerPass = config('mikrotik.password', 'password');
-        $routerPort = config('mikrotik.port', 8728);
-        $mikrotik = new \App\Services\MikrotikService($routerHost, $routerUser, $routerPass, $routerPort);
-        if (in_array($data['disbursement_type'], ['pending', 'withheld'])) {
-            $mikrotik->suspendUser($user->type, $user->mikrotik_id ?? '');
-        } elseif ($data['disbursement_type'] === 'disbursed') {
-            $mikrotik->unsuspendUser($user->type, $user->mikrotik_id ?? '');
+
+        // Load tenant router config from DB
+        $tenantMikrotik = \App\Models\Tenants\TenantMikrotik::where('created_by', auth()->id())->first();
+
+        if ($tenantMikrotik) {
+            $mikrotik = new \App\Services\MikrotikService($tenantMikrotik);
+
+            if (in_array($data['disbursement_type'], ['pending', 'withheld'])) {
+                $mikrotik->suspendUser($user->type, $user->mikrotik_id ?? '');
+            } elseif ($data['disbursement_type'] === 'disbursed') {
+                $mikrotik->unsuspendUser($user->type, $user->mikrotik_id ?? '');
+            }
         }
 
         return back()->with('success', 'Payment updated.');
@@ -223,10 +230,10 @@ class TenantPaymentController extends Controller
         if ($to) {
             try {
                 Http::post('https://api.talksasa.com/send', [
-                    'to'      => $to,
+                    'to' => $to,
                     'message' => "Payment received: Receipt #{$payment->receipt_number}. Thank you.",
-                    'apiKey'  => env('TALKSASA_API_KEY'),
-                    'from'    => config('app.name'),
+                    'apiKey' => env('TALKSASA_API_KEY'),
+                    'from' => config('app.name'),
                 ]);
             } catch (\Exception $e) {
                 logger()->error('SMS failed: ' . $e->getMessage());
@@ -257,12 +264,12 @@ class TenantPaymentController extends Controller
                 $phone = '2547' . substr($phone, 3);
             }
         }
-        
+
         $package = \App\Models\Package::findOrFail($data['package_id']);
-        
+
         // Generate unique receipt number
         $receiptNumber = 'HS-' . strtoupper(uniqid()) . '-' . date('Ymd');
-        
+
         // Create payment record with pending status
         $payment = TenantPayment::create([
             'phone' => $phone, // Store normalized format
