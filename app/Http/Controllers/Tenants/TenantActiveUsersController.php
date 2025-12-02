@@ -4,8 +4,7 @@ namespace App\Http\Controllers\Tenants;
 
 use App\Http\Controllers\Controller;
 use App\Models\Tenants\TenantMikrotik;
-use App\Services\Mikrotik\RouterApiService;
-use App\Services\MikrotikService;
+use App\Models\Radius\Radacct;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
@@ -16,49 +15,26 @@ class TenantActiveUsersController extends Controller
     {
         $activeUsers = [];
         $maxUsers = (int) ($request->input('limit', 500));
-        $routers = TenantMikrotik::where('status', 'online')->get();
+        $routers = TenantMikrotik::all()->keyBy('wireguard_address');
 
-        foreach ($routers as $router) {
-            try {
-                $apiService = new RouterApiService($router);
+        // Fetch active sessions from RADIUS radacct where acctstoptime IS NULL
+        $radRows = Radacct::whereNull('acctstoptime')->limit($maxUsers * 2)->get();
 
-                // Fetch Hotspot Users
-                $hotspotUsers = $apiService->getHotspotActiveUsers();
-                foreach ($hotspotUsers as $user) {
-                    $activeUsers[] = [
-                        'username' => $user['user'] ?? 'Unknown',
-                        'user_type' => 'hotspot',
-                        'ip' => $user['address'] ?? 'N/A',
-                        'mac' => $user['mac-address'] ?? 'N/A',
-                        'session_start' => isset($user['uptime']) ? $user['uptime'] : 'N/A',
-                        'session_end' => null,
-                        'package_name' => 'N/A',
-                        'router_name' => $router->name,
-                    ];
-                }
+        foreach ($radRows as $row) {
+            $router = $routers[$row->nasipaddress] ?? null;
+            $routerName = $router?->name ?? ($row->nasipaddress);
+            $type = str_contains(strtolower($row->callingstationid), ':') ? 'hotspot' : 'pppoe';
 
-                // Fetch PPPoE Users
-                $pppoeUsers = $apiService->getPppoeActiveUsers();
-                foreach ($pppoeUsers as $user) {
-                    $activeUsers[] = [
-                        'username' => $user['name'] ?? 'Unknown',
-                        'user_type' => 'pppoe',
-                        'ip' => $user['address'] ?? 'N/A',
-                        'mac' => $user['caller-id'] ?? 'N/A',
-                        'session_start' => isset($user['uptime']) ? $user['uptime'] : 'N/A',
-                        'session_end' => null,
-                        'package_name' => $user['service'] ?? 'N/A',
-                        'router_name' => $router->name,
-                    ];
-                }
-
-            } catch (\Exception $e) {
-                // Log error but continue with other routers
-                Log::error('Failed to fetch active users from router', [
-                    'router_id' => $router->id,
-                    'error' => $e->getMessage()
-                ]);
-            }
+            $activeUsers[] = [
+                'username' => $row->username,
+                'user_type' => $type,
+                'ip' => $row->framedipaddress,
+                'mac' => $row->callingstationid ?? 'N/A',
+                'session_start' => $row->acctstarttime,
+                'session_end' => null,
+                'package_name' => $row->groupname ?? 'N/A',
+                'router_name' => $routerName,
+            ];
         }
 
         // If too many users, cap to maxUsers to avoid memory issues
