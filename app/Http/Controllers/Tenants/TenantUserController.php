@@ -221,11 +221,12 @@ class TenantUserController extends Controller
             ? round(($lifetimeTotal / $totalAllClients) * 100, 1)
             : 0;
 
-        // Fetch RADIUS session history with pagination
+        // Fetch last 15 RADIUS sessions
         $sessions = Radacct::where('username', $user->username)
             ->orderBy('acctstarttime', 'desc')
-            ->paginate(20)
-            ->through(function ($session) {
+            ->limit(15)
+            ->get()
+            ->map(function ($session) {
                 // Calculate session duration
                 $duration = null;
                 if ($session->acctstarttime && $session->acctstoptime) {
