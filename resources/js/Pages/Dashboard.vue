@@ -606,7 +606,7 @@ const packageChartSeries = computed(() =>
                                 </div>
                                 
                                 <VueApexCharts
-                                    type="bar"
+                                    type="line"
                                     height="300"
                                     :options="userGrowthOptions"
                                     :series="userGrowthSeries"
