@@ -92,7 +92,7 @@ class TenantUserController extends Controller
             'username' => 'required|string|max:255|unique:network_users',
             'password' => 'nullable|string|min:6',
             'phone' => 'required|string|max:15',
-            'email' => 'nullable|email|max:255',
+            'email' => 'nullable|email|max:255|unique:network_users,email',
             'location' => 'nullable|string|max:255',
             'type' => 'required|in:hotspot,pppoe,static',
             'package_id' => 'nullable|exists:packages,id',
@@ -102,28 +102,46 @@ class TenantUserController extends Controller
         // Generate account number
         $accountNumber = 'NU' . str_pad(NetworkUser::max('id') + 1, 6, '0', STR_PAD_LEFT);
 
-        // Create the user in a database transaction
-        $user = \DB::transaction(function () use ($validated, $accountNumber) {
-            return NetworkUser::create([
-                'full_name' => $validated['full_name'],
-                'username' => $validated['username'],
-                'password' => $validated['password'],
-                'account_number' => $accountNumber,
-                'phone' => $validated['phone'],
-                'email' => $validated['email'],
-                'location' => $validated['location'],
-                'type' => $validated['type'],
-                'package_id' => $validated['package_id'],
-                'expires_at' => $validated['expires_at'],
-                'registered_at' => now(),
-                'created_by' => Auth::id(),
-            ]);
-        });
+        try {
+            // Create the user in a database transaction
+            $user = \DB::transaction(function () use ($validated, $accountNumber) {
+                return NetworkUser::create([
+                    'full_name' => $validated['full_name'],
+                    'username' => $validated['username'],
+                    'password' => $validated['password'],
+                    'account_number' => $accountNumber,
+                    'phone' => $validated['phone'],
+                    'email' => $validated['email'],
+                    'location' => $validated['location'],
+                    'type' => $validated['type'],
+                    'package_id' => $validated['package_id'],
+                    'expires_at' => $validated['expires_at'],
+                    'registered_at' => now(),
+                    'created_by' => Auth::id(),
+                ]);
+            });
 
-        return back()->with([
-            'success' => 'User created successfully.',
-            'user_id' => $user->id
-        ]);
+            return back()->with([
+                'success' => 'User created successfully.',
+                'user_id' => $user->id
+            ]);
+        } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
+            // Handle duplicate entries gracefully
+            if (str_contains($e->getMessage(), 'email')) {
+                return back()->withErrors(['email' => 'This email address is already registered.'])->withInput();
+            } elseif (str_contains($e->getMessage(), 'username')) {
+                return back()->withErrors(['username' => 'This username is already taken.'])->withInput();
+            }
+
+            return back()->withErrors(['error' => 'A user with this information already exists.'])->withInput();
+        } catch (\Exception $e) {
+            \Log::error('Failed to create user', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return back()->withErrors(['error' => 'Failed to create user. Please try again.'])->withInput();
+        }
     }
 
     /*public function show($id)
@@ -217,35 +235,56 @@ class TenantUserController extends Controller
             'username' => ['required', 'string', 'max:255', Rule::unique('network_users')->ignore($user->id)],
             'password' => 'nullable|string|min:4',
             'phone' => 'required|string|max:15',
-            'email' => 'nullable|email|max:255',
+            'email' => ['nullable', 'email', 'max:255', Rule::unique('network_users', 'email')->ignore($user->id)],
             'location' => 'nullable|string|max:255',
             'type' => ['required', Rule::in(['hotspot', 'pppoe', 'static'])],
             'package_id' => 'nullable|exists:packages,id',
             'expires_at' => 'nullable|date',
         ]);
 
-        // Update the user in a transaction
-        \DB::transaction(function () use ($user, $validated) {
+        try {
+            // Update the user in a transaction
+            \DB::transaction(function () use ($user, $validated) {
 
-            // If password not provided, don't update it
-            if (empty($validated['password'])) {
-                unset($validated['password']);
+                // If password not provided, don't update it
+                if (empty($validated['password'])) {
+                    unset($validated['password']);
+                }
+
+                // Preserve existing package_id if not provided
+                if (
+                    array_key_exists('package_id', $validated) &&
+                    ($validated['package_id'] === null || $validated['package_id'] === '' || $validated['package_id'] === '0')
+                ) {
+                    unset($validated['package_id']);
+                }
+
+                // Final update
+                $user->update($validated);
+            });
+
+            return back()->with([
+                'success' => 'User updated successfully.',
+                'user_id' => $user->id
+            ]);
+        } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
+            // Handle duplicate entries gracefully
+            if (str_contains($e->getMessage(), 'email')) {
+                return back()->withErrors(['email' => 'This email address is already registered.'])->withInput();
+            } elseif (str_contains($e->getMessage(), 'username')) {
+                return back()->withErrors(['username' => 'This username is already taken.'])->withInput();
             }
 
-            // Preserve existing package_id if not provided
-            if (array_key_exists('package_id', $validated) &&
-                ($validated['package_id'] === null || $validated['package_id'] === '' || $validated['package_id'] === '0')) {
-                unset($validated['package_id']);
-            }
+            return back()->withErrors(['error' => 'A user with this information already exists.'])->withInput();
+        } catch (\Exception $e) {
+            \Log::error('Failed to update user', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
 
-            // Final update
-            $user->update($validated);
-        });
-
-        return back()->with([
-            'success' => 'User updated successfully.',
-            'user_id' => $user->id
-        ]);
+            return back()->withErrors(['error' => 'Failed to update user. Please try again.'])->withInput();
+        }
     }
 
 
