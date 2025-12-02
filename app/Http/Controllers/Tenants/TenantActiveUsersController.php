@@ -12,8 +12,9 @@ class TenantActiveUsersController extends Controller
 {
     public function index(Request $request)
     {
-        $tenantId = tenant('id');
-        $mikrotikModel = TenantMikrotik::where('tenant_id', $tenantId)->first();
+        // In a tenant-scoped application, the database is already tenant-specific
+        // No need to filter by tenant_id - just get the first Mikrotik for this user
+        $mikrotikModel = TenantMikrotik::first();
 
         // If no Mikrotik exists, return empty array
         if (!$mikrotikModel) {
