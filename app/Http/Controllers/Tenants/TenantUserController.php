@@ -7,7 +7,6 @@ use App\Models\Tenants\NetworkUser;
 use App\Models\Package;
 use App\Models\Tenants\TenantPayment;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Auth;
 
@@ -205,24 +204,21 @@ class TenantUserController extends Controller
             'expires_at' => 'nullable|date',
         ]);
 
-        // Store original package ID for comparison
-        $originalPackageId = $user->package_id;
-
         // Update the user in a transaction
         \DB::transaction(function () use ($user, $validated) {
-            // Only hash password if it's provided
-            if (!empty($validated['password'])) {
-                $validated['password'] = Hash::make($validated['password']);
-            } else {
-                // Remove password from update if not provided
+
+            // If password not provided, don't update it
+            if (empty($validated['password'])) {
                 unset($validated['password']);
             }
 
-            // Handle package_id - if null or empty, remove it from update to keep current value
-            if (array_key_exists('package_id', $validated) && ($validated['package_id'] === null || $validated['package_id'] === '' || $validated['package_id'] === '0')) {
+            // Preserve existing package_id if not provided
+            if (array_key_exists('package_id', $validated) &&
+                ($validated['package_id'] === null || $validated['package_id'] === '' || $validated['package_id'] === '0')) {
                 unset($validated['package_id']);
             }
 
+            // Final update
             $user->update($validated);
         });
 
@@ -231,6 +227,7 @@ class TenantUserController extends Controller
             'user_id' => $user->id
         ]);
     }
+
 
     public function destroy(NetworkUser $user)
     {

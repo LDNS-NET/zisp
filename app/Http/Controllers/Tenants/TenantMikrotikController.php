@@ -531,8 +531,8 @@ class TenantMikrotikController extends Controller
             'ca_url' => $caUrl,
             'api_port' => $apiPort, // Use the stored API port
             'trusted_ip' => $trustedIp,
-            'radius_ip' => env('RADIUS_IP', '159.89.111.189'), // TODO: Get from tenant settings
-            'radius_secret' => env('RADIUS_SECRET', 'testing123'), // TODO: Get from tenant settings
+            'radius_ip' => '10.100.0.1', // RADIUS via VPN
+            'radius_secret' => $router->api_password, // Use API password as RADIUS secret
         ]);
 
         // Don't register NAS yet - router has no IP at creation time
@@ -795,8 +795,8 @@ class TenantMikrotikController extends Controller
             'ca_url' => $caUrl,
             'api_port' => $router->api_port ?? 8728,
             'trusted_ip' => $trustedIp,
-            'radius_ip' => env('RADIUS_IP', '159.89.111.189'), // TODO: Get from tenant settings
-            'radius_secret' => env('RADIUS_SECRET', 'testing123'), // TODO: Get from tenant settings
+            'radius_ip' => '10.100.0.1', // RADIUS via VPN
+            'radius_secret' => $router->api_password, // Use API password as RADIUS secret
         ]);
 
         $router->logs()->create([
@@ -841,8 +841,8 @@ class TenantMikrotikController extends Controller
             'ca_url' => $caUrl,
             'api_port' => $router->api_port ?? 8728,
             'trusted_ip' => $trustedIp,
-            'radius_ip' => env('RADIUS_IP', '159.89.111.189'),
-            'radius_secret' => env('RADIUS_SECRET', 'testing123'),
+            'radius_ip' => '10.100.0.1',
+            'radius_secret' => $router->api_password,
         ]);
 
         $router->logs()->create([
@@ -881,8 +881,8 @@ class TenantMikrotikController extends Controller
             'ca_url' => $caUrl,
             'api_port' => $router->api_port ?? 8728,
             'trusted_ip' => $trustedIp,
-            'radius_ip' => env('RADIUS_IP', '159.89.111.189'), // TODO: Get from tenant settings
-            'radius_secret' => env('RADIUS_SECRET', 'testing123'), // TODO: Get from tenant settings
+            'radius_ip' => '10.100.0.1', // RADIUS via VPN
+            'radius_secret' => $router->api_password, // Use API password as RADIUS secret
         ]);
 
         return Inertia::render('Mikrotiks/SetupScript', compact('router', 'script'));
@@ -1326,8 +1326,9 @@ class TenantMikrotikController extends Controller
         $router = TenantMikrotik::findOrFail($id);
 
         // Get RADIUS settings (same as onboarding script)
-        $radius_ip = env('RADIUS_IP', '159.89.111.189'); // TODO: Get from tenant settings
-        $radius_secret = env('RADIUS_SECRET', 'testing123'); // TODO: Get from tenant settings
+        // Get RADIUS settings (same as onboarding script)
+        $radius_ip = '10.100.0.1';
+        $radius_secret = $router->api_password;
 
         $script = $scriptGenerator->generateAdvancedConfig([
             'name' => $router->name,
@@ -1423,7 +1424,7 @@ class TenantMikrotikController extends Controller
 
             $shortname = "mtk-" . $router->id;
 
-            $secret = config('radius.secret', env('RADIUS_SECRET', 'testing123'));
+            $secret = $router->api_password;
 
             $radiusServer = config('radius.server', '127.0.0.1');
 
