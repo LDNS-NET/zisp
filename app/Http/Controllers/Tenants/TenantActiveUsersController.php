@@ -15,6 +15,7 @@ class TenantActiveUsersController extends Controller
     public function index(Request $request)
     {
         $activeUsers = [];
+        $maxUsers = (int) ($request->input('limit', 500));
         $routers = TenantMikrotik::where('status', 'online')->get();
 
         foreach ($routers as $router) {
@@ -60,8 +61,18 @@ class TenantActiveUsersController extends Controller
             }
         }
 
+        // If too many users, cap to maxUsers to avoid memory issues
+        $totalFetched = count($activeUsers);
+        if ($totalFetched > $maxUsers) {
+            $activeUsers = array_slice($activeUsers, 0, $maxUsers);
+            $message = "Showing first {$maxUsers} out of {$totalFetched} active users. Refine filters to see more.";
+        } else {
+            $message = null;
+        }
+
         return Inertia::render('Activeusers/Index', [
             'activeUsers' => $activeUsers,
+            'message' => $message,
         ]);
     }
 }
