@@ -69,12 +69,6 @@ onUnmounted(() => {
 
 const form = useForm({
     name: '',
-    notes: '',
-    ip_address: '',
-    api_port: '',
-    ssh_port: '',
-    connection_type: 'api',
-    openvpn_profile_id: null,
 });
 
 function closeModal() {
@@ -108,19 +102,6 @@ function editForm() {
             },
         });
     }
-}
-
-function openEdit(router) {
-    selectedRouter.value = router;
-    form.name = router.name;
-    form.ip_address = router.ip_address || '';
-    form.api_port = router.api_port || '';
-    form.ssh_port = router.ssh_port || '';
-    form.connection_type = router.connection_type || 'api';
-    form.openvpn_profile_id = router.openvpn_profile_id || null;
-    form.notes = router.notes;
-    showEditModal.value = true;
-    formError.value = '';
 }
 
 function viewRouter(router) {
@@ -323,7 +304,6 @@ watch([routersList, search], () => {
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">VPN IP</th>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Resources</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Uptime</th>
                                 <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
@@ -368,12 +348,6 @@ watch([routersList, search], () => {
                                             <HardDrive class="w-3 h-3" />
                                             <span>Mem: {{ router.memory ? router.memory + '%' : '-' }}</span>
                                         </div>
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                                    <div class="flex items-center gap-1">
-                                        <Clock class="w-3 h-3" />
-                                        {{ router.uptime ? formatUptime(router.uptime) : '-' }}
                                     </div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -426,10 +400,6 @@ watch([routersList, search], () => {
                             <div class="flex flex-col items-center justify-center p-1 border-l border-gray-200 dark:border-slate-700">
                                 <span class="uppercase tracking-wider text-[10px] opacity-70">Mem</span>
                                 <span class="font-medium text-gray-700 dark:text-gray-300">{{ router.memory ? router.memory + '%' : '-' }}</span>
-                            </div>
-                            <div class="flex flex-col items-center justify-center p-1 border-l border-gray-200 dark:border-slate-700">
-                                <span class="uppercase tracking-wider text-[10px] opacity-70">Uptime</span>
-                                <span class="font-medium text-gray-700 dark:text-gray-300">{{ router.uptime ? formatUptime(router.uptime).split(' ')[0] : '-' }}</span>
                             </div>
                         </div>
 
