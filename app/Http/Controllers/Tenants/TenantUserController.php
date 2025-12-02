@@ -221,13 +221,62 @@ class TenantUserController extends Controller
             ? round(($lifetimeTotal / $totalAllClients) * 100, 1)
             : 0;
 
+        // Fetch RADIUS session history
+        $sessions = Radacct::where('username', $user->username)
+            ->orderBy('acctstarttime', 'desc')
+            ->limit(100)
+            ->get()
+            ->map(function ($session) {
+                // Calculate session duration
+                $duration = null;
+                if ($session->acctstarttime && $session->acctstoptime) {
+                    $start = \Carbon\Carbon::parse($session->acctstarttime);
+                    $stop = \Carbon\Carbon::parse($session->acctstoptime);
+                    $seconds = $stop->diffInSeconds($start);
+
+                    $hours = floor($seconds / 3600);
+                    $minutes = floor(($seconds % 3600) / 60);
+                    $secs = $seconds % 60;
+                    $duration = sprintf('%02d:%02d:%02d', $hours, $minutes, $secs);
+                }
+
+                // Calculate total data used (input + output)
+                $dataUsed = ($session->acctinputoctets ?? 0) + ($session->acctoutputoctets ?? 0);
+                $dataUsedFormatted = $this->formatBytes($dataUsed);
+
+                return [
+                    'session_id' => $session->radacctid,
+                    'start_time' => $session->acctstarttime,
+                    'stop_time' => $session->acctstoptime,
+                    'duration' => $duration ?? ($session->acctstoptime ? 'N/A' : 'Active'),
+                    'data_used' => $dataUsedFormatted,
+                    'data_in' => $this->formatBytes($session->acctinputoctets ?? 0),
+                    'data_out' => $this->formatBytes($session->acctoutputoctets ?? 0),
+                    'termination_cause' => $session->acctterminatecause ?? 'N/A',
+                    'nas_ip' => $session->nasipaddress,
+                    'framed_ip' => $session->framedipaddress,
+                ];
+            });
+
         return inertia('Users/Details', [
             'user' => $user,
             'payments' => $userPayments,
+            'sessions' => $sessions,
             'lifetimeTotal' => $lifetimeTotal,
             'paymentReliability' => $paymentReliability,
             'clientValue' => $clientValue,
         ]);
+    }
+
+    // Helper function to format bytes
+    private function formatBytes($bytes)
+    {
+        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+        $bytes = max($bytes, 0);
+        $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
+        $pow = min($pow, count($units) - 1);
+        $bytes /= pow(1024, $pow);
+        return round($bytes, 2) . ' ' . $units[$pow];
     }
 
 

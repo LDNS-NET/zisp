@@ -19,7 +19,8 @@ const props = defineProps({
     clientValue: Number,
     tenant: Object,
     filters: Object,
-    payments: Array, // 👈 payments come from controller
+    payments: Array,
+    sessions: Array, // Session history from RADIUS
 });
 
 const showModal = ref(false);
@@ -396,11 +397,153 @@ function submit() {
                 class="rounded-2xl bg-white p-6 shadow dark:bg-gray-900"
             >
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                    Sessions
+                    Session History
                 </h3>
                 <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                    Active and past session details.
+                    RADIUS session history for this user (last 100 sessions)
                 </p>
+
+                <div class="mt-6 overflow-x-auto">
+                    <table
+                        class="min-w-full divide-y divide-gray-200 border dark:divide-gray-700"
+                    >
+                        <thead class="bg-gray-50 dark:bg-gray-800">
+                            <tr>
+                                <th
+                                    class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300"
+                                >
+                                    Start Time
+                                </th>
+                                <th
+                                    class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300"
+                                >
+                                    Stop Time
+                                </th>
+                                <th
+                                    class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300"
+                                >
+                                    Duration
+                                </th>
+                                <th
+                                    class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300"
+                                >
+                                    Data Used
+                                </th>
+                                <th
+                                    class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300"
+                                >
+                                    Termination
+                                </th>
+                                <th
+                                    class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300"
+                                >
+                                    IP Address
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody
+                            class="divide-y divide-gray-100 bg-white dark:divide-gray-800 dark:bg-gray-900"
+                        >
+                            <tr
+                                v-for="session in props.sessions"
+                                :key="session.session_id"
+                                class="hover:bg-gray-50 dark:hover:bg-gray-800"
+                            >
+                                <td
+                                    class="whitespace-nowrap px-4 py-3 text-sm text-gray-900 dark:text-gray-100"
+                                >
+                                    {{
+                                        session.start_time
+                                            ? new Date(
+                                                  session.start_time,
+                                              ).toLocaleString()
+                                            : '—'
+                                    }}
+                                </td>
+                                <td
+                                    class="whitespace-nowrap px-4 py-3 text-sm text-gray-900 dark:text-gray-100"
+                                >
+                                    {{
+                                        session.stop_time
+                                            ? new Date(
+                                                  session.stop_time,
+                                              ).toLocaleString()
+                                            : '—'
+                                    }}
+                                </td>
+                                <td
+                                    class="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900 dark:text-gray-100"
+                                >
+                                    <span
+                                        :class="
+                                            session.duration === 'Active'
+                                                ? 'text-green-600 dark:text-green-400'
+                                                : ''
+                                        "
+                                    >
+                                        {{ session.duration }}
+                                    </span>
+                                </td>
+                                <td
+                                    class="whitespace-nowrap px-4 py-3 text-sm text-gray-900 dark:text-gray-100"
+                                >
+                                    <div class="flex flex-col">
+                                        <span class="font-medium">{{
+                                            session.data_used
+                                        }}</span>
+                                        <span
+                                            class="text-xs text-gray-500 dark:text-gray-400"
+                                        >
+                                            ↓{{ session.data_in }} ↑{{
+                                                session.data_out
+                                            }}
+                                        </span>
+                                    </div>
+                                </td>
+                                <td
+                                    class="whitespace-nowrap px-4 py-3 text-sm text-gray-900 dark:text-gray-100"
+                                >
+                                    <span
+                                        class="inline-flex rounded-full px-2 py-1 text-xs font-semibold"
+                                        :class="
+                                            session.termination_cause === 'N/A'
+                                                ? 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                                                : session.termination_cause.includes(
+                                                        'User-Request',
+                                                    )
+                                                  ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                                                  : session.termination_cause.includes(
+                                                          'Session-Timeout',
+                                                      )
+                                                    ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                                                    : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                                        "
+                                    >
+                                        {{ session.termination_cause }}
+                                    </span>
+                                </td>
+                                <td
+                                    class="whitespace-nowrap px-4 py-3 text-sm text-gray-900 dark:text-gray-100"
+                                >
+                                    {{ session.framed_ip ?? '—' }}
+                                </td>
+                            </tr>
+                            <tr
+                                v-if="
+                                    !props.sessions ||
+                                    props.sessions.length === 0
+                                "
+                            >
+                                <td
+                                    colspan="6"
+                                    class="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400"
+                                >
+                                    No session history found for this user.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
