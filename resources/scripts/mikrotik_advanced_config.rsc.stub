@@ -74,7 +74,7 @@
 :do {
     /ip hotspot remove [find interface=$bridgeName]
 } on-error={}
-/ip hotspot add address-pool=zisp_hs_pool addresses-per-mac=1 disabled=no idle-timeout=1m interface=$bridgeName name=$bridgeName profile=$hotspotProfile
+/ip hotspot add address-pool=$poolName addresses-per-mac=1 disabled=no idle-timeout=1m interface=$bridgeName name=$bridgeName profile=$hotspotProfile
 :put " =================== Hotspot server created =================== "
 
 
@@ -102,7 +102,7 @@
 :do {
     /ip pool remove [find name=$poolName]
 } on-error={}
-/ip pool add name=pppoe_pool ranges=192.25.0.2-192.25.255.254
+/ip pool add name=$poolName ranges=172.20.0.2-172.20.255.254
 :put " =================== PPPoE IP pool created ==================="
 
 
