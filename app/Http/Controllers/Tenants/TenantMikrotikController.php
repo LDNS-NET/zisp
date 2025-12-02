@@ -1353,43 +1353,6 @@ class TenantMikrotikController extends Controller
             ->header('Content-Type', 'text/plain')
             ->header('Content-Disposition', "attachment; filename=advanced_config_router_{$router->id}.rsc");
     }
-
-    /**
-     * Provision MikroTik hotspot profile + server for this tenant on the given router.
-     */
-    /*public function provisionHotspot($id, TenantHotspotService $hotspotService)
-    {
-        $router = TenantMikrotik::findOrFail($id);
-
-        try {
-            $hotspotService->provisionHotspotOnRouter($router);
-
-            $router->logs()->create([
-                'action' => 'provision_hotspot',
-                'message' => 'Hotspot profile and server provisioned on MikroTik.',
-                'status' => 'success',
-            ]);
-
-            return redirect()->route('mikrotiks.index')
-                ->with('success', 'Hotspot provisioned on router.');
-        } catch (\Throwable $e) {
-            Log::error('Failed to provision hotspot on MikroTik', [
-                'router_id' => $router->id,
-                'router_ip' => $router->ip_address,
-                'error' => $e->getMessage(),
-            ]);
-
-            $router->logs()->create([
-                'action' => 'provision_hotspot',
-                'message' => 'Failed to provision hotspot: ' . $e->getMessage(),
-                'status' => 'failed',
-            ]);
-
-            return redirect()->route('mikrotiks.index')
-                ->with('error', 'Failed to provision hotspot on router.');
-        }
-    }
-    */
     /**
      * Register or update the router in FreeRADIUS using its VPN tunnel IP.
      * All routers must use VPN IP (wireguard_address) from 10.100.0.0/16 subnet.
