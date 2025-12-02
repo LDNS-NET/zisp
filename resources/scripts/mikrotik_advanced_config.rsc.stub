@@ -50,7 +50,7 @@
 :do {
     /ip dhcp-server remove [find interface=$bridgeName]
 } on-error={}
-/ip dhcp-server add address-pool=zisp_hs_pool disabled=no interface=$bridgeName lease-time=00:10:00 name=zisp_hs_dhcp
+/ip dhcp-server add address-pool=$poolName disabled=no interface=$bridgeName lease-time=00:10:00 name=zisp_dhcp
 :put " =================== DHCP server created =================== "
 
 
