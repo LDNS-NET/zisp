@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Tenants;
 
 use App\Http\Controllers\Controller;
+use App\Models\Tenants\NetworkUser;
 use App\Models\Tenants\TenantMikrotik;
 use App\Models\Radius\Radacct;
 use App\Services\Mikrotik\RouterApiService;
@@ -21,10 +22,21 @@ class TenantActiveUsersController extends Controller
         // Fetch active sessions from RADIUS radacct where acctstoptime IS NULL
         $radRows = Radacct::whereNull('acctstoptime')->limit($maxUsers * 2)->get();
 
+        // Get all network users with their packages for type lookup
+        $networkUsers = NetworkUser::with('package')->get()->keyBy('username');
+
         foreach ($radRows as $row) {
             $router = $routers[$row->nasipaddress] ?? null;
             $routerName = $router?->name ?? ($row->nasipaddress);
-            $type = str_contains(strtolower($row->callingstationid), ':') ? 'hotspot' : 'pppoe';
+
+            // Get user type from NetworkUser's package, fallback to MAC-based detection
+            $networkUser = $networkUsers[strtolower($row->username)] ?? null;
+            if ($networkUser && $networkUser->package) {
+                $type = $networkUser->package->type;
+            } else {
+                // Fallback: detect from MAC address format (hotspot has colons, pppoe doesn't)
+                $type = str_contains(strtolower($row->callingstationid), ':') ? 'hotspot' : 'pppoe';
+            }
 
             $activeUsers[] = [
                 'username' => $row->username,
