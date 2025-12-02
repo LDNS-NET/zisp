@@ -12,11 +12,24 @@ class TenantActiveUsersController extends Controller
 {
     public function index(Request $request)
     {
-        $tenantId = tenant('id'); // or auth()->user()->tenant_id
-        $mikrotikModel = TenantMikrotik::where('tenant_id', $tenantId)->firstOrFail();
+        $tenantId = tenant('id');
+        $mikrotikModel = TenantMikrotik::where('tenant_id', $tenantId)->first();
 
-        $mikrotik = new MikrotikService($mikrotikModel);
-        $activeUsers = $mikrotik->getOnlineUsers();
+        // If no Mikrotik exists, return empty array
+        if (!$mikrotikModel) {
+            return Inertia::render('Activeusers/Index', [
+                'activeUsers' => [],
+                'message' => 'No MikroTik device configured. Please add a MikroTik router first.',
+            ]);
+        }
+
+        try {
+            $mikrotik = new MikrotikService($mikrotikModel);
+            $activeUsers = $mikrotik->getOnlineUsers();
+        } catch (\Exception $e) {
+            \Log::error('Failed to get active users: ' . $e->getMessage());
+            $activeUsers = [];
+        }
 
         return Inertia::render('Activeusers/Index', [
             'activeUsers' => $activeUsers,
