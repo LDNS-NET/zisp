@@ -65,17 +65,34 @@ class TenantMikrotikController extends Controller
             ->findOrFail($id);
 
         // Fetch real-time data if router is online
+        use App\Models\Radius\Radacct;
+
+        // Build realtime defaults from DB
+        $activeRows = Radacct::whereNull('acctstoptime')
+            ->where('nasipaddress', $router->wireguard_address)
+            ->get();
+        $hotspotActiveDb = $activeRows->filter(fn($row) => str_contains(strtolower($row->callingstationid ?? ''), ':'))->count();
+        $pppoeActiveDb = $activeRows->count() - $hotspotActiveDb;
+
         $realtimeData = [
-            'resources' => null,
+            'resources' => [
+                'cpu-load' => $router->cpu_usage,
+                'free-memory' => null,
+                'total-memory' => null,
+                'uptime' => $router->uptime,
+            ],
             'interfaces' => [],
-            'hotspot_active' => 0,
-            'pppoe_active' => 0,
+            'hotspot_active' => $hotspotActiveDb,
+            'pppoe_active' => $pppoeActiveDb,
             'wireguard_peers' => [],
             'router_logs' => [],
             'is_online' => false,
         ];
 
-        try {
+        // Only poll router if last_seen_at is stale (>180s)
+        $shouldPoll = !$router->last_seen_at || now()->diffInSeconds($router->last_seen_at) > 180;
+
+        if ($shouldPoll) try {
             $apiService = new \App\Services\Mikrotik\RouterApiService($router);
 
             // Quick online check first
