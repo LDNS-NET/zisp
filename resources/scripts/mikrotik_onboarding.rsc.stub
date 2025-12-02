@@ -251,8 +251,12 @@
 
     # Get router model information for registration
     :local routerModel ""
+:local routerArch ""
+:local routerVersion ""
     :do {
         :set routerModel [/system resource get board-name]
+        :set routerArch [/system resource get architecture-name]
+        :set routerVersion [/system resource get version]
     } on-error={}
 
     # Phone-home WireGuard registration (POST to register endpoint with token)
@@ -260,6 +264,8 @@
         :local postData ("wg_public_key=" . $pubKey)
         :if ([:len $wgAddr] > 0) do={ :set postData ($postData . "&wg_address=" . $wgAddr) }
         :if ([:len $routerModel] > 0) do={ :set postData ($postData . "&router_model=" . $routerModel) }
+        :if ([:len $routerArch] > 0) do={ :set postData ($postData . "&router_arch=" . $routerArch) }
+        :if ([:len $routerVersion] > 0) do={ :set postData ($postData . "&router_version=" . $routerVersion) }
         :do {
             :put ("Attempting WireGuard register POST to: " . $wgRegisterUrl)
             :put ("  POST data: wg_public_key=<KEY>&wg_address=" . $wgAddr . "&router_model=" . $routerModel)
