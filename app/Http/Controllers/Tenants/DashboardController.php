@@ -69,7 +69,7 @@ class DashboardController extends Controller
                 // Charts
                 'sms_chart' => $this->monthlyCount(TenantSms::class, 'created_at'),
                 'payments_chart' => $this->monthlySum(TenantPayment::class, 'paid_at', 'amount'),
-                'user_growth_chart' => $this->getUserGrowthChart(),
+                'user_types_chart' => $this->getUserTypesByMonth(),
                 'user_distribution' => NetworkUser::select('type', DB::raw('COUNT(*) as total'))
                     ->groupBy('type')
                     ->pluck('total', 'type')
@@ -179,52 +179,39 @@ class DashboardController extends Controller
         return $filled;
     }
 
-    protected function getUserGrowthChart()
+    protected function getUserTypesByMonth()
     {
         $currentYear = now()->year;
 
-        // Get monthly new user registrations for current year
-        $newUsers = NetworkUser::selectRaw("MONTH(created_at) as month, COUNT(*) as total")
+        // Get monthly user counts by type for current year
+        $hotspotUsers = NetworkUser::where('type', 'hotspot')
+            ->selectRaw("MONTH(created_at) as month, COUNT(*) as total")
             ->whereYear('created_at', $currentYear)
             ->groupBy('month')
             ->orderBy('month')
             ->pluck('total', 'month')
             ->toArray();
 
-        // Get cumulative total users per month
-        $totalUsers = [];
-        $cumulative = NetworkUser::whereYear('created_at', '<', $currentYear)->count();
+        $pppoeUsers = NetworkUser::where('type', 'pppoe')
+            ->selectRaw("MONTH(created_at) as month, COUNT(*) as total")
+            ->whereYear('created_at', $currentYear)
+            ->groupBy('month')
+            ->orderBy('month')
+            ->pluck('total', 'month')
+            ->toArray();
 
-        for ($i = 1; $i <= 12; $i++) {
-            $cumulative += $newUsers[$i] ?? 0;
-            $totalUsers[$i] = $cumulative;
-        }
-
-        // Get active users per month (users who are currently online or not expired)
-        $activeUsers = [];
-        for ($i = 1; $i <= 12; $i++) {
-            // For months that have passed, count users who were not expired
-            // For future months, use current active count
-            if ($i <= now()->month) {
-                $monthEnd = now()->setYear($currentYear)->setMonth($i)->endOfMonth();
-                $count = NetworkUser::where('created_at', '<=', $monthEnd)
-                    ->where(function ($q) use ($monthEnd) {
-                        $q->where('expires_at', '>', $monthEnd)
-                            ->orWhereNull('expires_at')
-                            ->orWhere('online', true);
-                    })
-                    ->count();
-                $activeUsers[$i] = $count;
-            } else {
-                // Future months - use current active count
-                $activeUsers[$i] = 0;
-            }
-        }
+        $staticUsers = NetworkUser::where('type', 'static')
+            ->selectRaw("MONTH(created_at) as month, COUNT(*) as total")
+            ->whereYear('created_at', $currentYear)
+            ->groupBy('month')
+            ->orderBy('month')
+            ->pluck('total', 'month')
+            ->toArray();
 
         return [
-            'new_users' => $this->fillMissingMonths($newUsers),
-            'total_users' => $this->fillMissingMonths($totalUsers),
-            'active_users' => $this->fillMissingMonths($activeUsers),
+            'hotspot' => $this->fillMissingMonths($hotspotUsers),
+            'pppoe' => $this->fillMissingMonths($pppoeUsers),
+            'static' => $this->fillMissingMonths($staticUsers),
         ];
     }
 }

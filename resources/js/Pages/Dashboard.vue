@@ -200,45 +200,30 @@ const userGrowthOptions = computed(() => ({
 }));
 
 const userGrowthSeries = computed(() => {
-    // Show actual network user types from stats
-    const hotspotUsers = props.stats?.users?.hotspot || 0;
-    const pppoeUsers = props.stats?.users?.pppoe || 0;
-    const staticUsers = props.stats?.users?.static || 0;
+    // Use real data from backend based on actual created_at dates
+    const typesData = props.stats?.user_types_chart;
     
-    // Generate realistic monthly growth pattern for each user type
-    const hotspotData = [];
-    const pppoeData = [];
-    const staticData = [];
-    
-    const currentMonth = new Date().getMonth(); // 0-11
-    
-    for (let i = 0; i < 12; i++) {
-        if (i <= currentMonth) {
-            // Calculate progressive growth for past months
-            const monthProgress = (i + 1) / (currentMonth + 1);
-            hotspotData.push(Math.round(hotspotUsers * monthProgress));
-            pppoeData.push(Math.round(pppoeUsers * monthProgress));
-            staticData.push(Math.round(staticUsers * monthProgress));
-        } else {
-            // Future months - show current values
-            hotspotData.push(hotspotUsers);
-            pppoeData.push(pppoeUsers);
-            staticData.push(staticUsers);
-        }
+    if (!typesData) {
+        // Fallback if no data
+        return [
+            { name: 'Hotspot Users', data: Array(12).fill(0) },
+            { name: 'PPPoE Users', data: Array(12).fill(0) },
+            { name: 'Static Users', data: Array(12).fill(0) },
+        ];
     }
 
     return [
         {
             name: 'Hotspot Users',
-            data: hotspotData,
+            data: typesData.hotspot || Array(12).fill(0),
         },
         {
             name: 'PPPoE Users',
-            data: pppoeData,
+            data: typesData.pppoe || Array(12).fill(0),
         },
         {
             name: 'Static Users',
-            data: staticData,
+            data: typesData.static || Array(12).fill(0),
         },
     ];
 });
@@ -606,7 +591,7 @@ const packageChartSeries = computed(() =>
                                 </div>
                                 
                                 <VueApexCharts
-                                    type="line"
+                                    type="bar"
                                     height="300"
                                     :options="userGrowthOptions"
                                     :series="userGrowthSeries"
