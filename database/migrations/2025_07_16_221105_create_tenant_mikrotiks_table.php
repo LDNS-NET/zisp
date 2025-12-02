@@ -25,7 +25,8 @@ return new class extends Migration
             $table->integer('api_port')->default(8728);
             $table->integer('ssh_port')->default(22);
             $table->string('router_username')->nullable();
-            $table->string('online')->nullable();
+            $table->string('router_password')->nullable(); // encrypted
+            $table->boolean('online')->default(false);
             $table->enum('connection_type', ['api', 'ssh', 'ovpn'])->default('api');
             $table->timestamp('last_seen_at')->nullable();
             $table->string('model')->nullable(); // RB750, RB450G, etc.
