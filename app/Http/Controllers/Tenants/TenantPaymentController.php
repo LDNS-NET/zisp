@@ -101,7 +101,7 @@ class TenantPaymentController extends Controller
             ];
         });
 
-        return Inertia::render('Tenants/Payments/Index', [
+        return Inertia::render('Payments/Index', [
             'payments' => array_merge($payments->toArray(), ['allData' => $allPayments]),
             'filters'  => $request->only('search', 'disbursement'),
             'users'    => NetworkUser::select('id', 'username', 'phone')->get(),
@@ -114,7 +114,7 @@ class TenantPaymentController extends Controller
             'user_id'           => 'required|exists:network_users,id',
             'receipt_number'    => 'required|string|max:255',
             'amount'            => 'required|numeric|min:0',
-            'checked'           => 'required|boolean',   // 👈 boolean
+            'checked'           => 'required|boolean',
             'paid_at'           => 'required|date',
             'disbursement_type' => 'required|string|in:pending,disbursed,withheld',
         ]);
