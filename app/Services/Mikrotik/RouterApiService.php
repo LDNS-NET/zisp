@@ -253,6 +253,29 @@ class RouterApiService
     }
 
     /**
+     * Get active DHCP leases (Static/Dynamic).
+     *
+     * @return array
+     */
+    public function getDhcpLeases(): array
+    {
+        try {
+            $client = $this->getClient();
+            // Fetch all leases, we can filter for active ones if needed, but usually all leases in print are relevant
+            // We might want to filter by status=bound if we only want currently active ones
+            $leases = $client->query('/ip/dhcp-server/lease/print')->read();
+
+            return is_array($leases) ? $leases : [];
+        } catch (Exception $e) {
+            Log::error('Failed to get DHCP leases', [
+                'router_id' => $this->mikrotik->id,
+                'error' => $e->getMessage(),
+            ]);
+            return [];
+        }
+    }
+
+    /**
      * Get WireGuard peers.
      *
      * @return array
