@@ -60,7 +60,7 @@ class TenantMikrotikController extends Controller
     /**
      * Show single router details.
      */
-    public function show($id)
+    public function show(Request $request, $id)
     {
         $router = TenantMikrotik::with(['openvpnProfile', 'logs', 'bandwidthUsage', 'activeSessions', 'alerts'])
             ->findOrFail($id);
@@ -97,28 +97,29 @@ class TenantMikrotikController extends Controller
         // Poll router if forced or cache is stale (>180s)
         $shouldPoll = $force || !$router->last_seen_at || now()->diffInSeconds($router->last_seen_at) > 180;
 
-        if ($shouldPoll) try {
-            $apiService = new \App\Services\Mikrotik\RouterApiService($router);
+        if ($shouldPoll)
+            try {
+                $apiService = new \App\Services\Mikrotik\RouterApiService($router);
 
-            // Quick online check first
-            if ($apiService->isOnline()) {
-                $realtimeData['is_online'] = true;
+                // Quick online check first
+                if ($apiService->isOnline()) {
+                    $realtimeData['is_online'] = true;
 
-                // Fetch data in parallel or sequence (sequence for now)
-                $realtimeData['resources'] = $apiService->getSystemResource();
-                $realtimeData['interfaces'] = $apiService->getInterfaces();
-                $realtimeData['hotspot_active'] = $apiService->getHotspotActive();
-                $realtimeData['pppoe_active'] = $apiService->getPppoeActive();
-                $realtimeData['wireguard_peers'] = $apiService->getWireGuardPeers();
-                $realtimeData['router_logs'] = $apiService->getLogs(20); // Get last 20 logs
+                    // Fetch data in parallel or sequence (sequence for now)
+                    $realtimeData['resources'] = $apiService->getSystemResource();
+                    $realtimeData['interfaces'] = $apiService->getInterfaces();
+                    $realtimeData['hotspot_active'] = $apiService->getHotspotActive();
+                    $realtimeData['pppoe_active'] = $apiService->getPppoeActive();
+                    $realtimeData['wireguard_peers'] = $apiService->getWireGuardPeers();
+                    $realtimeData['router_logs'] = $apiService->getLogs(20); // Get last 20 logs
+                }
+            } catch (\Exception $e) {
+                // Log error but continue to show page with cached/DB data
+                Log::warning('Failed to fetch real-time data for router show page', [
+                    'router_id' => $id,
+                    'error' => $e->getMessage()
+                ]);
             }
-        } catch (\Exception $e) {
-            // Log error but continue to show page with cached/DB data
-            Log::warning('Failed to fetch real-time data for router show page', [
-                'router_id' => $id,
-                'error' => $e->getMessage()
-            ]);
-        }
 
         return Inertia::render('Mikrotiks/Show', [
             'mikrotik' => $router,
