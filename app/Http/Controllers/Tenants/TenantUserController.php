@@ -9,6 +9,7 @@ use App\Models\Tenants\TenantPayment;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Auth;
+use App\Models\Radius\Radacct;
 
 class TenantUserController extends Controller
 {
@@ -25,6 +26,24 @@ class TenantUserController extends Controller
 
         $users = $query->paginate(10);
 
+        // Determine currently online usernames from RADIUS accounting and persist to DB
+        $onlineUsernames = Radacct::whereNull('acctstoptime')
+            ->pluck('username')
+            ->map(fn($u) => strtolower(trim($u)))
+            ->unique()
+            ->toArray();
+
+        // Sync 'online' column (0 = offline, 1 = online)
+        // Set online=1 for active usernames
+        NetworkUser::whereIn(\DB::raw('lower(trim(username))'), $onlineUsernames)
+            ->where('online', false)
+            ->update(['online' => true]);
+
+        // Set online=0 for others previously marked online but not in list
+        NetworkUser::whereNotIn(\DB::raw('lower(trim(username))'), $onlineUsernames)
+            ->where('online', true)
+            ->update(['online' => false]);
+
         // Get available packages for the form
         $packages = [
             'hotspot' => Package::where('type', 'hotspot')->get(),
@@ -37,6 +56,7 @@ class TenantUserController extends Controller
             'all' => NetworkUser::count(),
             'active' => NetworkUser::where('status', 'active')->count(),
             'inactive' => NetworkUser::where('status', 'inactive')->count(),
+            'online' => count($onlineUsernames),
             'expired' => NetworkUser::where('expires_at', '<', now())->count(),
         ];
 
@@ -50,7 +70,7 @@ class TenantUserController extends Controller
                 'email' => $user->email,
                 'location' => $user->location,
                 'type' => $user->type,
-                'is_online' => $user->is_online,
+                'is_online' => (bool) $user->online,
                 'expires_at' => $user->expires_at,
                 'expiry_human' => optional($user->expires_at)->diffForHumans(),
                 'package' => $user->package ? [
