@@ -8,6 +8,7 @@ use App\Models\Tenants\{TenantMikrotik, TenantOpenVPNProfile, TenantRouterLog, T
 use App\Models\Radius\Nas;
 use App\Models\Tenants\TenantRouterAlert;
 use App\Services\{MikrotikService, MikrotikScriptGenerator, TenantHotspotService};
+use App\Models\Radius\Radacct;
 use App\Services\Mikrotik\RouterApiService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
@@ -64,8 +65,7 @@ class TenantMikrotikController extends Controller
         $router = TenantMikrotik::with(['openvpnProfile', 'logs', 'bandwidthUsage', 'activeSessions', 'alerts'])
             ->findOrFail($id);
 
-        // Fetch real-time data if router is online
-        use App\Models\Radius\Radacct;
+        // Build real-time data defaults
 
         // Build realtime defaults from DB
         $activeRows = Radacct::whereNull('acctstoptime')
