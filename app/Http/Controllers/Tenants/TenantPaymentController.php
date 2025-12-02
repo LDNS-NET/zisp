@@ -101,7 +101,7 @@ class TenantPaymentController extends Controller
             ];
         });
 
-        return Inertia::render('Payments/Index', [
+        return Inertia::render('Tenants/Payments/Index', [
             'payments' => array_merge($payments->toArray(), ['allData' => $allPayments]),
             'filters'  => $request->only('search', 'disbursement'),
             'users'    => NetworkUser::select('id', 'username', 'phone')->get(),
