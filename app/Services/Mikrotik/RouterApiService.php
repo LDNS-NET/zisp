@@ -211,6 +211,48 @@ class RouterApiService
     }
 
     /**
+     * Get active hotspot users details.
+     *
+     * @return array
+     */
+    public function getHotspotActiveUsers(): array
+    {
+        try {
+            $client = $this->getClient();
+            $active = $client->query('/ip/hotspot/active/print')->read();
+
+            return is_array($active) ? $active : [];
+        } catch (Exception $e) {
+            Log::error('Failed to get hotspot active users', [
+                'router_id' => $this->mikrotik->id,
+                'error' => $e->getMessage(),
+            ]);
+            return [];
+        }
+    }
+
+    /**
+     * Get active PPPoE users details.
+     *
+     * @return array
+     */
+    public function getPppoeActiveUsers(): array
+    {
+        try {
+            $client = $this->getClient();
+            $active = $client->query('/ppp/active/print')->read();
+
+            return is_array($active) ? $active : [];
+        } catch (Exception $e) {
+            Log::error('Failed to get PPPoE active users', [
+                'router_id' => $this->mikrotik->id,
+                'error' => $e->getMessage(),
+            ]);
+            return [];
+        }
+    }
+
+    /**
      * Get WireGuard peers.
      *
      * @return array
