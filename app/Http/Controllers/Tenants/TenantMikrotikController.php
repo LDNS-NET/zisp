@@ -1389,7 +1389,7 @@ class TenantMikrotikController extends Controller
 
             $secret = $router->api_password;
 
-            $radiusServer = config('radius.server', '127.0.0.1');
+            $radiusServer = config('radius.server', 'default');
 
             $existing = Nas::where('shortname', $shortname)->first();
 
