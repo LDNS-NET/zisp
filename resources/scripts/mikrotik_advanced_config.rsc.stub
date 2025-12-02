@@ -7,7 +7,8 @@
 # Configuration variables
 :local radiusip "{{radius_ip}}"
 :local radiussecret "{{radius_secret}}"
-:local bridgeName "zisp_hotspot_pppoe_bridge"
+:local bridgeName "zisp_bridge"
+:local poolName "zisp_pool"
 :local hotspotProfile "zisp_hs_prof"
 :local pppoeProfile "Z_INTERNET"
 :local snmpCommunity "{{snmp_community}}"
@@ -33,16 +34,16 @@
 :do {
     /ip address remove [find interface=$bridgeName]
 } on-error={}
-/ip address add address=192.168.24.1/24 interface=$bridgeName
+/ip address add address=172.20.0.1/16 interface=$bridgeName
 :put " =================== Bridge address configured =================== "
 
 
-:put " =================== Creating hotspot IP pool =================== "
+:put " =================== Creating unified IP pool for hotspot and PPPoE =================== "
 :do {
-    /ip pool remove [find name="zisp_hs_pool"]
+    /ip pool remove [find name=$poolName]
 } on-error={}
-/ip pool add name=zisp_hs_pool ranges=192.168.24.100-192.168.24.254
-:put " =================== Hotspot IP pool created =================== "
+/ip pool add name=$poolName ranges=172.20.0.2-172.20.255.254
+:put " =================== Unified IP pool created =================== "
 
 
 :put " =================== Creating DHCP server =================== "
@@ -55,9 +56,9 @@
 
 :put " =================== Configuring DHCP network =================== "
 :do {
-    /ip dhcp-server network remove [find address=192.168.24.0/24]
+    /ip dhcp-server network remove [find address=172.20.0.0/16]
 } on-error={}
-/ip dhcp-server network add address=192.168.24.0/24 comment="zisp_hs_network" gateway=192.168.24.1
+/ip dhcp-server network add address=172.20.0.0/16 comment="zisp_hs_network" gateway=172.20.0.1
 :put " =================== DHCP network configured =================== "
 
 
@@ -65,7 +66,7 @@
 :do {
     /ip hotspot profile remove [find name=$hotspotProfile]
 } on-error={}
-/ip hotspot profile add hotspot-address=192.168.24.1 login-by=cookie,http-chap,http-pap,mac-cookie name=$hotspotProfile use-radius=yes radius-interim-update=00:10:00
+/ip hotspot profile add hotspot-address=172.20.0.1 login-by=cookie,http-chap,http-pap,mac-cookie name=$hotspotProfile use-radius=yes radius-interim-update=00:10:00
 :put " =================== Hotspot profile created =================== "
 
 
@@ -83,7 +84,7 @@
 :do {
     /ip firewall nat remove [find comment="masquerade hotspot network"]
 } on-error={}
-/ip firewall nat add action=masquerade chain=srcnat comment="masquerade hotspot network" src-address=192.168.24.0/24
+/ip firewall nat add action=masquerade chain=srcnat comment="masquerade hotspot network" src-address=172.20.0.0/16
 :put " =================== Hotspot masquerade configured =================== "
 
 
@@ -99,9 +100,9 @@
 
 :put "==================== Creating PPPoE IP pool ==================="
 :do {
-    /ip pool remove [find name="pppoe_pool"]
+    /ip pool remove [find name=$poolName]
 } on-error={}
-/ip pool add name=pppoe_pool range=192.25.0.2-192.25.255.254
+/ip pool add name=pppoe_pool ranges=192.25.0.2-192.25.255.254
 :put " =================== PPPoE IP pool created ==================="
 
 
@@ -109,7 +110,7 @@
 :do {
     /ppp profile remove [find name=$pppoeProfile]
 } on-error={}
-/ppp profile add dns-server=8.8.8.8,8.8.4.4 local-address=pppoe_pool name=$pppoeProfile remote-address=pppoe_pool
+/ppp profile add dns-server=8.8.8.8,8.8.4.4 local-address=$poolName name=$pppoeProfile remote-address=$poolName
 :put " =================== PPPoE profile created =================== "
 
 
@@ -117,12 +118,19 @@
 :do {
     /interface pppoe-server server remove [find interface=$bridgeName]
 } on-error={}
-/interface pppoe-server server add authentication=pap default-profile=default disabled=no interface=$bridgeName one-session-per-host=yes keepalive-timeout=10
+/interface pppoe-server server add authentication=pap,chap default-profile=$pppoeProfile disabled=no interface=$bridgeName one-session-per-host=yes keepalive-timeout=10 service-name="zisp_pppoe"
 :put " =================== PPPoE server created =================== "
 
 
 :put " =================== Configuring RADIUS authentication =================== "
-/ppp aaa set use-radius=yes interim-update=00:10:00
+# Remove existing RADIUS client with same IP
+:do { /radius remove [find address=$radiusip] } on-error={}
+# Add (or re-add) RADIUS client for PPP + Hotspot
+:do {
+    /radius add service=ppp,hotspot address=$radiusip secret=$radiussecret disabled=no timeout=3000ms accounting-port=1813 authentication-port=1812
+} on-error={:put "Warning: could not add RADIUS client"}
+# Enable PPP AAA to use RADIUS
+/ppp aaa set use-radius=yes accounting=yes interim-update=1h
 :put " =================== RADIUS authentication enabled =================== "
 
 
