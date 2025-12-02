@@ -400,7 +400,7 @@ function submit() {
                     Session History
                 </h3>
                 <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                    RADIUS session history for this user (last 100 sessions)
+                    RADIUS session history for this user (20 per page)
                 </p>
 
                 <div class="mt-6 overflow-x-auto">
@@ -445,7 +445,7 @@ function submit() {
                             class="divide-y divide-gray-100 bg-white dark:divide-gray-800 dark:bg-gray-900"
                         >
                             <tr
-                                v-for="session in props.sessions"
+                                v-for="session in props.sessions.data"
                                 :key="session.session_id"
                                 class="hover:bg-gray-50 dark:hover:bg-gray-800"
                             >
@@ -531,7 +531,8 @@ function submit() {
                             <tr
                                 v-if="
                                     !props.sessions ||
-                                    props.sessions.length === 0
+                                    !props.sessions.data ||
+                                    props.sessions.data.length === 0
                                 "
                             >
                                 <td
@@ -543,6 +544,79 @@ function submit() {
                             </tr>
                         </tbody>
                     </table>
+                </div>
+
+                <!-- Pagination -->
+                <div
+                    v-if="props.sessions && props.sessions.data && props.sessions.data.length > 0"
+                    class="mt-4 flex items-center justify-between border-t border-gray-200 px-4 py-3 dark:border-gray-700"
+                >
+                    <div class="flex flex-1 justify-between sm:hidden">
+                        <a
+                            v-if="props.sessions.prev_page_url"
+                            :href="props.sessions.prev_page_url"
+                            class="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                        >
+                            Previous
+                        </a>
+                        <a
+                            v-if="props.sessions.next_page_url"
+                            :href="props.sessions.next_page_url"
+                            class="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                        >
+                            Next
+                        </a>
+                    </div>
+                    <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                        <div>
+                            <p class="text-sm text-gray-700 dark:text-gray-300">
+                                Showing
+                                <span class="font-medium">{{ props.sessions.from }}</span>
+                                to
+                                <span class="font-medium">{{ props.sessions.to }}</span>
+                                of
+                                <span class="font-medium">{{ props.sessions.total }}</span>
+                                sessions
+                            </p>
+                        </div>
+                        <div>
+                            <nav class="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                                <a
+                                    v-if="props.sessions.prev_page_url"
+                                    :href="props.sessions.prev_page_url"
+                                    class="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:ring-gray-600 dark:hover:bg-gray-700"
+                                >
+                                    <span class="sr-only">Previous</span>
+                                    <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clip-rule="evenodd" />
+                                    </svg>
+                                </a>
+                                <a
+                                    v-for="link in props.sessions.links.slice(1, -1)"
+                                    :key="link.label"
+                                    :href="link.url"
+                                    :class="[
+                                        link.active
+                                            ? 'z-10 bg-blue-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600'
+                                            : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:text-gray-300 dark:ring-gray-600 dark:hover:bg-gray-700',
+                                        'relative inline-flex items-center px-4 py-2 text-sm font-semibold',
+                                    ]"
+                                >
+                                    {{ link.label }}
+                                </a>
+                                <a
+                                    v-if="props.sessions.next_page_url"
+                                    :href="props.sessions.next_page_url"
+                                    class="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:ring-gray-600 dark:hover:bg-gray-700"
+                                >
+                                    <span class="sr-only">Next</span>
+                                    <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" />
+                                    </svg>
+                                </a>
+                            </nav>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
