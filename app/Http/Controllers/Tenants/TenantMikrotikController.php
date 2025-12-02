@@ -76,6 +76,10 @@ class TenantMikrotikController extends Controller
 
         $realtimeData = [
             'resources' => [
+                'board-name' => $router->model,
+                'architecture-name' => $router->architecture ?? null,
+                'version' => $router->os_version,
+                'build-time' => $router->build_time ?? null,
                 'cpu-load' => $router->cpu_usage,
                 'free-memory' => null,
                 'total-memory' => null,
@@ -86,7 +90,7 @@ class TenantMikrotikController extends Controller
             'pppoe_active' => $pppoeActiveDb,
             'wireguard_peers' => [],
             'router_logs' => [],
-            'is_online' => false,
+            'is_online' => $router->status === 'online',
         ];
 
         // Only poll router if last_seen_at is stale (>180s)
