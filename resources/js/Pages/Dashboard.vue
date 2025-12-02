@@ -110,9 +110,9 @@ const incomeChartOptions = computed(() => ({
             opacityTo: 0.2,
         },
     },
-    colors: ['#10b981', '#3b82f6'],
+    colors: ['#10b981'],
     xaxis: {
-        categories: props.stats?.payments_chart ? Object.keys(props.stats.payments_chart) : [],
+        categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
         labels: {
             style: {
                 colors: isDark.value ? '#9ca3af' : '#6b7280',
@@ -139,10 +139,16 @@ const incomeChartOptions = computed(() => ({
     },
 }));
 
-const incomeChartSeries = computed(() => [{
-    name: 'Revenue',
-    data: props.stats?.payments_chart ? Object.values(props.stats.payments_chart) : [],
-}]);
+const incomeChartSeries = computed(() => {
+    const paymentsData = props.stats?.payments_chart || Array(12).fill(0);
+    
+    console.log('Payments Chart Data:', paymentsData);
+    
+    return [{
+        name: 'Revenue',
+        data: paymentsData,
+    }];
+});
 
 // User Growth Chart (Bar Chart - Simplified)
 const userGrowthOptions = computed(() => ({
