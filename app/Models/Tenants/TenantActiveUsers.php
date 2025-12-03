@@ -3,6 +3,9 @@
 namespace App\Models\Tenants;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Auth;
+use App\Models\Tenant;
+
 
 class TenantActiveUsers extends Model
 {
@@ -30,12 +33,12 @@ class TenantActiveUsers extends Model
     {
         static::addGlobalScope('created_by', function ($query) {
             if (auth()->check()) {
-                $query->where('created_by', auth()->id());
+                $query->where('created_by', Auth::id());
             }
         });
         static::creating(function ($model) {
-            if (auth()->check() && empty($model->created_by)) {
-                $model->created_by = auth()->id();
+            if (Auth::check() && empty($model->created_by)) {
+                $model->created_by = Auth::id();
             }
         });
     }
