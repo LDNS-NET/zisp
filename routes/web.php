@@ -42,6 +42,20 @@ use App\Http\Controllers\Tenants\MikrotikDetailsController;
 |--------------------------------------------------------------------------
 */
 Route::get('/', function () {
+    $host = request()->getHost();
+    $centralDomains = config('tenancy.central_domains', []);
+
+    // Check if the current host is NOT a central domain (i.e., it's a tenant subdomain)
+    $isTenant = !in_array($host, $centralDomains) &&
+        !collect($centralDomains)->contains(fn($domain) => str_ends_with($host, $domain) && $host !== $domain);
+
+    if ($isTenant) {
+        if (auth()->check()) {
+            return redirect()->route('dashboard');
+        }
+        return redirect()->route('login');
+    }
+
     return Inertia::render('Welcome', [
         'canLogin' => Route::has('login'),
         'canRegister' => Route::has('register'),
