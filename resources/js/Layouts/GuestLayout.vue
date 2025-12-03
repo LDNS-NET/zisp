@@ -5,18 +5,18 @@ import { Link } from '@inertiajs/vue3';
 
 <template>
     <div
-        class="flex min-h-screen flex-col items-center bg-slate-200 pt-6 sm:justify-center sm:pt-0 dark:bg-black"
+        class="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-gray-100 to-gray-300 pt-6 sm:pt-0 dark:from-gray-900 dark:via-gray-800 dark:to-black"
     >
-        <div>
+        <div class="mb-6">
             <Link href="/">
                 <ApplicationLogo
-                    class="m-6 h-20 w-20 rounded-xl fill-current text-gray-500 dark:bg-black"
+                    class="h-24 w-24 fill-current text-gray-500 transition-transform duration-300 hover:scale-105 dark:text-gray-400"
                 />
             </Link>
         </div>
 
         <div
-            class="mt-6 w-full flex-1 overflow-hidden px-6 py-4 sm:max-w-md sm:rounded-lg"
+            class="w-full overflow-hidden rounded-2xl border border-white/20 bg-white/30 px-8 py-8 shadow-2xl backdrop-blur-xl sm:max-w-md dark:border-gray-700/50 dark:bg-gray-800/40"
         >
             <slot />
         </div>
