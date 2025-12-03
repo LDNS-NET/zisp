@@ -13,8 +13,9 @@ use App\Services\Mikrotik\RouterApiService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\ZipArchive;
+//use Illuminate\Support\Facades\ZipArchive;
 use Illuminate\Support\Facades\Storage;
+use ZipArchive;
 use Inertia\Inertia;
 
 class TenantMikrotikController extends Controller
@@ -99,7 +100,7 @@ class TenantMikrotikController extends Controller
 
         if ($shouldPoll)
             try {
-                $apiService = new \App\Services\Mikrotik\RouterApiService($router);
+                $apiService = new RouterApiService($router);
 
                 // Quick online check first
                 if ($apiService->isOnline()) {
@@ -135,7 +136,7 @@ class TenantMikrotikController extends Controller
         $router = TenantMikrotik::findOrFail($id);
 
         try {
-            $apiService = new \App\Services\Mikrotik\RouterApiService($router);
+            $apiService = new RouterApiService($router);
             $apiService->reboot();
 
             return back()->with('success', 'Router reboot command sent successfully.');
@@ -161,7 +162,7 @@ class TenantMikrotikController extends Controller
         ]);
 
         try {
-            $apiService = new \App\Services\Mikrotik\RouterApiService($router);
+            $apiService = new RouterApiService($router);
             $success = $apiService->setIdentity($request->identity);
 
             if ($success) {
