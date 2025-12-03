@@ -470,9 +470,9 @@ class RouterApiService
 
                 foreach ($activeUsers as $session) {
                     if (isset($session['user']) && $session['user'] === $username) {
-                        $client->query('/ip/hotspot/active/remove')
-                            ->equal('.id', $session['.id'])
-                            ->read();
+                        $query = (new \RouterOS\Query('/ip/hotspot/active/remove'))
+                            ->equal('.id', $session['.id']);
+                        $client->query($query)->read();
                     }
                 }
             } elseif ($type === 'pppoe') {
@@ -481,9 +481,9 @@ class RouterApiService
 
                 foreach ($activeUsers as $session) {
                     if (isset($session['name']) && $session['name'] === $username) {
-                        $client->query('/ppp/active/remove')
-                            ->equal('.id', $session['.id'])
-                            ->read();
+                        $query = (new \RouterOS\Query('/ppp/active/remove'))
+                            ->equal('.id', $session['.id']);
+                        $client->query($query)->read();
                     }
                 }
             }
