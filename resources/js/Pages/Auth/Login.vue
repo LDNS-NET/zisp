@@ -14,6 +14,10 @@ defineProps({
     status: {
         type: String,
     },
+    tenantName: {
+        type: String,
+        default: null,
+    },
 });
 
 const form = useForm({
@@ -38,7 +42,13 @@ const submit = () => {
             {{ status }}
         </div>
         <div class="text-blue-800">
-            <h2 class="mb-4 text-center text-2xl font-extrabold">Login</h2>
+            <h2 v-if="tenantName" class="mb-2 text-center text-xl font-bold">
+                {{ tenantName }}
+            </h2>
+            <h3 v-if="tenantName" class="mb-4 text-center text-lg">
+                Welcome back!
+            </h3>
+            <h2 v-else class="mb-4 text-center text-2xl font-extrabold">Login</h2>
         </div>
 
         <form

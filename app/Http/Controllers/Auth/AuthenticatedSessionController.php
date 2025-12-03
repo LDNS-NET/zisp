@@ -19,9 +19,30 @@ class AuthenticatedSessionController extends Controller
      */
     public function create(): Response
     {
+        $tenantName = null;
+        $host = request()->getHost();
+
+        // Try to find tenant by domain
+        $tenantId = \Illuminate\Support\Facades\DB::table('domains')
+            ->where('domain', $host)
+            ->value('tenant_id');
+
+        if ($tenantId) {
+            $tenant = \Illuminate\Support\Facades\DB::table('tenants')
+                ->where('id', $tenantId)
+                ->first();
+
+            if ($tenant) {
+                // Decode data column if it exists and is JSON
+                $data = json_decode($tenant->data ?? '{}', true);
+                $tenantName = $data['name'] ?? $tenant->id;
+            }
+        }
+
         return Inertia::render('Auth/Login', [
             'canResetPassword' => Route::has('password.request'),
             'status' => session('status'),
+            'tenantName' => $tenantName,
         ]);
     }
 
