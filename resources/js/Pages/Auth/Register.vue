@@ -5,6 +5,8 @@ import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import { ref } from 'vue';
+import { countries } from '@/Data/countries';
 
 const form = useForm({
     name: '',
@@ -12,8 +14,30 @@ const form = useForm({
     phone: '',
     username: '',
     password: '',
+    country: '',
+    country_code: '',
+    currency: '',
+    currency_name: '',
+    dial_code: '',
     password_confirmation: '',
 });
+
+const selectedCountry = () => {
+    const country = countries.find(
+        (c) => c.name === form.country
+    );
+    if (country) {
+        form.country_code = country.code;
+        form.currency = country.currency;
+        form.currency_name = country.currency_name;
+        form.dial_code = country.dial_code;
+    } else {
+        form.country_code = '';
+        form.currency = '';
+        form.currency_name = '';
+        form.dial_code = '';
+    }
+};
 
 const submit = () => {
     form.post(route('register'), {
@@ -129,6 +153,28 @@ const submit = () => {
                     class="mt-2"
                     :message="form.errors.password_confirmation"
                 />
+            </div>
+            <div class="mt-4">
+                <InputLabel for="country" value="Country" />
+
+                <select
+                    id="country"
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-300"
+                    v-model="form.country"
+                    @change="selectedCountry"
+                    required
+                >
+                    <option value="" disabled>Select your country</option>
+                    <option
+                        v-for="country in countries"
+                        :key="country.code"
+                        :value="country.name"
+                    >
+                        {{ country.name }}
+                    </option>
+                </select>
+
+                <InputError class="mt-2" :message="form.errors.country" />
             </div>
 
             <div class="mt-4 flex items-center justify-between">

@@ -18,6 +18,11 @@ class Tenant extends BaseTenant
         'email',
         'phone',
         'username',
+        'country',
+        'country_code',
+        'currency',
+        'currency_name',
+        'dial_code',
         'wallet_id',
     ];
 
@@ -43,6 +48,11 @@ class Tenant extends BaseTenant
             'username',
             'email',
             'phone',
+            'country',
+            'country_code',
+            'currency',
+            'currency_name',
+            'dial_code',
             'wallet_id',
         ];
     }

@@ -39,6 +39,8 @@ class RegisteredUserController extends Controller
             'phone' => 'required|string|max:255|unique:' . User::class,
             'username' => 'required|string|max:255|unique:' . User::class,
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'country' => 'nullable|string|max:255',
+            'country_code' => 'nullable|string|max:10',
         ]);
 
         $user = null;
@@ -51,6 +53,11 @@ class RegisteredUserController extends Controller
                 'phone' => $request->phone,
                 'username' => $request->username,
                 'password' => Hash::make($request->password),
+                'country' => $request->country,
+                'country_code' => $request->country_code,
+                'currency' => $request->currency,
+                'currency_name' => $request->currency_name,
+                'dial_code' => $request->dial_code,
                 'subscription_expires_at' => now()->addDays(14),
                 'is_suspended' => false,
             ]);
@@ -74,6 +81,11 @@ class RegisteredUserController extends Controller
                 'email' => $user->email,
                 'phone' => $user->phone,
                 'username' => $user->username,
+                'country' => $user->country,
+                'country_code' => $user->country_code,
+                'currency' => $user->currency,
+                'currency_name' => $user->currency_name,
+                'dial_code' => $user->dial_code,
                 'subdomain' => $subdomain,
                 'data' => json_encode(['name' => $user->name]),
                 'created_at' => now(),
