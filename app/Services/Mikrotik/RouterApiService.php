@@ -465,26 +465,26 @@ class RouterApiService
             $client = $this->getClient();
 
             if ($type === 'hotspot') {
-                // Disconnect hotspot user
-                $active = $client->query('/ip/hotspot/active/print')
-                    ->where('user', $username)
-                    ->read();
+                // Disconnect hotspot user - fetch all and filter in PHP
+                $activeUsers = $client->query('/ip/hotspot/active/print')->read();
 
-                foreach ($active as $session) {
-                    $client->query('/ip/hotspot/active/remove')
-                        ->equal('.id', $session['.id'])
-                        ->read();
+                foreach ($activeUsers as $session) {
+                    if (isset($session['user']) && $session['user'] === $username) {
+                        $client->query('/ip/hotspot/active/remove')
+                            ->equal('.id', $session['.id'])
+                            ->read();
+                    }
                 }
             } elseif ($type === 'pppoe') {
-                // Disconnect PPPoE user
-                $active = $client->query('/ppp/active/print')
-                    ->where('name', $username)
-                    ->read();
+                // Disconnect PPPoE user - fetch all and filter in PHP
+                $activeUsers = $client->query('/ppp/active/print')->read();
 
-                foreach ($active as $session) {
-                    $client->query('/ppp/active/remove')
-                        ->equal('.id', $session['.id'])
-                        ->read();
+                foreach ($activeUsers as $session) {
+                    if (isset($session['name']) && $session['name'] === $username) {
+                        $client->query('/ppp/active/remove')
+                            ->equal('.id', $session['.id'])
+                            ->read();
+                    }
                 }
             }
 
