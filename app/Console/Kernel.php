@@ -22,7 +22,7 @@ class Kernel extends ConsoleKernel
         $schedule->command('wireguard:sync-peers')->everyFourMinutes();
 
         // Disconnect expired users who are still active (every 10 minutes)
-        $schedule->job(new \App\Jobs\DisconnectExpiredUsers)->everyTenMinutes();
+        $schedule->command('users:disconnect-expired')->everyTenMinutes();
     }
 
     protected function commands(): void
