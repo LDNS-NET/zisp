@@ -17,10 +17,23 @@ class TenantActiveUsersController extends Controller
     {
         $activeUsers = [];
         $maxUsers = (int) ($request->input('limit', 500));
-        $routers = TenantMikrotik::all()->keyBy('wireguard_address');
+        $routers = TenantMikrotik::all();
 
-        // Fetch active sessions from RADIUS radacct where acctstoptime IS NULL
-        $radRows = Radacct::whereNull('acctstoptime')->limit($maxUsers * 2)->get();
+        // Collect all valid IPs for this tenant's routers (prefer wireguard, fallback to ip_address)
+        $routerIps = $routers->pluck('wireguard_address')
+            ->merge($routers->pluck('ip_address'))
+            ->filter()
+            ->unique()
+            ->values()
+            ->toArray();
+
+        $routers = $routers->keyBy('wireguard_address');
+
+        // Fetch active sessions from RADIUS radacct where acctstoptime IS NULL AND belongs to tenant routers
+        $radRows = Radacct::whereNull('acctstoptime')
+            ->whereIn('nasipaddress', $routerIps)
+            ->limit($maxUsers * 2)
+            ->get();
 
         // Get all network users with their packages for type lookup
         $networkUsers = NetworkUser::with('package')->get()->keyBy('username');
