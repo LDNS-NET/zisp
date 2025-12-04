@@ -1,6 +1,6 @@
 <script setup>
 import { ref, watch, computed } from 'vue';
-import { Head, useForm, router } from '@inertiajs/vue3';
+import { Head, useForm, router, usePage } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import TextInput from '@/Components/TextInput.vue';
 import InputLabel from '@/Components/InputLabel.vue';
@@ -26,6 +26,11 @@ const showMonthly = ref(false);
 const showYearly = ref(false);
 import Card from '@/Components/Card.vue';
 // ...existing code...
+
+const page = usePage();
+const currency = computed(() => page.props.auth.user.currency || 'KES');
+const locale = 'en-KE'; // Could be dynamic too if needed, but keeping fixed for now or could derive from user
+
 
 
 const today = new Date();
@@ -455,7 +460,7 @@ function generatePaymentConfirmation() {
         doc.text('Package Price:', 14, y);
         doc.setFont(undefined, 'normal');
         doc.setTextColor(44, 62, 80);
-        doc.text(`KSh ${paymentDetails.value.package.price}`, 45, y);
+        doc.text(`${currency.value} ${paymentDetails.value.package.price}`, 45, y);
         y += 10;
     }
     // Payment details section
@@ -463,7 +468,7 @@ function generatePaymentConfirmation() {
         ['User', paymentDetails.value.user],
         ['Phone', paymentDetails.value.phone],
         ['Receipt Number', paymentDetails.value.receipt_number],
-        ['Amount', `KSh ${paymentDetails.value.amount}`],
+        ['Amount', `${currency.value} ${paymentDetails.value.amount}`],
         ['Paid At', paymentDetails.value.paid_at],
     ];
     details.forEach(([label, value]) => {
@@ -577,7 +582,7 @@ function generatePaymentConfirmation() {
                                 showDaily
                                     ? dailyIncome.toLocaleString('en-KE', {
                                         style: 'currency',
-                                        currency: 'KES',
+                                        currency: currency,
                                     })
                                     : '******'
                             }}</span>
@@ -600,7 +605,7 @@ function generatePaymentConfirmation() {
                                 showWeekly
                                     ? weeklyIncome.toLocaleString('en-KE', {
                                         style: 'currency',
-                                        currency: 'KES',
+                                        currency: currency,
                                     })
                                     : '******'
                             }}</span>
@@ -645,7 +650,7 @@ function generatePaymentConfirmation() {
                                 showMonthly
                                     ? monthlyIncome.toLocaleString('en-KE', {
                                         style: 'currency',
-                                        currency: 'KES',
+                                        currency: currency,
                                     })
                                     : '******'
                             }}</span>
@@ -687,7 +692,7 @@ function generatePaymentConfirmation() {
                                 showYearly
                                     ? yearlyIncome.toLocaleString('en-KE', {
                                         style: 'currency',
-                                        currency: 'KES',
+                                        currency: currency,
                                     })
                                     : '******'
                             }}</span>
@@ -776,7 +781,7 @@ function generatePaymentConfirmation() {
                                 <div v-if="paymentDetails.package">
                                     <strong>Package:</strong>
                                     {{ paymentDetails.package.type }}<br />
-                                    <strong>Package Price:</strong> KSh
+                                    <strong>Package Price:</strong> {{ currency }}
                                     {{ paymentDetails.package.price }}
                                 </div>
                                 <div>

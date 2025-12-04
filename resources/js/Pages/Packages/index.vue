@@ -1,6 +1,6 @@
 <script setup>
 import { ref, watch, computed } from 'vue';
-import { router, useForm, Head } from '@inertiajs/vue3';
+import { router, useForm, Head, usePage } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { 
     Plus, 
@@ -33,6 +33,9 @@ const props = defineProps({
     filters: Object,
     pagination: Object,
 });
+
+const page = usePage();
+const currency = computed(() => page.props.auth.user.currency || 'KES');
 
 const editing = ref(null);
 const showModal = ref(false);
@@ -283,7 +286,7 @@ function remove(pkg) {
                                 </div>
                             </div>
                             <div class="text-right">
-                                <div class="text-lg font-bold text-gray-900 dark:text-white">KES {{ pkg.price }}</div>
+                                <div class="text-lg font-bold text-gray-900 dark:text-white">{{ currency }} {{ pkg.price }}</div>
                             </div>
                         </div>
 
@@ -330,7 +333,7 @@ function remove(pkg) {
 
                         <div class="grid grid-cols-2 gap-4">
                             <div>
-                                <InputLabel for="price" value="Price (KES)" />
+                                <InputLabel for="price" :value="`Price (${currency})`" />
                                 <TextInput id="price" v-model="form.price" type="number" step="0.01" class="mt-1 w-full" required />
                                 <InputError :message="form.errors.price" />
                             </div>
