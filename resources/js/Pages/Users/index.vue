@@ -258,8 +258,8 @@ const openActions = (user) => {
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-200 dark:divide-slate-700">
-                            <tr v-for="user in users.data" :key="user.id" class="hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
-                                <td class="px-6 py-4 whitespace-nowrap">
+                            <tr v-for="user in users.data" :key="user.id" class="hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer" @click="$inertia.visit(route('users.show', user.id))">
+                                <td class="px-6 py-4 whitespace-nowrap" @click.stop>
                                     <input
                                         type="checkbox"
                                         :value="user.id"
@@ -268,7 +268,7 @@ const openActions = (user) => {
                                     />
                                 </td>
                                 <td class="px-6 py-4">
-                                    <Link :href="route('users.show', user.id)" class="flex items-center group cursor-pointer">
+                                    <div class="flex items-center group">
                                         <div class="h-10 w-10 flex-shrink-0 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm group-hover:ring-2 group-hover:ring-blue-500 transition-all">
                                             {{ user.username.charAt(0).toUpperCase() }}
                                         </div>
@@ -276,7 +276,7 @@ const openActions = (user) => {
                                             <div class="text-sm font-medium text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{{ user.username }}</div>
                                             <div class="text-sm text-gray-500 dark:text-gray-400">{{ user.full_name }}</div>
                                         </div>
-                                    </Link>
+                                    </div>
                                 </td>
                                 <td class="px-6 py-4">
                                     <div class="text-sm text-gray-900 dark:text-gray-300 flex items-center gap-2">
@@ -305,18 +305,10 @@ const openActions = (user) => {
                                         {{ user.is_online ? 'Online' : 'Offline' }}
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <div class="flex items-center justify-end gap-2">
-                                        <button @click="viewUser(user)" class="text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" title="View Details">
-                                            <Eye class="w-5 h-5" />
-                                        </button>
-                                        <button @click="openEdit(user)" class="text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors" title="Edit">
-                                            <Edit class="w-5 h-5" />
-                                        </button>
-                                        <button @click="remove(user.id)" class="text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors" title="Delete">
-                                            <Trash2 class="w-5 h-5" />
-                                        </button>
-                                    </div>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium" @click.stop>
+                                    <button @click="openActions(user)" class="p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors" title="Actions">
+                                        <MoreVertical class="w-5 h-5" />
+                                    </button>
                                 </td>
                             </tr>
                             <tr v-if="users.data.length === 0">
@@ -492,7 +484,7 @@ const openActions = (user) => {
                 </h3>
                 <div class="space-y-3">
                     <button 
-                        @click="viewUser(selectedUserForActions); showActionsModal = false"
+                        @click="$inertia.visit(route('users.show', selectedUserForActions.id)); showActionsModal = false"
                         class="w-full flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
                     >
                         <Eye class="w-4 h-4 mr-3 text-blue-500" />
