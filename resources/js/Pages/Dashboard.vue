@@ -28,7 +28,7 @@ import {
     LineChart
 } from 'lucide-vue-next';
 
-const props = defineProps(['stats']);
+const props = defineProps(['stats', 'currency']);
 const page = usePage();
 const user = usePage().props.auth.user;
 const expiresAt = ref(page.props.subscription_expires_at || null);
@@ -121,7 +121,7 @@ const incomeChartOptions = computed(() => ({
     },
     yaxis: {
         labels: {
-            formatter: (value) => `KES ${value.toLocaleString()}`,
+            formatter: (value) => `${props.currency || 'KES'} ${value.toLocaleString()}`,
             style: {
                 colors: isDark.value ? '#9ca3af' : '#6b7280',
             },
@@ -134,7 +134,7 @@ const incomeChartOptions = computed(() => ({
     tooltip: {
         theme: isDark.value ? 'dark' : 'light',
         y: {
-            formatter: (value) => `KES ${value.toLocaleString()}`,
+            formatter: (value) => `${props.currency || 'KES'} ${value.toLocaleString()}`,
         },
     },
 }));
@@ -437,7 +437,7 @@ const packageChartSeries = computed(() =>
                                 <div class="flex items-center justify-between">
                                     <div>
                                         <p class="text-sm font-medium text-purple-100">Total Revenue</p>
-                                        <p class="mt-2 text-3xl font-bold text-white">KES {{ stats.payments.total_amount }}</p>
+                                        <p class="mt-2 text-3xl font-bold text-white">{{ currency || 'KES' }} {{ stats.payments.total_amount }}</p>
                                     </div>
                                     <div class="rounded-xl bg-white/20 p-3 backdrop-blur-sm">
                                         <DollarSign class="h-8 w-8 text-white" />
@@ -666,7 +666,7 @@ const packageChartSeries = computed(() =>
                                 <div class="space-y-2">
                                     <div v-for="p in stats.recent_activity.latest_payments" :key="p.receipt_number"
                                         class="rounded-lg bg-gray-50 p-3 text-sm transition-colors hover:bg-gray-100 dark:bg-slate-700/50 dark:hover:bg-slate-700">
-                                        <p class="font-medium text-gray-900 dark:text-white">KES {{ p.amount }}</p>
+                                        <p class="font-medium text-gray-900 dark:text-white">{{ currency || 'KES' }} {{ p.amount }}</p>
                                         <p class="text-xs text-gray-500 dark:text-gray-400">{{ p.paid_at }}</p>
                                     </div>
                                 </div>

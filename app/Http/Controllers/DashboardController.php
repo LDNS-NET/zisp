@@ -22,8 +22,8 @@ class DashboardController extends Controller
     {
         $now = Carbon::now();
         $userId = Auth::id();
-        $tenant = tenant();
         $user = Auth::user();
+        $tenant = $user?->tenant;
 
         return Inertia::render('Dashboard', [
             'subscription_expires_at' => $user?->subscription_expires_at,
@@ -112,12 +112,13 @@ class DashboardController extends Controller
                 // Trial Info (used for access suspension logic)
                 'trial_info' => $tenant ? [
                     'trial_ends_at' => $tenant->created_at->addDays(18)->toFormattedDateString(),
-                    'is_suspended' => $this->isTenantSuspended(),
+                    'is_suspended' => $this->isTenantSuspended($tenant),
                 ] : [
                     'trial_ends_at' => 'N/A',
                     'is_suspended' => true,
                 ],
             ],
+            'currency' => $tenant?->currency ?? 'KES',
         ]);
     }
 
@@ -130,9 +131,11 @@ class DashboardController extends Controller
         ]);
     }
 
-    protected function isTenantSuspended(): bool
+    protected function isTenantSuspended($tenant = null): bool
     {
-        $tenant = tenant();
+        if (!$tenant) {
+            $tenant = Auth::user()?->tenant;
+        }
         if (!$tenant) {
             return true;
         }
