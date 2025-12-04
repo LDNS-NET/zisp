@@ -483,60 +483,7 @@ const openActions = (user) => {
                 </form>
             </div>
         </Modal>
-
-        <!-- View User Modal -->
-        <Modal :show="!!viewing" @close="viewing = null">
-            <div class="p-6 dark:bg-slate-800 dark:text-white" v-if="viewing">
-                <div class="text-center mb-6">
-                    <div class="h-16 w-16 mx-auto rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 text-2xl font-bold mb-3">
-                        {{ viewing.username.charAt(0).toUpperCase() }}
-                    </div>
-                    <h3 class="text-xl font-bold text-gray-900 dark:text-white">{{ viewing.full_name }}</h3>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">{{ viewing.username }}</p>
-                </div>
-
-                <div class="bg-gray-50 dark:bg-slate-700/50 rounded-lg p-4 mb-6 border border-gray-100 dark:border-slate-600">
-                    <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Account Details</h4>
-                    <div class="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                            <span class="text-gray-500 dark:text-gray-400 block">Password</span>
-                            <span class="font-mono font-medium text-gray-900 dark:text-white">{{ viewing.password }}</span>
-                        </div>
-                        <div>
-                            <span class="text-gray-500 dark:text-gray-400 block">Type</span>
-                            <span class="capitalize font-medium text-gray-900 dark:text-white">{{ viewing.type }}</span>
-                        </div>
-                        <div>
-                            <span class="text-gray-500 dark:text-gray-400 block">Package</span>
-                            <span class="font-medium text-gray-900 dark:text-white">{{ viewing.package?.name || '-' }}</span>
-                        </div>
-                        <div>
-                            <span class="text-gray-500 dark:text-gray-400 block">Expires</span>
-                            <span class="font-medium text-gray-900 dark:text-white">{{ viewing.expiry_human }}</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-4 text-sm mb-6">
-                    <div>
-                        <span class="text-gray-500 dark:text-gray-400 block">Phone</span>
-                        <span class="text-gray-900 dark:text-white">{{ viewing.phone }}</span>
-                    </div>
-                    <div>
-                        <span class="text-gray-500 dark:text-gray-400 block">Email</span>
-                        <span class="text-gray-900 dark:text-white">{{ viewing.email || '-' }}</span>
-                    </div>
-                    <div class="col-span-2">
-                        <span class="text-gray-500 dark:text-gray-400 block">Location</span>
-                        <span class="text-gray-900 dark:text-white">{{ viewing.location || '-' }}</span>
-                    </div>
-                </div>
-
-                <div class="flex justify-end">
-                    <PrimaryButton @click="viewing = null">Close</PrimaryButton>
-                </div>
-            </div>
-        </Modal>
+        
         <!-- Actions Modal (Mobile) -->
         <Modal :show="showActionsModal" @close="showActionsModal = false" maxWidth="sm">
             <div class="p-6 dark:bg-slate-800" v-if="selectedUserForActions">
