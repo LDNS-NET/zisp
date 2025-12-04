@@ -32,10 +32,11 @@ const props = defineProps({
     counts: Object,
     filters: Object,
     pagination: Object,
+    currency: String,
 });
 
 const page = usePage();
-const currency = computed(() => page.props.tenant?.currency || 'KES');
+const currency = computed(() => props.currency || page.props.tenant?.currency || 'KES');
 
 const editing = ref(null);
 const showModal = ref(false);

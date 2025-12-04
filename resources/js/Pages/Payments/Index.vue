@@ -28,7 +28,6 @@ import Card from '@/Components/Card.vue';
 // ...existing code...
 
 const page = usePage();
-const currency = computed(() => page.props.tenant?.currency || 'KES');
 const locale = 'en-KE'; // Could be dynamic too if needed, but keeping fixed for now or could derive from user
 
 
@@ -259,7 +258,10 @@ const props = defineProps({
     payments: Object,
     filters: Object,
     users: Array, // [{ id, username, phone }]
+    currency: String,
 });
+
+const currency = computed(() => props.currency || page.props.tenant?.currency || 'KES');
 
 const showModal = ref(false);
 const editing = ref(null);

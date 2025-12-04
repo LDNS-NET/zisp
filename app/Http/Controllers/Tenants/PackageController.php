@@ -22,7 +22,7 @@ class PackageController extends Controller
         return Inertia::render('Packages/index', [
             'packages' => $packages->items(),
             'pagination' => $packages->toArray(),
-
+            'currency' => tenant('currency') ?? 'KES',
         ]);
     }
 
@@ -54,13 +54,13 @@ class PackageController extends Controller
                 if (!$tenantId) {
                     $tenantId = \App\Models\Tenant::first()?->id;
                 }
-                
+
                 \Log::info('Creating tenant_hotspot record', [
                     'package_id' => $package->id,
                     'package_name' => $package->name,
                     'final_tenant_id' => $tenantId,
                 ]);
-                
+
                 if ($tenantId) {
                     DB::table('tenant_hotspot')->insert([
                         'tenant_id' => $tenantId,

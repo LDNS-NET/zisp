@@ -26,7 +26,6 @@ import {
 const toast = useToast();
 
 const page = usePage();
-const currency = computed(() => page.props.tenant?.currency || 'KES');
 
 const props = defineProps({
     vouchers: Object,
@@ -34,7 +33,10 @@ const props = defineProps({
     creating: { type: Boolean, default: false },
     flash: Object,
     packages: Array,
+    currency: String,
 });
+
+const currency = computed(() => props.currency || page.props.tenant?.currency || 'KES');
 
 // Debug: Log props when component mounts
 // console.log('Vouchers Index props:', props);
