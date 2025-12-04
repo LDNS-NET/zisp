@@ -80,7 +80,7 @@ function toggleSidebar() {
 </script>
 
 <template>
-    <div class="min-h-screen bg-gray-50 dark:bg-slate-950 flex transition-colors duration-300">
+    <div class="h-screen overflow-hidden bg-gray-50 dark:bg-slate-950 flex transition-colors duration-300">
         
         <!-- Mobile Sidebar Overlay -->
         <div 

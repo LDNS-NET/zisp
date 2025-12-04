@@ -10,7 +10,6 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Radius\Radacct;
-
 class TenantUserController extends Controller
 {
     public function index(Request $request)
