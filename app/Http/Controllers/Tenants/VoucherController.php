@@ -52,7 +52,7 @@ class VoucherController extends Controller
             'voucherToEdit' => $request->boolean('edit') && $request->has('voucher_id') ?
                 Voucher::find($request->query('voucher_id')) : null, // NEW: Load voucher if editing
             'packages' => Package::all(), // Pass packages for voucher creation
-            'currency' => tenant('currency') ?? 'KES',
+            'currency' => auth()->user()?->tenant?->currency ?? 'KES',
             'flash' => [ // Pass flash messages for display
                 'success' => session('success'),
                 'error' => session('error'),

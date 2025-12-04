@@ -109,7 +109,7 @@ class TenantPaymentController extends Controller
             'payments' => array_merge($payments->toArray(), ['allData' => $allPayments]),
             'filters' => $request->only('search', 'disbursement'),
             'users' => NetworkUser::select('id', 'username', 'phone')->get(),
-            'currency' => tenant('currency') ?? 'KES',
+            'currency' => auth()->user()?->tenant?->currency ?? 'KES',
         ]);
     }
 

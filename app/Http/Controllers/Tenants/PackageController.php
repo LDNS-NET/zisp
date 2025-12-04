@@ -19,10 +19,13 @@ class PackageController extends Controller
     {
         $packages = Package::latest()->paginate(10)->withQueryString();
 
+        // Get currency from authenticated user's tenant
+        $currency = auth()->user()?->tenant?->currency ?? 'KES';
+
         return Inertia::render('Packages/index', [
             'packages' => $packages->items(),
             'pagination' => $packages->toArray(),
-            'currency' => tenant('currency') ?? 'KES',
+            'currency' => $currency,
         ]);
     }
 
