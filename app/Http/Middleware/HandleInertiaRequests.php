@@ -34,6 +34,11 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
+            'tenant' => tenant() ? [
+                'id' => tenant('id'),
+                'name' => tenant('name'),
+                'currency' => tenant('currency'),
+            ] : null,
         ];
     }
 }

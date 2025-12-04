@@ -28,7 +28,7 @@ import Card from '@/Components/Card.vue';
 // ...existing code...
 
 const page = usePage();
-const currency = computed(() => page.props.auth.user.currency || 'KES');
+const currency = computed(() => page.props.tenant?.currency || 'KES');
 const locale = 'en-KE'; // Could be dynamic too if needed, but keeping fixed for now or could derive from user
 
 

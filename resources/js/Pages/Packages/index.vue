@@ -35,7 +35,7 @@ const props = defineProps({
 });
 
 const page = usePage();
-const currency = computed(() => page.props.auth.user.currency || 'KES');
+const currency = computed(() => page.props.tenant?.currency || 'KES');
 
 const editing = ref(null);
 const showModal = ref(false);
