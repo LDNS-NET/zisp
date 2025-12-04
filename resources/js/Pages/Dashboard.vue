@@ -660,8 +660,7 @@ const packageChartSeries = computed(() =>
                             <!-- Recent Payments -->
                             <div class="space-y-3">
                                 <h4 class="flex items-center gap-2 text-sm font-medium text-green-600 dark:text-green-400">
-                                    <DollarSign class="h-4 w-4" />
-                                    Recent Payments
+                                    Recent Payments {{ currency || 'KES' }}
                                 </h4>
                                 <div class="space-y-2">
                                     <div v-for="p in stats.recent_activity.latest_payments" :key="p.receipt_number"
