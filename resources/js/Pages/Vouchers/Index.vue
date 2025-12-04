@@ -1,6 +1,6 @@
 <script setup>
-import { ref, watch } from 'vue';
-import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { ref, watch, computed } from 'vue';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Modal from '@/Components/Modal.vue';
 import TextInput from '@/Components/TextInput.vue';
@@ -20,11 +20,13 @@ import {
     XCircle, 
     Edit,
     Calendar,
-    Tag,
-    DollarSign
+    Tag
 } from 'lucide-vue-next';
 
 const toast = useToast();
+
+const page = usePage();
+const currency = computed(() => page.props.tenant?.currency || 'KES');
 
 const props = defineProps({
     vouchers: Object,
@@ -226,7 +228,7 @@ const openActions = (voucher) => {
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="flex items-center gap-1 text-sm font-medium text-gray-900 dark:text-white">
-                                        <DollarSign class="w-3 h-3 text-green-600 dark:text-green-400" />
+                                        <span class="text-green-600 dark:text-green-400">{{ currency }}</span>
                                         <span>{{ voucher.value }}{{ voucher.type === 'percentage' ? '%' : '' }}</span>
                                     </div>
                                 </td>
@@ -346,7 +348,7 @@ const openActions = (voucher) => {
                             <select id="package_id" v-model="form.package_id" class="mt-1 block w-full rounded-md border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
                                 <option value="">Select a package</option>
                                 <option v-for="pkg in packages" :key="pkg.id" :value="pkg.id">
-                                    {{ pkg.name }} - KES {{ pkg.price }}
+                                    {{ pkg.name }} - {{ currency }} {{ pkg.price }}
                                 </option>
                             </select>
                             <InputError class="mt-2" :message="form.errors.package_id" />

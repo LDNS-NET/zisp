@@ -233,7 +233,7 @@ function remove(pkg) {
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="flex items-center gap-1 text-sm font-medium text-gray-900 dark:text-white">
-                                        <DollarSign class="w-3 h-3 text-green-600 dark:text-green-400" />
+                                        <span class="text-green-600 dark:text-green-400">{{ currency }}</span>
                                         <span>{{ pkg.price }}</span>
                                     </div>
                                 </td>
