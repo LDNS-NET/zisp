@@ -258,8 +258,7 @@ class TenantPaymentController extends Controller
             $phone = '2547' . substr($phone, 2);
         } elseif (str_starts_with($phone, '254')) {
             if (strlen($phone) === 12 && $phone[3] === '7') {
-                // Already 2547XXXXXXXX format
-                $phone = $phone;
+                // Already 2547XXXXXXXX format - no transformation needed
             } elseif (strlen($phone) === 12) {
                 // 254XXXXXXXX format, convert to 2547XXXXXXXX
                 $phone = '2547' . substr($phone, 3);
@@ -305,12 +304,10 @@ class TenantPaymentController extends Controller
 
             $response = $collection->create(
                 amount: $data['amount'],
-                phone_number: $phone, // Use normalized phone number
+                phone_number: $phone,
                 currency: 'KES',
                 method: 'MPESA_STK_PUSH',
-                api_ref: $receiptNumber,
-                name: '',
-                email: null
+                api_ref: $receiptNumber
             );
 
             $resp = json_decode(json_encode($response), true);

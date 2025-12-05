@@ -47,7 +47,7 @@ class PackageController extends Controller
 
         $package = null;
 
-        DB::transaction(function () use ($validated, &$package) {
+        DB::transaction(function () use ($validated, &$package, $request) {
             // Create the package
             $package = Package::create($validated);
 
@@ -97,7 +97,7 @@ class PackageController extends Controller
     {
         $validated = $this->validatePackage($request, $package->id);
 
-        DB::transaction(function () use ($validated, $package) {
+        DB::transaction(function () use ($validated, $package, $request) {
             // Update the package
             $package->update($validated);
 
