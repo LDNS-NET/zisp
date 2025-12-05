@@ -88,14 +88,7 @@ class TenantUserController extends Controller
         // Validate the request
         $validated = $request->validate([
             'full_name' => 'nullable|string|max:255',
-            'username' => [
-                'required',
-                'string',
-                'max:255',
-                Rule::unique('network_users', 'username')->where(function ($query) {
-                    return $query->whereNotNull('id'); // Ensures we're querying the tenant DB
-                })
-            ],
+            'username' => 'nullable|unique:network_users,username|string|max:255',
             'password' => 'nullable|string|min:6',
             'phone' => 'required|string|max:15',
             /*'email' => [
