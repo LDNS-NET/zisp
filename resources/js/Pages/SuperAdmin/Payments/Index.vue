@@ -52,9 +52,7 @@ const props = defineProps({
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">{{ new Date(payment.created_at).toLocaleDateString() }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                         <button>
-                                            <Link :href="`/super-admin/payments/${payment.id}`" class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-200">
-                                                View
-                                            </Link> 
+                                            <Link :href="`/superadmin/payments/${payment.id}`" class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-600">View</Link>
                                         </button>
                                     </td>
                                 </tr>
