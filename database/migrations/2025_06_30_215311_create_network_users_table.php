@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('username')->unique();
             $table->string('password');
             $table->string('phone')->nullable()->unique();
-            $table->string('email')->nullable()->unique();
+            $table->string('email')->nullable(); // Removed unique constraint
             $table->enum('status', ['active', 'inactive', 'suspended'])->default('active');
             $table->string('location')->nullable();
             $table->foreignId('created_by')->nullable()->constrained('users')->onDelete('cascade');
