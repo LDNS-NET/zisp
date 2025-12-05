@@ -368,83 +368,83 @@ const packageChartSeries = computed(() =>
             <!-- Main Content -->
             <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
                 <div class="space-y-8">
-                    <!-- Quick Stats Grid -->
-                    <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                    <!-- Quick Stats Grid - Compact on mobile -->
+                    <div class="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-4">
                         <!-- Total Users -->
-                        <div class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 p-6 shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl dark:from-blue-600 dark:to-blue-700">
-                            <div class="absolute right-0 top-0 h-32 w-32 translate-x-8 -translate-y-8 rounded-full bg-white/10"></div>
+                        <div class="group relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 p-4 sm:p-6 shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl dark:from-blue-600 dark:to-blue-700">
+                            <div class="absolute right-0 top-0 h-20 w-20 sm:h-32 sm:w-32 translate-x-6 sm:translate-x-8 -translate-y-6 sm:-translate-y-8 rounded-full bg-white/10"></div>
                             <div class="relative">
                                 <div class="flex items-center justify-between">
                                     <div>
-                                        <p class="text-sm font-medium text-blue-100">Total Users</p>
-                                        <p class="mt-2 text-4xl font-bold text-white">{{ stats.users.total }}</p>
+                                        <p class="text-xs sm:text-sm font-medium text-blue-100">Total Users</p>
+                                        <p class="mt-1 sm:mt-2 text-2xl sm:text-4xl font-bold text-white">{{ stats.users.total }}</p>
                                     </div>
-                                    <div class="rounded-xl bg-white/20 p-3 backdrop-blur-sm">
-                                        <Users class="h-8 w-8 text-white" />
+                                    <div class="rounded-lg sm:rounded-xl bg-white/20 p-2 sm:p-3 backdrop-blur-sm">
+                                        <Users class="h-5 w-5 sm:h-8 sm:w-8 text-white" />
                                     </div>
                                 </div>
-                                <div class="mt-4 flex items-center gap-2 text-sm text-blue-100">
-                                    <Activity class="h-4 w-4" />
-                                    <span>{{ stats.users.active }} active now</span>
+                                <div class="mt-2 sm:mt-4 flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-blue-100">
+                                    <Activity class="h-3 w-3 sm:h-4 sm:w-4" />
+                                    <span>{{ stats.users.active }} active</span>
                                 </div>
                             </div>
                         </div>
 
                         <!-- MikroTik Devices -->
-                        <div class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 p-6 shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl dark:from-emerald-600 dark:to-emerald-700">
-                            <div class="absolute right-0 top-0 h-32 w-32 translate-x-8 -translate-y-8 rounded-full bg-white/10"></div>
+                        <div class="group relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 p-4 sm:p-6 shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl dark:from-emerald-600 dark:to-emerald-700">
+                            <div class="absolute right-0 top-0 h-20 w-20 sm:h-32 sm:w-32 translate-x-6 sm:translate-x-8 -translate-y-6 sm:-translate-y-8 rounded-full bg-white/10"></div>
                             <div class="relative">
                                 <div class="flex items-center justify-between">
                                     <div>
-                                        <p class="text-sm font-medium text-emerald-100">MikroTik Devices</p>
-                                        <p class="mt-2 text-4xl font-bold text-white">{{ stats.mikrotiks.total }}</p>
+                                        <p class="text-xs sm:text-sm font-medium text-emerald-100">Devices</p>
+                                        <p class="mt-1 sm:mt-2 text-2xl sm:text-4xl font-bold text-white">{{ stats.mikrotiks.total }}</p>
                                     </div>
-                                    <div class="rounded-xl bg-white/20 p-3 backdrop-blur-sm">
-                                        <RadioTower class="h-8 w-8 text-white" />
+                                    <div class="rounded-lg sm:rounded-xl bg-white/20 p-2 sm:p-3 backdrop-blur-sm">
+                                        <RadioTower class="h-5 w-5 sm:h-8 sm:w-8 text-white" />
                                     </div>
                                 </div>
-                                <div class="mt-4 flex items-center gap-2 text-sm text-emerald-100">
-                                    <Check class="h-4 w-4" />
-                                    <span>{{ stats.mikrotiks.connected }} connected</span>
+                                <div class="mt-2 sm:mt-4 flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-emerald-100">
+                                    <Check class="h-3 w-3 sm:h-4 sm:w-4" />
+                                    <span>{{ stats.mikrotiks.connected }} online</span>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Open Tickets -->
-                        <div class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 p-6 shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl dark:from-amber-600 dark:to-amber-700">
-                            <div class="absolute right-0 top-0 h-32 w-32 translate-x-8 -translate-y-8 rounded-full bg-white/10"></div>
+                        <div class="group relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 p-4 sm:p-6 shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl dark:from-amber-600 dark:to-amber-700">
+                            <div class="absolute right-0 top-0 h-20 w-20 sm:h-32 sm:w-32 translate-x-6 sm:translate-x-8 -translate-y-6 sm:-translate-y-8 rounded-full bg-white/10"></div>
                             <div class="relative">
                                 <div class="flex items-center justify-between">
                                     <div>
-                                        <p class="text-sm font-medium text-amber-100">Open Tickets</p>
-                                        <p class="mt-2 text-4xl font-bold text-white">{{ stats.tickets.open }}</p>
+                                        <p class="text-xs sm:text-sm font-medium text-amber-100">Tickets</p>
+                                        <p class="mt-1 sm:mt-2 text-2xl sm:text-4xl font-bold text-white">{{ stats.tickets.open }}</p>
                                     </div>
-                                    <div class="rounded-xl bg-white/20 p-3 backdrop-blur-sm">
-                                        <Ticket class="h-8 w-8 text-white" />
+                                    <div class="rounded-lg sm:rounded-xl bg-white/20 p-2 sm:p-3 backdrop-blur-sm">
+                                        <Ticket class="h-5 w-5 sm:h-8 sm:w-8 text-white" />
                                     </div>
                                 </div>
-                                <div class="mt-4 flex items-center gap-2 text-sm text-amber-100">
-                                    <User class="h-4 w-4" />
-                                    <span>{{ stats.tickets.assigned_to_me }} assigned to you</span>
+                                <div class="mt-2 sm:mt-4 flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-amber-100">
+                                    <User class="h-3 w-3 sm:h-4 sm:w-4" />
+                                    <span>{{ stats.tickets.assigned_to_me }} yours</span>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Revenue (if admin/cashier) -->
-                        <div v-if="user.role === 'admin' || user.role === 'cashier'" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 p-6 shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl dark:from-purple-600 dark:to-purple-700">
-                            <div class="absolute right-0 top-0 h-32 w-32 translate-x-8 -translate-y-8 rounded-full bg-white/10"></div>
+                        <div v-if="user.role === 'admin' || user.role === 'cashier'" class="group relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 p-4 sm:p-6 shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl dark:from-purple-600 dark:to-purple-700">
+                            <div class="absolute right-0 top-0 h-20 w-20 sm:h-32 sm:w-32 translate-x-6 sm:translate-x-8 -translate-y-6 sm:-translate-y-8 rounded-full bg-white/10"></div>
                             <div class="relative">
                                 <div class="flex items-center justify-between">
                                     <div>
-                                        <p class="text-sm font-medium text-purple-100">Total Revenue</p>
-                                        <p class="mt-2 text-3xl font-bold text-white">{{ currency || 'KES' }} {{ stats.payments.total_amount }}</p>
+                                        <p class="text-xs sm:text-sm font-medium text-purple-100">Revenue</p>
+                                        <p class="mt-1 sm:mt-2 text-xl sm:text-3xl font-bold text-white">{{ currency || 'KES' }} {{ stats.payments.total_amount }}</p>
                                     </div>
-                                    <div class="rounded-xl bg-white/20 p-3 backdrop-blur-sm">
-                                        <DollarSign class="h-8 w-8 text-white" />
+                                    <div class="rounded-lg sm:rounded-xl bg-white/20 p-2 sm:p-3 backdrop-blur-sm">
+                                        <DollarSign class="h-5 w-5 sm:h-8 sm:w-8 text-white" />
                                     </div>
                                 </div>
-                                <div class="mt-4 flex items-center gap-2 text-sm text-purple-100">
-                                    <TrendingUp class="h-4 w-4" />
+                                <div class="mt-2 sm:mt-4 flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-purple-100">
+                                    <TrendingUp class="h-3 w-3 sm:h-4 sm:w-4" />
                                     <span>{{ stats.payments.count }} payments</span>
                                 </div>
                             </div>
@@ -459,41 +459,41 @@ const packageChartSeries = computed(() =>
                                 <Users class="h-5 w-5 text-blue-600 dark:text-blue-400" />
                                 Network Users
                             </h3>
-                            <div class="grid gap-4 sm:grid-cols-2">
-                                <div class="rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 p-4 dark:from-blue-900/20 dark:to-blue-800/20">
+                            <div class="grid grid-cols-2 gap-2 sm:gap-4">
+                                <div class="rounded-lg sm:rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 p-3 sm:p-4 dark:from-blue-900/20 dark:to-blue-800/20">
                                     <div class="flex items-center justify-between">
                                         <div>
-                                            <p class="text-sm text-gray-600 dark:text-gray-400">Hotspot</p>
-                                            <p class="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{{ stats.users.hotspot }}</p>
+                                            <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Hotspot</p>
+                                            <p class="mt-0.5 sm:mt-1 text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">{{ stats.users.hotspot }}</p>
                                         </div>
-                                        <RadioTower class="h-8 w-8 text-blue-600 dark:text-blue-400" />
+                                        <RadioTower class="h-5 w-5 sm:h-8 sm:w-8 text-blue-600 dark:text-blue-400" />
                                     </div>
                                 </div>
-                                <div class="rounded-xl bg-gradient-to-br from-indigo-50 to-indigo-100 p-4 dark:from-indigo-900/20 dark:to-indigo-800/20">
+                                <div class="rounded-lg sm:rounded-xl bg-gradient-to-br from-indigo-50 to-indigo-100 p-3 sm:p-4 dark:from-indigo-900/20 dark:to-indigo-800/20">
                                     <div class="flex items-center justify-between">
                                         <div>
-                                            <p class="text-sm text-gray-600 dark:text-gray-400">PPPoE</p>
-                                            <p class="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{{ stats.users.pppoe }}</p>
+                                            <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">PPPoE</p>
+                                            <p class="mt-0.5 sm:mt-1 text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">{{ stats.users.pppoe }}</p>
                                         </div>
-                                        <User class="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
+                                        <User class="h-5 w-5 sm:h-8 sm:w-8 text-indigo-600 dark:text-indigo-400" />
                                     </div>
                                 </div>
-                                <div class="rounded-xl bg-gradient-to-br from-purple-50 to-purple-100 p-4 dark:from-purple-900/20 dark:to-purple-800/20">
+                                <div class="rounded-lg sm:rounded-xl bg-gradient-to-br from-purple-50 to-purple-100 p-3 sm:p-4 dark:from-purple-900/20 dark:to-purple-800/20">
                                     <div class="flex items-center justify-between">
                                         <div>
-                                            <p class="text-sm text-gray-600 dark:text-gray-400">Static</p>
-                                            <p class="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{{ stats.users.static }}</p>
+                                            <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Static</p>
+                                            <p class="mt-0.5 sm:mt-1 text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">{{ stats.users.static }}</p>
                                         </div>
-                                        <Server class="h-8 w-8 text-purple-600 dark:text-purple-400" />
+                                        <Server class="h-5 w-5 sm:h-8 sm:w-8 text-purple-600 dark:text-purple-400" />
                                     </div>
                                 </div>
-                                <div class="rounded-xl bg-gradient-to-br from-red-50 to-red-100 p-4 dark:from-red-900/20 dark:to-red-800/20">
+                                <div class="rounded-lg sm:rounded-xl bg-gradient-to-br from-red-50 to-red-100 p-3 sm:p-4 dark:from-red-900/20 dark:to-red-800/20">
                                     <div class="flex items-center justify-between">
                                         <div>
-                                            <p class="text-sm text-gray-600 dark:text-gray-400">Expired</p>
-                                            <p class="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{{ stats.users.expired }}</p>
+                                            <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Expired</p>
+                                            <p class="mt-0.5 sm:mt-1 text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">{{ stats.users.expired }}</p>
                                         </div>
-                                        <X class="h-8 w-8 text-red-600 dark:text-red-400" />
+                                        <X class="h-5 w-5 sm:h-8 sm:w-8 text-red-600 dark:text-red-400" />
                                     </div>
                                 </div>
                             </div>

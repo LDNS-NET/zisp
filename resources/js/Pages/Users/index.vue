@@ -339,62 +339,59 @@ const openActions = (user) => {
                     </div>
 
                     <div class="divide-y divide-gray-200 dark:divide-slate-700">
-                        <div v-for="user in users.data" :key="user.id" class="p-4 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
-                            <div class="flex items-start gap-3">
+                        <div v-for="user in users.data" :key="user.id" 
+                            class="p-3 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer"
+                            @click="$inertia.visit(route('users.show', user.id))">
+                            <div class="flex items-center gap-3">
                                 <input 
                                     type="checkbox"
                                     :value="user.id"
                                     v-model="selectedUsers"
-                                    class="mt-1 rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 dark:bg-slate-800 dark:border-slate-600"
+                                    @click.stop
+                                    class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 dark:bg-slate-800 dark:border-slate-600"
                                 />
+                                <div class="h-9 w-9 flex-shrink-0 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs">
+                                    {{ user.username.charAt(0).toUpperCase() }}
+                                </div>
                                 <div class="flex-1 min-w-0">
-                                    <div class="flex items-start justify-between mb-3">
-                                        <div class="flex items-center gap-3">
-                                            <div class="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
-                                                {{ user.username.charAt(0).toUpperCase() }}
-                                            </div>
-                                            <div>
-                                                <div class="text-sm font-medium text-gray-900 dark:text-white">{{ user.username }}</div>
-                                                <div class="text-xs text-gray-500 dark:text-gray-400">{{ user.full_name }}</div>
-                                            </div>
+                                    <div class="flex items-center justify-between">
+                                        <div class="truncate">
+                                            <div class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ user.username }}</div>
+                                            <div class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ user.full_name || user.phone }}</div>
                                         </div>
                                         <span :class="[
-                                            'px-2 py-0.5 text-xs font-semibold rounded-full',
+                                            'ml-2 flex-shrink-0 px-1.5 py-0.5 text-[10px] font-semibold rounded-full',
                                             user.is_online 
                                                 ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' 
-                                                : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                                                : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
                                         ]">
-                                            {{ user.is_online ? 'Online' : 'Offline' }}
+                                            {{ user.is_online ? '●' : '○' }}
                                         </span>
                                     </div>
-
-                                    <div class="grid grid-cols-2 gap-2 text-sm mb-3">
-                                        <div class="text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                                            <Smartphone class="w-3 h-3" /> {{ user.phone }}
+                                    <div class="flex items-center justify-between mt-1">
+                                        <div class="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+                                            <span class="flex items-center gap-0.5">
+                                                <Wifi class="w-3 h-3" />
+                                                {{ user.package?.name || '-' }}
+                                            </span>
+                                            <span class="flex items-center gap-0.5">
+                                                <Calendar class="w-3 h-3" />
+                                                {{ user.expiry_human }}
+                                            </span>
                                         </div>
-                                        <div class="text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                                            <Wifi class="w-3 h-3" /> {{ user.package?.name || '-' }}
-                                        </div>
-                                    </div>
-
-                                    <div class="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-slate-700/50">
-                                        <div class="text-xs text-gray-400 flex items-center gap-1">
-                                            <Calendar class="w-3 h-3" />
-                                            Exp: {{ user.expiry_human }}
-                                        </div>
-                                        <button @click="openActions(user)" class="text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                                            <MoreVertical class="w-5 h-5" />
+                                        <button @click.stop="openActions(user)" class="p-1 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400">
+                                            <MoreVertical class="w-4 h-4" />
                                         </button>
                                     </div>
                                 </div>
                             </div>
                         </div>
                         
-                        <div v-if="users.data.length === 0" class="p-8 text-center text-gray-500 dark:text-gray-400">
+                        <div v-if="users.data.length === 0" class="p-6 text-center text-gray-500 dark:text-gray-400">
                             <div class="flex flex-col items-center justify-center">
-                                <UserCheck class="w-12 h-12 text-gray-300 dark:text-gray-600 mb-3" />
-                                <p class="text-lg font-medium">No users found</p>
-                                <p class="text-sm">Try adjusting your search or filters</p>
+                                <UserCheck class="w-10 h-10 text-gray-300 dark:text-gray-600 mb-2" />
+                                <p class="text-sm font-medium">No users found</p>
+                                <p class="text-xs">Try adjusting your filters</p>
                             </div>
                         </div>
                     </div>
