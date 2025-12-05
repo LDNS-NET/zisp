@@ -1,215 +1,230 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue';
-import { Link } from '@inertiajs/vue3';
-import ApplicationLogo from '@/Components/ApplicationLogo.vue';
+import { Link, usePage } from '@inertiajs/vue3';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
-import NavLink from '@/Components/NavLink.vue';
 import { useTheme } from '@/composables/useTheme';
-
-// Icons
 import {
     LayoutDashboard,
     Users,
     Banknote,
-    MessageSquare,
     LogOut,
     Settings,
-    Building2,
-    SunIcon,
+    Sun,
+    Moon,
     FolderEdit,
+    Menu,
+    X,
+    ChevronDown,
+    ChevronRight,
 } from 'lucide-vue-next';
 
-const { theme, applyTheme } = useTheme();
+const { theme, setTheme } = useTheme();
+const showingNavigationDropdown = ref(false);
 const sidebarOpen = ref(false);
+const collapsed = ref(false);
 
+// Persist collapsed state
 onMounted(() => {
-    const savedTheme = localStorage.getItem('superadmin_theme') || 'light';
-    theme.value = savedTheme;
-    applyTheme(savedTheme);
+    const savedCollapsed = localStorage.getItem('ldns_superadmin_sidebar_collapsed');
+    if (savedCollapsed !== null) {
+        collapsed.value = savedCollapsed === 'true';
+    }
 });
 
-watch(theme, (val) => {
-    localStorage.setItem('superadmin_theme', val);
-    applyTheme(val);
+watch(collapsed, (val) => {
+    localStorage.setItem('ldns_superadmin_sidebar_collapsed', val);
 });
+
+const navigation = [
+    { name: 'Dashboard', href: route('superadmin.dashboard'), icon: LayoutDashboard, active: 'superadmin.dashboard' },
+    { name: 'All Tenants', href: route('superadmin.users.index'), icon: Users, active: 'superadmin.users.*' },
+    { name: 'Payments', href: route('superadmin.payments.index'), icon: Banknote, active: 'superadmin.payments.*' },
+];
+
+const user = usePage().props.auth.user;
+
+function toggleSidebar() {
+    sidebarOpen.value = !sidebarOpen.value;
+}
 </script>
 
 <template>
-    <div
-        class="min-h-auto flex w-full bg-gray-50 text-gray-900 transition-colors duration-300 dark:bg-gray-900 dark:text-white"
-    >
+    <div class="h-screen overflow-hidden bg-gray-50 dark:bg-slate-950 flex transition-colors duration-300">
+        
+        <!-- Mobile Sidebar Overlay -->
+        <div 
+            v-if="sidebarOpen" 
+            class="fixed inset-0 z-40 bg-gray-900/50 backdrop-blur-sm lg:hidden transition-opacity"
+            @click="sidebarOpen = false"
+        ></div>
+
         <!-- Sidebar -->
-        <aside
-            class="fixed inset-y-0 left-0 z-30 w-64 flex-shrink-0 transform bg-white shadow-lg transition-transform duration-200 ease-in-out lg:relative lg:translate-x-0 dark:bg-gray-800"
-            :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
+        <aside 
+            :class="[
+                'fixed lg:static inset-y-0 left-0 z-50 bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-800 transition-all duration-300 ease-in-out flex flex-col',
+                collapsed ? 'lg:w-20' : 'lg:w-72',
+                sidebarOpen ? 'translate-x-0 w-72' : '-translate-x-full lg:translate-x-0'
+            ]"
         >
-            <div
-                class="flex items-center justify-between border-b border-gray-200 px-4 py-4 dark:border-gray-700"
-            >
-                <Link
-                    :href="route('superadmin.dashboard')"
-                    class="flex items-center space-x-2"
-                >
-                    <ApplicationLogo class="h-8 w-auto" />
-                    <span class="text-lg font-semibold">SuperAdmin</span>
-                </Link>
-                <button
-                    @click="sidebarOpen = false"
-                    class="text-gray-500 hover:text-gray-700 lg:hidden dark:text-gray-300"
-                >
-                    <svg
-                        class="h-6 w-6"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+            <!-- Logo Area -->
+            <div class="h-16 flex items-center justify-between px-6 border-b border-gray-100 dark:border-slate-800">
+                <div class="flex items-center gap-3 overflow-hidden">
+                    <div class="flex-shrink-0 w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-lg">
+                        S
+                    </div>
+                    <span 
+                        :class="['font-bold text-xl text-gray-900 dark:text-white transition-opacity duration-300', collapsed ? 'lg:opacity-0 lg:hidden' : 'opacity-100']"
                     >
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M6 18L18 6M6 6l12 12"
-                        />
-                    </svg>
+                        SuperAdmin
+                    </span>
+                </div>
+                <!-- Mobile Close Button -->
+                <button @click="sidebarOpen = false" class="lg:hidden text-gray-500 hover:text-gray-700 dark:text-gray-400">
+                    <X class="w-6 h-6" />
                 </button>
             </div>
 
-            <!-- Sidebar Links -->
-            <nav class="h-[calc(100vh-4rem)] space-y-1 overflow-y-auto p-4">
-                <div class="mb-4 px-3">
-                    <NavLink
-                        :href="route('superadmin.dashboard')"
-                        :active="route().current('superadmin.dashboard')"
-                        class="flex items-center p-2"
+            <!-- Navigation -->
+            <div class="flex-1 overflow-y-auto py-4 px-3 space-y-1 custom-scrollbar">
+                <template v-for="(item, index) in navigation" :key="index">
+                    <!-- Section Header -->
+                    <div 
+                        v-if="item.header" 
+                        :class="['mt-6 mb-2 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider transition-all duration-300', collapsed ? 'lg:hidden' : 'block']"
                     >
-                        <LayoutDashboard class="mr-2 h-4 w-4 text-blue-500" />
-                        Dashboard
-                    </NavLink>
+                        {{ item.header }}
+                    </div>
+                    
+                    <!-- Link -->
+                    <Link 
+                        v-else
+                        :href="item.href"
+                        :class="[
+                            'group flex items-center px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200',
+                            route().current(item.active) 
+                                ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400' 
+                                : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white'
+                        ]"
+                        :title="collapsed ? item.name : ''"
+                    >
+                        <component 
+                            :is="item.icon" 
+                            :class="[
+                                'flex-shrink-0 w-5 h-5 transition-colors duration-200',
+                                route().current(item.active) ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 group-hover:text-gray-600 dark:text-gray-500 dark:group-hover:text-gray-300',
+                                collapsed ? 'mx-auto' : 'mr-3'
+                            ]" 
+                        />
+                        <span :class="['transition-all duration-300 whitespace-nowrap', collapsed ? 'lg:hidden' : 'block']">
+                            {{ item.name }}
+                        </span>
+                    </Link>
+                </template>
+            </div>
 
-                    <NavLink
-                        :href="route('superadmin.users.index')"
-                        :active="route().current('superadmin.users.index')"
-                        class="flex items-center p-2"
-                    >
-                        <LayoutDashboard class="mr-2 h-4 w-4 text-blue-500" />
-                        All Tenants
-                    </NavLink>
-
-                    <NavLink
-                        :href="route('superadmin.payments.index')"
-                        :active="route().current('superadmin.payments.index')"
-                        class="flex items-center p-2"
-                    >
-                        <Banknote class="mr-2 h-4 w-4 text-blue-500" />
-                        Payments
-                    </NavLink>
-                </div>
-                
-            </nav>
+            <!-- Sidebar Footer (Collapse Toggle) -->
+            <div class="p-4 border-t border-gray-100 dark:border-slate-800 hidden lg:flex justify-end">
+                <button 
+                    @click="collapsed = !collapsed"
+                    class="p-2 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-slate-800 dark:hover:text-gray-300 transition-colors"
+                >
+                    <component :is="collapsed ? ChevronRight : ChevronDown" class="w-5 h-5 transform rotate-90" />
+                </button>
+            </div>
         </aside>
 
-        <!-- Overlay (mobile) -->
-        <div
-            v-if="sidebarOpen"
-            @click="sidebarOpen = false"
-            class="fixed inset-0 z-20 bg-black opacity-50 lg:hidden"
-        ></div>
-
-        <!-- Main Section -->
-        <div
-            class="flex min-h-screen flex-1 flex-col bg-gray-50 transition-colors duration-300 dark:bg-gray-900"
-        >
-            <!-- Top Navbar -->
-            <nav
-                class="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3 shadow-sm dark:border-gray-700 dark:bg-gray-800"
-            >
-                <div class="items-left ml-2 flex gap-4 font-extrabold">
-                    <button
-                        @click="sidebarOpen = true"
-                        class="text-gray-600 focus:outline-none lg:hidden dark:text-gray-300"
+        <!-- Main Content Wrapper -->
+        <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+            
+            <!-- Top Header -->
+            <header class="h-16 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between px-4 sm:px-6 lg:px-8 z-30 sticky top-0">
+                
+                <!-- Left: Mobile Toggle -->
+                <div class="flex items-center gap-4">
+                    <button 
+                        @click="toggleSidebar" 
+                        class="lg:hidden p-2 -ml-2 text-gray-500 hover:bg-gray-100 rounded-lg dark:text-gray-400 dark:hover:bg-slate-800"
                     >
-                        <svg
-                            class="h-6 w-6"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M4 6h16M4 12h16M4 18h16"
-                            />
-                        </svg>
+                        <Menu class="w-6 h-6" />
                     </button>
-
-                    {{ $page.props.auth.user.name }}
                 </div>
 
-                <div class="ml-2 flex">
+                <!-- Right: Actions -->
+                <div class="flex items-center gap-3 sm:gap-4">
+                    
+                    <!-- Theme Toggle -->
+                    <button 
+                        @click="setTheme(theme === 'dark' ? 'light' : 'dark')"
+                        class="p-2 text-gray-500 hover:bg-gray-100 rounded-full dark:text-gray-400 dark:hover:bg-slate-800 transition-colors"
+                        :title="theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
+                    >
+                        <Sun v-if="theme === 'dark'" class="w-5 h-5" />
+                        <Moon v-else class="w-5 h-5" />
+                    </button>
+
+                    <!-- User Dropdown -->
                     <Dropdown align="right" width="48">
                         <template #trigger>
-                            <button
-                                type="button"
-                                class="inline-flex items-center rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-200"
-                            >
-                                <Settings
-                                    class="ml-1 h-5 w-auto text-gray-400"
-                                />
+                            <button class="flex items-center gap-3 pl-3 pr-1 py-1.5 rounded-full hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors border border-transparent hover:border-gray-200 dark:hover:border-slate-700">
+                                <div class="text-right hidden sm:block">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-white leading-none mb-1">{{ user.name }}</div>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400 leading-none">{{ user.email }}</div>
+                                </div>
+                                <div class="h-9 w-9 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-700 dark:text-blue-300 font-bold text-sm border border-blue-200 dark:border-blue-800">
+                                    {{ user.name.charAt(0).toUpperCase() }}
+                                </div>
+                                <ChevronDown class="w-4 h-4 text-gray-400" />
                             </button>
                         </template>
 
                         <template #content>
-                            <DropdownLink
-                                @click="
-                                    theme = theme === 'dark' ? 'light' : 'dark'
-                                "
-                                class="flex items-center rounded-full p-2 hover:bg-gray-100 dark:hover:bg-gray-700"
-                            >
-                                <SunIcon class="mr-2 h-4 w-4" />
-                                Theme
-                            </DropdownLink>
+                            <div class="px-4 py-3 border-b border-gray-100 dark:border-slate-700 sm:hidden">
+                                <div class="font-medium text-gray-900 dark:text-white">{{ user.name }}</div>
+                                <div class="text-sm text-gray-500 dark:text-gray-400">{{ user.email }}</div>
+                            </div>
 
-                            <DropdownLink
-                                :href="route('profile.edit')"
-                                class="flex"
-                            >
-                                <FolderEdit class="mr-2 h-4 w-4" />
-                                Profile
+                            <DropdownLink :href="route('profile.edit')" class="flex items-center gap-2">
+                                <FolderEdit class="w-4 h-4" /> Profile
                             </DropdownLink>
-
-                            <DropdownLink
-                                :href="route('logout')"
-                                method="post"
-                                as="button"
-                                class="flex items-center"
-                            >
-                                <LogOut class="mr-2 h-4 w-4 text-red-600" />
-                                Log Out
+                            <div class="border-t border-gray-100 dark:border-slate-700 my-1"></div>
+                            <DropdownLink :href="route('logout')" method="post" as="button" class="flex items-center gap-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">
+                                <LogOut class="w-4 h-4" /> Log Out
                             </DropdownLink>
                         </template>
                     </Dropdown>
                 </div>
-            </nav>
-
-            <!-- Header -->
-            <header
-                v-if="$slots.header"
-                class="bg-white shadow transition-colors duration-300 dark:bg-gray-800"
-            >
-                <div
-                    class="mx-auto max-w-7xl px-4 py-6 text-gray-900 sm:px-6 lg:px-8 dark:text-white"
-                >
-                    <slot name="header" />
-                </div>
             </header>
 
-            <!-- Main Content -->
-            <main
-                class="flex-1 bg-gray-50 p-4 transition-colors duration-300 dark:bg-gray-900"
-            >
-                <slot />
+            <!-- Page Header (Title & Actions) -->
+            <div v-if="$slots.header" class="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800">
+                <div class="px-4 py-4 sm:px-6 lg:px-8">
+                    <slot name="header" />
+                </div>
+            </div>
+
+            <!-- Page Content -->
+            <main class="flex-1 overflow-y-auto bg-gray-50 dark:bg-slate-950 p-4 sm:p-6 lg:p-8">
+                <div class="max-w-7xl mx-auto">
+                    <slot />
+                </div>
             </main>
         </div>
     </div>
 </template>
+
+<style scoped>
+.custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: rgba(156, 163, 175, 0.3);
+    border-radius: 20px;
+}
+.custom-scrollbar:hover::-webkit-scrollbar-thumb {
+    background-color: rgba(156, 163, 175, 0.5);
+}
+</style>
