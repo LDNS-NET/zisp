@@ -24,7 +24,7 @@ class NetworkUser extends Model
         'username',
         'password',
         'phone',
-        'email',
+        //'email',
         'location',
         'type',
         'package_id',

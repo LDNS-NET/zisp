@@ -49,7 +49,7 @@ const form = useForm({
     username: '',
     password: '',
     phone: '',
-    email: '',
+    // email: '',
     location: '',
     package_id: '',
     type: 'hotspot',
@@ -104,7 +104,7 @@ function openEdit(user) {
     form.username = user.username ?? '';
     form.password = ''; // Don't show current password
     form.phone = user.phone ?? '';
-    form.email = user.email ?? '';
+    // form.email = user.email ?? '';
     form.location = user.location ?? '';
     form.package_id = user.package_id ?? '';
     form.type = user.type ?? 'hotspot';
@@ -429,11 +429,11 @@ const openActions = (user) => {
                             <TextInput v-model="form.phone" id="phone" class="mt-1 block w-full" />
                             <InputError :message="form.errors.phone" />
                         </div>
-                        <div>
+                        <!-- <div>
                             <InputLabel for="email" value="Email Address" />
                             <TextInput v-model="form.email" id="email" type="email" class="mt-1 block w-full" />
                             <InputError :message="form.errors.email" />
-                        </div>
+                        </div> -->
                         <div>
                             <InputLabel for="location" value="Location" />
                             <TextInput v-model="form.location" id="location" class="mt-1 block w-full" />

@@ -91,12 +91,12 @@ class TenantUserController extends Controller
             'username' => 'required|string|max:255|unique:network_users',
             'password' => 'nullable|string|min:6',
             'phone' => 'required|string|max:15',
-            'email' => [
+            /*'email' => [
                 'nullable',
                 'email',
                 'max:255',
                 Rule::unique('network_users', 'email')->whereNotNull('email')
-            ],
+            ],*/
             'location' => 'nullable|string|max:255',
             'type' => 'required|in:hotspot,pppoe,static',
             'package_id' => 'nullable|exists:packages,id',
@@ -115,7 +115,7 @@ class TenantUserController extends Controller
                     'password' => $validated['password'],
                     'account_number' => $accountNumber,
                     'phone' => $validated['phone'],
-                    'email' => $validated['email'],
+                    //'email' => $validated['email'],
                     'location' => $validated['location'],
                     'type' => $validated['type'],
                     'package_id' => $validated['package_id'],
@@ -131,9 +131,9 @@ class TenantUserController extends Controller
             ]);
         } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
             // Handle duplicate entries gracefully
-            if (str_contains($e->getMessage(), 'email')) {
-                return back()->withErrors(['email' => 'This email address is already registered.'])->withInput();
-            } elseif (str_contains($e->getMessage(), 'username')) {
+            if //(str_contains($e->getMessage(), 'email')) {
+                //return back()->withErrors(['email' => 'This email address is already registered.'])->withInput();
+            /*} elseif */(str_contains($e->getMessage(), 'username')) {
                 return back()->withErrors(['username' => 'This username is already taken.'])->withInput();
             }
 
@@ -288,12 +288,12 @@ class TenantUserController extends Controller
             'username' => ['required', 'string', 'max:255', Rule::unique('network_users')->ignore($user->id)],
             'password' => 'nullable|string|min:4',
             'phone' => 'required|string|max:15',
-            'email' => [
+            /*'email' => [
                 'nullable',
                 'email',
                 'max:255',
                 Rule::unique('network_users', 'email')->ignore($user->id)->whereNotNull('email')
-            ],
+            ],*/
             'location' => 'nullable|string|max:255',
             'type' => ['required', Rule::in(['hotspot', 'pppoe', 'static'])],
             'package_id' => 'nullable|exists:packages,id',
@@ -327,9 +327,9 @@ class TenantUserController extends Controller
             ]);
         } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
             // Handle duplicate entries gracefully
-            if (str_contains($e->getMessage(), 'email')) {
+            if /*(str_contains($e->getMessage(), 'email')) {
                 return back()->withErrors(['email' => 'This email address is already registered.'])->withInput();
-            } elseif (str_contains($e->getMessage(), 'username')) {
+            } elseif */(str_contains($e->getMessage(), 'username')) {
                 return back()->withErrors(['username' => 'This username is already taken.'])->withInput();
             }
 

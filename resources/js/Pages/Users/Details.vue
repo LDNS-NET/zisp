@@ -32,7 +32,7 @@ const form = useForm({
     username: '',
     password: '',
     phone: '',
-    email: '',
+    // email: '',
     location: '',
     package_id: '',
     type: 'hotspot',
@@ -45,7 +45,7 @@ function openEdit(user) {
     form.username = user.username ?? '';
     form.password = '';
     form.phone = user.phone ?? '';
-    form.email = user.email ?? '';
+    // form.email = user.email ?? '';
     form.location = user.location ?? '';
     form.package_id = user.package_id ?? '';
     form.type = user.type ?? 'hotspot';
@@ -182,7 +182,7 @@ function submit() {
                             v-for="(value, label) in {
                                 'Full Name': props.user.full_name,
                                 Username: props.user.username,
-                                Email: props.user.email ?? '—',
+                                // Email: props.user.email ?? '—',
                                 Password: props.user.password ?? '—',
                                 Account: props.user.account_number ?? '—',
                                 Phone: props.user.phone ?? '—',
@@ -574,11 +574,11 @@ function submit() {
                     <InputError :message="form.errors.phone" />
                 </div>
 
-                <div>
+                <!-- <div>
                     <label class="block text-sm font-medium">Email</label>
                     <TextInput v-model="form.email" type="email" />
                     <InputError :message="form.errors.email" />
-                </div>
+                </div> -->
 
                 <div>
                     <label class="block text-sm font-medium">Location</label>
