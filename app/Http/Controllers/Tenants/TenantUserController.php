@@ -95,7 +95,9 @@ class TenantUserController extends Controller
                 'nullable',
                 'email',
                 'max:255',
-                Rule::unique('network_users', 'email')->whereNotNull('email')
+                Rule::unique('network_users', 'email')->where(function ($query) {
+                    return $query->whereNotNull('email')->where('email', '!=', '');
+                })
             ],
             'location' => 'nullable|string|max:255',
             'type' => 'required|in:hotspot,pppoe,static',
@@ -292,7 +294,9 @@ class TenantUserController extends Controller
                 'nullable',
                 'email',
                 'max:255',
-                Rule::unique('network_users', 'email')->ignore($user->id)->whereNotNull('email')
+                Rule::unique('network_users', 'email')->ignore($user->id)->where(function ($query) {
+                    return $query->whereNotNull('email')->where('email', '!=', '');
+                })
             ],
             'location' => 'nullable|string|max:255',
             'type' => ['required', Rule::in(['hotspot', 'pppoe', 'static'])],
