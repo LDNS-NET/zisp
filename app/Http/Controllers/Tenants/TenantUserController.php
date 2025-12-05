@@ -85,6 +85,11 @@ class TenantUserController extends Controller
 
     public function store(Request $request)
     {
+        // Normalize empty email to null before validation
+        if ($request->input('email') === '' || $request->input('email') === null) {
+            $request->merge(['email' => null]);
+        }
+
         // Validate the request
         $validated = $request->validate([
             'full_name' => 'nullable|string|max:255',
@@ -95,9 +100,7 @@ class TenantUserController extends Controller
                 'nullable',
                 'email',
                 'max:255',
-                Rule::unique('network_users', 'email')->where(function ($query) {
-                    return $query->whereNotNull('email')->where('email', '!=', '');
-                })
+                Rule::unique('network_users', 'email')->whereNotNull('email')
             ],
             'location' => 'nullable|string|max:255',
             'type' => 'required|in:hotspot,pppoe,static',
@@ -284,6 +287,11 @@ class TenantUserController extends Controller
 
     public function update(Request $request, NetworkUser $user)
     {
+        // Normalize empty email to null before validation
+        if ($request->input('email') === '' || $request->input('email') === null) {
+            $request->merge(['email' => null]);
+        }
+
         // Validate the request
         $validated = $request->validate([
             'full_name' => 'nullable|string|max:255',
@@ -294,9 +302,7 @@ class TenantUserController extends Controller
                 'nullable',
                 'email',
                 'max:255',
-                Rule::unique('network_users', 'email')->ignore($user->id)->where(function ($query) {
-                    return $query->whereNotNull('email')->where('email', '!=', '');
-                })
+                Rule::unique('network_users', 'email')->ignore($user->id)->whereNotNull('email')
             ],
             'location' => 'nullable|string|max:255',
             'type' => ['required', Rule::in(['hotspot', 'pppoe', 'static'])],
