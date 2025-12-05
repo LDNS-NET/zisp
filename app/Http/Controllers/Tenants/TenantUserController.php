@@ -331,15 +331,15 @@ class TenantUserController extends Controller
                 'user_id' => $user->id
             ]);
         } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
-    Handle duplicate entries gracefully
-   if (str_contains($e->getMessage(), 'email')) {
-       return back()->withErrors(['email' => 'This email address is already registered.'])->withInput();
-   } elseif (str_contains($e->getMessage(), 'username')) {
-       return back()->withErrors(['username' => 'This username is already taken.'])->withInput();
-   }
+            //Handle duplicate entries gracefully
+            if (str_contains($e->getMessage(), 'email')) {
+                return back()->withErrors(['email' => 'This email address is already registered.'])->withInput();
+            } elseif (str_contains($e->getMessage(), 'username')) {
+                return back()->withErrors(['username' => 'This username is already taken.'])->withInput();
+            }
 
-   return back()->withErrors(['error' => 'A user with this information already exists.'])->withInput();
-} catch (\Exception $e) {
+            return back()->withErrors(['error' => 'A user with this information already exists.'])->withInput();
+        } catch (\Exception $e) {
             \Log::error('Failed to update user', [
                 'user_id' => $user->id,
                 'error' => $e->getMessage(),
