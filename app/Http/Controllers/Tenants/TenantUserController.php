@@ -104,12 +104,10 @@ class TenantUserController extends Controller
         ]);
 
 
-        // Generate a globally unique account number
-        // Using timestamp + random to ensure uniqueness across all tenants
+        // Generate a globally unique account number (NU + 6 digits)
         do {
-            $timestamp = now()->format('ymdHis'); // YYMMDDHHmmss (12 digits)
-            $random = str_pad(mt_rand(0, 999), 3, '0', STR_PAD_LEFT); // 3 random digits
-            $accountNumber = 'NU' . substr($timestamp, -8) . $random; // NU + last 8 of timestamp + 3 random = NU + 11 digits
+            $randomNumber = str_pad(mt_rand(0, 999999), 6, '0', STR_PAD_LEFT);
+            $accountNumber = 'NU' . $randomNumber; // e.g., NU000123, NU456789
 
             // Check if this account number already exists (very unlikely but safety check)
             $exists = NetworkUser::where('account_number', $accountNumber)->exists();
@@ -139,15 +137,15 @@ class TenantUserController extends Controller
                 'user_id' => $user->id
             ]);
         } /*catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
-           // Handle duplicate entries gracefully
-           if //(str_contains($e->getMessage(), 'email')) {
-               //return back()->withErrors(['email' => 'This email address is already registered.'])->withInput();
-           /*} elseif (str_contains($e->getMessage(), 'username')) {
-               return back()->withErrors(['username' => 'This username is already taken.'])->withInput();
-           }
+          // Handle duplicate entries gracefully
+          if //(str_contains($e->getMessage(), 'email')) {
+              //return back()->withErrors(['email' => 'This email address is already registered.'])->withInput();
+          /*} elseif (str_contains($e->getMessage(), 'username')) {
+              return back()->withErrors(['username' => 'This username is already taken.'])->withInput();
+          }
 
-           return back()->withErrors(['error' => 'A user with this information already exists.'])->withInput();
-       }*/ catch (\Exception $e) {
+          return back()->withErrors(['error' => 'A user with this information already exists.'])->withInput();
+      }*/ catch (\Exception $e) {
             \Log::error('Failed to create user', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
@@ -335,15 +333,15 @@ class TenantUserController extends Controller
                 'user_id' => $user->id
             ]);
         } /*catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
-           // Handle duplicate entries gracefully
-           if /*(str_contains($e->getMessage(), 'email')) {
-               return back()->withErrors(['email' => 'This email address is already registered.'])->withInput();
-           } elseif (str_contains($e->getMessage(), 'username')) {
-               return back()->withErrors(['username' => 'This username is already taken.'])->withInput();
-           }
+          // Handle duplicate entries gracefully
+          if /*(str_contains($e->getMessage(), 'email')) {
+              return back()->withErrors(['email' => 'This email address is already registered.'])->withInput();
+          } elseif (str_contains($e->getMessage(), 'username')) {
+              return back()->withErrors(['username' => 'This username is already taken.'])->withInput();
+          }
 
-           return back()->withErrors(['error' => 'A user with this information already exists.'])->withInput();
-       } */ catch (\Exception $e) {
+          return back()->withErrors(['error' => 'A user with this information already exists.'])->withInput();
+      } */ catch (\Exception $e) {
             \Log::error('Failed to update user', [
                 'user_id' => $user->id,
                 'error' => $e->getMessage(),
