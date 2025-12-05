@@ -9,7 +9,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\DashboardController;
 
 // SuperAdmin controllers
-use App\Http\Controllers\SuperAdmin\SuperAdminController;
+
 use App\Http\Controllers\Tenants\CaptivePortalController;
 use App\Http\Controllers\Tenants\PackageController;
 use App\Http\Controllers\Tenants\TenantActiveUsersController;
@@ -35,6 +35,11 @@ use App\Http\Controllers\Tenants\VoucherController;
 use App\Http\Controllers\MikrotikController;
 use App\Http\Controllers\Tenants\TenantHotspotController;
 use App\Http\Controllers\Tenants\MikrotikDetailsController;
+
+// SuperAdmin controllers
+use App\Http\Controllers\SuperAdmin\SuperAdminController;
+use App\Http\Controllers\SuperAdmin\UsersController;
+use App\Http\Controllers\SuperAdmin\PaymentsController;
 
 /*
 |--------------------------------------------------------------------------
@@ -291,8 +296,16 @@ Route::middleware(['auth', 'superadmin'])
     ->prefix('superadmin')
     ->name('superadmin.')
     ->group(function () {
+
+
         // Dashboard
         Route::get('/dashboard', [SuperAdminController::class, 'dashboard'])->name('dashboard');
+
+        // Users Management
+        Route::resource('users', UsersController::class)->only(['index', 'show', 'destroy']);
+
+        // Payments Management
+        Route::resource('payments', PaymentsController::class)->only(['index', 'show', 'destroy']);
 
         // other superadmin routes
     });

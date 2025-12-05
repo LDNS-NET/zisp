@@ -85,6 +85,24 @@ watch(theme, (val) => {
                         <LayoutDashboard class="mr-2 h-4 w-4 text-blue-500" />
                         Dashboard
                     </NavLink>
+
+                    <NavLink
+                        :href="route('superadmin.users.index')"
+                        :active="route().current('superadmin.users.index')"
+                        class="flex items-center p-2"
+                    >
+                        <LayoutDashboard class="mr-2 h-4 w-4 text-blue-500" />
+                        All Tenants
+                    </NavLink>
+
+                    <NavLink
+                        :href="route('superadmin.payments.index')"
+                        :active="route().current('superadmin.payments.index')"
+                        class="flex items-center p-2"
+                    >
+                        <Banknote class="mr-2 h-4 w-4 text-blue-500" />
+                        Payments
+                    </NavLink>
                 </div>
                 
             </nav>
