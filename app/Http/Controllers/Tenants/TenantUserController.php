@@ -92,9 +92,8 @@ class TenantUserController extends Controller
                 'required',
                 'string',
                 'max:255',
-                Rule::unique('network_users', 'username')->withoutTrashed()->where(function ($query) {
-                    // Bypass the created_by global scope to check all users in this tenant
-                    $query->withoutGlobalScope('created_by');
+                Rule::unique('network_users', 'username')->where(function ($query) {
+                    return $query->whereNotNull('id'); // Ensures we're querying the tenant DB
                 })
             ],
             'password' => 'nullable|string|min:6',
@@ -289,8 +288,7 @@ class TenantUserController extends Controller
                 'string',
                 'max:255',
                 Rule::unique('network_users', 'username')->ignore($user->id)->where(function ($query) {
-                    // Bypass the created_by global scope to check all users in this tenant
-                    $query->withoutGlobalScope('created_by');
+                    return $query->whereNotNull('id'); // Ensures we're querying the tenant DB
                 })
             ],
             'password' => 'nullable|string|min:4',
