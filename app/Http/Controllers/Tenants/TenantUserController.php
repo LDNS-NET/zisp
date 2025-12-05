@@ -85,11 +85,6 @@ class TenantUserController extends Controller
 
     public function store(Request $request)
     {
-        // Normalize empty email to null before validation
-        if ($request->input('email') === '' || $request->input('email') === null) {
-            $request->merge(['email' => null]);
-        }
-
         // Validate the request
         $validated = $request->validate([
             'full_name' => 'nullable|string|max:255',
@@ -287,11 +282,6 @@ class TenantUserController extends Controller
 
     public function update(Request $request, NetworkUser $user)
     {
-        // Normalize empty email to null before validation
-        if ($request->input('email') === '' || $request->input('email') === null) {
-            $request->merge(['email' => null]);
-        }
-
         // Validate the request
         $validated = $request->validate([
             'full_name' => 'nullable|string|max:255',
