@@ -350,7 +350,7 @@ const packageChartSeries = computed(() =>
                                     </div>
                                     
                                     <!-- Payment Button -->
-                                    <a v-if="daysRemaining <= 7"
+                                    <a v-if="daysRemaining <=5"
                                         href="https://payment.intasend.com/pay/8d7f60c4-f2c2-4642-a2b6-0654a3cc24e3/"
                                         target="_blank"
                                         class="mt-4 flex items-center justify-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-indigo-600 transition-all hover:bg-indigo-50 hover:shadow-lg"
