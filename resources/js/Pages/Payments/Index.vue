@@ -759,12 +759,12 @@ function generatePaymentConfirmation() {
                             <td class="px-4 py-2 text-gray-900 dark:text-gray-100">{{ item.paid_at }}</td>
                             <td class="px-4 py-2 text-gray-900 dark:text-gray-100">{{ item.disbursement_label }}</td>
                             <td class="space-x-2 px-4 py-2">
-                                <button @click="openEditModal(item)" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
+                                <!--<button @click="openEditModal(item)" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
                                     <Edit class="h-4 w-4" />
                                 </button>
                                 <button @click="confirmPaymentDeletion(item.id)" class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300">
                                     <Trash2 class="h-4 w-4" />
-                                </button>
+                                </button>-->
                                 <button @click="showPaymentDetails(item)" class="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300">
                                     <Eye class="h-4 w-4" />
                                 </button>
