@@ -34,10 +34,10 @@ class UsersController extends Controller
         $tenantDetails = \App\Models\SuperAdmin\Users::where('tenant_id', $user->tenant_id)->first();
 
         $tenantSettings = TenantGeneralSetting::where('tenant_id', $user->tenant_id)->first();
-        $mikrotiks = TenantMikrotik::where('tenant_id', $user->tenant_id)->get();
-        $totalEndUsers = NetworkUser::where('tenant_id', $user->tenant_id)->count();
-        $totalPayments = TenantPayment::where('tenant_id', $user->tenant_id)->sum('amount');
-        $totalMikrotiks = TenantMikrotik::where('tenant_id', $user->tenant_id)->count();
+        $mikrotiks = TenantMikrotik::withoutGlobalScope('created_by')->where('created_by', $user->id)->get();
+        $totalEndUsers = NetworkUser::withoutGlobalScope('created_by')->where('created_by', $user->id)->count();
+        $totalPayments = TenantPayment::withoutGlobalScope('created_by')->where('created_by', $user->id)->sum('amount');
+        $totalMikrotiks = TenantMikrotik::withoutGlobalScope('created_by')->where('created_by', $user->id)->count();
 
         return Inertia::render('SuperAdmin/Users/Show', [
             'user' => $user,
