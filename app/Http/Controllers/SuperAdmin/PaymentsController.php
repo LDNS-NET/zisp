@@ -15,7 +15,7 @@ use App\Models\Tenants\NetworkUser;
 class PaymentsController extends Controller
 {
     public function index() {
-        $payments = Payments::orderBy('created_at', 'desc')->paginate(20);
+        $payments = TenantPayment::orderBy('created_at', 'desc')->paginate(20);
 
         return Inertia::render('SuperAdmin/Payments/Index', [
             'payments' => $payments,
