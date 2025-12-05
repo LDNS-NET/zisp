@@ -88,7 +88,7 @@ class TenantUserController extends Controller
         // Validate the request
         $validated = $request->validate([
             'full_name' => 'nullable|string|max:255',
-            'username' => 'nullable|unique:network_users,username|string|max:255',
+            'username' => 'required|string|max:255',
             'password' => 'nullable|string|min:6',
             'phone' => 'required|string|max:15',
             /*'email' => [
@@ -102,6 +102,12 @@ class TenantUserController extends Controller
             'package_id' => 'nullable|exists:packages,id',
             'expires_at' => 'nullable|date',
         ]);
+
+        // Custom username uniqueness check within tenant database
+        $existingUser = NetworkUser::where('username', $validated['username'])->first();
+        if ($existingUser) {
+            return back()->withErrors(['username' => 'The username has already been taken.'])->withInput();
+        }
 
 
         // Generate a globally unique account number (NU + 6 digits)
@@ -276,14 +282,7 @@ class TenantUserController extends Controller
         // Validate the request
         $validated = $request->validate([
             'full_name' => 'nullable|string|max:255',
-            'username' => [
-                'required',
-                'string',
-                'max:255',
-                Rule::unique('network_users', 'username')->ignore($user->id)->where(function ($query) {
-                    return $query->whereNotNull('id'); // Ensures we're querying the tenant DB
-                })
-            ],
+            'username' => 'required|string|max:255',
             'password' => 'nullable|string|min:4',
             'phone' => 'required|string|max:15',
             /*'email' => [
@@ -297,6 +296,14 @@ class TenantUserController extends Controller
             'package_id' => 'nullable|exists:packages,id',
             'expires_at' => 'nullable|date',
         ]);
+
+        // Custom username uniqueness check within tenant database (excluding current user)
+        $existingUser = NetworkUser::where('username', $validated['username'])
+            ->where('id', '!=', $user->id)
+            ->first();
+        if ($existingUser) {
+            return back()->withErrors(['username' => 'The username has already been taken.'])->withInput();
+        }
 
         try {
             // Update the user in a transaction
