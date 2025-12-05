@@ -38,7 +38,7 @@ const props = defineProps({
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-500 dark:text-gray-400">Username</label>
-                                <div class="mt-1 text-sm text-gray-900 dark:text-gray-100">{{ props.tenantDetails?.username || 'N/A' }}</div>
+                                <div class="mt-1 text-sm text-gray-900 dark:text-gray-100">{{ props.tenantDetails?.username || props.user.username || 'N/A' }}</div>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-500 dark:text-gray-400">Email</label>
@@ -54,7 +54,7 @@ const props = defineProps({
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-500 dark:text-gray-400">Role</label>
-                                <div class="mt-1 text-sm text-gray-900 dark:text-gray-100 capitalize">{{ props.tenantDetails?.role || 'N/A' }}</div>
+                                <div class="mt-1 text-sm text-gray-900 dark:text-gray-100 capitalize">{{ props.tenantDetails?.role || props.user.role || 'N/A' }}</div>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-500 dark:text-gray-400">Status</label>
@@ -196,7 +196,7 @@ const props = defineProps({
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-500 dark:text-gray-400">Expiry Date</label>
-                                <div class="mt-1 text-sm text-gray-900 dark:text-gray-100">{{ props.tenantDetails?.expiry_date || 'N/A' }}</div>
+                                <div class="mt-1 text-sm text-gray-900 dark:text-gray-100">{{ props.tenantDetails?.expiry_date || props.user.subscription_expires_at || 'N/A' }}</div>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-500 dark:text-gray-400">Pruning Date</label>
@@ -204,7 +204,7 @@ const props = defineProps({
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-500 dark:text-gray-400">Email Verified At</label>
-                                <div class="mt-1 text-sm text-gray-900 dark:text-gray-100">{{ props.tenantDetails?.email_verified_at || 'N/A' }}</div>
+                                <div class="mt-1 text-sm text-gray-900 dark:text-gray-100">{{ props.tenantDetails?.email_verified_at || props.user.email_verified_at || 'N/A' }}</div>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-500 dark:text-gray-400">Phone Verified At</label>
