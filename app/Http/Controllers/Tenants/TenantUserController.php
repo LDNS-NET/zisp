@@ -88,7 +88,14 @@ class TenantUserController extends Controller
         // Validate the request
         $validated = $request->validate([
             'full_name' => 'nullable|string|max:255',
-            'username' => 'required|string|max:255|unique:network_users',
+            'username' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('network_users', 'username')->where(function ($query) {
+                    return $query->whereNotNull('id'); // Ensures we're querying the tenant DB
+                })
+            ],
             'password' => 'nullable|string|min:6',
             'phone' => 'required|string|max:15',
             /*'email' => [
@@ -136,16 +143,16 @@ class TenantUserController extends Controller
                 'success' => 'User created successfully.',
                 'user_id' => $user->id
             ]);
-        } /*catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
-       // Handle duplicate entries gracefully
-       if //(str_contains($e->getMessage(), 'email')) {
-           //return back()->withErrors(['email' => 'This email address is already registered.'])->withInput();
-       /*} elseif (str_contains($e->getMessage(), 'username')) {
-           return back()->withErrors(['username' => 'This username is already taken.'])->withInput();
-       }
+        } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
+            // Handle duplicate entries gracefully
+            if (str_contains($e->getMessage(), 'email')) {
+                return back()->withErrors(['email' => 'This email address is already registered.'])->withInput();
+            } elseif (str_contains($e->getMessage(), 'username')) {
+                return back()->withErrors(['username' => 'This username is already taken.'])->withInput();
+            }
 
-       return back()->withErrors(['error' => 'A user with this information already exists.'])->withInput();
-   }*/ catch (\Exception $e) {
+            return back()->withErrors(['error' => 'A user with this information already exists.'])->withInput();
+        } catch (\Exception $e) {
             \Log::error('Failed to create user', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
@@ -154,22 +161,6 @@ class TenantUserController extends Controller
             return back()->withErrors(['error' => 'Failed to create user. Please try again.'])->withInput();
         }
     }
-
-    /*public function show($id)
-{
-    $userDetails = NetworkUser::with('package')->findOrFail($id);
-
-    $payments = TenantPayment::where('user_id', $id)
-        ->orderBy('paid_at', 'desc')
-        ->get();
-
-    return inertia('Tenants/Users/Details', [
-        'user' => $userDetails,
-        'payments' => $payments, // 👈 now Vue receives this
-
-
-    ]);
-}*/
 
     public function show($id)
     {
@@ -292,7 +283,14 @@ class TenantUserController extends Controller
         // Validate the request
         $validated = $request->validate([
             'full_name' => 'nullable|string|max:255',
-            'username' => ['required', 'string', 'max:255', Rule::unique('network_users')->ignore($user->id)],
+            'username' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('network_users', 'username')->ignore($user->id)->where(function ($query) {
+                    return $query->whereNotNull('id'); // Ensures we're querying the tenant DB
+                })
+            ],
             'password' => 'nullable|string|min:4',
             'phone' => 'required|string|max:15',
             /*'email' => [
@@ -333,15 +331,15 @@ class TenantUserController extends Controller
                 'user_id' => $user->id
             ]);
         } /*catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
-       // Handle duplicate entries gracefully
-       if /*(str_contains($e->getMessage(), 'email')) {
-           return back()->withErrors(['email' => 'This email address is already registered.'])->withInput();
-       } elseif (str_contains($e->getMessage(), 'username')) {
-           return back()->withErrors(['username' => 'This username is already taken.'])->withInput();
-       }
+   // Handle duplicate entries gracefully
+   if /*(str_contains($e->getMessage(), 'email')) {
+       return back()->withErrors(['email' => 'This email address is already registered.'])->withInput();
+   } elseif (str_contains($e->getMessage(), 'username')) {
+       return back()->withErrors(['username' => 'This username is already taken.'])->withInput();
+   }
 
-       return back()->withErrors(['error' => 'A user with this information already exists.'])->withInput();
-   } */ catch (\Exception $e) {
+   return back()->withErrors(['error' => 'A user with this information already exists.'])->withInput();
+} */ catch (\Exception $e) {
             \Log::error('Failed to update user', [
                 'user_id' => $user->id,
                 'error' => $e->getMessage(),
