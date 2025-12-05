@@ -58,6 +58,7 @@ const page = usePage();
                                                 View
                                             </Link> 
                                         </button>
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>
