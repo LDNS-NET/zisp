@@ -53,11 +53,9 @@ const page = usePage();
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">{{ user.email }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">{{ new Date(user.created_at).toLocaleDateString() }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                        <button>
-                                            <Link :href="`/super-admin/users/${user.id}`" class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-200">
-                                                View
-                                            </Link> 
-                                        </button>
+                                        <Link :href="route('superadmin.users.show', user.id)" class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-200">
+                                            View
+                                        </Link>
                                     </td>
                                 </tr>
                             </tbody>
