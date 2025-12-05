@@ -129,16 +129,16 @@ class TenantUserController extends Controller
                 'success' => 'User created successfully.',
                 'user_id' => $user->id
             ]);
-        } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
+        } /*catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
             // Handle duplicate entries gracefully
             if //(str_contains($e->getMessage(), 'email')) {
                 //return back()->withErrors(['email' => 'This email address is already registered.'])->withInput();
-            /*} elseif */(str_contains($e->getMessage(), 'username')) {
+            /*} elseif (str_contains($e->getMessage(), 'username')) {
                 return back()->withErrors(['username' => 'This username is already taken.'])->withInput();
             }
 
             return back()->withErrors(['error' => 'A user with this information already exists.'])->withInput();
-        } catch (\Exception $e) {
+        }*/ catch (\Exception $e) {
             \Log::error('Failed to create user', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
@@ -325,16 +325,16 @@ class TenantUserController extends Controller
                 'success' => 'User updated successfully.',
                 'user_id' => $user->id
             ]);
-        } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
+        } /*catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
             // Handle duplicate entries gracefully
             if /*(str_contains($e->getMessage(), 'email')) {
                 return back()->withErrors(['email' => 'This email address is already registered.'])->withInput();
-            } elseif */(str_contains($e->getMessage(), 'username')) {
+            } elseif (str_contains($e->getMessage(), 'username')) {
                 return back()->withErrors(['username' => 'This username is already taken.'])->withInput();
             }
 
             return back()->withErrors(['error' => 'A user with this information already exists.'])->withInput();
-        } catch (\Exception $e) {
+        } */catch (\Exception $e) {
             \Log::error('Failed to update user', [
                 'user_id' => $user->id,
                 'error' => $e->getMessage(),
