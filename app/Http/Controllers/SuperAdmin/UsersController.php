@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use App\Models\Tenants\NetworkUser;
-use App\Models\SuperAdmin\Users;
+use App\Models\User;
 use App\Models\Tenants\TenantPayment;
 use App\Models\Tenant;
 use App\Models\Tenants\TenantGenenralSetting;
@@ -18,24 +18,18 @@ class UsersController extends Controller
 {
     public function index()
     {
-        $users = Users::orderBy('created_at', 'desc')->paginate(20);
+        $users = User::orderBy('created_at', 'desc')->paginate(20);
+        $tenant = Tenant::all();
 
         return Inertia::render('SuperAdmin/Users/Index', [
             'users' => $users,
+            'tenant' => $tenant,
         ]);
     }
 
     public function show($id)
     {
-        $user = Users::findOrFail($id);
-
-        // Fetch related data if needed, but the Users model (all_tenants) seems to have most info.
-        // If there are other related tables, fetch them here.
-        // Based on the model definition, most info is in the table itself.
-
-        // We might still want related data if it exists and isn't in the main table
-        // But for now, let's pass the user object which has all the fields from all_tenants table
-
+        $user = User::findOrFail($id);
         $tenantSettings = TenantGenenralSetting::where('tenant_id', $user->tenant_id)->first();
         $mikrotiks = TenantMikrotik::where('tenant_id', $user->tenant_id)->get();
         $totalEndUsers = NetworkUser::where('tenant_id', $user->tenant_id)->count();
@@ -49,6 +43,7 @@ class UsersController extends Controller
             'totalEndUsers' => $totalEndUsers,
             'totalPayments' => $totalPayments,
             'totalMikrotiks' => $totalMikrotiks,
+
         ]);
     }
 }
