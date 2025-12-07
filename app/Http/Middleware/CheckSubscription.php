@@ -38,7 +38,7 @@ class CheckSubscription
 
         // Redirect suspended users to payment if not just paid
         if ($user->is_suspended) {
-            $tenant = tenant();
+            $tenant = tenant() ?: $user->tenant;
             $domain = $tenant ? $tenant->domains()->first()->domain : null;
 
             if ($domain) {
