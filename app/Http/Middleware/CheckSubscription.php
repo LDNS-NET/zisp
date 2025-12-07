@@ -31,9 +31,9 @@ class CheckSubscription
         }
 
         // Redirect suspended users to payment if not just paid
-        if ($user->is_suspended) {
+        /*if ($user->is_suspended) {
             return redirect()->away('https://payment.intasend.com/pay/8d7f60c4-f2c2-4642-a2b6-0654a3cc24e3/');
-        }
+        }*/
 
         return $next($request);
     }
