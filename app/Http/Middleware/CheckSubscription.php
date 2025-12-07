@@ -40,17 +40,38 @@ class CheckSubscription
             $tenant = tenant();
             $domain = $tenant ? $tenant->domains()->first()->domain : null;
 
+            // Default static link as fallback
             $paymentUrl = 'https://payment.intasend.com/pay/8d7f60c4-f2c2-4642-a2b6-0654a3cc24e3/';
 
             if ($domain) {
                 $protocol = $request->secure() ? 'https://' : 'http://';
                 $returnUrl = $protocol . $domain . '/payment/success';
-                // Append return_url to the payment link
-                // Assuming IntaSend supports 'return_url' or 'redirect_url' query param. 
-                // Using 'redirect_url' as it's common, but 'return_url' was in plan. 
-                // Let's stick to the plan but maybe check if I can find docs? 
-                // I'll use 'redirect_url' as it's safer for many gateways, but wait, plan said return_url.
-                // I'll use http_build_query to be safe.
+
+                try {
+                    // Generate dynamic checkout link via IntaSend API
+                    $response = \Illuminate\Support\Facades\Http::post('https://payment.intasend.com/api/v1/checkout/', [
+                        'public_key' => env('INTASEND_PUBLIC_KEY'),
+                        'amount' => 1000, // Default subscription amount
+                        'currency' => 'KES',
+                        'email' => $user->email ?? 'customer@example.com',
+                        'redirect_url' => $returnUrl,
+                        'api_ref' => 'SUB-' . $user->id . '-' . time(),
+                        'method' => 'API-Checkout'
+                    ]);
+
+                    if ($response->successful()) {
+                        $data = $response->json();
+                        if (isset($data['url'])) {
+                            return redirect()->away($data['url']);
+                        }
+                    } else {
+                        \Illuminate\Support\Facades\Log::error('IntaSend API Failed', ['response' => $response->body()]);
+                    }
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error('IntaSend API Exception', ['error' => $e->getMessage()]);
+                }
+
+                // Fallback: Append redirect_url to static link if API fails
                 $paymentUrl .= '?' . http_build_query(['redirect_url' => $returnUrl]);
             }
 
