@@ -46,8 +46,8 @@ class CheckSubscription
                 $returnUrl = $protocol . $domain . '/payment/success';
 
                 try {
-                    $publicKey = env('INTASEND_PUBLIC_KEY');
-                    $secretKey = env('INTASEND_SECRET_KEY');
+                    $publicKey = config('services.intasend.public_key');
+                    $secretKey = config('services.intasend.secret_key');
 
                     // Split name into first and last if available
                     $parts = explode(' ', $user->name ?? '', 2);
