@@ -29,12 +29,14 @@ class User extends Authenticatable
         'is_super_admin',
         'email_verified_at',
         'last_login_at',
-        
+        'is_suspended',
     ];
 
     protected $casts = [
-        'email_verified_at'=> 'datetime',
+        'email_verified_at' => 'datetime',
         'is_super_admin' => 'boolean',
+        'subscription_expires_at' => 'datetime',
+        'is_suspended' => 'boolean',
     ];
 
     protected $hidden = [
