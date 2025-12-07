@@ -246,16 +246,18 @@ Route::middleware(['auth', 'verified', 'check.subscription', 'tenant.domain'])
 | Payment Success Callback | Works for system renewals
 |--------------------------------------------------------------------------
 */
-Route::get('/payment/success', function () {
-    $user = auth()->user();
-    if ($user) {
-        $user->update([
-            'subscription_expires_at' => now()->addDays(30),
-            'is_suspended' => false,
-        ]);
-    }
-    return redirect()->route('dashboard');
-})->name('payment.success');
+Route::middleware(['auth', 'tenant.domain'])->group(function () {
+    Route::get('/payment/success', function () {
+        $user = auth()->user();
+        if ($user) {
+            $user->update([
+                'subscription_expires_at' => now()->addDays(30),
+                'is_suspended' => false,
+            ]);
+        }
+        return redirect()->route('dashboard');
+    })->name('payment.success');
+});
 
 
 
