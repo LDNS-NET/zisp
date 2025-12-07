@@ -22,6 +22,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'mikrotiks/*/sync',
             'mikrotiks/*/register-wireguard',
         ]);
+
+        $middleware->alias([
+            'check.subscription' => \App\Http\Middleware\CheckSubscription::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->renderable(function (\Stancl\Tenancy\Exceptions\TenantCouldNotBeIdentifiedException $e, \Illuminate\Http\Request $request) {
