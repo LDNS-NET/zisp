@@ -41,15 +41,18 @@ class CheckSubscription
             $tenant = tenant();
             $domain = $tenant ? $tenant->domains()->first()->domain : null;
 
-            // Default static link as fallback
-            $paymentUrl = 'https://payment.intasend.com/pay/8d7f60c4-f2c2-4642-a2b6-0654a3cc24e3/';
-
             if ($domain) {
                 $protocol = $request->secure() ? 'https://' : 'http://';
                 $returnUrl = $protocol . $domain . '/payment/success';
 
                 try {
                     $publicKey = env('INTASEND_PUBLIC_KEY');
+
+                    // Split name into first and last if available
+                    $parts = explode(' ', $user->name ?? '', 2);
+                    $firstName = $parts[0] ?? null;
+                    $lastName = $parts[1] ?? null;
+
                     \Illuminate\Support\Facades\Log::info('IntaSend API Request', [
                         'url' => 'https://payment.intasend.com/api/v1/checkout/',
                         'public_key_present' => !empty($publicKey),
@@ -63,6 +66,9 @@ class CheckSubscription
                         'amount' => 1000, // Default subscription amount
                         'currency' => 'KES',
                         'email' => $user->email ?? 'customer@example.com',
+                        'phone_number' => $user->phone,
+                        'first_name' => $firstName,
+                        'last_name' => $lastName,
                         'redirect_url' => $returnUrl,
                         'api_ref' => 'SUB-' . $user->id . '-' . time(),
                         'method' => 'API-Checkout'
@@ -80,16 +86,19 @@ class CheckSubscription
                         }
                     } else {
                         \Illuminate\Support\Facades\Log::error('IntaSend API Failed', ['response' => $response->body()]);
+                        abort(500, 'Payment service unavailable. Please try again later.');
                     }
                 } catch (\Exception $e) {
                     \Illuminate\Support\Facades\Log::error('IntaSend API Exception', ['error' => $e->getMessage()]);
+                    abort(500, 'Payment service error. Please try again later.');
                 }
-
-                // Fallback: Append redirect_url to static link if API fails
-                $paymentUrl .= '?' . http_build_query(['redirect_url' => $returnUrl]);
+            } else {
+                // Should not happen for tenants, but safe fallback
+                abort(403, 'Tenant domain not found.');
             }
 
-            return Inertia::location($paymentUrl);
+            // If we reach here, something went wrong with logic flow
+            abort(500, 'Unable to initiate payment.');
         }
 
         return $next($request);
