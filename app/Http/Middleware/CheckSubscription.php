@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Inertia\Inertia;
 
 class CheckSubscription
 {
@@ -62,7 +63,7 @@ class CheckSubscription
                     if ($response->successful()) {
                         $data = $response->json();
                         if (isset($data['url'])) {
-                            return redirect()->away($data['url']);
+                            return Inertia::location($data['url']);
                         }
                     } else {
                         \Illuminate\Support\Facades\Log::error('IntaSend API Failed', ['response' => $response->body()]);
@@ -75,7 +76,7 @@ class CheckSubscription
                 $paymentUrl .= '?' . http_build_query(['redirect_url' => $returnUrl]);
             }
 
-            return redirect()->away($paymentUrl);
+            return Inertia::location($paymentUrl);
         }
 
         return $next($request);
