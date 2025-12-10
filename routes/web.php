@@ -57,7 +57,11 @@ Route::get('/', function () {
 
 // Hotspot routes (protected by subscription check) replace subscription with a safer middleware for hotspot safe redirects
 
-Route::middleware(['check.subscription'])->group(function () {
+Route::middleware([
+    'check.subscription',
+    \Stancl\Tenancy\Middleware\InitializeTenancyByDomain::class,
+    \Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains::class,
+])->group(function () {
 
     Route::resource('hotspot', TenantHotspotController::class);
     Route::post('/hotspot/purchase-stk-push', [TenantHotspotController::class, 'purchaseSTKPush'])->name('hotspot.purchase-stk-push');

@@ -29,6 +29,9 @@ class TenantHotspotController extends Controller
         // Filter by tenant if accessed via tenant domain
         if ($tenant = tenant()) {
             $query->where('tenant_id', $tenant->id);
+        } else {
+            // Safety: If no tenant context (should be prevented by middleware), return no packages
+            $query->whereNull('id');
         }
 
         $packages = $query->orderBy('name')->get();
