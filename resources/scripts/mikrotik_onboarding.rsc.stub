@@ -2,6 +2,19 @@
 # Generated for router: {{name}}
 # Router ID: {{router_id}}
 
+# ---------- Version Check ----------
+:local version [/system resource get version]
+:local majorVersion [:pick $version 0 1]
+
+:if ($majorVersion < 7) do={
+    :put "========================================================"
+    :put "ERROR: RouterOS v7+ is required!"
+    :put "Current version: $version"
+    :put "Please upgrade your router to RouterOS v7 to use this script."
+    :put "========================================================"
+    :error "Script cancelled: RouterOS upgrade required."
+}
+
 :local username "{{username}}"
 :local password "{{router_password}}"
 :local apiUsername "{{api_username}}"
@@ -20,18 +33,6 @@
 :local wgRegisterUrl "{{wg_register_url}}"
 
 :put "==================== ZiSP MIKROTIK ONBOARDING ===================="
-
-# ---------- Version Check ----------
-:local version [/system resource get version]
-:local majorVersion [:pick $version 0 [:find $version "."]]
-:if ($majorVersion < 7) do={
-    :put "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-    :put "ERROR: RouterOS v7 or higher is required!"
-    :put "Current version: $version"
-    :put "Please upgrade your router to RouterOS v7 and try again."
-    :put "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-    :error "RouterOS version too old"
-}
 
 # ---------- Connectivity check ----------
 :if ([/ping 8.8.8.8 count=3] = 0) do={
