@@ -22,10 +22,9 @@ const MAX_WAIT_TIME = 5 * 60 * 1000;
 
 // Generate the Mikrotik fetch command using public route with token
 const scriptUrl = computed(() => {
-    return route('mikrotiks.downloadScriptPublic', {
-        mikrotik: props.router.id,
-        token: props.router.sync_token
-    });
+    const url = route('mikrotiks.downloadScriptPublic', props.router.id);
+    const token = props.router.sync_token;
+    return token ? `${url}?token=${token}` : url;
 });
 const fetchCommand = computed(() => `/tool fetch url="${scriptUrl.value}" mode=https dst-path=onboard_${props.router.id}.rsc; :delay 2s; /import onboard_${props.router.id}.rsc`);
 
