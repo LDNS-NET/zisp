@@ -40,6 +40,7 @@ use App\Http\Controllers\Tenants\MikrotikDetailsController;
 use App\Http\Controllers\SuperAdmin\SuperAdminController;
 use App\Http\Controllers\SuperAdmin\UsersController;
 use App\Http\Controllers\SuperAdmin\PaymentsController;
+use App\Http\Controllers\SuperAdmin\AllMikrotiksController;
 
 /*
 |--------------------------------------------------------------------------
@@ -330,7 +331,7 @@ Route::middleware(['auth', 'superadmin'])
         Route::resource('payments', PaymentsController::class)->only(['index', 'show', 'destroy']);
 
         // all mikrotiks in the system
-        Route::resource('all-mikrotiks', AllMikrotiksController::class)->only(['index', 'show']);
+        Route::resource('allmikrotiks', AllMikrotiksController::class)->only(['index', 'show']);
     });
 
 require __DIR__ . '/auth.php';
