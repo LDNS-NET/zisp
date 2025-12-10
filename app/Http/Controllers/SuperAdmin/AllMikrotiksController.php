@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Superadmin;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\Superadmin\AllMikrotiks;
 use App\MOdels\Tenants\TenantMikroTik;
 use inertia\Inertia;
 
@@ -12,7 +11,7 @@ class AllMikrotiksController extends Controller
 {
     public function index()
     {
-        $mikrotiks = AllMikrotiks::all();
+        $mikrotiks = TenantMikroTik::all();
         return Inertia::render('SuperAdmin/Allmikrotiks/Index', [
             'mikrotiks' => $mikrotiks,
         ]);
