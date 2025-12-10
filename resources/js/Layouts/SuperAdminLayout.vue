@@ -17,6 +17,7 @@ import {
     X,
     ChevronDown,
     ChevronRight,
+    Network,
 } from 'lucide-vue-next';
 
 const { theme, setTheme } = useTheme();
@@ -40,6 +41,7 @@ const navigation = [
     { name: 'Dashboard', href: route('superadmin.dashboard'), icon: LayoutDashboard, active: 'superadmin.dashboard' },
     { name: 'All Tenants', href: route('superadmin.users.index'), icon: Users, active: 'superadmin.users.*' },
     { name: 'Payments', href: route('superadmin.payments.index'), icon: Banknote, active: 'superadmin.payments.*' },
+    { name: 'All Mikrotiks', href: route('superadmin.allmikrotiks.index'), icon: Network, active: 'superadmin.allmikrotiks.*' },
 ];
 
 const user = usePage().props.auth.user;
