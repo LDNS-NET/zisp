@@ -35,7 +35,7 @@ const props = defineProps({
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
-                                <tr v-for="mikrotik in allmikrotiks.data" :key="mikrotik.id">
+                                <tr v-for="mikrotik in props.mikrotiks.data" :key="mikrotik.id">
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ mikrotik.id }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ mikrotik.ip_address }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ mikrotik.location }}</td>
