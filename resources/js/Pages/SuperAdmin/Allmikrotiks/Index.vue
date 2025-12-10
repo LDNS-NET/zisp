@@ -6,8 +6,6 @@ import { all } from 'axios';
 
 const props = defineProps({
     mikrotiks: Object,
-    page: Object,
-
 });
 </script>
 
@@ -42,9 +40,11 @@ const props = defineProps({
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ mikrotik.location }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ mikrotik.status }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                        <Link :href="route('superadmin.allmikrotiks.show', mikrotik.id)" class="text-indigo-600 hover:text-indigo-900">
-                                            View
-                                        </Link>
+                                        <button>
+                                            <Link :href="route('superadmin.allmikrotiks.show', mikrotik.id)" class="text-indigo-600 hover:text-indigo-900">
+                                                View
+                                            </Link>
+                                        </button>
                                     </td>
                                 </tr>
                             </tbody>
