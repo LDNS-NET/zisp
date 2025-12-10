@@ -126,8 +126,8 @@ function proceed() {
 </script>
 
 <template>
+    <Head title="Mikrotik Onboarding" />
     <AuthenticatedLayout>
-        <Head title="Mikrotik Onboarding" />
         <template #header>
             <h2 class="text-2xl font-semibold text-gray-800 dark:text-gray-200">
                 Mikrotik Router Onboarding
