@@ -18,7 +18,13 @@ class Package extends Model
         'download_speed',
         'burst_limit',
         'created_by',
+        'tenant_id',
     ];
+
+    public function tenant()
+    {
+        return $this->belongsTo(Tenant::class);
+    }
     protected static function booted()
     {
         static::addGlobalScope('created_by', function ($query) {
@@ -39,11 +45,11 @@ class Package extends Model
     {
         return match ($this->duration_unit) {
             'minutes' => round($this->duration_value / 1440, 2),
-            'hours'   => round($this->duration_value / 24, 2),
-            'days'    => $this->duration_value,
-            'weeks'   => $this->duration_value * 7,
-            'months'  => $this->duration_value * 30,
-            default   => null,
+            'hours' => round($this->duration_value / 24, 2),
+            'days' => $this->duration_value,
+            'weeks' => $this->duration_value * 7,
+            'months' => $this->duration_value * 30,
+            default => null,
         };
     }
 
