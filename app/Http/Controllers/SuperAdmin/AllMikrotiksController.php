@@ -4,14 +4,14 @@ namespace App\Http\Controllers\Superadmin;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\MOdels\Tenants\TenantMikroTik;
+use App\Models\Tenants\TenantMikroTik;
 use inertia\Inertia;
 
 class AllMikrotiksController extends Controller
 {
     public function index()
     {
-        $mikrotiks = TenantMikroTik::all();
+        $mikrotiks = TenantMikroTik::orderBy('created_at', 'desc')->paginate(20);
         return Inertia::render('SuperAdmin/Allmikrotiks/Index', [
             'mikrotiks' => $mikrotiks,
         ]);

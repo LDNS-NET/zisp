@@ -20,10 +20,11 @@ const props = defineProps({
             </h2>
         </template>
 
-        <div class="py-12">
+        <div class="py-6">
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6 bg-white border-b border-gray-200">
+                        <!-- Mikrotiks Table -->
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead>
                                 <tr>
@@ -36,7 +37,7 @@ const props = defineProps({
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
                                 <tr v-for="mikrotik in props.mikrotiks.data" :key="mikrotik.id">
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ props.mikrotik.name }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ mikrotik.name }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ mikrotik.wireguard_address }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ mikrotik.location }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ mikrotik.status }}</td>
