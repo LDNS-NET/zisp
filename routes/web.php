@@ -211,10 +211,30 @@ Route::middleware(['auth', 'verified', 'check.subscription', 'tenant.domain'])
             $currentTenant = tenant();
             $tenantDomain = $currentTenant ? $currentTenant->domains()->first()->domain : null;
 
+            // Fetch settings
+            $settings = null;
+            if ($currentTenant) {
+                $settings = \Illuminate\Support\Facades\Cache::remember("tenant_general_setting_{$currentTenant->id}", 60, function () use ($currentTenant) {
+                    return \App\Models\TenantGeneralSetting::where('tenant_id', $currentTenant->id)->first();
+                });
+            }
+
             $content = file_get_contents($templatePath);
 
             if ($tenantDomain) {
                 $content = str_replace('{{ $tenant->domain }}', $tenantDomain, $content);
+            }
+
+            if ($currentTenant) {
+                $businessName = $settings?->business_name ?? $currentTenant->name;
+                $logo = $settings?->logo ?? '';
+                $phone = $settings?->support_phone ?? '';
+                $email = $settings?->support_email ?? '';
+
+                $content = str_replace('{{ $tenant->name }}', $businessName, $content);
+                $content = str_replace('{{ $tenant->logo }}', $logo, $content);
+                $content = str_replace('{{ $tenant->phone }}', $phone, $content);
+                $content = str_replace('{{ $tenant->email }}', $email, $content);
             }
 
             return response($content)

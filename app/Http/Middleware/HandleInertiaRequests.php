@@ -29,7 +29,13 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
-        $tenant = $request->user()?->tenant;
+        $tenant = $request->user()?->tenant ?? tenant();
+
+        if ($tenant) {
+            $settings = \Illuminate\Support\Facades\Cache::remember("tenant_general_setting_{$tenant->id}", 60, function () use ($tenant) {
+                return \App\Models\TenantGeneralSetting::where('tenant_id', $tenant->id)->first();
+            });
+        }
 
         return [
             ...parent::share($request),
@@ -38,8 +44,11 @@ class HandleInertiaRequests extends Middleware
             ],
             'tenant' => $tenant ? [
                 'id' => $tenant->id,
-                'name' => $tenant->name,
+                'name' => $settings?->business_name ?? $tenant->name,
+                'logo' => $settings?->logo,
                 'currency' => $tenant->currency,
+                'support_phone' => $settings?->support_phone,
+                'support_email' => $settings?->support_email,
             ] : null,
         ];
     }
