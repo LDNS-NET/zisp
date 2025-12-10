@@ -6,7 +6,6 @@ import { all } from 'axios';
 
 const props = defineProps({
     mikrotiks: Object,
-    allmikrotiks: Object,
     page: Object,
 
 });
@@ -28,7 +27,7 @@ const props = defineProps({
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead>
                                 <tr>
-                                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                                     <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">IP Address</th>
                                     <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
                                     <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
@@ -37,8 +36,8 @@ const props = defineProps({
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
                                 <tr v-for="mikrotik in props.mikrotiks.data" :key="mikrotik.id">
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ mikrotik.id }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ mikrotik.ip_address }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ props.mikrotik.name }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ mikrotik.wireguard_address }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ mikrotik.location }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ mikrotik.status }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
