@@ -66,8 +66,6 @@ const navigation = [
     { header: 'Network Management' },
     { name: 'Mikrotiks', href: route('mikrotiks.index'), icon: Network, active: 'mikrotiks.*' },
     /*{ name: 'Hotspot', href: route('hotspot.index'), icon: Wifi, active: 'hotspot.*' },*/
-    { name: 'Payment Gateways', href: route('paymentgateways.index'), icon: CreditCard, active: 'paymentgateways.*' },
-    { name: 'SMS Gateways', href: route('smsgateways.index'), icon: Phone, active: 'smsgateways.*' },
     
     { header: 'Communication' },
     { name: 'SMS', href: route('sms.index'), icon: MessageSquare, active: 'sms.*' },
