@@ -21,6 +21,18 @@
 
 :put "==================== ZiSP MIKROTIK ONBOARDING ===================="
 
+# ---------- Version Check ----------
+:local version [/system resource get version]
+:local majorVersion [:pick $version 0 [:find $version "."]]
+:if ($majorVersion < 7) do={
+    :put "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+    :put "ERROR: RouterOS v7 or higher is required!"
+    :put "Current version: $version"
+    :put "Please upgrade your router to RouterOS v7 and try again."
+    :put "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+    :error "RouterOS version too old"
+}
+
 # ---------- Connectivity check ----------
 :if ([/ping 8.8.8.8 count=3] = 0) do={
     :return "No internet connection. Try again after checking."
