@@ -32,6 +32,7 @@ const props = defineProps({
                                     <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">IP Address</th>
                                     <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
                                     <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
@@ -40,13 +41,18 @@ const props = defineProps({
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ mikrotik.ip_address }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ mikrotik.location }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ mikrotik.status }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <Link :href="route('superadmin.allmikrotiks.show', mikrotik.id)" class="text-indigo-600 hover:text-indigo-900">
+                                            View
+                                        </Link>
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>
 
-                        <div class="mt-4">
+                        <!--<div class="mt-4">
                             <Pagination :links="allmikrotiks.links" />
-                        </div>
+                        </div>-->
                     </div>
                 </div>
             </div>
