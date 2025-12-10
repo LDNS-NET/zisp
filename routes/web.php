@@ -329,7 +329,8 @@ Route::middleware(['auth', 'superadmin'])
         // Payments Management
         Route::resource('payments', PaymentsController::class)->only(['index', 'show', 'destroy']);
 
-        // other superadmin routes
+        // all mikrotiks in the system
+        Route::resource('all-mikrotiks', AllMikrotiksController::class)->only(['index', 'show']);
     });
 
 require __DIR__ . '/auth.php';
