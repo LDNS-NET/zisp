@@ -57,11 +57,7 @@ Route::get('/', function () {
 
 // Hotspot routes (protected by subscription check) replace subscription with a safer middleware for hotspot safe redirects
 
-Route::middleware([
-    'check.subscription',
-    \Stancl\Tenancy\Middleware\InitializeTenancyByDomain::class,
-    \Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains::class,
-])->group(function () {
+Route::middleware(['check.subscription'])->group(function () {
 
     Route::resource('hotspot', TenantHotspotController::class);
     Route::post('/hotspot/purchase-stk-push', [TenantHotspotController::class, 'purchaseSTKPush'])->name('hotspot.purchase-stk-push');
@@ -246,10 +242,7 @@ Route::middleware(['auth', 'verified', 'check.subscription', 'tenant.domain'])
                 ->header('Cache-Control', 'no-cache, no-store, must-revalidate')
                 ->header('Pragma', 'no-cache')
                 ->header('Expires', '0');
-        })->middleware([
-                    \Stancl\Tenancy\Middleware\InitializeTenancyByDomain::class,
-                    \Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains::class,
-                ])->name('hotspot.templates');
+        })->name('hotspot.templates');
         Route::post('mikrotiks/{mikrotik}/provision-hotspot', [TenantMikrotikController::class, 'provisionHotspot'])->name('mikrotiks.provisionHotspot');
 
 
