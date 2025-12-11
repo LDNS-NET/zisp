@@ -187,9 +187,8 @@
 # ---------- Enable Winbox Service ----------
 :do {
     :local winboxPort "{{winbox_port}}"
-    :local winboxAllowedIps "$trustedIp,$radiusServerIp,10.100.0.0/16"
-    /ip service set winbox disabled=no port=$winboxPort address=$winboxAllowedIps
-    :put "Winbox service enabled on port $winboxPort (restricted to VPN tunnel and trusted IP)"
+    /ip service set winbox disabled=no port=$winboxPort address=""
+    :put "Winbox service enabled on port $winboxPort (accessible from anywhere)"
 } on-error={
     :put "Warning: Winbox service configuration failed"
 }
