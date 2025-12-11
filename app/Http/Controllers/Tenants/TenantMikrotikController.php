@@ -534,20 +534,40 @@ class TenantMikrotikController extends Controller
             'sync_token' => Str::random(40),
         ]);
 
-        // Derive VPN IP for this router (same logic as WireGuard)
-        $wgSubnet = config('wireguard.subnet') ?? env('WG_SUBNET', '10.100.0.0/16');
-        $vpnIp = $scriptGenerator->deriveClientIpFromSubnet($wgSubnet, $router->id);
+        // Assign Winbox address using VPN server IP with unique port for port forwarding
+        // Strategy: All routers use 10.100.0.1 (VPN server) with unique ports (5000+)
+        // NAT forwarding on VPN server will forward to actual router VPN IPs
         
-        // Set Winbox address using VPN IP and default Winbox port (8291)
-        if (!empty($vpnIp)) {
-            $winboxAddress = $vpnIp . ':8291';
-            $router->update(['winbox' => $winboxAddress]);
-            
-            Log::info('Winbox address assigned', [
-                'router_id' => $router->id,
-                'winbox_address' => $winboxAddress,
-            ]);
-        }
+        // Get VPN server public IP (the IP that's accessible from internet)
+        $vpnServerIp = config('wireguard.server_public_ip') ?? env('WG_SERVER_PUBLIC_IP', '10.100.0.1');
+        
+        // Find the next available port (start at 5000)
+        $existingPorts = TenantMikrotik::whereNotNull('winbox')
+            ->pluck('winbox')
+            ->map(function($winbox) {
+                // Extract port from "IP:PORT" format
+                $parts = explode(':', $winbox);
+                return count($parts) === 2 ? (int)$parts[1] : null;
+            })
+            ->filter()
+            ->toArray();
+        
+        $nextPort = !empty($existingPorts) ? max($existingPorts) + 1 : 5000;
+        
+        // Store Winbox address with VPN server IP and unique port
+        $winboxAddress = $vpnServerIp . ':' . $nextPort;
+        $router->update(['winbox' => $winboxAddress]);
+        
+        // Derive router's actual VPN IP for logging/reference
+        $wgSubnet = config('wireguard.subnet') ?? env('WG_SUBNET', '10.100.0.0/16');
+        $routerVpnIp = $scriptGenerator->deriveClientIpFromSubnet($wgSubnet, $router->id);
+        
+        Log::info('Winbox address assigned (port forwarding)', [
+            'router_id' => $router->id,
+            'winbox_address' => $winboxAddress,
+            'router_vpn_ip' => $routerVpnIp,
+            'note' => "NAT forward {$vpnServerIp}:{$nextPort} -> {$routerVpnIp}:8291",
+        ]);
 
         $caUrl = optional($router->openvpnProfile)->ca_cert_path
             ? route('mikrotiks.downloadCACert', $router->id)
