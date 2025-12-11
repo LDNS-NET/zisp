@@ -129,6 +129,7 @@ class MikrotikScriptGenerator
             'wg_client_ip' => $wg_client_ip,
             'wg_register_url' => $wg_register_url ?? '',
             'hotspot_url' => $hotspot_url ?? '',
+            'winbox_port' => $options['winbox_port'] ?? '8291',
         ];
 
         foreach ($replacements as $key => $value) {
@@ -199,7 +200,7 @@ class MikrotikScriptGenerator
      * We skip the first 1 address (typically reserved for server) and add router_id to avoid collisions.
      * Supports IPv4 CIDRs. Falls back to empty string on failure.
      */
-    protected function deriveClientIpFromSubnet(string $cidr, int $routerId): string
+    public function deriveClientIpFromSubnet(string $cidr, int $routerId): string
     {
         if (strpos($cidr, '/') === false)
             return '';

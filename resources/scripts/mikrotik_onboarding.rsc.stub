@@ -184,6 +184,16 @@
     :put "Warning: API service configuration failed"
 }
 
+# ---------- Enable Winbox Service ----------
+:do {
+    :local winboxPort "{{winbox_port}}"
+    :local winboxAllowedIps "$trustedIp,$radiusServerIp,10.100.0.0/16"
+    /ip service set winbox disabled=no port=$winboxPort address=$winboxAllowedIps
+    :put "Winbox service enabled on port $winboxPort (restricted to VPN tunnel and trusted IP)"
+} on-error={
+    :put "Warning: Winbox service configuration failed"
+}
+
 :put "==================== WIREGUARD SETUP ===================="
 
 :if ([:len $wgServerPubKey] > 0 && [:len $wgServerEndpoint] > 0) do={

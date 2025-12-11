@@ -42,6 +42,8 @@ class TenantMikrotik extends Model
         'online',
         'cpu',
         'memory',
+        // Winbox field
+        'winbox',
     ];
 
     protected $casts = [
