@@ -534,21 +534,6 @@ class TenantMikrotikController extends Controller
             'sync_token' => Str::random(40),
         ]);
 
-        // Derive VPN IP for this router (same logic as WireGuard)
-        $wgSubnet = config('wireguard.subnet') ?? env('WG_SUBNET', '10.100.0.0/16');
-        $vpnIp = $scriptGenerator->deriveClientIpFromSubnet($wgSubnet, $router->id);
-        
-        // Set Winbox address using VPN IP and default Winbox port (8291)
-        if (!empty($vpnIp)) {
-            $winboxAddress = $vpnIp . ':8291';
-            $router->update(['winbox' => $winboxAddress]);
-            
-            Log::info('Winbox address assigned', [
-                'router_id' => $router->id,
-                'winbox_address' => $winboxAddress,
-            ]);
-        }
-
         $caUrl = optional($router->openvpnProfile)->ca_cert_path
             ? route('mikrotiks.downloadCACert', $router->id)
             : null;
@@ -572,7 +557,6 @@ class TenantMikrotikController extends Controller
             'trusted_ip' => $trustedIp,
             'radius_ip' => '10.100.0.1', // RADIUS via VPN
             'radius_secret' => $router->api_password, // Use API password as RADIUS secret
-            'winbox_port' => 8291, // Winbox port
         ]);
 
         // Don't register NAS yet - router has no IP at creation time

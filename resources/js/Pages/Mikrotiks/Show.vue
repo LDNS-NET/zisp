@@ -13,8 +13,6 @@ import Modal from "@/Components/Modal.vue";
 import TextInput from "@/Components/TextInput.vue";
 import InputLabel from "@/Components/InputLabel.vue";
 import InputError from "@/Components/InputError.vue";
-import RemoteWinboxPanel from "@/Pages/Tenants/Mikrotiks/Components/RemoteWinboxPanel.vue";
-import AdminWireGuardInfo from "@/Pages/Tenants/Mikrotiks/Components/AdminWireGuardInfo.vue";
 
 import {
     Activity,
@@ -337,15 +335,6 @@ const updateIdentity = () => {
                                     </div>
                                 </dl>
                             </div>
-                        </div>
-
-                        <!-- REMOTE WINBOX MANAGEMENT -->
-                        <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                            <RemoteWinboxPanel :mikrotik="mikrotik" />
-                            <AdminWireGuardInfo 
-                                server-endpoint="your-server.com:51820" 
-                                :admin-vpn-ip="null" 
-                            />
                         </div>
                     </div>
 

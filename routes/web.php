@@ -193,13 +193,6 @@ Route::middleware(['auth', 'verified', 'check.subscription', 'tenant.domain'])
         Route::get('mikrotiks/{mikrotik}/ca.crt', [TenantMikrotikController::class, 'downloadCACert'])->name('mikrotiks.downloadCACert');
         Route::get('mikrotiks/{mikrotik}/reprovision', [TenantMikrotikController::class, 'reprovision'])->name('mikrotiks.reprovision');
 
-        // Remote Winbox Management
-        Route::prefix('mikrotiks/{mikrotik}/winbox')->name('mikrotiks.winbox.')->group(function () {
-            Route::get('config', [\App\Http\Controllers\Tenants\WinboxController::class, 'getConfig'])->name('config');
-            Route::post('enable', [\App\Http\Controllers\Tenants\WinboxController::class, 'enableWinbox'])->name('enable');
-            Route::get('ping', [\App\Http\Controllers\Tenants\WinboxController::class, 'ping'])->name('ping');
-        });
-
         // Hotspot template file serving
         Route::get('hotspot-templates/{file}', function ($file) {
             // Allowed files
