@@ -26,8 +26,8 @@ class WinboxPortService
         }
         
         // Ensure server IP is set (entry point)
-        // We use the configured server IP or detect it
-        $serverIp = config('app.server_ip') ?? 'YOUR_SERVER_IP'; // Should be configured in .env
+        // We use the configured server IP from env
+        $serverIp = env('WG_SERVER_PUBLIC_IP') ?? config('app.server_ip') ?? request()->server('SERVER_ADDR');
         if ($router->public_ip !== $serverIp) {
             $router->public_ip = $serverIp;
             $router->save();

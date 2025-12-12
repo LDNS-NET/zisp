@@ -354,8 +354,8 @@ watch([routersList, search], () => {
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="flex flex-col gap-1">
                                         <div class="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
-                                            <!--< class="w-3 h-3" />-->
-                                            <span>{{ router.winbox || 'N/A' }}</span>
+                                            <Terminal class="w-3 h-3" />
+                                            <span>{{ router.public_ip|| 'N/A' }}:{{ router.winbox_port || 'N/A' }}</span>
                                         </div>
                                     </div>
                                 </td>
