@@ -366,7 +366,7 @@ watch([routersList, search], () => {
                                             title="Click to copy"
                                         >
                                             <Terminal class="w-3 h-3" />
-                                            <span>{{ tenant.subdomain || 'N/A' }}zyraaf.cloud:{{ router.winbox_port || 'N/A' }}</span>
+                                            <span>zyraaf.cloud:{{ router.winbox_port || 'N/A' }}</span>
                                         </div>
                                     </div>
                                 </td>
