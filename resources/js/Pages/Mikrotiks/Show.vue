@@ -100,7 +100,6 @@ const updateIdentity = () => {
             // alert("Failed to update identity.");
         },
     });
-    });
 };
 
 const copyToClipboard = (text) => {
@@ -304,7 +303,6 @@ const copyToClipboard = (text) => {
                                         </dt>
                                         <dd class="text-sm text-gray-900 dark:text-gray-100">
                                             {{ mikrotik.wireguard_address || "N/A" }}
-                                        </dd>
                                         </dd>
                                     </div>
 
