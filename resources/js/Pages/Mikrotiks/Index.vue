@@ -365,11 +365,10 @@ watch([routersList, search], () => {
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="flex flex-col gap-1">
                                         <div
-                                            class="flex items-center gap-2 text-xs text-blue-600 dark:text-gray-400 cursor-pointer"
+                                            class="flex items-center gap-2 text-xl text-blue-600 dark:text-gray-400 cursor-pointer"
                                             @click="copyHost(router.winbox_port)"
                                             title="Click to copy"
                                         >
-                                            <Terminal class="w-3 h-3" />
                                             <span>zyraaf.cloud:{{ router.winbox_port || 'N/A' }}</span>
                                         </div>
                                     </div>
