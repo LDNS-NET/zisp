@@ -171,6 +171,9 @@ class CheckMikrotikStatus extends Command
                 if ($router->status !== 'online') {
                     $router->status = 'online';
                     $router->online_since = now(); // Start online timer
+                } elseif ($router->status === 'online' && is_null($router->online_since)) {
+                    // Backfill for already online routers
+                    $router->online_since = now();
                 }
                 $router->last_seen_at = now();
                 
