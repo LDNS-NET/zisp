@@ -1,11 +1,11 @@
 <script setup>
-import { ref, nextTick } from "vue";
+import { ref } from "vue";
 import { Head, useForm, router as inertiaRouter } from "@inertiajs/vue3";
 
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import Card from "@/Components/Card.vue";
-import PrimaryButton from "@/Components/PrimaryButton.vue";
 import SecondaryButton from "@/Components/SecondaryButton.vue";
+import PrimaryButton from "@/Components/PrimaryButton.vue";
 import StatusBadge from "@/Components/StatusBadge.vue";
 import Dropdown from "@/Components/Dropdown.vue";
 import DropdownLink from "@/Components/DropdownLink.vue";
@@ -26,22 +26,29 @@ import {
     Clock,
     Users,
     Copy,
+    Server,
+    Globe,
+    Shield
 } from "lucide-vue-next";
 
-// Props
 const props = defineProps({
     mikrotik: Object,
     realtime: Object,
 });
 
-// Tabs
+// State
 const activeTab = ref("overview");
 const isRefreshing = ref(false);
+const showIdentityModal = ref(false);
 
 const tabs = [
     { id: "overview", name: "Overview", icon: Activity },
     { id: "interfaces", name: "Interfaces", icon: Wifi },
 ];
+
+const identityForm = useForm({
+    identity: props.mikrotik.name,
+});
 
 // Helpers
 const formatUptime = (uptime) => uptime || "N/A";
@@ -54,94 +61,72 @@ const formatBytes = (bytes) => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 };
 
-// Refresh
-const refreshData = () => {
-    isRefreshing.value = true;
-    inertiaRouter.get(route('mikrotiks.show', props.mikrotik.id), { force: 1 }, {
-        only: ['realtime'],
-        preserveScroll: true,
-        onFinish: () => (isRefreshing.value = false),
+const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text).then(() => {
+        // Optional: toast notification here
+        alert("Address copied to clipboard");
     });
 };
 
 // Actions
+const refreshData = () => {
+    isRefreshing.value = true;
+    inertiaRouter.get(
+        route("mikrotiks.show", props.mikrotik.id),
+        {},
+        {
+            preserveScroll: true,
+            only: ["realtime"],
+            onFinish: () => (isRefreshing.value = false),
+        }
+    );
+};
+
 const rebootRouter = () => {
-    if (confirm("Are you sure you want to reboot this router?")) {
-        inertiaRouter.post(route("mikrotiks.reboot", props.mikrotik.id), {}, {
-            onSuccess: () => alert("Reboot command sent successfully."),
-            onError: (errors) => alert("Failed to send reboot command."),
-        });
+    if (confirm("Are you sure you want to reboot this router? This will disconnect all users.")) {
+        inertiaRouter.post(
+            route("mikrotiks.reboot", props.mikrotik.id),
+            {},
+            {
+                onSuccess: () => alert("Reboot command sent."),
+            }
+        );
     }
 };
 
-// Identity Modal
-const showIdentityModal = ref(false);
-const identityForm = useForm({
-    identity: props.mikrotik.name,
-});
-
 const openIdentityModal = () => {
     identityForm.identity = props.mikrotik.name;
-    // Use nextTick to ensure any previous focus/click events (like from Dropdown) are cleared
-    nextTick(() => {
-        showIdentityModal.value = true;
-    });
-};
-
-const closeIdentityModal = () => {
-    showIdentityModal.value = false;
-    identityForm.reset();
+    showIdentityModal.value = true;
 };
 
 const updateIdentity = () => {
     identityForm.post(route("mikrotiks.updateIdentity", props.mikrotik.id), {
         onSuccess: () => {
-            closeIdentityModal();
-            // alert("Identity updated successfully.");
-        },
-        onError: () => {
-            // alert("Failed to update identity.");
+            showIdentityModal.value = false;
+            identityForm.reset();
         },
     });
 };
-
-const copyToClipboard = (text) => {
-    navigator.clipboard.writeText(text).then(() => {
-        alert("Copied to clipboard!");
-    });
-};
-
 </script>
 
 <template>
-    <Head :title="mikrotik.name + ' - Details'" />
+    <Head :title="mikrotik.name" />
 
     <AuthenticatedLayout>
-        <!-- HEADER -->
         <template #header>
             <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
                     <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200">
                         {{ mikrotik.name }}
                     </h2>
-
-                    <div class="mt-1 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                    <div class="mt-1 flex flex-wrap items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                         <StatusBadge :status="realtime.is_online ? 'online' : 'offline'" />
-
-                        <span>{{ mikrotik.ip_address }}</span>
-
-                        <span v-if="realtime.resources?.['board-name']">
-                            • {{ realtime.resources["board-name"] }}
-                        </span>
-
-                        <span v-if="realtime.resources?.version">
-                            • RouterOS {{ realtime.resources.version }}
-                        </span>
+                        <span>IP: {{ mikrotik.wireguard_address || mikrotik.ip_address }}</span>
+                        <span v-if="realtime.resources?.version">• RouterOS {{ realtime.resources.version }}</span>
                     </div>
                 </div>
 
-                <div class="flex gap-2">
-                    <!-- Actions Dropdown -->
+                <div class="flex items-center gap-2">
                     <Dropdown align="right" width="48">
                         <template #trigger>
                             <SecondaryButton>
@@ -149,7 +134,6 @@ const copyToClipboard = (text) => {
                                 <MoreVertical class="ml-2 -mr-0.5 h-4 w-4" />
                             </SecondaryButton>
                         </template>
-
                         <template #content>
                             <DropdownLink as="button" @click="refreshData">
                                 <div class="flex items-center">
@@ -157,16 +141,13 @@ const copyToClipboard = (text) => {
                                     Refresh Data
                                 </div>
                             </DropdownLink>
-
-                            <DropdownLink as="button" type="button" @click.prevent="openIdentityModal">
+                            <DropdownLink as="button" @click="openIdentityModal">
                                 <div class="flex items-center">
                                     <Edit class="mr-2 h-4 w-4" />
                                     Change Identity
                                 </div>
                             </DropdownLink>
-
-                            <div class="border-t border-gray-100 dark:border-gray-700"></div>
-
+                            <div class="border-t border-gray-100 dark:border-gray-700" />
                             <DropdownLink as="button" @click="rebootRouter" class="text-red-600 dark:text-red-400">
                                 <div class="flex items-center">
                                     <Power class="mr-2 h-4 w-4" />
@@ -179,43 +160,37 @@ const copyToClipboard = (text) => {
             </div>
         </template>
 
-        <!-- MAIN CONTENT -->
         <div class="py-6">
             <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                <!-- STATS -->
+                <!-- KPI Cards -->
                 <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <Card
                         title="CPU Load"
                         :value="realtime.resources?.['cpu-load'] ? realtime.resources['cpu-load'] + '%' : 'N/A'"
                         :icon="Cpu"
                     />
-
                     <Card
                         title="Memory"
                         :value="realtime.resources?.['free-memory'] 
-                            ? formatBytes(realtime.resources['total-memory'] - realtime.resources['free-memory']) 
+                            ? formatBytes(realtime.resources['total-memory'] - realtime.resources['free-memory'])
                             : 'N/A'"
-                        :subtitle="realtime.resources?.['total-memory'] 
-                            ? 'of ' + formatBytes(realtime.resources['total-memory']) 
-                            : ''"
+                        :subtitle="realtime.resources?.['total-memory'] ? 'of ' + formatBytes(realtime.resources['total-memory']) : ''"
                         :icon="HardDrive"
                     />
-
                     <Card
                         title="Uptime"
                         :value="formatUptime(realtime.resources?.uptime)"
                         :icon="Clock"
                     />
-
                     <Card
-                        title="Active Users"
+                        title="Active Sessions"
                         :value="(realtime.hotspot_active + realtime.pppoe_active).toString()"
                         :subtitle="`Hotspot: ${realtime.hotspot_active} | PPPoE: ${realtime.pppoe_active}`"
                         :icon="Users"
                     />
                 </div>
 
-                <!-- TABS -->
+                <!-- Tabs Navigation -->
                 <div class="mb-6 border-b border-gray-200 dark:border-gray-700">
                     <nav class="-mb-px flex space-x-8">
                         <button
@@ -225,7 +200,7 @@ const copyToClipboard = (text) => {
                             :class="[
                                 activeTab === tab.id
                                     ? 'border-blue-500 text-blue-600 dark:border-blue-400 dark:text-blue-400'
-                                    : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:border-gray-600 dark:hover:text-gray-300',
+                                    : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300',
                                 'group inline-flex items-center border-b-2 px-1 py-4 text-sm font-medium'
                             ]"
                         >
@@ -243,120 +218,82 @@ const copyToClipboard = (text) => {
                     </nav>
                 </div>
 
-                <!-- TAB CONTENT -->
+                <!-- Tab Content -->
                 <div class="min-h-[400px]">
-                    <!-- ========== OVERVIEW TAB ========== -->
+                    <!-- OVERVIEW TAB -->
                     <div v-if="activeTab === 'overview'" class="space-y-6">
                         <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                            <!-- SYSTEM INFO -->
+                            <!-- System Info -->
                             <div class="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
-                                <h3 class="mb-4 text-lg font-medium text-gray-900 dark:text-gray-100">
-                                    System Information
-                                </h3>
-
+                                <div class="flex items-center mb-4">
+                                    <Server class="h-5 w-5 text-gray-400 mr-2" />
+                                    <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">System Information</h3>
+                                </div>
                                 <dl class="divide-y divide-gray-200 dark:divide-gray-700">
                                     <div class="flex justify-between py-3">
-                                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">
-                                            Model
-                                        </dt>
-                                        <dd class="text-sm text-gray-900 dark:text-gray-100">
-                                            {{ realtime.resources?.["board-name"] || "Unknown" }}
-                                        </dd>
+                                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Board Name</dt>
+                                        <dd class="text-sm text-gray-900 dark:text-gray-100">{{ realtime.resources?.["board-name"] || "-" }}</dd>
                                     </div>
-
                                     <div class="flex justify-between py-3">
-                                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">
-                                            Architecture
-                                        </dt>
-                                        <dd class="text-sm text-gray-900 dark:text-gray-100">
-                                            {{ realtime.resources?.["architecture-name"] || "Unknown" }}
-                                        </dd>
+                                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Architecture</dt>
+                                        <dd class="text-sm text-gray-900 dark:text-gray-100">{{ realtime.resources?.["architecture-name"] || "-" }}</dd>
                                     </div>
-
                                     <div class="flex justify-between py-3">
-                                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">
-                                            Version
-                                        </dt>
-                                        <dd class="text-sm text-gray-900 dark:text-gray-100">
-                                            {{ realtime.resources?.version || "Unknown" }}
-                                        </dd>
+                                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">RouterOS Version</dt>
+                                        <dd class="text-sm text-gray-900 dark:text-gray-100">{{ realtime.resources?.version || "-" }}</dd>
                                     </div>
-
                                     <div class="flex justify-between py-3">
-                                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">
-                                            Build Time
-                                        </dt>
-                                        <dd class="text-sm text-gray-900 dark:text-gray-100">
-                                            {{ realtime.resources?.["build-time"] || "Unknown" }}
-                                        </dd>
+                                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Build Time</dt>
+                                        <dd class="text-sm text-gray-900 dark:text-gray-100">{{ realtime.resources?.["build-time"] || "-" }}</dd>
                                     </div>
                                 </dl>
                             </div>
 
-                            <!-- CONNECTION DETAILS -->
+                            <!-- Connection Details -->
                             <div class="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
-                                <h3 class="mb-4 text-lg font-medium text-gray-900 dark:text-gray-100">
-                                    Connection Details
-                                </h3>
-
+                                <div class="flex items-center mb-4">
+                                    <Globe class="h-5 w-5 text-gray-400 mr-2" />
+                                    <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Remote Access</h3>
+                                </div>
                                 <dl class="divide-y divide-gray-200 dark:divide-gray-700">
                                     <div class="flex justify-between py-3">
-                                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">
-                                            Management IP
-                                        </dt>
-                                        <dd class="text-sm text-gray-900 dark:text-gray-100">
-                                            {{ mikrotik.wireguard_address || "N/A" }}
-                                        </dd>
+                                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">VPN IP</dt>
+                                        <dd class="text-sm text-gray-900 dark:text-gray-100">{{ mikrotik.wireguard_address || "N/A" }}</dd>
                                     </div>
-
+                                    
+                                    <!-- Remote Winbox Address -->
                                     <div class="flex justify-between py-3" v-if="mikrotik.winbox_port && mikrotik.public_ip">
-                                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">
+                                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 flex items-center">
                                             Remote Winbox
+                                            <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                                Public
+                                            </span>
                                         </dt>
-                                        <dd class="text-sm text-gray-900 dark:text-gray-100 flex items-center">
-                                            <span class="mr-2">{{ mikrotik.public_ip }}:{{ mikrotik.winbox_port }}</span>
+                                        <dd class="text-sm text-gray-900 dark:text-gray-100 flex items-center bg-gray-50 dark:bg-gray-700 px-2 py-1 rounded">
+                                            <span class="mr-2 font-mono">{{ mikrotik.public_ip }}:{{ mikrotik.winbox_port }}</span>
                                             <button 
                                                 @click="copyToClipboard(`${mikrotik.public_ip}:${mikrotik.winbox_port}`)"
-                                                class="text-gray-400 hover:text-blue-500 transition-colors"
-                                                title="Copy Address"
+                                                class="text-gray-400 hover:text-blue-500 transition-colors bg-white dark:bg-gray-600 p-1 rounded shadow-sm border border-gray-200 dark:border-gray-500"
+                                                title="Copy to Clipboard"
                                             >
-                                                <Copy class="h-4 w-4" />
+                                                <Copy class="h-3 w-3" />
                                             </button>
                                         </dd>
                                     </div>
 
                                     <div class="flex justify-between py-3">
-                                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">
-                                            API Port
-                                        </dt>
-                                        <dd class="text-sm text-gray-900 dark:text-gray-100">
-                                            {{ mikrotik.api_port || "8728" }}
-                                        </dd>
+                                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">API Port</dt>
+                                        <dd class="text-sm text-gray-900 dark:text-gray-100">{{ mikrotik.api_port || "8728" }}</dd>
                                     </div>
 
                                     <div class="flex justify-between py-3">
-                                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">
-                                            Last Seen
-                                        </dt>
-                                        <dd class="text-sm text-gray-900 dark:text-gray-100">
-                                            {{ mikrotik.last_seen_at || "Never" }}
-                                        </dd>
-                                    </div>
-
-                                    <div class="flex justify-between py-3">
-                                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">
-                                            WireGuard Status
-                                        </dt>
+                                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Status</dt>
                                         <dd class="text-sm">
-                                            <span
-                                                :class="[
-                                                    mikrotik.wireguard_public_key
-                                                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
-                                                        : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
-                                                    'inline-flex rounded-full px-2 text-xs font-semibold'
-                                                ]"
-                                            >
-                                                {{ mikrotik.wireguard_public_key ? "Registered" : "Pending" }}
+                                            <span :class="[
+                                                mikrotik.wireguard_public_key ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400',
+                                                'font-medium'
+                                            ]">
+                                                {{ mikrotik.wireguard_public_key ? 'Secured (WireGuard)' : 'Pending Setup' }}
                                             </span>
                                         </dd>
                                     </div>
@@ -365,64 +302,37 @@ const copyToClipboard = (text) => {
                         </div>
                     </div>
 
-                    <!-- ========== INTERFACES TAB ========== -->
-                    <div
-                        v-if="activeTab === 'interfaces'"
-                        class="overflow-hidden rounded-lg bg-white shadow dark:bg-gray-800"
-                    >
+                    <!-- INTERFACES TAB -->
+                    <div v-if="activeTab === 'interfaces'" class="overflow-hidden rounded-lg bg-white shadow dark:bg-gray-800">
                         <div class="overflow-x-auto">
                             <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                                 <thead class="bg-gray-50 dark:bg-gray-700">
                                     <tr>
-                                        <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
-                                            Name
-                                        </th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
-                                            Type
-                                        </th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
-                                            Status
-                                        </th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
-                                            MAC Address
-                                        </th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Name</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Type</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Status</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">MAC</th>
                                     </tr>
                                 </thead>
-
                                 <tbody class="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-800">
                                     <tr v-for="iface in realtime.interfaces" :key="iface['.id']">
-                                        <td class="px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100">
-                                            {{ iface.name }}
-                                        </td>
-
-                                        <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                                            {{ iface.type }}
-                                        </td>
-
+                                        <td class="px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100">{{ iface.name }}</td>
+                                        <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{{ iface.type }}</td>
                                         <td class="px-6 py-4 text-sm">
-                                            <span
-                                                :class="[
-                                                    iface.running === 'true'
-                                                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
-                                                        : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
-                                                    'inline-flex rounded-full px-2 text-xs font-semibold'
-                                                ]"
-                                            >
-                                                {{ iface.running === "true" ? "Running" : "Down" }}
+                                            <span :class="[
+                                                iface.running === 'true'
+                                                    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
+                                                    : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
+                                                'inline-flex rounded-full px-2 text-xs font-semibold'
+                                            ]">
+                                                {{ iface.running === 'true' ? 'Running' : 'Down' }}
                                             </span>
                                         </td>
-
-                                        <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                                            {{ iface["mac-address"] || "-" }}
-                                        </td>
+                                        <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{{ iface['mac-address'] || '-' }}</td>
                                     </tr>
-
-                                    <tr v-if="!realtime.interfaces.length">
-                                        <td
-                                            colspan="4"
-                                            class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400"
-                                        >
-                                            No interface data available
+                                    <tr v-if="!realtime.interfaces?.length">
+                                        <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                                            No interface data available.
                                         </td>
                                     </tr>
                                 </tbody>
@@ -434,46 +344,24 @@ const copyToClipboard = (text) => {
         </div>
     </AuthenticatedLayout>
 
-    <!-- Identity Modal -->
-    <Modal :show="showIdentityModal" @close="closeIdentityModal">
+    <Modal :show="showIdentityModal" @close="showIdentityModal = false">
         <div class="p-6">
-            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
-                Change Router Identity
-            </h2>
-
-            <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                Update the router's identity name. This will change the name on the device and in the system.
-            </p>
-
+            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Change Router Identity</h2>
             <div class="mt-6">
                 <InputLabel for="identity" value="New Identity Name" />
-
                 <TextInput
                     id="identity"
-                    type="text"
-                    class="mt-1 block w-full"
                     v-model="identityForm.identity"
-                    placeholder="Router Name"
+                    class="mt-1 block w-full"
+                    placeholder="e.g. Main-Gateway"
                     @keyup.enter="updateIdentity"
                 />
-
                 <InputError :message="identityForm.errors.identity" class="mt-2" />
             </div>
-
-            <div class="mt-6 flex justify-end">
-                <SecondaryButton @click="closeIdentityModal"> Cancel </SecondaryButton>
-
-                <PrimaryButton
-                    class="ml-3"
-                    :class="{ 'opacity-25': identityForm.processing }"
-                    :disabled="identityForm.processing"
-                    @click="updateIdentity"
-                >
-                    Save Changes
-                </PrimaryButton>
+            <div class="mt-6 flex justify-end gap-3">
+                <SecondaryButton @click="showIdentityModal = false">Cancel</SecondaryButton>
+                <PrimaryButton @click="updateIdentity" :disabled="identityForm.processing">Save Changes</PrimaryButton>
             </div>
         </div>
     </Modal>
 </template>
-
-

@@ -99,9 +99,8 @@ class TenantMikrotikController extends Controller
         ];
 
         $force = $request->boolean('force');
-        // Poll router ONLY if forced (user clicked refresh)
-        // Default to DB data for fast page load
-        $shouldPoll = $force;
+        // Poll router if forced or cache is stale (>180s)
+        $shouldPoll = $force || !$router->last_seen_at || now()->diffInSeconds($router->last_seen_at) > 180;
 
         if ($shouldPoll)
             try {

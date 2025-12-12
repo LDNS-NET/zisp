@@ -74,30 +74,6 @@ const navigation = [
 
 const user = usePage().props.auth.user;
 
-// FLASH MESSAGES
-const showToast = ref(false);
-const toastMessage = ref('');
-const toastType = ref('success'); // success, error, warning
-
-watch(() => usePage().props.flash, (flash) => {
-    if (flash.success) {
-        toastMessage.value = flash.success;
-        toastType.value = 'success';
-        showToast.value = true;
-        setTimeout(() => showToast.value = false, 4000);
-    } else if (flash.error) {
-        toastMessage.value = flash.error;
-        toastType.value = 'error';
-        showToast.value = true;
-        setTimeout(() => showToast.value = false, 5000);
-    } else if (flash.warning) {
-        toastMessage.value = flash.warning;
-        toastType.value = 'warning';
-        showToast.value = true;
-        setTimeout(() => showToast.value = false, 4000);
-    }
-}, { deep: true, immediate: true });
-
 function toggleSidebar() {
     sidebarOpen.value = !sidebarOpen.value;
 }
@@ -268,42 +244,6 @@ function toggleSidebar() {
             </main>
         </div>
     </div>
-
-    <!-- TOAST NOTIFICATION -->
-    <Transition
-        enter-active-class="transform ease-out duration-300 transition"
-        enter-from-class="translate-y-2 opacity-0 sm:translate-y-0 sm:translate-x-2"
-        enter-to-class="translate-y-0 opacity-100 sm:translate-x-0"
-        leave-active-class="transition ease-in duration-100"
-        leave-from-class="opacity-100"
-        leave-to-class="opacity-0"
-    >
-        <div v-if="showToast" class="fixed bottom-4 right-4 z-50 max-w-sm w-full bg-white dark:bg-slate-800 shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden">
-            <div class="p-4">
-                <div class="flex items-start">
-                    <div class="flex-shrink-0">
-                        <Activity v-if="toastType === 'success'" class="h-6 w-6 text-green-400" aria-hidden="true" />
-                        <X v-else-if="toastType === 'error'" class="h-6 w-6 text-red-400" aria-hidden="true" />
-                        <HelpCircle v-else class="h-6 w-6 text-yellow-400" aria-hidden="true" />
-                    </div>
-                    <div class="ml-3 w-0 flex-1 pt-0.5">
-                        <p class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                            {{ toastType === 'success' ? 'Success' : (toastType === 'error' ? 'Error' : 'Warning') }}
-                        </p>
-                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                            {{ toastMessage }}
-                        </p>
-                    </div>
-                    <div class="ml-4 flex-shrink-0 flex">
-                        <button @click="showToast = false" class="bg-white dark:bg-slate-800 rounded-md inline-flex text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                            <span class="sr-only">Close</span>
-                            <X class="h-5 w-5" aria-hidden="true" />
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </Transition>
 </template>
 
 <style scoped>
