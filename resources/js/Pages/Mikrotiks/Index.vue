@@ -34,6 +34,7 @@ import {
 const toast = useToast();
 
 const props = defineProps({
+    tenants: Object,
     routers: Array,
     openvpnProfiles: {
         type: Array,
@@ -208,7 +209,7 @@ function stopStatusPolling() {
 const copyIp = async (ip, port) => {
     const text = `${ip || 'N/A'}:${port || 'N/A'}`;
     await navigator.clipboard.writeText(text);
-    alert("Copied: " + text);
+    onSuccess: toast.success('Copied to clipboard');
 };
 
 async function refreshRouterStatus() {
@@ -307,7 +308,7 @@ watch([routersList, search], () => {
                         <thead class="bg-gray-50 dark:bg-slate-900/50">
                             <tr>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Router Name</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">VPN IP</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Router IP</th>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Resources</th>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Winbox</th>
@@ -365,7 +366,7 @@ watch([routersList, search], () => {
                                             title="Click to copy"
                                         >
                                             <Terminal class="w-3 h-3" />
-                                            <span>{{ router.public_ip || 'N/A' }}:{{ router.winbox_port || 'N/A' }}</span>
+                                            <span>{{ tenant.subdomain || 'N/A' }}zyraaf.cloud:{{ router.winbox_port || 'N/A' }}</span>
                                         </div>
                                     </div>
                                 </td>

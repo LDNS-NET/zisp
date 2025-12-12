@@ -13,6 +13,7 @@ use App\Services\Mikrotik\RouterApiService;
 use App\Services\WinboxPortService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use App\Models\Tenant;
 use Illuminate\Support\Str;
 //use Illuminate\Support\Facades\ZipArchive;
 use Illuminate\Support\Facades\Storage;
@@ -26,6 +27,7 @@ class TenantMikrotikController extends Controller
      */
     public function index()
     {
+        $tenants = Tenant::orderBy('name')->get();
         $routers = TenantMikrotik::with(['openvpnProfile', 'logs', 'bandwidthUsage', 'alerts'])
             ->orderByDesc('last_seen_at')
             ->get();
@@ -53,6 +55,7 @@ class TenantMikrotikController extends Controller
         return Inertia::render('Mikrotiks/Index', [
             'routers' => $routers,
             'openvpnProfiles' => $openvpnProfiles,
+            'tenants' => $tenants,
         ]);
     }
 
