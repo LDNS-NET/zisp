@@ -15,6 +15,8 @@ import InputLabel from "@/Components/InputLabel.vue";
 import InputError from "@/Components/InputError.vue";
 import { useToast } from "vue-toastification";
 
+const toast = useToast();
+
 import {
     Activity,
     Wifi,
@@ -258,7 +260,7 @@ const updateIdentity = () => {
                                     </div>
                                     <div class="flex justify-between py-3">
                                         <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">RouterOS Version</dt>
-                                        <dd class="text-sm text-gray-900 dark:text-gray-100">{{ realtime.resources?.version || "-" }}</dd>
+                                        <dd class="text-sm text-gray-900 dark:text-gray-100">{{ realtime.resources?.version || "v7+" }}</dd>
                                     </div>
                                     <div class="flex justify-between py-3">
                                         <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Build Time</dt>
