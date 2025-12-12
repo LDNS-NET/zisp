@@ -206,10 +206,14 @@ function stopStatusPolling() {
     }
 }
 
-const copyIp = async (ip, port) => {
-    const text = `${ip || 'N/A'}:${port || 'N/A'}`;
-    await navigator.clipboard.writeText(text);
-    onSuccess: toast.success('Copied to clipboard');
+const copyHost = async (port) => {
+    const host = `zyraaf.cloud:${port || 'N/A'}`;
+    try {
+        await navigator.clipboard.writeText(host);
+        toast.success(`Copied to clipboard: ${host}`);
+    } catch (err) {
+        toast.error('Failed to copy to clipboard');
+    }
 };
 
 async function refreshRouterStatus() {
@@ -360,15 +364,17 @@ watch([routersList, search], () => {
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="flex flex-col gap-1">
-                                        <div 
+                                        <div
                                             class="flex items-center gap-2 text-xs text-blue-600 dark:text-gray-400 cursor-pointer"
-                                            @click="copyIp(/*router.public_ip, router.winbox_port)*/)"
+                                            @click="copyHost(router.winbox_port)"
                                             title="Click to copy"
                                         >
+                                            <Terminal class="w-3 h-3" />
                                             <span>zyraaf.cloud:{{ router.winbox_port || 'N/A' }}</span>
                                         </div>
                                     </div>
                                 </td>
+
 
                             
 
