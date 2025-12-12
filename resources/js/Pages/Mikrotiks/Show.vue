@@ -254,7 +254,7 @@ const updateIdentity = () => {
                                 <dl class="divide-y divide-gray-200 dark:divide-gray-700">
                                     <div class="flex justify-between py-3">
                                         <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Board Name</dt>
-                                        <dd class="text-sm text-gray-900 dark:text-gray-100">{{ realtime.resources?.["board-name"] || "-" }}</dd>
+                                        <dd class="text-sm text-gray-900 dark:text-gray-100">{{ mikrotik.model || realtime.resources?.["board-name"] || "-" }}</dd>
                                     </div>
                                     <div class="flex justify-between py-3">
                                         <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Architecture</dt>
@@ -262,7 +262,7 @@ const updateIdentity = () => {
                                     </div>
                                     <div class="flex justify-between py-3">
                                         <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">RouterOS Version</dt>
-                                        <dd class="text-sm text-gray-900 dark:text-gray-100">{{ realtime.resources?.version || "v7+" }}</dd>
+                                        <dd class="text-sm text-gray-900 dark:text-gray-100">{{ mikrotik.os_version || realtime.resources?.version || "v7+" }}</dd>
                                     </div>
                                     <div class="flex justify-between py-3">
                                         <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Build Time</dt>
@@ -324,7 +324,7 @@ const updateIdentity = () => {
                         </div>
                     </div>
 
-                    /*<!-- INTERFACES TAB -->
+                    <!-- INTERFACES TAB -->
                     <div v-if="activeTab === 'interfaces'" class="overflow-hidden rounded-lg bg-white shadow dark:bg-gray-800">
                         <div class="overflow-x-auto">
                             <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
@@ -360,7 +360,7 @@ const updateIdentity = () => {
                                 </tbody>
                             </table>
                         </div>
-                    </div>*/
+                    </div>
                 </div>
             </div>
         </div>

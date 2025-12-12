@@ -128,6 +128,12 @@ class TenantMikrotikController extends Controller
                     if (isset($realtimeData['resources']['uptime'])) {
                         $router->uptime = (int)$realtimeData['resources']['uptime'];
                     }
+                    if (isset($realtimeData['resources']['board-name'])) {
+                        $router->model = $realtimeData['resources']['board-name'];
+                    }
+                    if (isset($realtimeData['resources']['version'])) {
+                        $router->os_version = $realtimeData['resources']['version'];
+                    }
                     // Update online status and last seen
                     $router->last_seen_at = now();
                     if ($router->status !== 'online') {
