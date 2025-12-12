@@ -85,10 +85,12 @@ const refreshData = () => {
     isRefreshing.value = true;
     inertiaRouter.get(
         route("mikrotiks.show", props.mikrotik.id),
-        {},
+        {
+            force: 1, // Add force parameter to ensure controller logic runs
+        },  
         {
             preserveScroll: true,
-            only: ["realtime"],
+            only: ["realtime", "mikrotik"], // Refresh both to get new DB stats
             onFinish: () => (isRefreshing.value = false),
         }
     );

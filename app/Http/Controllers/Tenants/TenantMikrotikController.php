@@ -117,6 +117,24 @@ class TenantMikrotikController extends Controller
                     $realtimeData['pppoe_active'] = $apiService->getPppoeActive();
                     $realtimeData['wireguard_peers'] = $apiService->getWireGuardPeers();
                     $realtimeData['router_logs'] = $apiService->getLogs(20); // Get last 20 logs
+
+                    // UPDATE DB STATS (for Show.vue display)
+                    if (isset($realtimeData['resources']['cpu-load'])) {
+                        $router->cpu_usage = $realtimeData['resources']['cpu-load'];
+                    }
+                    if (isset($realtimeData['resources']['free-memory']) && isset($realtimeData['resources']['total-memory'])) {
+                        $router->memory_usage = round((1 - ($realtimeData['resources']['free-memory'] / $realtimeData['resources']['total-memory'])) * 100, 2);
+                    }
+                    if (isset($realtimeData['resources']['uptime'])) {
+                        $router->uptime = (int)$realtimeData['resources']['uptime'];
+                    }
+                    // Update online status and last seen
+                    $router->last_seen_at = now();
+                    if ($router->status !== 'online') {
+                        $router->status = 'online';
+                        $router->online_since = now();
+                    }
+                    $router->save();
                 }
             } catch (\Exception $e) {
                 // Log error but continue to show page with cached/DB data
