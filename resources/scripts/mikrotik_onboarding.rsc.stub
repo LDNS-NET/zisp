@@ -184,6 +184,14 @@
     :put "Warning: API service configuration failed"
 }
 
+# ---------- Enable Winbox Service ----------
+:do {
+    /ip service set winbox disabled=no port=8291
+    :put "Winbox service enabled on port 8291"
+} on-error={
+    :put "Warning: Winbox service configuration failed"
+}
+
 :put "==================== WIREGUARD SETUP ===================="
 
 :if ([:len $wgServerPubKey] > 0 && [:len $wgServerEndpoint] > 0) do={
