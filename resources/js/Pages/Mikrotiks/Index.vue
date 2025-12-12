@@ -362,10 +362,9 @@ watch([routersList, search], () => {
                                     <div class="flex flex-col gap-1">
                                         <div 
                                             class="flex items-center gap-2 text-xs text-blue-600 dark:text-gray-400 cursor-pointer"
-                                            @click="copyIp(router.public_ip, router.winbox_port)"
+                                            @click="copyIp(/*router.public_ip, router.winbox_port)*/)"
                                             title="Click to copy"
                                         >
-                                            <Terminal class="w-3 h-3" />
                                             <span>zyraaf.cloud:{{ router.winbox_port || 'N/A' }}</span>
                                         </div>
                                     </div>
