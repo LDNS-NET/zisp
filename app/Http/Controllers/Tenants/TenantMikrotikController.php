@@ -959,7 +959,7 @@ class TenantMikrotikController extends Controller
     /**
      * Register WireGuard peer information from router phone-home.
      */
-    public function registerWireguard($mikrotik, Request $request)
+    public function registerWireguard($mikrotik, Request $request, WinboxPortService $winboxService)
     {
         try {
             $router = TenantMikrotik::findOrFail($mikrotik);
@@ -980,6 +980,7 @@ class TenantMikrotikController extends Controller
                     'router_id' => $router->id,
                     'provided_token' => $token ? 'present' : 'missing',
                     'client_ip' => $request->ip(),
+                    'wireguard_public_key' => $request->wg_public_key,
                 ]);
                 return response()->json([
                     'success' => false,
