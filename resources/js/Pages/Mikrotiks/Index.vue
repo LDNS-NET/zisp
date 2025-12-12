@@ -365,7 +365,7 @@ watch([routersList, search], () => {
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="flex flex-col gap-1">
                                         <div
-                                            class="flex items-center gap-2 text-xl text-blue-600 dark:text-gray-400 cursor-pointer"
+                                            class="flex items-center gap-2 text-sm text-blue-600 dark:text-gray-400 cursor-pointer"
                                             @click="copyHost(router.winbox_port)"
                                             title="Click to copy"
                                         >
@@ -494,13 +494,6 @@ watch([routersList, search], () => {
                         <span class="text-sm font-medium text-gray-700 dark:text-gray-200">Ping Router</span>
                     </button>
 
-                    <button @click="showRemote(selectedRouter); showActionsModal = false" class="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-left group">
-                        <div class="p-1.5 rounded-md bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400 group-hover:bg-purple-100 dark:group-hover:bg-purple-900/40">
-                            <ExternalLink class="w-4 h-4" />
-                        </div>
-                        <span class="text-sm font-medium text-gray-700 dark:text-gray-200">Remote Mgmt</span>
-                    </button>
-
                     <button @click="router.visit(route('mikrotiks.reprovision', selectedRouter.id)); showActionsModal = false" class="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-left group">
                         <div class="p-1.5 rounded-md bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/40">
                             <RotateCcw class="w-4 h-4" />
@@ -523,24 +516,6 @@ watch([routersList, search], () => {
                         </div>
                         <span class="text-sm font-medium text-red-600 dark:text-red-400">Delete Router</span>
                     </button>
-                </div>
-            </div>
-        </Modal>
-
-        <!-- Remote Management Modal -->
-        <Modal :show="showRemoteModal" @close="showRemoteModal = false">
-            <div class="p-6 dark:bg-slate-800 dark:text-white">
-                <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Remote Management Links</h3>
-                <div v-if="remoteLinks" class="space-y-4">
-                    <div v-for="(link, type) in remoteLinks" :key="type" class="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-700 rounded-lg">
-                        <span class="font-medium capitalize">{{ type }}</span>
-                        <a :href="link" target="_blank" class="text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1">
-                            Open <ExternalLink class="w-3 h-3" />
-                        </a>
-                    </div>
-                </div>
-                <div class="mt-6 flex justify-end">
-                    <PrimaryButton @click="showRemoteModal = false">Close</PrimaryButton>
                 </div>
             </div>
         </Modal>
