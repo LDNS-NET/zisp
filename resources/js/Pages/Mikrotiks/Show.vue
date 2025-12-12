@@ -324,7 +324,7 @@ const updateIdentity = () => {
                         </div>
                     </div>
 
-                    <!-- INTERFACES TAB -->
+                    /*<!-- INTERFACES TAB -->
                     <div v-if="activeTab === 'interfaces'" class="overflow-hidden rounded-lg bg-white shadow dark:bg-gray-800">
                         <div class="overflow-x-auto">
                             <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
@@ -360,7 +360,7 @@ const updateIdentity = () => {
                                 </tbody>
                             </table>
                         </div>
-                    </div>
+                    </div>*/
                 </div>
             </div>
         </div>
