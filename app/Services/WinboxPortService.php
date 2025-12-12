@@ -58,8 +58,8 @@ class WinboxPortService
      */
     protected function assignPort(TenantMikrotik $router)
     {
-        // Find used ports
-        $usedPorts = TenantMikrotik::whereNotNull('winbox_port')->pluck('winbox_port')->toArray();
+        // Find used ports (ignore scopes to ensure global uniqueness)
+        $usedPorts = TenantMikrotik::withoutGlobalScopes()->whereNotNull('winbox_port')->pluck('winbox_port')->toArray();
         
         // Find first available port
         $port = self::PORT_RANGE_START;
