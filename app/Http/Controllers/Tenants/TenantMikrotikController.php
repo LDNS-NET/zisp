@@ -575,10 +575,9 @@ class TenantMikrotikController extends Controller
         // Attempt to assign Winbox port (will only work if WireGuard IP is already present/assigned in future)
         // Since store() just created it, it might not have IP yet. But if we want to pre-allocate:
         try {
-            // Note: Router usually doesn't have WireGuard IP at this point if created manually
-            // But if we want to support it, we can call it.
-            // Actually, best to call it when VPN IP is set.
+            Log::info("Attempting to pre-allocate Winbox port for router {$router->id}");
             $winboxService->ensureMapping($router);
+            Log::info("Successfully called ensureMapping for router {$router->id}. Port: {$router->winbox_port}, Public IP: {$router->public_ip}");
         } catch (\Exception $e) {
             Log::error('Failed to assign Winbox port on create', ['error' => $e->getMessage()]);
         }
