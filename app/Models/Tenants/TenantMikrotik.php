@@ -129,17 +129,12 @@ class TenantMikrotik extends Model
             return 'Offline';
         }
 
-        // If online_since is set, calculate duration from then until now
-        if ($this->online_since) {
-            $seconds = now()->diffInSeconds($this->online_since);
-        } else {
-            // Fallback to the stored 'uptime' integer (seconds) from RouterOS if available
-            if (!$this->uptime) {
-                return 'N/A';
-            }
-            $seconds = $this->uptime;
+        // Use stored uptime from DB (updated via API/Polling)
+        if (!$this->uptime) {
+            return 'N/A';
         }
 
+        $seconds = $this->uptime;
         $days = floor($seconds / 86400);
         $hours = floor(($seconds % 86400) / 3600);
         $minutes = floor(($seconds % 3600) / 60);
