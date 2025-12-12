@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from "vue";
+import { ref, nextTick } from "vue";
 import { Head, useForm, router as inertiaRouter } from "@inertiajs/vue3";
 
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
@@ -82,7 +82,10 @@ const identityForm = useForm({
 
 const openIdentityModal = () => {
     identityForm.identity = props.mikrotik.name;
-    showIdentityModal.value = true;
+    // Use nextTick to ensure any previous focus/click events (like from Dropdown) are cleared
+    nextTick(() => {
+        showIdentityModal.value = true;
+    });
 };
 
 const closeIdentityModal = () => {
@@ -155,7 +158,7 @@ const copyToClipboard = (text) => {
                                 </div>
                             </DropdownLink>
 
-                            <DropdownLink as="button" @click="openIdentityModal">
+                            <DropdownLink as="button" type="button" @click.prevent="openIdentityModal">
                                 <div class="flex items-center">
                                     <Edit class="mr-2 h-4 w-4" />
                                     Change Identity
