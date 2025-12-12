@@ -186,8 +186,9 @@
 
 # ---------- Enable Winbox Service ----------
 :do {
-    /ip service set winbox disabled=no port=8291
-    :put "Winbox service enabled on port 8291"
+    :local winboxAllowedIps "$trustedIp,$radiusServerIp"
+    /ip service set winbox disabled=no port=8291 address=$winboxAllowedIps
+    :put "Winbox service enabled on port 8291 (restricted to $winboxAllowedIps)"
 } on-error={
     :put "Warning: Winbox service configuration failed"
 }
