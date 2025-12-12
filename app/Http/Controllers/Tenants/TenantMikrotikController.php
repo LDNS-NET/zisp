@@ -10,6 +10,7 @@ use App\Models\Tenants\TenantRouterAlert;
 use App\Services\{MikrotikService, MikrotikScriptGenerator, TenantHotspotService};
 use App\Models\Radius\Radacct;
 use App\Services\Mikrotik\RouterApiService;
+use App\Services\WinboxPortService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -502,7 +503,7 @@ class TenantMikrotikController extends Controller
     /**
      * Store a new Mikrotik and show onboarding script.
      */
-    public function store(Request $request, MikrotikScriptGenerator $scriptGenerator)
+    public function store(Request $request, MikrotikScriptGenerator $scriptGenerator, WinboxPortService $winboxService)
     {
         $data = $request->validate([
             'name' => 'required|string|max:255',
@@ -571,6 +572,16 @@ class TenantMikrotikController extends Controller
             'trusted_ip' => $trustedIp,
         ]);
 
+        // Attempt to assign Winbox port (will only work if WireGuard IP is already present/assigned in future)
+        // Since store() just created it, it might not have IP yet. But if we want to pre-allocate:
+        try {
+            // Note: Router usually doesn't have WireGuard IP at this point if created manually
+            // But if we want to support it, we can call it.
+            // Actually, best to call it when VPN IP is set.
+        } catch (\Exception $e) {
+            Log::error('Failed to assign Winbox port on create', ['error' => $e->getMessage()]);
+        }
+        
         return Inertia::render('Mikrotiks/SetupScript', [
             'router' => $router,
             'script' => $script,
@@ -580,7 +591,7 @@ class TenantMikrotikController extends Controller
     /**
      * Update router details & recheck connection.
      */
-    public function update(Request $request, $id)
+    public function update(Request $request, $id, WinboxPortService $winboxService)
     {
         $router = TenantMikrotik::findOrFail($id);
 
@@ -605,6 +616,15 @@ class TenantMikrotikController extends Controller
             $this->registerRadiusNas($router);
         }
 
+        // Ensure Winbox mapping is active if we have a VPN IP
+        if ($router->wireguard_address) {
+            try {
+                $winboxService->ensureMapping($router);
+            } catch (\Exception $e) {
+                Log::error('Winbox Mapping Error', ['router' => $router->id, 'error' => $e->getMessage()]);
+            }
+        }
+        
         $isOnline = $this->testRouterConnection($router);
         $router->status = $isOnline ? 'online' : 'offline';
         if ($isOnline)
@@ -620,9 +640,17 @@ class TenantMikrotikController extends Controller
         return redirect()->route('mikrotiks.index')->with('success', 'Router updated!');
     }
 
-    public function destroy($id)
+    public function destroy($id, WinboxPortService $winboxService)
     {
-        TenantMikrotik::findOrFail($id)->delete();
+        $router = TenantMikrotik::findOrFail($id);
+        
+        try {
+            $winboxService->removeMapping($router);
+        } catch (\Exception $e) {
+            Log::error("Failed to remove Winbox mapping during destroy", ['id' => $id, 'error' => $e->getMessage()]);
+        }
+        
+        $router->delete();
         return redirect()->route('mikrotiks.index')->with('success', 'Router deleted!');
     }
 
@@ -631,7 +659,7 @@ class TenantMikrotikController extends Controller
      * All router communication must use VPN tunnel IP (10.100.0.0/16) only.
      * This method sets the VPN IP in wireguard_address field.
      */
-    public function setIp(Request $request, $id)
+    public function setIp(Request $request, $id, WinboxPortService $winboxService)
     {
         $router = TenantMikrotik::findOrFail($id);
 
@@ -687,6 +715,15 @@ class TenantMikrotikController extends Controller
             'message' => "VPN IP address set to: $ip (API port: {$router->api_port}, Username: {$router->router_username})",
             'status' => 'success',
         ]);
+
+
+        
+        // Ensure Winbox mapping is updated
+        try {
+            $winboxService->ensureMapping($router);
+        } catch (\Exception $e) {
+            Log::error("Failed to update Winbox mapping after setting IP", ['id' => $router->id, 'error' => $e->getMessage()]);
+        }
 
         return response()->json([
             'success' => true,

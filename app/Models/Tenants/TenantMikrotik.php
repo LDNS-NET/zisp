@@ -41,7 +41,9 @@ class TenantMikrotik extends Model
         // API polling fields
         'online',
         'cpu',
-        'memory',
+            'memory',
+            'public_ip',
+            'winbox_port',
     ];
 
     protected $casts = [
@@ -157,4 +159,12 @@ class TenantMikrotik extends Model
             }
         });
     }
-}
+    /**
+    * Get remote Winbox address (public_ip:winbox_port).
+    */
+    public function getRemoteWinboxAddressAttribute(): string
+    {
+        return $this->public_ip && $this->winbox_port ? "{$this->public_ip}:{$this->winbox_port}" : '';
+    }
+
+    }

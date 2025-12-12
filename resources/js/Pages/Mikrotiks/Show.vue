@@ -25,6 +25,7 @@ import {
     HardDrive,
     Clock,
     Users,
+    Copy,
 } from "lucide-vue-next";
 
 // Props
@@ -99,7 +100,15 @@ const updateIdentity = () => {
             // alert("Failed to update identity.");
         },
     });
+    });
 };
+
+const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text).then(() => {
+        alert("Copied to clipboard!");
+    });
+};
+
 </script>
 
 <template>
@@ -295,6 +304,23 @@ const updateIdentity = () => {
                                         </dt>
                                         <dd class="text-sm text-gray-900 dark:text-gray-100">
                                             {{ mikrotik.wireguard_address || "N/A" }}
+                                        </dd>
+                                        </dd>
+                                    </div>
+
+                                    <div class="flex justify-between py-3" v-if="mikrotik.winbox_port && mikrotik.public_ip">
+                                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">
+                                            Remote Winbox
+                                        </dt>
+                                        <dd class="text-sm text-gray-900 dark:text-gray-100 flex items-center">
+                                            <span class="mr-2">{{ mikrotik.public_ip }}:{{ mikrotik.winbox_port }}</span>
+                                            <button 
+                                                @click="copyToClipboard(`${mikrotik.public_ip}:${mikrotik.winbox_port}`)"
+                                                class="text-gray-400 hover:text-blue-500 transition-colors"
+                                                title="Copy Address"
+                                            >
+                                                <Copy class="h-4 w-4" />
+                                            </button>
                                         </dd>
                                     </div>
 
