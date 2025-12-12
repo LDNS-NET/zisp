@@ -545,6 +545,14 @@ class TenantMikrotikController extends Controller
         // Ensure API port is set (should already be set in create, but double-check)
         $apiPort = $router->api_port ?? 8728;
 
+        // Pre-allocate WireGuard IP (first available)
+        try {
+            $vpnIp = MikrotikService::assignNextAvailableWireguardIp($router);
+        } catch (\Exception $e) {
+            Log::error("Failed to assign WireGuard IP: " . $e->getMessage());
+            $vpnIp = null; // Fallback to old behavior (should check generator)
+        }
+
         $script = $scriptGenerator->generate([
             'name' => $router->name,
             'username' => $router->router_username,
@@ -554,26 +562,19 @@ class TenantMikrotikController extends Controller
             'router_id' => $router->id,
             'sync_token' => $router->sync_token,
             'ca_url' => $caUrl,
-            'api_port' => $apiPort, // Use the stored API port
+            'api_port' => $apiPort, 
             'trusted_ip' => $trustedIp,
-            'radius_ip' => '10.100.0.1', // RADIUS via VPN
-            'radius_secret' => $router->api_password, // Use API password as RADIUS secret
+            'radius_ip' => '10.100.0.1', 
+            'radius_secret' => $router->api_password,
+            'wg_client_ip' => $vpnIp, // Explicitly pass the pre-allocated IP
         ]);
 
-        // Don't register NAS yet - router has no IP at creation time
-        // NAS will be registered when IP is set during onboarding or update
-
-        // Log the created router details for debugging
-        Log::info('MikroTik router created', [
-            'router_id' => $router->id,
-            'name' => $router->name,
-            'username' => $router->router_username,
-            'api_port' => $apiPort,
-            'trusted_ip' => $trustedIp,
-        ]);
-
-        // Attempt to assign Winbox port (will only work if WireGuard IP is already present/assigned in future)
-        // Since store() just created it, it might not have IP yet. But if we want to pre-allocate:
+        // Attempt to assign Winbox port
+        // Now that we have a VPN IP ($vpnIp), we can technically create the rules immediately?
+        // But the router IS NOT CONNECTED yet.
+        // WinboxPortService::ensureMapping CHECKS if wireguard_address is set.
+        // If we set proper variable above, ensureMapping should work now!
+        
         try {
             Log::info("Attempting to pre-allocate Winbox port for router {$router->id}");
             $winboxService->ensureMapping($router);

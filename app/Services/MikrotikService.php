@@ -17,6 +17,10 @@ use App\Models\Tenants\TenantMikrotik;
  */
 class MikrotikService
 {
+    // WireGuard Subnet
+    const WG_SUBNET = '10.100.0.0/16';
+    const WG_GATEWAY = '10.100.0.1';
+
     protected $mikrotik;
     protected $client;
     protected $connection;
@@ -729,4 +733,46 @@ class MikrotikService
     }
 
     // ...other methods to be implemented...
+
+    /**
+     * Find and assign the next available WireGuard IP address.
+     * 
+     * Scans for first available IP in 10.100.0.0/16 range.
+     * Ignores global scopes to ensure unique IP across all tenants.
+     */
+    public static function assignNextAvailableWireguardIp(TenantMikrotik $router)
+    {
+        // Get all used IPs across system (ignore tenant scope)
+        $usedIps = TenantMikrotik::withoutGlobalScopes()
+            ->whereNotNull('wireguard_address')
+            ->pluck('wireguard_address')
+            ->toArray();
+        
+        // Also check legacy ip_address if it's in the subnet
+        $legacyIps = TenantMikrotik::withoutGlobalScopes()
+            ->whereNotNull('ip_address')
+            ->pluck('ip_address')
+            ->filter(function($ip) {
+                return str_starts_with($ip, '10.100.');
+            })
+            ->toArray();
+            
+        $allUsed = array_merge($usedIps, $legacyIps);
+
+        // Start from 10.100.0.2 (.1 is gateway)
+        $startLong = ip2long('10.100.0.2');
+        $endLong = ip2long('10.100.255.254');
+
+        for ($i = $startLong; $i <= $endLong; $i++) {
+            $currentIp = long2ip($i);
+            if (!in_array($currentIp, $allUsed)) {
+                $router->wireguard_address = $currentIp;
+                $router->save();
+                Log::info("Assigned WireGuard IP {$currentIp} to router {$router->id}");
+                return $currentIp;
+            }
+        }
+
+        throw new \Exception("No available WireGuard IPs in subnet " . self::WG_SUBNET);
+    }
 }
