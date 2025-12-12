@@ -62,8 +62,11 @@ class CheckMikrotikStatus extends Command
 
                 // First, check if router should be marked offline based on last_seen_at
                 if ($this->isRouterStale($router)) {
-                    $router->status = 'offline';
-                    $router->save();
+                    if ($router->status !== 'offline') {
+                        $router->status = 'offline';
+                        $router->online_since = null; // Reset online timer
+                        $router->save();
+                    }
                     $staleCount++;
                     $offlineCount++;
                     $this->warn("  ⏱ Router '{$router->name}' marked offline (last seen > 4 minutes ago)");
@@ -165,7 +168,10 @@ class CheckMikrotikStatus extends Command
 
             if ($isOnline) {
                 // Update router status and last seen
-                $router->status = 'online';
+                if ($router->status !== 'online') {
+                    $router->status = 'online';
+                    $router->online_since = now(); // Start online timer
+                }
                 $router->last_seen_at = now();
                 
                 // Optionally update router info from resources
@@ -187,7 +193,10 @@ class CheckMikrotikStatus extends Command
             } else {
                 // Check if router should be marked offline due to stale last_seen_at
                 if ($this->isRouterStale($router)) {
-                    $router->status = 'offline';
+                    if ($router->status !== 'offline') {
+                        $router->status = 'offline';
+                        $router->online_since = null;
+                    }
                     Log::debug('Router marked offline: Connection failed via VPN tunnel and last_seen_at > 4 minutes', [
                         'router_id' => $router->id,
                         'vpn_ip' => $vpnIp,
@@ -214,8 +223,11 @@ class CheckMikrotikStatus extends Command
                 'error' => $errorMessage,
             ]);
             
-            $router->status = 'offline';
-            $router->save();
+            if ($router->status !== 'offline') {
+                $router->status = 'offline';
+                $router->online_since = null;
+                $router->save();
+            }
             
             return false;
         }

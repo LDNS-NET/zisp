@@ -44,6 +44,7 @@ class TenantMikrotik extends Model
             'memory',
             'public_ip',
             'winbox_port',
+            'online_since',
     ];
 
     protected $casts = [
@@ -58,6 +59,7 @@ class TenantMikrotik extends Model
         'online' => 'boolean',
         'cpu' => 'decimal:2',
         'memory' => 'decimal:2',
+        'online_since' => 'datetime',
     ];
 
     protected $hidden = [
@@ -122,12 +124,25 @@ class TenantMikrotik extends Model
 
     public function getUptimeFormatted(): string
     {
-        if (!$this->uptime)
-            return 'Unknown';
+        // If router is officially "offline", show Offline
+        if ($this->status === 'offline') {
+            return 'Offline';
+        }
 
-        $days = floor($this->uptime / 86400);
-        $hours = floor(($this->uptime % 86400) / 3600);
-        $minutes = floor(($this->uptime % 3600) / 60);
+        // If online_since is set, calculate duration from then until now
+        if ($this->online_since) {
+            $seconds = now()->diffInSeconds($this->online_since);
+        } else {
+            // Fallback to the stored 'uptime' integer (seconds) from RouterOS if available
+            if (!$this->uptime) {
+                return 'N/A';
+            }
+            $seconds = $this->uptime;
+        }
+
+        $days = floor($seconds / 86400);
+        $hours = floor(($seconds % 86400) / 3600);
+        $minutes = floor(($seconds % 3600) / 60);
 
         return "{$days}d {$hours}h {$minutes}m";
     }

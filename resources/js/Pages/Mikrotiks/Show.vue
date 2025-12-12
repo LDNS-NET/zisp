@@ -13,6 +13,7 @@ import Modal from "@/Components/Modal.vue";
 import TextInput from "@/Components/TextInput.vue";
 import InputLabel from "@/Components/InputLabel.vue";
 import InputError from "@/Components/InputError.vue";
+import { useToast } from "vue-toastification";
 
 import {
     Activity,
@@ -51,7 +52,16 @@ const identityForm = useForm({
 });
 
 // Helpers
-const formatUptime = (uptime) => uptime || "N/A";
+const formatUptime = (seconds) => {
+    if (!seconds) return "N/A";
+    // Check if it's already formatted string (from backend accessor)
+    if (typeof seconds === 'string') return seconds;
+    
+    const d = Math.floor(seconds / (3600 * 24));
+    const h = Math.floor((seconds % (3600 * 24)) / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    return `${d}d ${h}h ${m}m`;
+};
 
 const formatBytes = (bytes) => {
     if (!bytes || bytes === 0) return "0 B";
@@ -64,7 +74,7 @@ const formatBytes = (bytes) => {
 const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text).then(() => {
         // Optional: toast notification here
-        alert("Address copied to clipboard");
+        onSuccess: toast.success(`Copied to clipboard: ${text}`);
     });
 };
 
@@ -122,7 +132,8 @@ const updateIdentity = () => {
                     <div class="mt-1 flex flex-wrap items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                         <StatusBadge :status="realtime.is_online ? 'online' : 'offline'" />
                         <span>IP: {{ mikrotik.wireguard_address || mikrotik.ip_address }}</span>
-                        <span v-if="realtime.resources?.version">• RouterOS {{ realtime.resources.version }}</span>
+                        <span>• RouterOS {{ mikrotik.os_version || realtime.resources?.version || '-' }}</span>
+                        <span>• Connected: {{ formatUptime(mikrotik.uptime_formatted) }}</span>
                     </div>
                 </div>
 
@@ -175,20 +186,18 @@ const updateIdentity = () => {
                 <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <Card
                         title="CPU Load"
-                        :value="realtime.resources?.['cpu-load'] ? realtime.resources['cpu-load'] + '%' : 'N/A'"
+                        :value="mikrotik.cpu_usage ? mikrotik.cpu_usage + '%' : 'N/A'"
                         :icon="Cpu"
                     />
                     <Card
-                        title="Memory"
-                        :value="realtime.resources?.['free-memory'] 
-                            ? formatBytes(realtime.resources['total-memory'] - realtime.resources['free-memory'])
-                            : 'N/A'"
-                        :subtitle="realtime.resources?.['total-memory'] ? 'of ' + formatBytes(realtime.resources['total-memory']) : ''"
+                        title="Memory Usage"
+                        :value="mikrotik.memory_usage ? mikrotik.memory_usage + '%' : 'N/A'"
+                        :subtitle="realtime.resources?.['total-memory'] ? formatBytes(realtime.resources['total-memory']) + ' Total' : ''"
                         :icon="HardDrive"
                     />
                     <Card
-                        title="Uptime"
-                        :value="formatUptime(realtime.resources?.uptime)"
+                        title="Uptime (Online)"
+                        :value="mikrotik.uptime_formatted || 'N/A'"
                         :icon="Clock"
                     />
                     <Card
@@ -279,10 +288,10 @@ const updateIdentity = () => {
                                             </span>
                                         </dt>
                                         <dd class="text-sm text-gray-900 dark:text-gray-100 flex items-center bg-gray-50 dark:bg-gray-700 px-2 py-1 rounded">
-                                            <span class="mr-2 font-mono">{{ mikrotik.public_ip }}:{{ mikrotik.winbox_port }}</span>
+                                            <span class="mr-2 font-mono">zyraaf.cloud:{{ mikrotik.winbox_port }}</span>
                                             <button 
-                                                @click="copyToClipboard(`${mikrotik.public_ip}:${mikrotik.winbox_port}`)"
-                                                class="text-gray-400 hover:text-blue-500 transition-colors bg-white dark:bg-gray-600 p-1 rounded shadow-sm border border-gray-200 dark:border-gray-500"
+                                                @click="copyToClipboard(`zyraaf.cloud:${mikrotik.winbox_port}`)"
+                                                class="text-gray-400 hover:text-blue-500 transition-colors bg:dark:bg-gray-600 p-1 rounded shadow-sm border border-gray-200 dark:border-gray-500"
                                                 title="Copy to Clipboard"
                                             >
                                                 <Copy class="h-3 w-3" />
