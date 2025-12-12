@@ -43,6 +43,15 @@ sudo ufw allow 50000:60000/tcp
 sudo ufw reload
 ```
 
+### Generic Iptables (If UFW is not installed)
+
+If you are not using UFW, you can open the ports directly using iptables:
+
+```bash
+sudo iptables -I INPUT -p tcp --dport 50000:60000 -j ACCEPT
+# Look into 'iptables-save' or 'netfilter-persistent' to make this persistent across reboots.
+```
+
 ### DigitalOcean / AWS Firewall
 
 If your server is behind a cloud firewall, ensure you open TCP ports `50000-60000` in the cloud console.

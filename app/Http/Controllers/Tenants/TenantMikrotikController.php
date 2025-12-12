@@ -578,6 +578,7 @@ class TenantMikrotikController extends Controller
             // Note: Router usually doesn't have WireGuard IP at this point if created manually
             // But if we want to support it, we can call it.
             // Actually, best to call it when VPN IP is set.
+            $winboxService->ensureMapping($router);
         } catch (\Exception $e) {
             Log::error('Failed to assign Winbox port on create', ['error' => $e->getMessage()]);
         }

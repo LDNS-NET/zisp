@@ -20,11 +20,6 @@ class WinboxPortService
      */
     public function ensureMapping(TenantMikrotik $router)
     {
-        if (!$router->wireguard_address) {
-            Log::warning("WinboxPortService: Router {$router->id} has no VPN IP. Skipping mapping.");
-            return;
-        }
-
         // Assign port if missing
         if (!$router->winbox_port) {
             $this->assignPort($router);
@@ -36,6 +31,11 @@ class WinboxPortService
         if ($router->public_ip !== $serverIp) {
             $router->public_ip = $serverIp;
             $router->save();
+        }
+
+        if (!$router->wireguard_address) {
+            Log::warning("WinboxPortService: Router {$router->id} has no VPN IP. Assigned port {$router->winbox_port} but skipping firewall rules.");
+            return;
         }
 
         $this->applyFirewallRules($router);
