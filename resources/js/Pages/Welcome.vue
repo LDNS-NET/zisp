@@ -12,9 +12,9 @@ defineProps({
 const detailedFeatures = [
     {
         icon: '🔗',
-        title: 'Seamless M-Pesa Integration',
+        title: 'Seamless Payment Integration',
         description:
-            'Accept payments via STK Push, C2B, B2C with instant reconciliation. Enable auto-receipts and reduce manual financial tasks.',
+            'Accept payments via Mpesa, PesaPal, MTN Money with instant reconciliation. Enable auto-receipts and reduce manual financial tasks.',
     },
     {
         icon: '📡',
@@ -84,7 +84,7 @@ const howItWorksSteps = [
 </script>
 
 <template>
-    <Head title="ZiSP | Next-Gen ISP Billing with Mikrotik Integration" />
+    <Head title="Zyraaf Cloud | ISP Manager" />
 
     <div
         class="flex min-h-screen flex-col justify-between border-8 bg-slate-200 dark:bg-black"
@@ -98,7 +98,7 @@ const howItWorksSteps = [
                     class="mb-4 text-4xl font-extrabold leading-tight text-gray-900 sm:text-5xl lg:text-6xl dark:text-white"
                 >
                     Empower Your ISP with
-                    <span class="text-blue-600 dark:text-blue-400">ZiSP</span>
+                    <span class="text-blue-600 dark:text-blue-400">Zyraaf Cloud</span>
                 </h1>
                 <p
                     class="mt-6 text-lg leading-relaxed text-gray-700 dark:text-gray-300"
@@ -157,7 +157,7 @@ const howItWorksSteps = [
                 <h3
                     class="mb-2 text-xl font-bold text-red-700 dark:text-red-300"
                 >
-                    M-Pesa Reconciliation
+                    Payment Reconciliation
                 </h3>
                 <p class="text-gray-700 dark:text-gray-400">
                     Supports STK Push, C2B, and B2C with automatic updates to
@@ -197,7 +197,7 @@ const howItWorksSteps = [
             <h2
                 class="mb-12 text-center text-4xl font-extrabold text-gray-900 dark:text-white"
             >
-                How Zyraispay Works
+                How Zyraaf Cloud Works
             </h2>
             <div class="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
                 <div
@@ -297,7 +297,7 @@ const howItWorksSteps = [
                 <h2
                     class="mb-12 text-center text-4xl font-extrabold dark:text-blue-500"
                 >
-                    Why Zyraispay is the Smart Choice
+                    Why Zyraaf Cloud is the Smart Choice
                 </h2>
                 <div class="grid gap-12 px-10 py-9 md:grid-cols-2">
                     <div
@@ -342,7 +342,7 @@ const howItWorksSteps = [
                 <p
                     class="mb-8 text-lg text-gray-700 sm:text-xl dark:text-gray-300"
                 >
-                    Let Zyraispay help you automate billing, optimize networks,
+                    Let Zyraaf Cloud help you automate billing, optimize networks,
                     and grow with confidence.
                 </p>
                 <Link
