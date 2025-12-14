@@ -58,7 +58,7 @@ class DashboardController extends Controller
                 // Leads
                 'leads' => [
                     'total' => TenantLeads::count(),
-                    'pending' => TenantLeads::where('status', 'pending')->count(),
+                    'pending' => TenantLeads::where('status', 'new')->count(),
                     'converted' => TenantLeads::where('status', 'converted')->count(),
                     'lost' => TenantLeads::where('status', 'lost')->count(),
                 ],

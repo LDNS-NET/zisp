@@ -370,6 +370,26 @@ const packageChartSeries = computed(() =>
                 <div class="space-y-8">
                     <!-- Quick Stats Grid - Compact on mobile -->
                     <div class="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-4">
+                        <!-- All Online Users -->
+                         <div class="group relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-teal-500 to-teal-600 p-4 sm:p-6 shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl dark:from-teal-600 dark:to-teal-700">
+                            <div class="absolute right-0 top-0 h-20 w-20 sm:h-32 sm:w-32 translate-x-6 sm:translate-x-8 -translate-y-6 sm:-translate-y-8 rounded-full bg-white/10"></div>
+                            <div class="relative">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-xs sm:text-sm font-medium text-teal-100">Online Users</p>    
+                                        <p class="mt-1 sm:mt-2 text-2xl sm:text-4xl font-bold text-white">{{ stats.online_users }}</p>
+                                    </div>
+                                    <div class="rounded-lg sm:rounded-xl bg-white/20 p-2 sm:p-3 backdrop-blur-sm">
+                                        <Zap class="h-5 w-5 sm:h-8 sm:w-8 text-white" />
+                                    </div>
+                                </div>
+                                <div class="mt-2 sm:mt-4 flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-teal-100">
+                                    <Activity class="h-3 w-3 sm:h-4 sm:w-4" />
+                                    <span>Currently Active</span>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Total Users -->
                         <div class="group relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 p-4 sm:p-6 shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl dark:from-blue-600 dark:to-blue-700">
                             <div class="absolute right-0 top-0 h-20 w-20 sm:h-32 sm:w-32 translate-x-6 sm:translate-x-8 -translate-y-6 sm:-translate-y-8 rounded-full bg-white/10"></div>
