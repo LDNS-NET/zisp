@@ -430,8 +430,7 @@ const packageChartSeries = computed(() =>
                                     class="text-red-300">
                                         All Routers Offline
                                     </span>
-                                    <span v-else
-                                    class="text-blue-400">
+                                    <span v-else>
                                         {{ stats.mikrotiks.connected }} online
                                     </span>
                                 </div>
