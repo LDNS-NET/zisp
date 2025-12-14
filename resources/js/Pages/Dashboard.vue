@@ -426,7 +426,7 @@ const packageChartSeries = computed(() =>
                                 </div>
                                 <div class="mt-2 sm:mt-4 flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-emerald-100">
                                     <Check class="h-3 w-3 sm:h-4 sm:w-4" />
-                                    <span>{{ stats.mikrotiks.connected }} online</span>
+                                    <span>{{ stats.mikrotiks.connected }} online || {{ stats.mikrotiks.disconnected }} offline</span>
                                 </div>
                             </div>
                         </div>
