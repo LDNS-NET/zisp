@@ -325,7 +325,7 @@ const packageChartSeries = computed(() =>
                             </div>
 
                             <!-- Subscription Badge -->
-                            <div v-if="expiresAt" class="flex-shrink-0">
+                            <div v-if="expiresAt <= 5" class="flex-shrink-0">
                                 <div :class="[
                                     'group relative overflow-hidden rounded-2xl p-6 backdrop-blur-lg transition-all duration-300 hover:scale-105',
                                     subscriptionStatus === 'expired' ? 'bg-red-500/20 ring-2 ring-red-400' :
