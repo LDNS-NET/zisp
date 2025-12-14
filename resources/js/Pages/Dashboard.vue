@@ -405,7 +405,7 @@ const packageChartSeries = computed(() =>
                                 </div>
                                 <div class="mt-2 sm:mt-4 flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-blue-100">
                                     <Activity class="h-3 w-3 sm:h-4 sm:w-4" />
-                                    <span>{{ stats.users.active }} active</span>
+                                    <span>{{ stats.users.activeUsers }} active</span>
                                 </div>
                             </div>
                         </div>
