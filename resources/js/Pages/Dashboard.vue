@@ -660,6 +660,22 @@ const packageChartSeries = computed(() =>
                                 />
                             </div>
                         </div>
+
+                        <!-- Most Active Users Section -->
+                        <div class="rounded-2xl bg-white p-6 shadow-lg dark:bg-slate-800">
+                            <h3 class="mb-6 flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white">
+                                <UserCheck class="h-5 w-5 text-green-600 dark:text-green-400" />
+                                Most Active Users
+                            </h3>
+                            <div class="grid gap-4 md:grid-cols-3">
+                                <div v-for="u in stats.most_active_users" :key="u.username"
+                                    class="rounded-lg bg-gray-50 p-4 text-center transition-colors hover:bg-gray-100 dark:bg-slate-700/50 dark:hover:bg-slate-700">
+                                    <p class="text-lg font-bold text-gray-900 dark:text-white">{{ u.username }}</p>
+                                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Data Used: {{ u.data_used }} MB</p>
+                                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Online Time: {{ u.online_time }} hrs</p>
+                                </div>      
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Recent Activity -->
