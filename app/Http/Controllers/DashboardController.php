@@ -45,6 +45,7 @@ class DashboardController extends Controller
 
                 // Users Summary
                 'users' => [
+                    'name'=> NetworkUser::where('username', $userId)->paginate(5),
                     'total' => NetworkUser::count(),
                     'hotspot' => NetworkUser::where('type', 'hotspot')->count(),
                     'pppoe' => NetworkUser::where('type', 'pppoe')->count(),
