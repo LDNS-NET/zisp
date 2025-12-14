@@ -371,7 +371,7 @@ const packageChartSeries = computed(() =>
                     <!-- Quick Stats Grid - Compact on mobile -->
                     <div class="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-4">
                         <!-- All Online Users -->
-                         <div class="group relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-teal-500 to-teal-600 p-4 sm:p-6 shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl dark:from-teal-600 dark:to-teal-700">
+                         <div class="group relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-green-500 to-teal-500 p-4 sm:p-6 shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl dark:from-green-600 dark:to-teal-700">
                             <div class="absolute right-0 top-0 h-20 w-20 sm:h-32 sm:w-32 translate-x-6 sm:translate-x-8 -translate-y-6 sm:-translate-y-8 rounded-full bg-white/10"></div>
                             <div class="relative">
                                 <div class="flex items-center justify-between">
