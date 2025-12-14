@@ -377,7 +377,7 @@ const packageChartSeries = computed(() =>
                                 <div class="flex items-center justify-between">
                                     <div>
                                         <p class="text-xs sm:text-sm font-medium text-teal-100">Online Users</p>    
-                                        <p class="mt-1 sm:mt-2 text-2xl sm:text-4xl font-bold text-white">{{ stats.online_users }}</p>
+                                        <p class="mt-1 sm:mt-2 text-2xl sm:text-4xl font-bold text-white">{{ stats.users.activeUsers }}</p>
                                     </div>
                                     <div class="rounded-lg sm:rounded-xl bg-white/20 p-2 sm:p-3 backdrop-blur-sm">
                                         <Zap class="h-5 w-5 sm:h-8 sm:w-8 text-white" />
@@ -385,7 +385,7 @@ const packageChartSeries = computed(() =>
                                 </div>
                                 <div class="mt-2 sm:mt-4 flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-teal-100">
                                     <Activity class="h-3 w-3 sm:h-4 sm:w-4" />
-                                    <span>Currently Active</span>
+                                    <span>{{ stats.users.total }} users</span>
                                 </div>
                             </div>
                         </div>
