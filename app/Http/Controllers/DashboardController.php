@@ -75,8 +75,8 @@ class DashboardController extends Controller
                 // Mikrotik Devices
                 'mikrotiks' => [
                     'total' => TenantMikrotik::count(),
-                    'connected' => TenantMikrotik::where('status', 'connected')->count(),
-                    'disconnected' => TenantMikrotik::where('status', 'disconnected')->count(),
+                    'connected' => TenantMikrotik::where('status', 'online')->count(),
+                    'disconnected' => TenantMikrotik::where('status', 'offline')->count(),
                 ],
 
                 // SMS
