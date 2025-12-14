@@ -640,42 +640,44 @@ const packageChartSeries = computed(() =>
                             </div>
                         </div>
 
-                        <!-- Package Utilization Chart (Full Width) -->
-                        <div class="rounded-2xl bg-white p-6 shadow-lg dark:bg-slate-800">
-                            <div class="mb-4 flex items-center justify-between">
-                                <h4 class="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white">
-                                    <PieChart class="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                                    Package Distribution
-                                </h4>
-                                <span class="rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-800 dark:bg-purple-900/30 dark:text-purple-400">
-                                    Current Status
-                                </span>
+                        <div class="grid gap-6 lg:grid-cols-2">
+                            <!-- Package Utilization Chart (Full Width) -->
+                            <div class="rounded-2xl bg-white p-6 shadow-lg dark:bg-slate-800">
+                                <div class="mb-4 flex items-center justify-between">
+                                    <h4 class="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white">
+                                        <PieChart class="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                                        Package Distribution
+                                    </h4>
+                                    <span class="rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-800 dark:bg-purple-900/30 dark:text-purple-400">
+                                        Current Status
+                                    </span>
+                                </div>
+                                <div class="mx-auto max-w-2xl">
+                                    <VueApexCharts
+                                        type="donut"
+                                        height="350"
+                                        :options="packageChartOptions"
+                                        :series="packageChartSeries"
+                                    />
+                                </div>
                             </div>
-                            <div class="mx-auto max-w-2xl">
-                                <VueApexCharts
-                                    type="donut"
-                                    height="350"
-                                    :options="packageChartOptions"
-                                    :series="packageChartSeries"
-                                />
-                            </div>
-                        </div>
 
-                        <!-- Most Active Users Section -->
-                        <div class="rounded-2xl bg-white p-6 shadow-lg dark:bg-slate-800">
-                            <h3 class="mb-6 flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white">
-                                <UserCheck class="h-5 w-5 text-green-600 dark:text-green-400" />
-                                Most Active Users
-                            </h3>
-                            <div class="grid gap-4 md:grid-cols-3">
-                                <div v-for="u in stats.most_active_users" :key="u.username"
-                                    class="rounded-lg bg-gray-50 p-4 text-center transition-colors hover:bg-gray-100 dark:bg-slate-700/50 dark:hover:bg-slate-700">
-                                    <p class="text-lg font-bold text-gray-900 dark:text-white">{{ u.username }}</p>
-                                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Data Used: {{ u.data_used }} MB</p>
-                                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Online Time: {{ u.online_time }} hrs</p>
-                                </div>      
+                            <!-- Most Active Users Section -->
+                            <div class="rounded-2xl bg-white p-6 shadow-lg dark:bg-slate-800">
+                                <h3 class="mb-6 flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white">
+                                    <UserCheck class="h-5 w-5 text-green-600 dark:text-green-400" />
+                                    Most Active Users
+                                </h3>
+                                <div class="grid gap-4 md:grid-cols-3">
+                                    <div v-for="u in stats.most_active_users" :key="u.username"
+                                        class="rounded-lg bg-gray-50 p-4 text-center transition-colors hover:bg-gray-100 dark:bg-slate-700/50 dark:hover:bg-slate-700">
+                                        <p class="text-lg font-bold text-gray-900 dark:text-white">{{ u.username }}</p>
+                                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Data Used: {{ u.data_used }} MB</p>
+                                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Online Time: {{ u.online_time }} hrs</p>
+                                    </div>      
+                                </div>
                             </div>
-                        </div>
+                            </div>
                     </div>
 
                     <!-- Recent Activity -->
