@@ -412,7 +412,7 @@ const packageChartSeries = computed(() =>
                         </div>
 
                         <!-- MikroTik Devices -->
-                        <div class="group relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 p-4 sm:p-6 shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl dark:from-emerald-600 dark:to-emerald-700">
+                        <div class="group relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-yellow-500 to-yellow-600 p-4 sm:p-6 shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl dark:from-yellow-700 dark:to-yellow-800">
                             <div class="absolute right-0 top-0 h-20 w-20 sm:h-32 sm:w-32 translate-x-6 sm:translate-x-8 -translate-y-6 sm:-translate-y-8 rounded-full bg-white/10"></div>
                             <div class="relative">
                                 <div class="flex items-center justify-between">
@@ -427,7 +427,7 @@ const packageChartSeries = computed(() =>
                                 <div class="mt-2 sm:mt-4 flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-emerald-100">
                                     <Check class="h-3 w-3 sm:h-4 sm:w-4" />
                                     <span v-if="stats.mikrotiks.connected ===0"
-                                    class="text-red-300">
+                                    class="text-red-500">
                                         All Routers Offline
                                     </span>
                                     <span v-else>
