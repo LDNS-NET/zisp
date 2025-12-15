@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Stancl\Tenancy\Database\Concerns\UsesTenantConnection;
-use Illuminate\Database\Eloquent\Builder;
 
 class Package extends Model
 {
@@ -52,10 +51,6 @@ class Package extends Model
             'months' => $this->duration_value * 30,
             default => null,
         };
-    }
-    public function scopeHotspot(Builder $query): Builder
-    {
-        return $query->where('type', 'hotspot');
     }
 
 }
