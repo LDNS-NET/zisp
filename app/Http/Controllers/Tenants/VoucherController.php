@@ -90,7 +90,7 @@ class VoucherController extends Controller
             'package_id' => ['required', 'exists:packages,id'],
         ]);
 
-        $package = Package::findOrFail($request->package_id);
+        $package = Package::where('type', 'hotspot')->findOrFail($request->package_id);
 
         $vouchers = [];
 

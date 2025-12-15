@@ -96,8 +96,7 @@ const resetForm = () => {
 
 const closeFormModal = () => {
     showFormModal.value = false;
-    router.get(
-        route('vouchers.index'),
+    router.get(route('vouchers.index'),
         {},
         {
             replace: true, // Clean URL (remove ?create=true)
@@ -335,7 +334,7 @@ const openActions = (voucher) => {
                 <Pagination :links="vouchers.links" />
             </div>
         </div>
-
+        
         <!-- Create Modal -->
         <Modal :show="showFormModal" @close="closeFormModal">
             <div class="p-6 dark:bg-slate-800 dark:text-white">
