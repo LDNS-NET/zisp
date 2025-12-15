@@ -74,6 +74,7 @@ class TenantTicketController extends Controller
      */
     public function update(Request $request, TenantTickets $ticket)
     {
+        $this->authorizeAccess($ticket);
         $validated = $request->validate([
             'client_type' => 'required|in:user,lead',
             'client_id' => 'required|integer',

@@ -397,7 +397,7 @@ function showDescription(description) {
                 <form @submit.prevent="submit">
                     <div class="space-y-4">
                         <div>
-                            <InputLabel value="Client Type" />
+                            <InputLabel for="client_type" value="Client Type" />
                             <select v-model="form.client_type" class="mt-1 block w-full rounded-md border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500">
                                 <option value="user">User</option>
                                 <option value="lead">Lead</option>
@@ -405,7 +405,7 @@ function showDescription(description) {
                             <InputError :message="form.errors.client_type" />
                         </div>
                         <div>
-                            <InputLabel value="Client" />
+                            <InputLabel for="client_id" value="Client" />
                             <select v-model="form.client_id" class="mt-1 block w-full rounded-md border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500">
                                 <option disabled value="">Select Client</option>
                                 <option v-for="client in clients" :key="client.id" :value="client.id">
@@ -415,7 +415,7 @@ function showDescription(description) {
                             <InputError :message="form.errors.client_id" />
                         </div>
                         <div>
-                            <InputLabel value="Priority" />
+                            <InputLabe for="priority" value="Priority" />
                             <select v-model="form.priority" class="mt-1 block w-full rounded-md border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500">
                                 <option value="low">Low</option>
                                 <option value="medium">Medium</option>
@@ -424,7 +424,7 @@ function showDescription(description) {
                             <InputError :message="form.errors.priority" />
                         </div>
                         <div>
-                            <InputLabel value="Status" />
+                            <InputLabel for="status" value="Status" />
                             <select v-model="form.status" class="mt-1 block w-full rounded-md border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500">
                                 <option value="open">Open</option>
                                 <option value="closed">Closed</option>
@@ -432,7 +432,7 @@ function showDescription(description) {
                             <InputError :message="form.errors.status" />
                         </div>
                         <div>
-                            <InputLabel value="Description" />
+                            <InputLabel for="description" value="Description" />
                             <TextArea v-model="form.description" class="mt-1 block w-full" rows="3" />
                             <InputError :message="form.errors.description" />
                         </div>
