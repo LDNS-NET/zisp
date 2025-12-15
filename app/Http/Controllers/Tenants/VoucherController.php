@@ -10,6 +10,7 @@ use Illuminate\Validation\Rule;
 use Inertia\Inertia; // Essential for Inertia responses
 use Illuminate\Support\Facades\Log; // For robust error logging
 use Illuminate\Support\Str;
+use App\Models\Builder;
 
 
 class VoucherController extends Controller
@@ -90,11 +91,17 @@ class VoucherController extends Controller
     public function store(Request $request): \Illuminate\Http\RedirectResponse
     {
         $validated = $request->validate([
-            'prefix' => ['nullable', 'string', 'max:4'],
-            'length' => ['required', 'integer', 'min:6'],
-            'quantity' => ['required', 'integer', 'min:1', 'max:1000'],
-            'package_id' => ['required', 'exists:packages,id'],
-        ]);
+        'prefix' => ['nullable', 'string', 'max:4'],
+        'length' => ['required', 'integer', 'min:6'],
+        'quantity' => ['required', 'integer', 'min:1', 'max:1000'],
+        'package_id' => [
+            'required',
+            Rule::exists('packages', 'id')->where('type', 'hotspot'),
+        ],
+    ]);
+
+    $package = Package::hotspot()->findOrFail($validated['package_id']);
+        
 
         $package = Package::where('type', 'hotspot')->findOrFail($request->package_id);
 
