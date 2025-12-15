@@ -106,11 +106,12 @@ class VoucherController extends Controller
         for ($i = 0; $i < $request->quantity; $i++) {
             $code = strtoupper($request->prefix ?? '') . strtoupper(Str::random($request->length - strlen($request->prefix ?? '')));
 
+            $duration = $package->duration_in_days ?? 30;
             $vouchers[] = [
                 'code' => $code,
                 'package_id' => $package->id,
                 'value' => $package->price,
-                'expires_at' => now()->addDays($package->validity_days ?? 30),
+                'expires_at' => now()->addDays($duration),
                 'created_by' => auth()->id(),
                 'created_at' => now(),
                 'updated_at' => now(),
