@@ -10,7 +10,7 @@ use Illuminate\Validation\Rule;
 use Inertia\Inertia; // Essential for Inertia responses
 use Illuminate\Support\Facades\Log; // For robust error logging
 use Illuminate\Support\Str;
-use App\Models\Builder;
+//use App\Models\Builder;
 
 
 class VoucherController extends Controller
