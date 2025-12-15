@@ -67,9 +67,9 @@ class VoucherController extends Controller
      *
      * @return \Inertia\Response
      */
-    public function create()
+    public function create(): \Inertia\Response
     {
-        $packages = Package::where('type', 'hotspot')->get();
+        $packages = Package::all();
         return Inertia::render('Vouchers/Create', [
             'packages' => $packages,
         ]);  // Assumes a dedicated Create.vue component
