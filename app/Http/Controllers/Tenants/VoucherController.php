@@ -69,7 +69,7 @@ class VoucherController extends Controller
      */
     public function create(): \Inertia\Response
     {
-        $packages = Package::all();
+        $packages = Package::where('type', 'hotspot')->get();
         return Inertia::render('Vouchers/Create', [
             'packages' => $packages,
         ]);  // Assumes a dedicated Create.vue component
@@ -90,7 +90,7 @@ class VoucherController extends Controller
             'package_id' => ['required', 'exists:packages,id'],
         ]);
 
-        $package = Package::findOrFail($request->package_id); // ✅ Fixed semicolon and var name
+        $package = Package::findOrFail($request->package_id);
 
         $vouchers = [];
 
