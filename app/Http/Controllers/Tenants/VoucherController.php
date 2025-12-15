@@ -46,14 +46,14 @@ class VoucherController extends Controller
         return Inertia::render('Vouchers/Index', [
             'vouchers' => $vouchers,
             'voucherCount' => Voucher::count(),
-            'filters' => $request->only('search', 'status', 'page'), // Pass current filters back for persistence
-            'creating' => $request->boolean('create'), // Control modal state via query param
-            'editing' => $request->boolean('edit'), // NEW: Control editing modal state via query param
+            'filters' => $request->only('search', 'status', 'page'),
+            'creating' => $request->boolean('create'),
+            'editing' => $request->boolean('edit'),
             'voucherToEdit' => $request->boolean('edit') && $request->has('voucher_id') ?
-                Voucher::find($request->query('voucher_id')) : null, // NEW: Load voucher if editing
-            'packages' => Package::all(), // Pass packages for voucher creation
+                Voucher::find($request->query('voucher_id')) : null,
+            'packages' => Package::where('type', 'hotspot')->get(), // Only hotspot packages
             'currency' => auth()->user()?->tenant?->currency ?? 'KES',
-            'flash' => [ // Pass flash messages for display
+            'flash' => [
                 'success' => session('success'),
                 'error' => session('error'),
             ],
@@ -69,7 +69,7 @@ class VoucherController extends Controller
      */
     public function create(): \Inertia\Response
     {
-        $packages = Package::all();
+        $packages = Package::where('type', 'hotspot')->get();
         return Inertia::render('Vouchers/Create', [
             'packages' => $packages,
         ]);  // Assumes a dedicated Create.vue component
@@ -87,10 +87,19 @@ class VoucherController extends Controller
             'prefix' => ['nullable', 'string', 'max:4'],
             'length' => ['required', 'integer', 'min:6'],
             'quantity' => ['required', 'integer', 'min:1', 'max:1000'],
-            'package_id' => ['required', 'exists:packages,id'],
+            'package_id' => [
+                'required',
+                'exists:packages,id',
+                function ($attribute, $value, $fail) {
+                    $package = Package::find($value);
+                    if (!$package || $package->type !== 'hotspot') {
+                        $fail('Selected package is not a hotspot package.');
+                    }
+                },
+            ],
         ]);
 
-        $package = Package::findOrFail($request->package_id); // ✅ Fixed semicolon and var name
+        $package = Package::findOrFail($request->package_id);
 
         $vouchers = [];
 
