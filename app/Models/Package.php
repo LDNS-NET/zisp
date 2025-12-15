@@ -52,6 +52,10 @@ class Package extends Model
             default => null,
         };
     }
+    public function scopeHotspot(Builder $query): Builder
+    {
+        return $query->where('type', 'hotspot');
+    }
 
 }
 

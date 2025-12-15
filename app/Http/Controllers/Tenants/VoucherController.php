@@ -24,41 +24,47 @@ class VoucherController extends Controller
     public function index(Request $request): \Inertia\Response
     {
         $query = Voucher::query()
-            ->where('created_by', auth()->id()) // Scope to vouchers created by the current user
-            ->latest(); // Order by latest created
+            ->where('created_by', auth()->id())
+            ->latest();
 
-        // Apply search filter on 'code' and 'name'
         if ($search = $request->query('search')) {
-            $query->where(function ($q) use ($search) {
+            $query->where(fn ($q) =>
                 $q->where('code', 'like', "%{$search}%")
-                    ->orWhere('name', 'like', "%{$search}%");
-            });
+                ->orWhere('name', 'like', "%{$search}%")
+            );
         }
 
-        // Apply status filter if present in the request (assuming you might add this to your UI later)
         if ($status = $request->query('status')) {
             $query->where('status', $status);
         }
 
-        // Paginate the results and append query string for pagination links
-        $vouchers = $query->paginate(10)->withQueryString();
-
         return Inertia::render('Vouchers/Index', [
-            'vouchers' => $vouchers,
+            'vouchers' => $query->paginate(10)->withQueryString(),
             'voucherCount' => Voucher::count(),
-            'filters' => $request->only('search', 'status', 'page'), // Pass current filters back for persistence
-            'creating' => $request->boolean('create'), // Control modal state via query param
-            'editing' => $request->boolean('edit'), // NEW: Control editing modal state via query param
-            'voucherToEdit' => $request->boolean('edit') && $request->has('voucher_id') ?
-                Voucher::find($request->query('voucher_id')) : null, // NEW: Load voucher if editing
-            'packages' => Package::where('type', 'hotspot')->get(), // Pass packages for voucher creation
+            'filters' => $request->only('search', 'status', 'page'),
+            'creating' => $request->boolean('create'),
+            'editing' => $request->boolean('edit'),
+            'voucherToEdit' => $request->boolean('edit') && $request->has('voucher_id')
+                ? Voucher::find($request->query('voucher_id'))
+                : null,
+
+            // ✅ hotspot only, reusable
+            'packages' => $this->hotspotPackages(),
+
             'currency' => auth()->user()?->tenant?->currency ?? 'KES',
-            'flash' => [ // Pass flash messages for display
+            'flash' => [
                 'success' => session('success'),
                 'error' => session('error'),
             ],
         ]);
     }
+
+
+    private function hotspotPackages()
+    {
+        return Package::hotspot()->get();
+    }
+
 
     /**
      * Show the form for creating a new voucher.
@@ -69,11 +75,11 @@ class VoucherController extends Controller
      */
     public function create(): \Inertia\Response
     {
-        $packages = Package::where('type', 'hotspot')->get();
         return Inertia::render('Vouchers/Create', [
-            'packages' => $packages,
-        ]);  // Assumes a dedicated Create.vue component
+            'packages' => $this->hotspotPackages(),
+        ]);
     }
+
 
     /**
      * Store a newly created voucher in storage.
