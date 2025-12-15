@@ -51,7 +51,7 @@ class VoucherController extends Controller
             'editing' => $request->boolean('edit'), // NEW: Control editing modal state via query param
             'voucherToEdit' => $request->boolean('edit') && $request->has('voucher_id') ?
                 Voucher::find($request->query('voucher_id')) : null, // NEW: Load voucher if editing
-            'packages' => Package::where('type', 'hotspot')->get(), // Pass packages for voucher creation
+            'packages' => Package::all(), // Pass packages for voucher creation
             'currency' => auth()->user()?->tenant?->currency ?? 'KES',
             'flash' => [ // Pass flash messages for display
                 'success' => session('success'),
