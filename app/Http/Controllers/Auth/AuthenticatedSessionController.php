@@ -39,15 +39,10 @@ class AuthenticatedSessionController extends Controller
                 // Get tenant name from the name column
                 $tenantName = $tenant->name ?? $tenantId;
                 
-                // Get logo and business name from TenantGeneralSetting
+                // Get logo from TenantGeneralSetting
                 $setting = \Illuminate\Support\Facades\DB::table('tenant_general_settings')
                     ->where('tenant_id', $tenantId)
                     ->first();
-                
-                // Use business_name from settings if available, otherwise use tenant name
-                if ($setting && $setting->business_name) {
-                    $tenantName = $setting->business_name;
-                }
                 
                 if ($setting && $setting->logo) {
                     // Convert relative path to full URL
