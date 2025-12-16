@@ -9,16 +9,10 @@ return new class extends Migration {
         Schema::create('tenant_general_settings', function (Blueprint $table) {
             $table->id();
             $table->string('tenant_id');
-            //$table->string('business_name')->nullable();
             $table->string('business_type')->nullable();
             $table->string('theme')->nullable();
-            $table->string('deleted_at')->nullable();
-            //$table->string('description')->nullable();
-            // $table->string('registration_number')->nullable();
-            // $table->string('tax_number')->nullable();
-            $table->string('contact_email')->nullable();
+            $table->string('logo')->nullable();
             $table->string('support_email')->nullable();
-            $table->string('phone')->nullable();
             $table->string('support_phone')->nullable();
             $table->string('whatsapp')->nullable();
             $table->string('address')->nullable();
