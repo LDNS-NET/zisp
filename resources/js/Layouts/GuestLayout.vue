@@ -1,6 +1,9 @@
 <script setup>
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
-import { Link } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
+
+const page = usePage();
+const tenantLogo = page.props.tenantLogo;
 </script>
 
 <template>
@@ -9,7 +12,15 @@ import { Link } from '@inertiajs/vue3';
     >
         <div class="mb-6">
             <Link href="/">
+                <!-- Display tenant logo if available, otherwise use application logo -->
+                <img
+                    v-if="tenantLogo"
+                    :src="tenantLogo"
+                    alt="Tenant Logo"
+                    class="h-24 w-24 object-contain transition-transform duration-300 hover:scale-105"
+                />
                 <ApplicationLogo
+                    v-else
                     class="h-24 w-24 fill-current text-gray-500 transition-transform duration-300 hover:scale-105 dark:text-gray-400"
                 />
             </Link>

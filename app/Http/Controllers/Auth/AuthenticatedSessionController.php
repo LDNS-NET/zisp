@@ -9,6 +9,7 @@ use Symfony\Component\HttpFoundation\Response as HttpResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -20,6 +21,7 @@ class AuthenticatedSessionController extends Controller
     public function create(): Response
     {
         $tenantName = null;
+        $tenantLogo = null;
         $host = request()->getHost();
 
         // Try to find tenant by domain
@@ -36,6 +38,20 @@ class AuthenticatedSessionController extends Controller
                 // Decode data column if it exists and is JSON
                 $data = json_decode($tenant->data ?? '{}', true);
                 $tenantName = $data['name'] ?? $tenant->id;
+                
+                // Get logo from TenantGeneralSetting
+                $setting = \Illuminate\Support\Facades\DB::table('tenant_general_settings')
+                    ->where('tenant_id', $tenantId)
+                    ->first();
+                
+                if ($setting && $setting->logo) {
+                    // Convert relative path to full URL
+                    if (!str_starts_with($setting->logo, 'http')) {
+                        $tenantLogo = Storage::disk('public')->url($setting->logo);
+                    } else {
+                        $tenantLogo = $setting->logo;
+                    }
+                }
             }
         }
 
@@ -43,6 +59,7 @@ class AuthenticatedSessionController extends Controller
             'canResetPassword' => Route::has('password.request'),
             'status' => session('status'),
             'tenantName' => $tenantName,
+            'tenantLogo' => $tenantLogo,
         ]);
     }
 

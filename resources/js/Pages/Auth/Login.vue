@@ -18,6 +18,10 @@ defineProps({
         type: String,
         default: null,
     },
+    tenantLogo: {
+        type: String,
+        default: null,
+    },
 });
 
 const form = useForm({
