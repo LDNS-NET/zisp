@@ -54,7 +54,21 @@ class TenantGeneralSettingsController extends Controller
 
         // Fill missing data from tenant model and user preferences
         $settings['business_name'] = $settings['business_name'] ?? $tenant?->business_name;
-        $settings['logo'] = $settings['logo'] ?? $tenant?->logo; // Keep logo always visible
+        
+        // Convert logo relative path to full URL for display
+        if (!empty($settings['logo'])) {
+            // If it's not already a full URL, convert it
+            if (!str_starts_with($settings['logo'], 'http')) {
+                $settings['logo'] = Storage::disk('public')->url($settings['logo']);
+            }
+        } elseif ($tenant?->logo) {
+            // Fallback to tenant logo if available
+            if (!str_starts_with($tenant->logo, 'http')) {
+                $settings['logo'] = Storage::disk('public')->url($tenant->logo);
+            } else {
+                $settings['logo'] = $tenant->logo;
+            }
+        }
         
         // Use user's country and currency (read-only, not editable from settings)
         $userCountryDisplay = $country ? "{$country} ({$user->country_code})" : 'Not set';
@@ -126,8 +140,8 @@ class TenantGeneralSettingsController extends Controller
 
         // Handle logo upload/removal
         if ($request->hasFile('logo')) {
-            $path = $request->file('logo')->store('public/logos');
-            $data['logo'] = Storage::url($path);
+            $path = $request->file('logo')->store('logos', 'public');
+            $data['logo'] = $path; // Store relative path, not full URL
         } elseif (!empty($data['remove_logo'])) {
             $data['logo'] = null;
         }

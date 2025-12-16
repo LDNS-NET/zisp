@@ -87,6 +87,11 @@ function removeLogo() {
     form.remove_logo = true;
 }
 
+function handleImageError(event) {
+    console.error('Failed to load logo image:', event.target.src);
+    toast.error('Failed to load logo image');
+}
+
 const loading = ref(false);
 
 function submit() {
@@ -174,12 +179,13 @@ function submit() {
                                 <img
                                     :src="logoPreview || form.logo"
                                     alt="Logo Preview"
-                                    class="h-20 w-20 rounded border object-contain shadow"
+                                    class="h-24 w-24 rounded border border-gray-300 bg-white object-contain shadow dark:bg-gray-700"
+                                    @error="handleImageError"
                                 />
                                 <button
                                     type="button"
                                     @click="removeLogo"
-                                    class="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-red-600 shadow"
+                                    class="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-red-600 shadow hover:bg-red-700"
                                 >
                                     &times;
                                 </button>

@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use Illuminate\Http\Request;
 use Inertia\Middleware;
+use Illuminate\Support\Facades\Storage;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -37,6 +38,22 @@ class HandleInertiaRequests extends Middleware
             });
         }
 
+        // Prepare logo URL
+        $logoUrl = null;
+        if ($settings?->logo) {
+            if (!str_starts_with($settings->logo, 'http')) {
+                $logoUrl = Storage::disk('public')->url($settings->logo);
+            } else {
+                $logoUrl = $settings->logo;
+            }
+        } elseif ($tenant?->logo) {
+            if (!str_starts_with($tenant->logo, 'http')) {
+                $logoUrl = Storage::disk('public')->url($tenant->logo);
+            } else {
+                $logoUrl = $tenant->logo;
+            }
+        }
+
         return [
             ...parent::share($request),
             'auth' => [
@@ -45,7 +62,7 @@ class HandleInertiaRequests extends Middleware
             'tenant' => $tenant ? [
                 'id' => $tenant->id,
                 'name' => $settings?->business_name ?? $tenant->name,
-                'logo' => $settings?->logo,
+                'logo' => $logoUrl,
                 'currency' => $tenant->currency,
                 'support_phone' => $settings?->support_phone,
                 'support_email' => $settings?->support_email,
