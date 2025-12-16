@@ -15,36 +15,36 @@ const toast = useToast();
 const { setTheme } = useTheme();
 
 // Get settings from backend
-const settings = page.props.settings || {};
+const settings = ref(page.props.settings || {});
 
-// Initialize the form with default or backend values
+// Initialize the form with values from backend
 const form = useForm({
-    business_name: settings.business_name || '',
-    business_type: settings.business_type || 'isp',
-    logo: settings.logo || '',
-    theme: settings.theme || 'system',
-    support_email: settings.support_email || '',
-    support_phone: settings.support_phone || '',
-    whatsapp: settings.whatsapp || '',
-    address: settings.address || '',
-    city: settings.city || '',
-    state: settings.state || '',
-    postal_code: settings.postal_code || '',
-    country: settings.country || 'Kenya',
-    website: settings.website || '',
-    facebook: settings.facebook || '',
-    twitter: settings.twitter || '',
-    instagram: settings.instagram || '',
+    business_name: settings.value.business_name || '',
+    business_type: settings.value.business_type || 'isp',
+    logo: settings.value.logo || '',
+    theme: settings.value.theme || 'system',
+    support_email: settings.value.support_email || '',
+    support_phone: settings.value.support_phone || '',
+    whatsapp: settings.value.whatsapp || '',
+    address: settings.value.address || '',
+    city: settings.value.city || '',
+    state: settings.value.state || '',
+    postal_code: settings.value.postal_code || '',
+    country: settings.value.country || page.props.country || 'Kenya',
+    website: settings.value.website || '',
+    facebook: settings.value.facebook || '',
+    twitter: settings.value.twitter || '',
+    instagram: settings.value.instagram || '',
     business_hours:
-        settings.business_hours ||
+        settings.value.business_hours ||
         'Monday - Friday: 8:00 AM - 6:00 PM\nSaturday: 9:00 AM - 4:00 PM\nSunday: Closed',
-    timezone: settings.timezone || 'Africa/Nairobi',
-    currency: settings.currency || 'KES',
-    language: settings.language || 'en',
+    timezone: settings.value.timezone || 'Africa/Nairobi',
+    currency: settings.value.currency || page.props.currency || 'KES',
+    language: settings.value.language || 'en',
 });
 
 const logoFile = ref(null);
-const logoPreview = ref(form.logo || '');
+const logoPreview = ref(settings.value.logo || '');
 
 onMounted(() => {
     if (form.theme) setTheme(form.theme);
