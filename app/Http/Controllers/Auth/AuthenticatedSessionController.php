@@ -25,9 +25,10 @@ class AuthenticatedSessionController extends Controller
         $host = request()->getHost();
 
         // Try to find tenant by domain
-        $tenantId = \Illuminate\Support\Facades\DB::table('domains')
-            ->where('domain', $host)
-            ->value('tenant_id');
+        $tenantId = \Illuminate\Support\Facades\DB::table('tenants')
+            ->join('domains', 'tenants.id', '=', 'domains.tenant_id')
+            ->where('domains.domain', $host)
+            ->value('tenants.id');
 
         if ($tenantId) {
             $tenant = \Illuminate\Support\Facades\DB::table('tenants')
@@ -35,14 +36,18 @@ class AuthenticatedSessionController extends Controller
                 ->first();
 
             if ($tenant) {
-                // Decode data column if it exists and is JSON
-                $data = json_decode($tenant->data ?? '{}', true);
-                $tenantName = $data['name'] ?? $tenant->id;
+                // Get tenant name from the name column
+                $tenantName = $tenant->name ?? $tenantId;
                 
-                // Get logo from TenantGeneralSetting
+                // Get logo and business name from TenantGeneralSetting
                 $setting = \Illuminate\Support\Facades\DB::table('tenant_general_settings')
                     ->where('tenant_id', $tenantId)
                     ->first();
+                
+                // Use business_name from settings if available, otherwise use tenant name
+                if ($setting && $setting->business_name) {
+                    $tenantName = $setting->business_name;
+                }
                 
                 if ($setting && $setting->logo) {
                     // Convert relative path to full URL
