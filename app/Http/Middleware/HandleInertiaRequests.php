@@ -31,6 +31,7 @@ class HandleInertiaRequests extends Middleware
     public function share(Request $request): array
     {
         $tenant = $request->user()?->tenant ?? tenant();
+        $settings = null;
 
         if ($tenant) {
             $settings = \Illuminate\Support\Facades\Cache::remember("tenant_general_setting_{$tenant->id}", 60, function () use ($tenant) {
