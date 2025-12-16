@@ -20,8 +20,18 @@ class TenantGeneralSettingsController extends Controller
     public function edit(Request $request)
     {
         $user = $request->user();
+        
+        // Get country and currency details from the user
         $country = $user?->country;
+        $countryDetails = [
+            'code' => $user?->country_code,
+            'dialCode' => $user?->dial_code,
+        ];
+        
         $currency = $user?->currency;
+        $currencyDetails = [
+            'name' => $user?->currency_name,
+        ];
 
         // Determine current tenant ID
         $tenantId = tenant('id') ?? optional($user)->tenant_id;
@@ -45,13 +55,15 @@ class TenantGeneralSettingsController extends Controller
         // Fill missing data from tenant model and user preferences
         $settings['business_name'] = $settings['business_name'] ?? $tenant?->business_name;
         $settings['logo'] = $settings['logo'] ?? $tenant?->logo; // Keep logo always visible
-        $settings['country'] = $settings['country'] ?? $country; // Default to user's country
-        $settings['currency'] = $settings['currency'] ?? $currency; // Default to user's currency
+        
+        // Use user's country and currency (read-only, not editable from settings)
+        $userCountryDisplay = $country ? "{$country} ({$user->country_code})" : 'Not set';
+        $userCurrencyDisplay = $currency ? "{$currency}" . ($user->currency_name ? " - {$user->currency_name}" : '') : 'Not set';
 
         return Inertia::render('Settings/General/General', [
             'settings' => $settings,
-            'country' => $country,
-            'currency' => $currency,
+            'userCountry' => $userCountryDisplay,
+            'userCurrency' => $userCurrencyDisplay,
         ]);
 
     }

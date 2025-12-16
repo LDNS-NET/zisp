@@ -41,9 +41,9 @@ const form = useForm({
     language: settings.value.language || 'en',
 });
 
-// Read-only values from database
-const country = ref(settings.value.country || page.props.country || 'Kenya');
-const currency = ref(settings.value.currency || page.props.currency || 'KES');
+// Read-only values from user profile
+const userCountry = ref(page.props.userCountry || 'Not set');
+const userCurrency = ref(page.props.userCurrency || 'Not set');
 
 const logoFile = ref(null);
 const logoPreview = ref(settings.value.logo || '');
@@ -330,7 +330,7 @@ function submit() {
                                 id="country"
                                 class="mt-1 block w-full rounded-md border border-gray-300 bg-gray-100 px-3 py-2 shadow-sm dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300"
                             >
-                                {{ country }}
+                                {{ userCountry }}
                             </div>
                         </div>
                     </div>
@@ -449,7 +449,7 @@ function submit() {
                                 id="currency"
                                 class="mt-1 block w-full rounded-md border border-gray-300 bg-gray-100 px-3 py-2 shadow-sm dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300"
                             >
-                                {{ currency }}
+                                {{ userCurrency }}
                             </div>
                         </div>
 
