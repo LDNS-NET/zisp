@@ -86,7 +86,6 @@ class TenantGeneralSettingsController extends Controller
             'city'           => 'nullable|string|max:100',
             'state'          => 'nullable|string|max:100',
             'postal_code'    => 'nullable|string|max:20',
-            'country'        => 'nullable|string|max:100',
 
             // Online Presence
             'website'        => 'nullable|url|max:255',
@@ -97,7 +96,6 @@ class TenantGeneralSettingsController extends Controller
             // Preferences
             'business_hours' => 'nullable|string|max:500',
             'timezone'       => 'required|string|max:50',
-            'currency'       => 'required|string|max:10',
             'language'       => 'required|string|max:10',
 
             // Branding

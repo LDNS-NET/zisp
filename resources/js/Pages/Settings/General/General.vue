@@ -30,7 +30,6 @@ const form = useForm({
     city: settings.value.city || '',
     state: settings.value.state || '',
     postal_code: settings.value.postal_code || '',
-    country: settings.value.country || page.props.country || 'Kenya',
     website: settings.value.website || '',
     facebook: settings.value.facebook || '',
     twitter: settings.value.twitter || '',
@@ -39,9 +38,12 @@ const form = useForm({
         settings.value.business_hours ||
         'Monday - Friday: 8:00 AM - 6:00 PM\nSaturday: 9:00 AM - 4:00 PM\nSunday: Closed',
     timezone: settings.value.timezone || 'Africa/Nairobi',
-    currency: settings.value.currency || page.props.currency || 'KES',
     language: settings.value.language || 'en',
 });
+
+// Read-only values from database
+const country = ref(settings.value.country || page.props.country || 'Kenya');
+const currency = ref(settings.value.currency || page.props.currency || 'KES');
 
 const logoFile = ref(null);
 const logoPreview = ref(settings.value.logo || '');
@@ -324,18 +326,12 @@ function submit() {
 
                         <div>
                             <InputLabel for="country" value="Country" />
-                            <select
+                            <div
                                 id="country"
-                                v-model="form.country"
-                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-black"
+                                class="mt-1 block w-full rounded-md border border-gray-300 bg-gray-100 px-3 py-2 shadow-sm dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300"
                             >
-                                <option value="Kenya">Kenya</option>
-                                <option value="South Sudan">South Sudan</option>
-                                <option value="Uganda">Uganda</option>
-                                <option value="Tanzania">Tanzania</option>
-                                <option value="Rwanda">Rwanda</option>
-                                <option value="Other">Other</option>
-                            </select>
+                                {{ country }}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -449,26 +445,12 @@ function submit() {
 
                         <div>
                             <InputLabel for="currency" value="Currency" />
-                            <select
+                            <div
                                 id="currency"
-                                v-model="form.currency"
-                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-black"
+                                class="mt-1 block w-full rounded-md border border-gray-300 bg-gray-100 px-3 py-2 shadow-sm dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300"
                             >
-                                <option value="KES">
-                                    Kenyan Shilling (KES)
-                                </option>
-                                <option value="SSP">
-                                    South Sudan Pounds (SSP)
-                                </option>
-                                <option value="UGX">
-                                    Ugandan Shilling (UGX)
-                                </option>
-                                <option value="TZS">
-                                    Tanzanian Shilling (TZS)
-                                </option>
-                                <option value="RWF">Rwandan Franc (RWF)</option>
-                                <option value="USD">US Dollar (USD)</option>
-                            </select>
+                                {{ currency }}
+                            </div>
                         </div>
 
                         <div>

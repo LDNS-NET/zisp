@@ -1,7 +1,7 @@
 <script setup>
 import { useToast } from 'vue-toastification';
 const toast = useToast();
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { router, usePage, Head } from '@inertiajs/vue3';
 import { useTheme } from '@/composables/useTheme';
 import TextInput from '@/Components/TextInput.vue';
@@ -12,6 +12,9 @@ import { Building2, Phone, MapPin, Globe, Clock } from 'lucide-vue-next';
 
 const page = usePage();
 const { setTheme } = useTheme();
+
+const displayCountry = ref(page.props.settings?.country || page.props.country || 'Kenya');
+const displayCurrency = ref(page.props.settings?.currency || page.props.currency || 'KES');
 
 const form = ref({
     business_name: '',
@@ -32,11 +35,14 @@ const form = ref({
     business_hours:
         'Monday - Friday: 8:00 AM - 6:00 PM\nSaturday: 9:00 AM - 4:00 PM\nSunday: Closed',
     timezone: 'Africa/Nairobi',
-    currency: 'KES',
     language: 'en',
 });
 
 function setFormFromBackend(settings) {
+    // Update read-only country and currency
+    displayCountry.value = settings.country || page.props.country || 'Kenya';
+    displayCurrency.value = settings.currency || page.props.currency || 'KES';
+    
     form.value = {
         business_name:
             typeof settings.business_name === 'number'
@@ -82,10 +88,6 @@ function setFormFromBackend(settings) {
             typeof settings.postal_code === 'number'
                 ? settings.postal_code
                 : (settings.postal_code ?? ''),
-        country:
-            typeof settings.country === 'number'
-                ? settings.country
-                : (settings.country ?? 'Kenya'),
         website:
             typeof settings.website === 'number'
                 ? settings.website
@@ -111,10 +113,6 @@ function setFormFromBackend(settings) {
             typeof settings.timezone === 'number'
                 ? settings.timezone
                 : (settings.timezone ?? 'Africa/Nairobi'),
-        currency:
-            typeof settings.currency === 'number'
-                ? settings.currency
-                : (settings.currency ?? 'KES'),
         language:
             typeof settings.language === 'number'
                 ? settings.language
@@ -129,6 +127,13 @@ onMounted(() => {
 
 const logoFile = ref(null);
 const logoPreview = ref('');
+
+// Watch for logo changes from backend
+watch(() => form.value.logo, (newLogo) => {
+    if (!logoFile.value && newLogo) {
+        logoPreview.value = newLogo;
+    }
+});
 
 onMounted(() => {
     // Sync global theme/color from loaded settings
@@ -396,18 +401,10 @@ function submit() {
 
                     <div>
                         <InputLabel for="country" value="Country" />
-                        <select
-                            id="country"
-                            v-model="form.country"
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-black"
-                        >
-                            <option value="Kenya">Kenya</option>
-                            <option value="South Sudan">South Sudan</option>
-                            <option value="Uganda">Uganda</option>
-                            <option value="Tanzania">Tanzania</option>
-                            <option value="Rwanda">Rwanda</option>
-                            <option value="Other">Other</option>
-                        </select>
+                        <div class="mt-1 block w-full rounded-md border border-gray-300 bg-gray-100 px-4 py-2 text-gray-700 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-300">
+                            {{ displayCountry }}
+                        </div>
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Read-only field from your profile</p>
                     </div>
                 </div>
             </div>
@@ -515,22 +512,10 @@ function submit() {
 
                     <div>
                         <InputLabel for="currency" value="Currency" />
-                        <select
-                            id="currency"
-                            v-model="form.currency"
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-black"
-                        >
-                            <option value="KES">Kenyan Shilling (KES)</option>
-                            <option value="SSP">
-                                South Sudan Pounds (SSP)
-                            </option>
-                            <option value="UGX">Ugandan Shilling (UGX)</option>
-                            <option value="TZS">
-                                Tanzanian Shilling (TZS)
-                            </option>
-                            <option value="RWF">Rwandan Franc (RWF)</option>
-                            <option value="USD">US Dollar (USD)</option>
-                        </select>
+                        <div class="mt-1 block w-full rounded-md border border-gray-300 bg-gray-100 px-4 py-2 text-gray-700 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-300">
+                            {{ displayCurrency }}
+                        </div>
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Read-only field from your profile</p>
                     </div>
 
                     <div>
