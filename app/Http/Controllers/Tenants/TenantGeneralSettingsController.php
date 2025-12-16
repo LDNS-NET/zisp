@@ -19,11 +19,12 @@ class TenantGeneralSettingsController extends Controller
      */
     public function edit(Request $request)
     {
-        $country = User::where('id', optional($request->user())->id)->value('country');
-        $currency = User::where('id', optional($request->user())->id)->value('currency');
+        $user = $request->user();
+        $country = $user?->country;
+        $currency = $user?->currency;
 
         // Determine current tenant ID
-        $tenantId = tenant('id') ?? optional($request->user())->tenant_id;
+        $tenantId = tenant('id') ?? optional($user)->tenant_id;
 
         if (!$tenantId && app()->environment('local')) {
             $tenantId = Tenant::first()?->id;
@@ -41,10 +42,11 @@ class TenantGeneralSettingsController extends Controller
         $tenant = Tenant::find($tenantId);
         $settings = $setting ? $setting->toArray() : [];
 
-        // Fill missing data from tenant model
-        
+        // Fill missing data from tenant model and user preferences
         $settings['business_name'] = $settings['business_name'] ?? $tenant?->business_name;
-        $settings['logo'] = $settings['logo'] ?? $tenant?->logo;
+        $settings['logo'] = $settings['logo'] ?? $tenant?->logo; // Keep logo always visible
+        $settings['country'] = $settings['country'] ?? $country; // Default to user's country
+        $settings['currency'] = $settings['currency'] ?? $currency; // Default to user's currency
 
         return Inertia::render('Settings/General/General', [
             'settings' => $settings,
