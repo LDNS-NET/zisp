@@ -3,11 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
+//use Illuminate\Database\Eloquent\SoftDeletes;
 
 class TenantGeneralSetting extends Model
 {
-    use SoftDeletes;
+    //use SoftDeletes;
     protected $fillable = [
         'tenant_id', 'business_type', 'logo', 'support_email', 'support_phone',
         'whatsapp', 'address', 'city', 'state', 'postal_code', 'country', 'website', 'facebook', 'twitter',
