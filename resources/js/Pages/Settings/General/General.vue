@@ -46,11 +46,26 @@ const userCountry = ref(page.props.userCountry || 'Not set');
 const userCurrency = ref(page.props.userCurrency || 'Not set');
 
 const logoFile = ref(null);
-const logoPreview = ref(settings.value.logo || '');
+const logoPreview = ref('');
 
 onMounted(() => {
+    // Set logo preview from settings after component mounts
+    if (settings.value.logo) {
+        logoPreview.value = settings.value.logo;
+        form.logo = settings.value.logo;
+    }
     if (form.theme) setTheme(form.theme);
 });
+
+// Watch for changes to form.logo and update logoPreview
+watch(
+    () => form.logo,
+    (newLogo) => {
+        if (newLogo && !logoFile.value) {
+            logoPreview.value = newLogo;
+        }
+    }
+);
 
 // Handle logo changes
 function onLogoChange(e) {
@@ -90,12 +105,20 @@ function submit() {
 
     router.post(route('settings.general.update'), formData, {
         forceFormData: true,
-        onSuccess: () => {
+        onSuccess: (page) => {
             toast.success('General settings updated successfully.');
             loading.value = false;
+            logoFile.value = null;
+
+            // Update settings from the response if available
+            if (page.props?.settings) {
+                settings.value = page.props.settings;
+                form.logo = page.props.settings.logo || '';
+                logoPreview.value = page.props.settings.logo || '';
+            }
 
             // Refresh the page props to show saved details
-            router.reload({ only: ['settings'] });
+            router.reload({ only: ['settings', 'userCountry', 'userCurrency'] });
         },
         onError: (errs) => {
             toast.error(Object.values(errs).flat().join(' '));
