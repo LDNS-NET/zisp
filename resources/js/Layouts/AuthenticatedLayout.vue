@@ -198,9 +198,6 @@ function toggleSidebar() {
                     <Dropdown align="right" width="48">
                         <template #trigger>
                             <button class="flex items-center gap-3 pl-3 pr-1 py-1.5 rounded-full hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors border border-transparent hover:border-gray-200 dark:hover:border-slate-700">
-                                <div class="text-right hidden sm:block">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-white leading-none mb-1">{{ user.name }}</div>
-                                </div>
                                 <div class="h-9 w-9 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-700 dark:text-blue-300 font-bold text-sm border border-blue-200 dark:border-blue-800">
                                     {{ user.name.charAt(0).toUpperCase() }}
                                 </div>
