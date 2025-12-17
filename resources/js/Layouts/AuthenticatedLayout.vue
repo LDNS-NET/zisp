@@ -97,6 +97,15 @@ function toggleSidebar() {
                 sidebarOpen ? 'translate-x-0 w-72' : '-translate-x-full lg:translate-x-0'
             ]"
         >
+        <!-- Sidebar Footer (Collapse Toggle) -->
+            <div class="p-4 border-t border-gray-100 dark:border-slate-800 hidden lg:flex justify-end">
+                <button 
+                    @click="collapsed = !collapsed"
+                    class="p-2 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-slate-800 dark:hover:text-gray-300 transition-colors"
+                >
+                    <component :is="collapsed ? ChevronRight : ChevronDown" class="w-5 h-5 transform rotate-90" />
+                </button>
+            </div>
             <!-- Logo Area -->
             <div class="h-16 flex items-center justify-between px-6 border-b border-gray-100 dark:border-slate-800">
                 <div class="flex items-center gap-3 overflow-hidden">
