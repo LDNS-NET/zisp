@@ -183,17 +183,6 @@ function toggleSidebar() {
 
                 <!-- Right: Actions -->
                 <div class="flex items-center gap-3 sm:gap-4">
-                    
-                    <!-- Theme Toggle -->
-                    <button 
-                        @click="setTheme(theme === 'dark' ? 'light' : 'dark')"
-                        class="p-2 text-gray-500 hover:bg-gray-100 rounded-full dark:text-gray-400 dark:hover:bg-slate-800 transition-colors"
-                        :title="theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
-                    >
-                        <Sun v-if="theme === 'dark'" class="w-5 h-5" />
-                        <Moon v-else class="w-5 h-5" />
-                    </button>
-
                     <!-- User Dropdown -->
                     <Dropdown align="right" width="48">
                         <template #trigger>
@@ -209,7 +198,7 @@ function toggleSidebar() {
                                 <div class="font-medium text-gray-900 dark:text-white">{{ user.name }}</div>
                                 <div class="text-sm text-gray-500 dark:text-gray-400">{{ user.email }}</div>
                             </div>
-
+                            <!-- Theme Toggle -->
                             <DropdownLink class="flex items-center gap-2">
                                 <button 
                                     @click="setTheme(theme === 'dark' ? 'light' : 'dark')"
