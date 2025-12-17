@@ -104,7 +104,7 @@ function toggleSidebar() {
                     @click="collapsed = !collapsed"
                     class="p-2 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-slate-800 dark:hover:text-gray-300 transition-colors"
                 >
-                    <component :is="collapsed ? ChevronRight : ChevronLeft" class="w-5 h-5 transform rotate-180" />
+                    <component :is="collapsed ? ChevronLeft : ChevronRight" class="w-5 h-5 transform rotate-180" />
                 </button>
             </div>
             <!-- Logo Area -->
