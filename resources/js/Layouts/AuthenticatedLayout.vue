@@ -107,7 +107,7 @@ function toggleSidebar() {
                     <span 
                         :class="['font-bold text-xl text-gray-900 dark:text-white transition-opacity duration-300', collapsed ? 'lg:opacity-0 lg:hidden' : 'opacity-100']"
                     >
-                        ZiSP
+                        {{ user.name }}
                     </span>
                 </div>
                 <div class="p-4 border-t border-gray-100 dark:border-slate-800 hidden lg:flex justify-end">
