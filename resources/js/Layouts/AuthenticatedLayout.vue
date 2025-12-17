@@ -201,7 +201,6 @@ function toggleSidebar() {
                                 <div class="h-9 w-9 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-700 dark:text-blue-300 font-bold text-sm border border-blue-200 dark:border-blue-800">
                                     {{ user.name.charAt(0).toUpperCase() }}
                                 </div>
-                                <ChevronDown class="w-4 h-4 text-gray-400" />
                             </button>
                         </template>
 
