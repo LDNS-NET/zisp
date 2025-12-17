@@ -167,6 +167,9 @@ function toggleSidebar() {
             <!-- Top Header -->
             <header class="h-16 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between px-4 sm:px-6 lg:px-8 z-30 sticky top-0">
                 
+                <div class="text-left hidden sm:block">
+                    <div class="text-sm font-medium text-gray-900 dark:text-white leading-none mb-1">{{ user.name }}</div>
+                </div>
                 <!-- Left: Mobile Toggle -->
                 <div class="flex items-center gap-4">
                     <button 
@@ -177,9 +180,7 @@ function toggleSidebar() {
                     </button>
                 </div>
 
-                <div class="text-left hidden sm:block">
-                    <div class="text-sm font-medium text-gray-900 dark:text-white leading-none mb-1">{{ user.name }}</div>
-                </div>
+                
 
                 <!-- Right: Actions -->
                 <div class="flex items-center gap-3 sm:gap-4">
