@@ -162,7 +162,7 @@ function toggleSidebar() {
         </aside>
 
         <!-- Main Content Wrapper -->
-        <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <div class="flex-1 justify-between flex-col min-w-0 overflow-hidden">
             
             <!-- Top Header -->
             <header class="h-16 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between px-4 sm:px-6 lg:px-8 z-30 sticky top-0">
@@ -183,7 +183,6 @@ function toggleSidebar() {
 
                 <!-- Right: Actions -->
                 <div class="flex items-center gap-3 sm:gap-4">
-                    <!-- User Dropdown -->
                     <Dropdown align="right" width="48">
                         <template #trigger>
                             <button class="flex items-center gap-3 pl-3 pr-1 py-1.5 rounded-full hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors border border-transparent hover:border-gray-200 dark:hover:border-slate-700">
