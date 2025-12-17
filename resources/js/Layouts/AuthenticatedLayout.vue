@@ -163,10 +163,6 @@ function toggleSidebar() {
 
         <!-- Main Content Wrapper -->
         <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
-
-            <div class="text-left hidden sm:block">
-                <div class="text-sm font-medium text-gray-900 dark:text-white leading-none mb-1">{{ user.name }}</div>
-            </div>
             
             <!-- Top Header -->
             <header class="h-16 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between px-4 sm:px-6 lg:px-8 z-30 sticky top-0">
@@ -179,6 +175,10 @@ function toggleSidebar() {
                     >
                         <Menu class="w-6 h-6" />
                     </button>
+                </div>
+
+                <div class="text-left hidden sm:block">
+                    <div class="text-sm font-medium text-gray-900 dark:text-white leading-none mb-1">{{ user.name }}</div>
                 </div>
 
                 <!-- Right: Actions -->
