@@ -162,7 +162,7 @@ function toggleSidebar() {
         </aside>
 
         <!-- Main Content Wrapper -->
-        <div class="flex-1 flex-col min-w-0 overflow-hidden">
+        <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
             
             <!-- Top Header -->
             <header class="h-16 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between px-4 sm:px-6 lg:px-8 z-30 sticky top-0">
@@ -182,7 +182,7 @@ function toggleSidebar() {
                 </div>
 
                 <!-- Right: Actions -->
-                <div class="flex-between items-center gap-3 sm:gap-4">
+                <div class="flex items-center gap-3 sm:gap-4">
                     
                     <!-- Theme Toggle -->
                     <button 
