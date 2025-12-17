@@ -101,9 +101,6 @@ function toggleSidebar() {
             <!-- Logo Area -->
             <div class="h-16 flex items-center justify-between px-6 border-b border-gray-100 dark:border-slate-800">
                 <div class="flex items-center gap-3 overflow-hidden">
-                    <div class="flex-shrink-0 w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-lg">
-                        Z
-                    </div>
                     <span 
                         :class="['font-bold text-xl text-gray-900 dark:text-white transition-opacity duration-300', collapsed ? 'lg:opacity-0 lg:hidden' : 'opacity-100']"
                     >
