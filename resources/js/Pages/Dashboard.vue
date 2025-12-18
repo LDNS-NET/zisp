@@ -379,6 +379,15 @@ const packageChartSeries = computed(() =>
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                         <!-- All Online Users -->
                          <div class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-500 to-teal-600 p-6 shadow-2xl transition-all duration-300 hover:scale-105 hover:shadow-3xl hover:-translate-y-2 dark:from-green-600 dark:to-teal-700 border border-green-400/30">
+                            <!-- Decorative Pattern -->
+                            <div class="absolute top-0 right-0 w-40 h-40 opacity-20">
+                                <svg viewBox="0 0 100 100" class="w-full h-full text-white" fill="currentColor">
+                                    <circle cx="80" cy="20" r="15" opacity="0.8"/>
+                                    <circle cx="90" cy="50" r="20" opacity="0.5"/>
+                                    <circle cx="70" cy="80" r="12" opacity="0.6"/>
+                                    <path d="M 50 10 Q 70 20 80 40 T 90 80" stroke="currentColor" fill="none" stroke-width="2" opacity="0.4"/>
+                                </svg>
+                            </div>
                             <div class="absolute right-0 top-0 h-32 w-32 translate-x-8 -translate-y-8 rounded-full bg-white/10 blur-2xl"></div>
                             <div class="relative">
                                 <div class="flex items-center justify-between mb-4">
@@ -398,6 +407,14 @@ const packageChartSeries = computed(() =>
 
                         <!-- Total Users -->
                         <div class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 p-6 shadow-2xl transition-all duration-300 hover:scale-105 hover:shadow-3xl hover:-translate-y-2 dark:from-blue-600 dark:to-blue-700 border border-blue-400/30">
+                            <!-- Decorative Pattern -->
+                            <div class="absolute top-0 right-0 w-40 h-40 opacity-20">
+                                <svg viewBox="0 0 100 100" class="w-full h-full text-white" fill="currentColor">
+                                    <rect x="70" y="10" width="20" height="20" opacity="0.8"/>
+                                    <rect x="60" y="40" width="30" height="15" opacity="0.5" transform="rotate(45 75 47)"/>
+                                    <circle cx="85" cy="75" r="8" opacity="0.6"/>
+                                </svg>
+                            </div>
                             <div class="absolute right-0 top-0 h-32 w-32 translate-x-8 -translate-y-8 rounded-full bg-white/10 blur-2xl"></div>
                             <div class="relative">
                                 <div class="flex items-center justify-between mb-4">
@@ -407,10 +424,18 @@ const packageChartSeries = computed(() =>
                                     <span class="text-xs font-bold uppercase tracking-wider text-blue-100 bg-white/20 px-3 py-1 rounded-full">Total</span>
                                 </div>
                                 <p class="text-xs sm:text-sm font-medium text-blue-100 uppercase tracking-wide">Total Users</p>
-                                <p class="mt-3 text-3xl sm:text-4xl font-bold text-white tabular-nums">{{ stats.users.total }}</p>
-                                <div class="mt-4 flex items-center gap-2 text-xs sm:text-sm text-blue-100">
-                                    <Activity class="h-4 w-4" />
-                                    <span>{{ stats.users.activeUsers }} active now</span>
+                        <!-- MikroTik Devices -->
+                        <div class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-yellow-500 to-yellow-600 p-6 shadow-2xl transition-all duration-300 hover:scale-105 hover:shadow-3xl hover:-translate-y-2 dark:from-yellow-700 dark:to-yellow-800 border border-yellow-400/30">
+                            <!-- Decorative Pattern -->
+                            <div class="absolute top-0 right-0 w-40 h-40 opacity-20">
+                                <svg viewBox="0 0 100 100" class="w-full h-full text-white" fill="currentColor">
+                                    <path d="M 50 10 L 90 50 L 50 90 L 10 50 Z" opacity="0.8"/>
+                                    <circle cx="80" cy="30" r="10" opacity="0.5"/>
+                                    <line x1="70" y1="60" x2="90" y2="80" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                                </svg>
+                            </div>
+                            <div class="absolute right-0 top-0 h-32 w-32 translate-x-8 -translate-y-8 rounded-full bg-white/10 blur-2xl"></div>
+                            <div class="relative">.users.activeUsers }} active now</span>
                                 </div>
                             </div>
                         </div>
@@ -424,10 +449,18 @@ const packageChartSeries = computed(() =>
                                         <RadioTower class="h-6 w-6 text-white" />
                                     </div>
                                     <span :class="[
-                                        'text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full',
-                                        stats.mikrotiks.connected === 0 ? 'text-red-900 bg-red-200' : 'text-amber-100 bg-white/20'
-                                    ]">
-                                        {{ stats.mikrotiks.connected === 0 ? 'Critical' : 'Online' }}
+                        <!-- Open Tickets -->
+                        <div class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-600 p-6 shadow-2xl transition-all duration-300 hover:scale-105 hover:shadow-3xl hover:-translate-y-2 dark:from-indigo-600 dark:to-indigo-700 border border-indigo-400/30">
+                            <!-- Decorative Pattern -->
+                            <div class="absolute top-0 right-0 w-40 h-40 opacity-20">
+                                <svg viewBox="0 0 100 100" class="w-full h-full text-white" fill="currentColor">
+                                    <polygon points="50,10 90,30 85,75 50,90 15,75 10,30" opacity="0.8"/>
+                                    <circle cx="50" cy="50" r="20" opacity="0.5"/>
+                                    <path d="M 50 20 Q 70 50 50 80" stroke="currentColor" fill="none" stroke-width="2" opacity="0.4"/>
+                                </svg>
+                            </div>
+                            <div class="absolute right-0 top-0 h-32 w-32 translate-x-8 -translate-y-8 rounded-full bg-white/10 blur-2xl"></div>
+                            <div class="relative">ikrotiks.connected === 0 ? 'Critical' : 'Online' }}
                                     </span>
                                 </div>
                                 <p class="text-xs sm:text-sm font-medium text-amber-100 uppercase tracking-wide">Devices</p>
@@ -435,10 +468,19 @@ const packageChartSeries = computed(() =>
                                 <div class="mt-4 flex items-center gap-2 text-xs sm:text-sm text-amber-100">
                                     <Check class="h-4 w-4" />
                                     <span v-if="stats.mikrotiks.connected === 0" class="text-red-300">All Offline</span>
-                                    <span v-else>{{ stats.mikrotiks.connected }} online</span>
-                                </div>
+                        <!-- Revenue (if admin/cashier) -->
+                        <div v-if="user.role === 'admin' || user.role === 'cashier'" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 p-6 shadow-2xl transition-all duration-300 hover:scale-105 hover:shadow-3xl hover:-translate-y-2 dark:from-purple-600 dark:to-purple-700 border border-purple-400/30 sm:col-span-2 lg:col-span-1">
+                            <!-- Decorative Pattern -->
+                            <div class="absolute top-0 right-0 w-40 h-40 opacity-20">
+                                <svg viewBox="0 0 100 100" class="w-full h-full text-white" fill="currentColor">
+                                    <circle cx="70" cy="20" r="12" opacity="0.8"/>
+                                    <circle cx="85" cy="45" r="15" opacity="0.5"/>
+                                    <circle cx="75" cy="75" r="10" opacity="0.6"/>
+                                    <line x1="50" y1="0" x2="100" y2="50" stroke="currentColor" stroke-width="1.5" opacity="0.4"/>
+                                </svg>
                             </div>
-                        </div>
+                            <div class="absolute right-0 top-0 h-32 w-32 translate-x-8 -translate-y-8 rounded-full bg-white/10 blur-2xl"></div>
+                            <div class="relative">
 
                         <!-- Open Tickets -->
                         <div class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-600 p-6 shadow-2xl transition-all duration-300 hover:scale-105 hover:shadow-3xl hover:-translate-y-2 dark:from-indigo-600 dark:to-indigo-700 border border-indigo-400/30">
