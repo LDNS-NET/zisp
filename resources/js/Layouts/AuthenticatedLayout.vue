@@ -73,7 +73,9 @@ const navigation = [
     { name: 'Templates', href: route('smstemplates.index'), icon: Smartphone, active: 'smstemplates.*' },
 ];
 
-const user = usePage().props.auth.user;
+const page = usePage();
+const user = page.props.auth.user;
+const tenantLogo = page.props.tenant?.logo;
 
 function toggleSidebar() {
     sidebarOpen.value = !sidebarOpen.value;
@@ -101,9 +103,9 @@ function toggleSidebar() {
             <!-- Logo Area -->
             <div class="h-16 flex items-center justify-between px-4 border-b border-gray-100 dark:border-slate-800">
                 <!-- Tenant Logo -->
-                <div v-if="user.tenant && user.tenant.logo" class="flex-shrink-0">
+                <div v-if="tenantLogo" class="flex-shrink-0">
                     <img 
-                        :src="user.tenant.logo" 
+                        :src="tenantLogo" 
                         alt="Tenant Logo" 
                         class="h-12 w-12 object-contain rounded-lg transition-all duration-300"
                     />
