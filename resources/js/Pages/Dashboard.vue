@@ -323,7 +323,7 @@ const packageChartSeries = computed(() =>
                             <div class="space-y-2 flex-1">
                                 <p class="text-xs font-semibold uppercase tracking-widest text-blue-100">Welcome Back</p>
                                 <h1 class="text-2xl font-bold text-white sm:text-3xl lg:text-4xl leading-tight">
-                                    {{ greeting }}, <span class="bg-gradient-to-r from-blue-200 to-indigo-200 bg-clip-text text-transparent">{{ user.name }}</span>! 👋
+                                    {{ greeting }}, <span class="bg-gradient-to-r from-blue-200 to-indigo-200 bg-clip-text text-transparent">{{ user.name }}</span>!
                                 </h1>
                                 <p class="text-sm text-blue-100">
                                     Your network intelligence dashboard is ready
@@ -376,7 +376,7 @@ const packageChartSeries = computed(() =>
             <div class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
                 <div class="space-y-10">
                     <!-- Quick Stats Grid - Premium Design -->
-                    <div class="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                         <!-- All Online Users -->
                          <div class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-500 to-teal-600 p-6 shadow-2xl transition-all duration-300 hover:scale-105 hover:shadow-3xl hover:-translate-y-2 dark:from-green-600 dark:to-teal-700 border border-green-400/30">
                             <div class="absolute right-0 top-0 h-32 w-32 translate-x-8 -translate-y-8 rounded-full bg-white/10 blur-2xl"></div>
@@ -387,11 +387,11 @@ const packageChartSeries = computed(() =>
                                     </div>
                                     <span class="text-xs font-bold uppercase tracking-wider text-green-100 bg-white/20 px-3 py-1 rounded-full">Live</span>
                                 </div>
-                                <p class="text-sm font-medium text-teal-100 uppercase tracking-wide">Online Users</p>    
-                                <p class="mt-2 text-4xl font-bold text-white tabular-nums">{{ stats.users.activeUsers }}</p>
-                                <div class="mt-4 flex items-center gap-2 text-sm text-teal-100">
+                                <p class="text-xs sm:text-sm font-medium text-teal-100 uppercase tracking-wide">Online Users</p>    
+                                <p class="mt-3 text-3xl sm:text-4xl font-bold text-white tabular-nums">{{ stats.users.activeUsers }}</p>
+                                <div class="mt-4 flex items-center gap-2 text-xs sm:text-sm text-teal-100">
                                     <UserCheck class="h-4 w-4" />
-                                    <span>of {{ stats.users.total }} total users</span>
+                                    <span>of {{ stats.users.total }} total</span>
                                 </div>
                             </div>
                         </div>
@@ -406,9 +406,9 @@ const packageChartSeries = computed(() =>
                                     </div>
                                     <span class="text-xs font-bold uppercase tracking-wider text-blue-100 bg-white/20 px-3 py-1 rounded-full">Total</span>
                                 </div>
-                                <p class="text-sm font-medium text-blue-100 uppercase tracking-wide">Total Users</p>
-                                <p class="mt-2 text-4xl font-bold text-white tabular-nums">{{ stats.users.total }}</p>
-                                <div class="mt-4 flex items-center gap-2 text-sm text-blue-100">
+                                <p class="text-xs sm:text-sm font-medium text-blue-100 uppercase tracking-wide">Total Users</p>
+                                <p class="mt-3 text-3xl sm:text-4xl font-bold text-white tabular-nums">{{ stats.users.total }}</p>
+                                <div class="mt-4 flex items-center gap-2 text-xs sm:text-sm text-blue-100">
                                     <Activity class="h-4 w-4" />
                                     <span>{{ stats.users.activeUsers }} active now</span>
                                 </div>
@@ -430,9 +430,9 @@ const packageChartSeries = computed(() =>
                                         {{ stats.mikrotiks.connected === 0 ? 'Critical' : 'Online' }}
                                     </span>
                                 </div>
-                                <p class="text-sm font-medium text-amber-100 uppercase tracking-wide">Devices</p>
-                                <p class="mt-2 text-4xl font-bold text-white tabular-nums">{{ stats.mikrotiks.total }}</p>
-                                <div class="mt-4 flex items-center gap-2 text-sm text-amber-100">
+                                <p class="text-xs sm:text-sm font-medium text-amber-100 uppercase tracking-wide">Devices</p>
+                                <p class="mt-3 text-3xl sm:text-4xl font-bold text-white tabular-nums">{{ stats.mikrotiks.total }}</p>
+                                <div class="mt-4 flex items-center gap-2 text-xs sm:text-sm text-amber-100">
                                     <Check class="h-4 w-4" />
                                     <span v-if="stats.mikrotiks.connected === 0" class="text-red-300">All Offline</span>
                                     <span v-else>{{ stats.mikrotiks.connected }} online</span>
@@ -450,30 +450,30 @@ const packageChartSeries = computed(() =>
                                     </div>
                                     <span class="text-xs font-bold uppercase tracking-wider text-indigo-100 bg-white/20 px-3 py-1 rounded-full">Support</span>
                                 </div>
-                                <p class="text-sm font-medium text-indigo-100 uppercase tracking-wide">Support Tickets</p>
-                                <p class="mt-2 text-4xl font-bold text-white tabular-nums">{{ stats.tickets.open }}</p>
-                                <div class="mt-4 flex items-center gap-2 text-sm text-indigo-100">
+                                <p class="text-xs sm:text-sm font-medium text-indigo-100 uppercase tracking-wide">Support Tickets</p>
+                                <p class="mt-3 text-3xl sm:text-4xl font-bold text-white tabular-nums">{{ stats.tickets.open }}</p>
+                                <div class="mt-4 flex items-center gap-2 text-xs sm:text-sm text-indigo-100">
                                     <AlertCircle class="h-4 w-4" />
-                                    <span>{{ stats.tickets.assigned_to_me }} assigned to you</span>
+                                    <span>{{ stats.tickets.assigned_to_me }} assigned</span>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Revenue (if admin/cashier) -->
-                        <div v-if="user.role === 'admin' || user.role === 'cashier'" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 p-6 shadow-2xl transition-all duration-300 hover:scale-105 hover:shadow-3xl hover:-translate-y-2 dark:from-purple-600 dark:to-purple-700 border border-purple-400/30 lg:col-span-2">
+                        <div v-if="user.role === 'admin' || user.role === 'cashier'" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 p-6 shadow-2xl transition-all duration-300 hover:scale-105 hover:shadow-3xl hover:-translate-y-2 dark:from-purple-600 dark:to-purple-700 border border-purple-400/30 sm:col-span-2 lg:col-span-1">
                             <div class="absolute right-0 top-0 h-32 w-32 translate-x-8 -translate-y-8 rounded-full bg-white/10 blur-2xl"></div>
                             <div class="relative">
                                 <div class="flex items-center justify-between mb-4">
                                     <div class="rounded-2xl bg-white/20 p-3 backdrop-blur-sm border border-white/30">
                                         <DollarSign class="h-6 w-6 text-white" />
                                     </div>
-                                    <span class="text-xs font-bold uppercase tracking-wider text-purple-100 bg-white/20 px-3 py-1 rounded-full">Financial</span>
+                                    <span class="text-xs font-bold uppercase tracking-wider text-purple-100 bg-white/20 px-3 py-1 rounded-full">Revenue</span>
                                 </div>
-                                <p class="text-sm font-medium text-purple-100 uppercase tracking-wide">Total Revenue</p>
-                                <p class="mt-2 text-4xl font-bold text-white tabular-nums">{{ currency || 'KES' }} {{ stats.payments.total_amount }}</p>
-                                <div class="mt-4 flex items-center gap-2 text-sm text-purple-100">
+                                <p class="text-xs sm:text-sm font-medium text-purple-100 uppercase tracking-wide">Total Revenue</p>
+                                <p class="mt-3 text-2xl sm:text-3xl font-bold text-white tabular-nums">{{ currency || 'KES' }} {{ stats.payments.total_amount }}</p>
+                                <div class="mt-4 flex items-center gap-2 text-xs sm:text-sm text-purple-100">
                                     <TrendingUp class="h-4 w-4" />
-                                    <span>From {{ stats.payments.count }} payments</span>
+                                    <span>{{ stats.payments.count }} payments</span>
                                 </div>
                             </div>
                         </div>
