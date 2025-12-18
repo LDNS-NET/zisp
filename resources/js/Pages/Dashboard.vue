@@ -304,7 +304,7 @@ const packageChartSeries = computed(() =>
     <AuthenticatedLayout>
         <Head title="Dashboard" />
 
-        <div class="min-h-screen bg-gray-50 dark:bg-slate-950 overflow-y-auto">
+        <div class="w-full">
             <!-- Hero Section with Professional Gradient -->
             <div class="relative overflow-hidden bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
                 <!-- Animated Background Pattern -->
