@@ -727,8 +727,8 @@ const packageChartSeries = computed(() =>
                                     <div class="h-3 w-3 rounded-full bg-gradient-to-r from-blue-500 to-blue-600"></div>
                                     New Users
                                 </h4>
-                                <div v-if="stats.recent_activity.latest_users.length > 0" class="space-y-3">
-                                    <div v-for="u in stats.recent_activity.latest_users" :key="u.username" 
+                                <div v-if="stats.recent_activity?.latest_users?.length > 0" class="space-y-3">
+                                    <div v-for="u in stats.recent_activity?.latest_users" :key="u.username" 
                                         class="rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-slate-700 dark:to-slate-800 p-4 hover:shadow-md hover:border-blue-300 dark:hover:border-blue-600 transition-all cursor-pointer">
                                         <p class="font-bold text-gray-900 dark:text-white">{{ u.username }}</p>
                                         <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 uppercase font-semibold tracking-wider">{{ u.type }}</p>
@@ -745,8 +745,8 @@ const packageChartSeries = computed(() =>
                                     <div class="h-3 w-3 rounded-full bg-gradient-to-r from-green-500 to-green-600"></div>
                                     Recent Payments
                                 </h4>
-                                <div v-if="stats.recent_activity.latest_payments.length > 0" class="space-y-3">
-                                    <div v-for="p in stats.recent_activity.latest_payments" :key="p.receipt_number"
+                                <div v-if="stats.recent_activity?.latest_payments?.length > 0" class="space-y-3">
+                                    <div v-for="p in stats.recent_activity?.latest_payments" :key="p.receipt_number"
                                         class="rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-slate-700 dark:to-slate-800 p-4 hover:shadow-md hover:border-green-300 dark:hover:border-green-600 transition-all cursor-pointer">
                                         <p class="font-bold text-green-700 dark:text-green-400">{{ currency || 'KES' }} {{ p.amount }}</p>
                                         <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ p.paid_at }}</p>
@@ -763,8 +763,8 @@ const packageChartSeries = computed(() =>
                                     <div class="h-3 w-3 rounded-full bg-gradient-to-r from-purple-500 to-purple-600"></div>
                                     Latest Leads
                                 </h4>
-                                <div v-if="stats.recent_activity.latest_leads.length > 0" class="space-y-3">
-                                    <div v-for="l in stats.recent_activity.latest_leads" :key="l.name"
+                                <div v-if="stats.recent_activity?.latest_leads?.length > 0" class="space-y-3">
+                                    <div v-for="l in stats.recent_activity?.latest_leads" :key="l.name"
                                         class="rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-slate-700 dark:to-slate-800 p-4 hover:shadow-md hover:border-purple-300 dark:hover:border-purple-600 transition-all cursor-pointer">
                                         <p class="font-bold text-gray-900 dark:text-white">{{ l.name }}</p>
                                         <p :class="[
