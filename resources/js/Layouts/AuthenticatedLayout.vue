@@ -100,13 +100,6 @@ function toggleSidebar() {
         >
             <!-- Logo Area -->
             <div class="h-16 flex items-center justify-between px-6 border-b border-gray-100 dark:border-slate-800">
-                <div class="flex items-center gap-3 overflow-hidden">
-                    <span 
-                        :class="['font-bold text-xl text-gray-900 dark:text-white transition-opacity duration-300', collapsed ? 'lg:opacity-0 lg:hidden' : 'opacity-100']"
-                    >
-                        {{ user.name }}
-                    </span>
-                </div>
                 <div class="p-4 border-t border-gray-100 dark:border-slate-800 hidden lg:flex justify-end">
                     <!--sidebar toggle button-->
                 <button 
