@@ -508,28 +508,6 @@ const packageChartSeries = computed(() =>
                             </div>
                         </div>
                     </div>
-                            </div>
-                        </div>
-
-                        <!-- Revenue (if admin/cashier) -->
-                        <div v-if="user.role === 'admin' || user.role === 'cashier'" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 p-6 shadow-2xl transition-all duration-300 hover:scale-105 hover:shadow-3xl hover:-translate-y-2 dark:from-purple-600 dark:to-purple-700 border border-purple-400/30 sm:col-span-2 lg:col-span-1">
-                            <div class="absolute right-0 top-0 h-32 w-32 translate-x-8 -translate-y-8 rounded-full bg-white/10 blur-2xl"></div>
-                            <div class="relative">
-                                <div class="flex items-center justify-between mb-4">
-                                    <div class="rounded-2xl bg-white/20 p-3 backdrop-blur-sm border border-white/30">
-                                        <DollarSign class="h-6 w-6 text-white" />
-                                    </div>
-                                    <span class="text-xs font-bold uppercase tracking-wider text-purple-100 bg-white/20 px-3 py-1 rounded-full">Revenue</span>
-                                </div>
-                                <p class="text-xs sm:text-sm font-medium text-purple-100 uppercase tracking-wide">Total Revenue</p>
-                                <p class="mt-3 text-2xl sm:text-3xl font-bold text-white tabular-nums">{{ currency || 'KES' }} {{ stats.payments.total_amount }}</p>
-                                <div class="mt-4 flex items-center gap-2 text-xs sm:text-sm text-purple-100">
-                                    <TrendingUp class="h-4 w-4" />
-                                    <span>{{ stats.payments.count }} payments</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
 
                     <!-- Detailed Stats Sections -->
                     <div class="grid gap-8 lg:grid-cols-2">
