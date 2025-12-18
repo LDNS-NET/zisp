@@ -172,7 +172,7 @@ const userGrowthOptions = computed(() => ({
     dataLabels: {
         enabled: false,
     },
-    colors: ['#6366f1', '#ec4899', '#f59e0b'],
+    colors: ['#3b82f6', '#06b6d4', '#f59e0b'],
     xaxis: {
         categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
         labels: {
@@ -254,7 +254,7 @@ const packageChartOptions = computed(() => ({
         mode: isDark.value ? 'dark' : 'light',
     },
     labels: props.stats?.user_distribution ? Object.keys(props.stats.user_distribution) : ['Hotspot', 'PPPoE', 'Static'],
-    colors: ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b'],
+    colors: ['#3b82f6', '#06b6d4', '#f59e0b', '#ef4444'],
     dataLabels: {
         enabled: true,
         style: {
@@ -304,9 +304,9 @@ const packageChartSeries = computed(() =>
     <AuthenticatedLayout>
         <Head title="Dashboard" />
 
-        <div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950">
-            <!-- Hero Section with Gradient -->
-            <div class="relative overflow-hidden bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 dark:from-blue-900 dark:via-indigo-900 dark:to-purple-900">
+        <div class="min-h-screen bg-gray-50 dark:bg-slate-950">
+            <!-- Hero Section with Professional Gradient -->
+            <div class="relative overflow-hidden bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
                 <!-- Animated Background Pattern -->
                 <div class="absolute inset-0 opacity-10">
                     <div class="absolute inset-0" style="background-image: radial-gradient(circle at 2px 2px, white 1px, transparent 0); background-size: 40px 40px;"></div>
@@ -320,8 +320,8 @@ const packageChartSeries = computed(() =>
                                 <h1 class="text-3xl font-bold text-white sm:text-4xl lg:text-5xl">
                                     {{ greeting }}, {{ user.name }}! 👋
                                 </h1>
-                                <p class="text-lg text-blue-100 dark:text-blue-200">
-                                    Here's what's happening with your network today
+                                <p class="text-lg text-slate-300">
+                                    Network overview and key metrics
                                 </p>
                             </div>
 
@@ -331,16 +331,16 @@ const packageChartSeries = computed(() =>
                                     'group relative overflow-hidden rounded-2xl p-6 backdrop-blur-lg transition-all duration-300 hover:scale-105',
                                     subscriptionStatus === 'expired' ? 'bg-red-500/20 ring-2 ring-red-400' :
                                     subscriptionStatus === 'critical' ? 'bg-orange-500/20 ring-2 ring-orange-400' :
-                                    subscriptionStatus === 'warning' ? 'bg-yellow-500/20 ring-2 ring-yellow-400' :
-                                    'bg-white/20 ring-2 ring-white/30'
+                                    subscriptionStatus === 'warning' ? 'bg-amber-500/20 ring-2 ring-amber-400' :
+                                    'bg-emerald-500/20 ring-2 ring-emerald-400'
                                 ]">
                                     <div class="flex items-center gap-4">
                                         <div :class="[
-                                            'flex h-12 w-12 items-center justify-center rounded-xl',
-                                            subscriptionStatus === 'expired' ? 'bg-red-500' :
-                                            subscriptionStatus === 'critical' ? 'bg-orange-500' :
-                                            subscriptionStatus === 'warning' ? 'bg-yellow-500' :
-                                            'bg-green-500'
+                                            'flex h-12 w-12 items-center justify-center rounded-xl font-bold',
+                                            subscriptionStatus === 'expired' ? 'bg-red-600' :
+                                            subscriptionStatus === 'critical' ? 'bg-orange-600' :
+                                            subscriptionStatus === 'warning' ? 'bg-amber-600' :
+                                            'bg-emerald-600'
                                         ]">
                                             <Clock class="h-6 w-6 text-white" />
                                         </div>
@@ -351,10 +351,10 @@ const packageChartSeries = computed(() =>
                                     </div>
                                     
                                     <!-- Payment Button -->
-                                    <a v-if="daysRemaining <=5"
+                                    <a v-if="daysRemaining <= 5"
                                         href="https://payment.intasend.com/pay/8d7f60c4-f2c2-4642-a2b6-0654a3cc24e3/"
                                         target="_blank"
-                                        class="mt-4 flex items-center justify-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-indigo-600 transition-all hover:bg-indigo-50 hover:shadow-lg"
+                                        class="mt-4 flex items-center justify-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition-all hover:bg-slate-100 hover:shadow-lg"
                                     >
                                         <Zap class="h-4 w-4" />
                                         Renew Now
@@ -372,19 +372,19 @@ const packageChartSeries = computed(() =>
                     <!-- Quick Stats Grid - Compact on mobile -->
                     <div class="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-4">
                         <!-- All Online Users -->
-                         <div class="group relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-green-500 to-teal-500 p-4 sm:p-6 shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl dark:from-green-600 dark:to-teal-700">
+                         <div class="group relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-700 p-4 sm:p-6 shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl dark:from-emerald-700 dark:to-emerald-800">
                             <div class="absolute right-0 top-0 h-20 w-20 sm:h-32 sm:w-32 translate-x-6 sm:translate-x-8 -translate-y-6 sm:-translate-y-8 rounded-full bg-white/10"></div>
                             <div class="relative">
                                 <div class="flex items-center justify-between">
                                     <div>
-                                        <p class="text-xs sm:text-sm font-medium text-teal-100">Online Users</p>    
+                                        <p class="text-xs sm:text-sm font-medium text-emerald-100">Online Users</p>    
                                         <p class="mt-1 sm:mt-2 text-2xl sm:text-4xl font-bold text-white">{{ stats.users.activeUsers }}</p>
                                     </div>
                                     <div class="rounded-lg sm:rounded-xl bg-white/20 p-2 sm:p-3 backdrop-blur-sm">
                                         <Zap class="h-5 w-5 sm:h-8 sm:w-8 text-white" />
                                     </div>
                                 </div>
-                                <div class="mt-2 sm:mt-4 flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-teal-100">
+                                <div class="mt-2 sm:mt-4 flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-emerald-100">
                                     <UserCheck class="h-3 w-3 sm:h-4 sm:w-4" />
                                     <span>{{ stats.users.total }} users</span>
                                 </div>
@@ -392,7 +392,7 @@ const packageChartSeries = computed(() =>
                         </div>
 
                         <!-- Total Users -->
-                        <div class="group relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 p-4 sm:p-6 shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl dark:from-blue-600 dark:to-blue-700">
+                        <div class="group relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-blue-600 to-blue-700 p-4 sm:p-6 shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl dark:from-blue-700 dark:to-blue-800">
                             <div class="absolute right-0 top-0 h-20 w-20 sm:h-32 sm:w-32 translate-x-6 sm:translate-x-8 -translate-y-6 sm:-translate-y-8 rounded-full bg-white/10"></div>
                             <div class="relative">
                                 <div class="flex items-center justify-between">
@@ -412,22 +412,22 @@ const packageChartSeries = computed(() =>
                         </div>
 
                         <!-- MikroTik Devices -->
-                        <div class="group relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-yellow-500 to-yellow-600 p-4 sm:p-6 shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl dark:from-yellow-700 dark:to-yellow-800">
+                        <div class="group relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-amber-600 to-amber-700 p-4 sm:p-6 shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl dark:from-amber-700 dark:to-amber-800">
                             <div class="absolute right-0 top-0 h-20 w-20 sm:h-32 sm:w-32 translate-x-6 sm:translate-x-8 -translate-y-6 sm:-translate-y-8 rounded-full bg-white/10"></div>
                             <div class="relative">
                                 <div class="flex items-center justify-between">
                                     <div>
-                                        <p class="text-xs sm:text-sm font-medium text-emerald-100">Devices</p>
+                                        <p class="text-xs sm:text-sm font-medium text-amber-100">Devices</p>
                                         <p class="mt-1 sm:mt-2 text-2xl sm:text-4xl font-bold text-white">{{ stats.mikrotiks.total }}</p>
                                     </div>
                                     <div class="rounded-lg sm:rounded-xl bg-white/20 p-2 sm:p-3 backdrop-blur-sm">
                                         <RadioTower class="h-5 w-5 sm:h-8 sm:w-8 text-white" />
                                     </div>
                                 </div>
-                                <div class="mt-2 sm:mt-4 flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-emerald-100">
+                                <div class="mt-2 sm:mt-4 flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-amber-100">
                                     <Check class="h-3 w-3 sm:h-4 sm:w-4" />
-                                    <span v-if="stats.mikrotiks.connected ===0"
-                                    class="text-red-500">
+                                    <span v-if="stats.mikrotiks.connected === 0"
+                                    class="text-red-200">
                                         All Routers Offline
                                     </span>
                                     <span v-else>
@@ -438,19 +438,19 @@ const packageChartSeries = computed(() =>
                         </div>
 
                         <!-- Open Tickets -->
-                        <div class="group relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-slate-500 to-slate-600 p-4 sm:p-6 shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl dark:from-slate-600 dark:to-slate-700">
+                        <div class="group relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-slate-600 to-slate-700 p-4 sm:p-6 shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl dark:from-slate-700 dark:to-slate-800">
                             <div class="absolute right-0 top-0 h-20 w-20 sm:h-32 sm:w-32 translate-x-6 sm:translate-x-8 -translate-y-6 sm:-translate-y-8 rounded-full bg-white/10"></div>
                             <div class="relative">
                                 <div class="flex items-center justify-between">
                                     <div>
-                                        <p class="text-xs sm:text-sm font-medium text-amber-100">Tickets</p>
+                                        <p class="text-xs sm:text-sm font-medium text-slate-100">Tickets</p>
                                         <p class="mt-1 sm:mt-2 text-2xl sm:text-4xl font-bold text-white">{{ stats.tickets.open }}</p>
                                     </div>
                                     <div class="rounded-lg sm:rounded-xl bg-white/20 p-2 sm:p-3 backdrop-blur-sm">
                                         <Ticket class="h-5 w-5 sm:h-8 sm:w-8 text-white" />
                                     </div>
                                 </div>
-                                <div class="mt-2 sm:mt-4 flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-amber-100">
+                                <div class="mt-2 sm:mt-4 flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-slate-100">
                                     <User class="h-3 w-3 sm:h-4 sm:w-4" />
                                     <span>{{ stats.tickets.assigned_to_me }} yours</span>
                                 </div>
@@ -458,19 +458,19 @@ const packageChartSeries = computed(() =>
                         </div>
 
                         <!-- Revenue (if admin/cashier) -->
-                        <div v-if="user.role === 'admin' || user.role === 'cashier'" class="group relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 p-4 sm:p-6 shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl dark:from-purple-600 dark:to-purple-700">
+                        <div v-if="user.role === 'admin' || user.role === 'cashier'" class="group relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-indigo-600 to-indigo-700 p-4 sm:p-6 shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl dark:from-indigo-700 dark:to-indigo-800">
                             <div class="absolute right-0 top-0 h-20 w-20 sm:h-32 sm:w-32 translate-x-6 sm:translate-x-8 -translate-y-6 sm:-translate-y-8 rounded-full bg-white/10"></div>
                             <div class="relative">
                                 <div class="flex items-center justify-between">
                                     <div>
-                                        <p class="text-xs sm:text-sm font-medium text-purple-100">Revenue</p>
+                                        <p class="text-xs sm:text-sm font-medium text-indigo-100">Revenue</p>
                                         <p class="mt-1 sm:mt-2 text-xl sm:text-3xl font-bold text-white">{{ currency || 'KES' }} {{ stats.payments.total_amount }}</p>
                                     </div>
                                     <div class="rounded-lg sm:rounded-xl bg-white/20 p-2 sm:p-3 backdrop-blur-sm">
                                         <DollarSign class="h-5 w-5 sm:h-8 sm:w-8 text-white" />
                                     </div>
                                 </div>
-                                <div class="mt-2 sm:mt-4 flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-purple-100">
+                                <div class="mt-2 sm:mt-4 flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-indigo-100">
                                     <TrendingUp class="h-3 w-3 sm:h-4 sm:w-4" />
                                     <span>{{ stats.payments.count }} payments</span>
                                 </div>
@@ -496,22 +496,22 @@ const packageChartSeries = computed(() =>
                                         <RadioTower class="h-5 w-5 sm:h-8 sm:w-8 text-blue-600 dark:text-blue-400" />
                                     </div>
                                 </div>
-                                <div class="rounded-lg sm:rounded-xl bg-gradient-to-br from-indigo-50 to-indigo-100 p-3 sm:p-4 dark:from-indigo-900/20 dark:to-indigo-800/20">
+                                <div class="rounded-lg sm:rounded-xl bg-gradient-to-br from-cyan-50 to-cyan-100 p-3 sm:p-4 dark:from-cyan-900/20 dark:to-cyan-800/20">
                                     <div class="flex items-center justify-between">
                                         <div>
                                             <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">PPPoE</p>
                                             <p class="mt-0.5 sm:mt-1 text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">{{ stats.users.pppoe }}</p>
                                         </div>
-                                        <User class="h-5 w-5 sm:h-8 sm:w-8 text-indigo-600 dark:text-indigo-400" />
+                                        <User class="h-5 w-5 sm:h-8 sm:w-8 text-cyan-600 dark:text-cyan-400" />
                                     </div>
                                 </div>
-                                <div class="rounded-lg sm:rounded-xl bg-gradient-to-br from-purple-50 to-purple-100 p-3 sm:p-4 dark:from-purple-900/20 dark:to-purple-800/20">
+                                <div class="rounded-lg sm:rounded-xl bg-gradient-to-br from-amber-50 to-amber-100 p-3 sm:p-4 dark:from-amber-900/20 dark:to-amber-800/20">
                                     <div class="flex items-center justify-between">
                                         <div>
                                             <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Static</p>
                                             <p class="mt-0.5 sm:mt-1 text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">{{ stats.users.static }}</p>
                                         </div>
-                                        <Server class="h-5 w-5 sm:h-8 sm:w-8 text-purple-600 dark:text-purple-400" />
+                                        <Server class="h-5 w-5 sm:h-8 sm:w-8 text-amber-600 dark:text-amber-400" />
                                     </div>
                                 </div>
                                 <div class="rounded-lg sm:rounded-xl bg-gradient-to-br from-red-50 to-red-100 p-3 sm:p-4 dark:from-red-900/20 dark:to-red-800/20">
@@ -529,7 +529,7 @@ const packageChartSeries = computed(() =>
                         <!-- Leads & Tickets -->
                         <div class="rounded-2xl bg-white p-6 shadow-lg dark:bg-slate-800">
                             <h3 class="mb-6 flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white">
-                                <Inbox class="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                                <Inbox class="h-5 w-5 text-blue-600 dark:text-blue-400" />
                                 Leads & Support
                             </h3>
                             <div class="space-y-4">
@@ -542,11 +542,11 @@ const packageChartSeries = computed(() =>
                                         </div>
                                         <div class="flex gap-4 text-sm">
                                             <div class="text-center">
-                                                <p class="text-yellow-600 dark:text-yellow-400">{{ stats.leads.pending }}</p>
+                                                <p class="text-amber-600 dark:text-amber-400">{{ stats.leads.pending }}</p>
                                                 <p class="text-xs text-gray-500">Pending</p>
                                             </div>
                                             <div class="text-center">
-                                                <p class="text-green-600 dark:text-green-400">{{ stats.leads.converted }}</p>
+                                                <p class="text-emerald-600 dark:text-emerald-400">{{ stats.leads.converted }}</p>
                                                 <p class="text-xs text-gray-500">Converted</p>
                                             </div>
                                         </div>
@@ -565,7 +565,7 @@ const packageChartSeries = computed(() =>
                                                 <p class="text-xs text-gray-500">Open</p>
                                             </div>
                                             <div class="text-center">
-                                                <p class="text-green-600 dark:text-green-400">{{ stats.tickets.closed }}</p>
+                                                <p class="text-emerald-600 dark:text-emerald-400">{{ stats.tickets.closed }}</p>
                                                 <p class="text-xs text-gray-500">Closed</p>
                                             </div>
                                         </div>
