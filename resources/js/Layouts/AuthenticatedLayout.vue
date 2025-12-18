@@ -101,14 +101,23 @@ function toggleSidebar() {
             <!-- Logo Area -->
             <div class="h-16 flex items-center justify-between px-6 border-b border-gray-100 dark:border-slate-800">
                 <div class="p-4 border-t border-gray-100 dark:border-slate-800 hidden lg:flex justify-end">
-                    <!--sidebar toggle button-->
-                <button 
-                    @click="collapsed = !collapsed"
-                    class="p-2 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-slate-800 dark:hover:text-gray-300 transition-colors"
-                >
-                    <component :is="collapsed ? ChevronLeft : ChevronRight" class="w-5 h-5 transform rotate-180" />
-                </button>
-            </div>
+                    <!--add tenat logo-->
+                    <div class="h-4 w-4">
+                        <img 
+                            v-if="user.tenant && user.tenant.logo" 
+                            :src="user.tenant.logo" 
+                            alt="Tenant Logo" 
+                            class="h-4 w-4 object-contain"
+                        />
+                    </div>
+                    <!-- Collapse Button -->
+                    <button 
+                        @click="collapsed = !collapsed"
+                        class="p-2 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-slate-800 dark:hover:text-gray-300 transition-colors"
+                    >
+                        <component :is="collapsed ? ChevronLeft : ChevronRight" class="w-5 h-5 transform rotate-180" />
+                    </button>
+                </div>
                 <!-- Mobile Close Button -->
                 <button @click="sidebarOpen = false" class="lg:hidden text-gray-500 hover:text-gray-700 dark:text-gray-400">
                     <X class="w-6 h-6" />
