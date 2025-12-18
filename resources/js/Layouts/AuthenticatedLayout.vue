@@ -101,40 +101,24 @@ function toggleSidebar() {
             <!-- Logo Area -->
             <div class="h-16 flex items-center justify-between px-4 border-b border-gray-100 dark:border-slate-800">
                 <!-- Tenant Logo -->
-                <div class="flex items-center gap-3 min-w-0 flex-1">
-                    <div v-if="user.tenant && user.tenant.logo" class="flex-shrink-0">
-                        <img 
-                            :src="user.tenant.logo" 
-                            alt="Tenant Logo" 
-                            class="h-12 w-12 object-contain rounded-lg transition-all duration-300"
-                            :class="collapsed ? 'lg:h-10 lg:w-10' : ''"
-                        />
-                    </div>
-                    <div v-else class="h-12 w-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <span class="text-white font-bold text-lg">{{ user.tenant?.name?.charAt(0) || 'T' }}</span>
-                    </div>
-                    
-                    <!-- Tenant Name -->
-                    <div class="min-w-0 flex-1 hidden lg:block" :class="collapsed ? 'lg:hidden' : ''">
-                        <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">
-                            {{ user.tenant?.name }}
-                        </p>
-                        <p class="text-xs text-gray-500 dark:text-gray-400 truncate">
-                            {{ user.name }}
-                        </p>
-                    </div>
+                <div v-if="user.tenant && user.tenant.logo" class="flex-shrink-0">
+                    <img 
+                        :src="user.tenant.logo" 
+                        alt="Tenant Logo" 
+                        class="h-12 w-12 object-contain rounded-lg transition-all duration-300"
+                    />
                 </div>
 
                 <!-- Collapse Button -->
                 <button 
                     @click="collapsed = !collapsed"
-                    class="hidden lg:flex p-2 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-slate-800 dark:hover:text-gray-300 transition-colors flex-shrink-0 ml-2"
+                    class="hidden lg:flex p-2 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-slate-800 dark:hover:text-gray-300 transition-colors flex-shrink-0 ml-auto"
                 >
                     <component :is="collapsed ? ChevronRight : ChevronLeft" class="w-5 h-5" />
                 </button>
 
                 <!-- Mobile Close Button -->
-                <button @click="sidebarOpen = false" class="lg:hidden text-gray-500 hover:text-gray-700 dark:text-gray-400">
+                <button @click="sidebarOpen = false" class="lg:hidden text-gray-500 hover:text-gray-700 dark:text-gray-400 ml-auto">
                     <X class="w-6 h-6" />
                 </button>
             </div>
