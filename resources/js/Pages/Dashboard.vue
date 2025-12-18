@@ -597,32 +597,6 @@ const packageChartSeries = computed(() =>
                             </div>
                         </div>
                     </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <!-- Tickets -->
-                                <div class="rounded-xl border border-gray-200 p-4 dark:border-gray-700">
-                                    <div class="flex items-center justify-between">
-                                        <div>
-                                            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Support Tickets</p>
-                                            <p class="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{{ stats.tickets.open + stats.tickets.closed }}</p>
-                                        </div>
-                                        <div class="flex gap-4 text-sm">
-                                            <div class="text-center">
-                                                <p class="text-orange-600 dark:text-orange-400">{{ stats.tickets.open }}</p>
-                                                <p class="text-xs text-gray-500">Open</p>
-                                            </div>
-                                            <div class="text-center">
-                                                <p class="text-green-600 dark:text-green-400">{{ stats.tickets.closed }}</p>
-                                                <p class="text-xs text-gray-500">Closed</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
 
                     <!-- Analytics & Charts Section -->
                     <div class="space-y-8">
