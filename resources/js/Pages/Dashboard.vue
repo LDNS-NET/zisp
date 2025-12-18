@@ -376,81 +376,81 @@ const packageChartSeries = computed(() =>
             <div class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
                 <div class="space-y-10">
                     <!-- Quick Stats Grid - Premium Design -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         <!-- Online Users Card -->
-                        <div class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-500 to-teal-600 p-6 shadow-2xl transition-all duration-300 hover:scale-105 hover:shadow-3xl hover:-translate-y-2 dark:from-green-600 dark:to-teal-700 border border-green-400/30">
-                            <div class="absolute top-0 right-0 w-40 h-40 opacity-20">
+                        <div class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-green-500 to-teal-600 p-4 shadow-xl transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:-translate-y-1 dark:from-green-600 dark:to-teal-700 border border-green-400/30">
+                            <div class="absolute top-0 right-0 w-32 h-32 opacity-20">
                                 <svg viewBox="0 0 100 100" class="w-full h-full text-white" fill="currentColor">
                                     <circle cx="80" cy="20" r="15" opacity="0.8"/>
                                     <circle cx="90" cy="50" r="20" opacity="0.5"/>
                                     <circle cx="70" cy="80" r="12" opacity="0.6"/>
                                 </svg>
                             </div>
-                            <div class="absolute right-0 top-0 h-32 w-32 translate-x-8 -translate-y-8 rounded-full bg-white/10 blur-2xl"></div>
+                            <div class="absolute right-0 top-0 h-24 w-24 translate-x-6 -translate-y-6 rounded-full bg-white/10 blur-2xl"></div>
                             <div class="relative">
-                                <div class="flex items-center justify-between mb-4">
-                                    <div class="rounded-2xl bg-white/20 p-3 backdrop-blur-sm border border-white/30">
-                                        <Zap class="h-6 w-6 text-white" />
+                                <div class="flex items-center justify-between mb-2">
+                                    <div class="rounded-lg bg-white/20 p-2 backdrop-blur-sm border border-white/30">
+                                        <Zap class="h-4 w-4 text-white" />
                                     </div>
-                                    <span class="text-xs font-bold uppercase tracking-wider text-green-100 bg-white/20 px-3 py-1 rounded-full">Live</span>
+                                    <span class="text-xs font-bold uppercase tracking-wider text-green-100 bg-white/20 px-2 py-0.5 rounded-full">Live</span>
                                 </div>
-                                <p class="text-xs sm:text-sm font-medium text-teal-100 uppercase tracking-wide">Online Users</p>
-                                <p class="mt-3 text-3xl sm:text-4xl font-bold text-white">{{ stats.users.activeUsers }}</p>
-                                <div class="mt-4 flex items-center gap-2 text-xs sm:text-sm text-teal-100">
-                                    <UserCheck class="h-4 w-4" />
+                                <p class="text-xs font-medium text-teal-100 uppercase tracking-wide">Online Users</p>
+                                <p class="mt-2 text-2xl sm:text-3xl font-bold text-white">{{ stats.users.activeUsers }}</p>
+                                <div class="mt-2 flex items-center gap-2 text-xs text-teal-100">
+                                    <UserCheck class="h-3 w-3" />
                                     <span>of {{ stats.users.total }} total</span>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Total Users Card -->
-                        <div class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 p-6 shadow-2xl transition-all duration-300 hover:scale-105 hover:shadow-3xl hover:-translate-y-2 dark:from-blue-600 dark:to-blue-700 border border-blue-400/30">
-                            <div class="absolute top-0 right-0 w-40 h-40 opacity-20">
+                        <div class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 p-4 shadow-xl transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:-translate-y-1 dark:from-blue-600 dark:to-blue-700 border border-blue-400/30">
+                            <div class="absolute top-0 right-0 w-32 h-32 opacity-20">
                                 <svg viewBox="0 0 100 100" class="w-full h-full text-white" fill="currentColor">
                                     <rect x="70" y="10" width="20" height="20" opacity="0.8"/>
                                     <rect x="60" y="40" width="30" height="15" opacity="0.5"/>
                                     <circle cx="85" cy="75" r="8" opacity="0.6"/>
                                 </svg>
                             </div>
-                            <div class="absolute right-0 top-0 h-32 w-32 translate-x-8 -translate-y-8 rounded-full bg-white/10 blur-2xl"></div>
+                            <div class="absolute right-0 top-0 h-24 w-24 translate-x-6 -translate-y-6 rounded-full bg-white/10 blur-2xl"></div>
                             <div class="relative">
-                                <div class="flex items-center justify-between mb-4">
-                                    <div class="rounded-2xl bg-white/20 p-3 backdrop-blur-sm border border-white/30">
-                                        <Users class="h-6 w-6 text-white" />
+                                <div class="flex items-center justify-between mb-2">
+                                    <div class="rounded-lg bg-white/20 p-2 backdrop-blur-sm border border-white/30">
+                                        <Users class="h-4 w-4 text-white" />
                                     </div>
-                                    <span class="text-xs font-bold uppercase tracking-wider text-blue-100 bg-white/20 px-3 py-1 rounded-full">Total</span>
+                                    <span class="text-xs font-bold uppercase tracking-wider text-blue-100 bg-white/20 px-2 py-0.5 rounded-full">Total</span>
                                 </div>
-                                <p class="text-xs sm:text-sm font-medium text-blue-100 uppercase tracking-wide">Total Users</p>
-                                <p class="mt-3 text-3xl sm:text-4xl font-bold text-white">{{ stats.users.total }}</p>
-                                <div class="mt-4 flex items-center gap-2 text-xs sm:text-sm text-blue-100">
-                                    <Activity class="h-4 w-4" />
+                                <p class="text-xs font-medium text-blue-100 uppercase tracking-wide">Total Users</p>
+                                <p class="mt-2 text-2xl sm:text-3xl font-bold text-white">{{ stats.users.total }}</p>
+                                <div class="mt-2 flex items-center gap-2 text-xs text-blue-100">
+                                    <Activity class="h-3 w-3" />
                                     <span>{{ stats.users.activeUsers }} active now</span>
                                 </div>
                             </div>
                         </div>
 
                         <!-- MikroTik Devices Card -->
-                        <div class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-yellow-500 to-yellow-600 p-6 shadow-2xl transition-all duration-300 hover:scale-105 hover:shadow-3xl hover:-translate-y-2 dark:from-yellow-700 dark:to-yellow-800 border border-yellow-400/30">
-                            <div class="absolute top-0 right-0 w-40 h-40 opacity-20">
+                        <div class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-yellow-500 to-yellow-600 p-4 shadow-xl transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:-translate-y-1 dark:from-yellow-700 dark:to-yellow-800 border border-yellow-400/30">
+                            <div class="absolute top-0 right-0 w-32 h-32 opacity-20">
                                 <svg viewBox="0 0 100 100" class="w-full h-full text-white" fill="currentColor">
                                     <path d="M 50 10 L 90 50 L 50 90 L 10 50 Z" opacity="0.8"/>
                                     <circle cx="80" cy="30" r="10" opacity="0.5"/>
                                 </svg>
                             </div>
-                            <div class="absolute right-0 top-0 h-32 w-32 translate-x-8 -translate-y-8 rounded-full bg-white/10 blur-2xl"></div>
+                            <div class="absolute right-0 top-0 h-24 w-24 translate-x-6 -translate-y-6 rounded-full bg-white/10 blur-2xl"></div>
                             <div class="relative">
-                                <div class="flex items-center justify-between mb-4">
-                                    <div class="rounded-2xl bg-white/20 p-3 backdrop-blur-sm border border-white/30">
-                                        <RadioTower class="h-6 w-6 text-white" />
+                                <div class="flex items-center justify-between mb-2">
+                                    <div class="rounded-lg bg-white/20 p-2 backdrop-blur-sm border border-white/30">
+                                        <RadioTower class="h-4 w-4 text-white" />
                                     </div>
-                                    <span :class="['text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full', stats.mikrotiks.connected === 0 ? 'text-red-900 bg-red-200' : 'text-amber-100 bg-white/20']">
+                                    <span :class="['text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-full', stats.mikrotiks.connected === 0 ? 'text-red-900 bg-red-200' : 'text-amber-100 bg-white/20']">
                                         {{ stats.mikrotiks.connected === 0 ? 'Critical' : 'Online' }}
                                     </span>
                                 </div>
-                                <p class="text-xs sm:text-sm font-medium text-amber-100 uppercase tracking-wide">Devices</p>
-                                <p class="mt-3 text-3xl sm:text-4xl font-bold text-white">{{ stats.mikrotiks.total }}</p>
-                                <div class="mt-4 flex items-center gap-2 text-xs sm:text-sm text-amber-100">
-                                    <Check class="h-4 w-4" />
+                                <p class="text-xs font-medium text-amber-100 uppercase tracking-wide">Devices</p>
+                                <p class="mt-2 text-2xl sm:text-3xl font-bold text-white">{{ stats.mikrotiks.total }}</p>
+                                <div class="mt-2 flex items-center gap-2 text-xs text-amber-100">
+                                    <Check class="h-3 w-3" />
                                     <span v-if="stats.mikrotiks.connected === 0" class="text-red-300">All Offline</span>
                                     <span v-else>{{ stats.mikrotiks.connected }} online</span>
                                 </div>
@@ -458,51 +458,51 @@ const packageChartSeries = computed(() =>
                         </div>
 
                         <!-- Support Tickets Card -->
-                        <div class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-600 p-6 shadow-2xl transition-all duration-300 hover:scale-105 hover:shadow-3xl hover:-translate-y-2 dark:from-indigo-600 dark:to-indigo-700 border border-indigo-400/30">
-                            <div class="absolute top-0 right-0 w-40 h-40 opacity-20">
+                        <div class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 p-4 shadow-xl transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:-translate-y-1 dark:from-indigo-600 dark:to-indigo-700 border border-indigo-400/30">
+                            <div class="absolute top-0 right-0 w-32 h-32 opacity-20">
                                 <svg viewBox="0 0 100 100" class="w-full h-full text-white" fill="currentColor">
                                     <polygon points="50,10 90,30 85,75 50,90 15,75 10,30" opacity="0.8"/>
                                     <circle cx="50" cy="50" r="20" opacity="0.5"/>
                                 </svg>
                             </div>
-                            <div class="absolute right-0 top-0 h-32 w-32 translate-x-8 -translate-y-8 rounded-full bg-white/10 blur-2xl"></div>
+                            <div class="absolute right-0 top-0 h-24 w-24 translate-x-6 -translate-y-6 rounded-full bg-white/10 blur-2xl"></div>
                             <div class="relative">
-                                <div class="flex items-center justify-between mb-4">
-                                    <div class="rounded-2xl bg-white/20 p-3 backdrop-blur-sm border border-white/30">
-                                        <Ticket class="h-6 w-6 text-white" />
+                                <div class="flex items-center justify-between mb-2">
+                                    <div class="rounded-lg bg-white/20 p-2 backdrop-blur-sm border border-white/30">
+                                        <Ticket class="h-4 w-4 text-white" />
                                     </div>
-                                    <span class="text-xs font-bold uppercase tracking-wider text-indigo-100 bg-white/20 px-3 py-1 rounded-full">Support</span>
+                                    <span class="text-xs font-bold uppercase tracking-wider text-indigo-100 bg-white/20 px-2 py-0.5 rounded-full">Support</span>
                                 </div>
-                                <p class="text-xs sm:text-sm font-medium text-indigo-100 uppercase tracking-wide">Support Tickets</p>
-                                <p class="mt-3 text-3xl sm:text-4xl font-bold text-white">{{ stats.tickets.open }}</p>
-                                <div class="mt-4 flex items-center gap-2 text-xs sm:text-sm text-indigo-100">
-                                    <AlertCircle class="h-4 w-4" />
+                                <p class="text-xs font-medium text-indigo-100 uppercase tracking-wide">Support Tickets</p>
+                                <p class="mt-2 text-2xl sm:text-3xl font-bold text-white">{{ stats.tickets.open }}</p>
+                                <div class="mt-2 flex items-center gap-2 text-xs text-indigo-100">
+                                    <AlertCircle class="h-3 w-3" />
                                     <span>{{ stats.tickets.assigned_to_me }} assigned</span>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Revenue Card (if admin/cashier) -->
-                        <div v-if="user.role === 'admin' || user.role === 'cashier'" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 p-6 shadow-2xl transition-all duration-300 hover:scale-105 hover:shadow-3xl hover:-translate-y-2 dark:from-purple-600 dark:to-purple-700 border border-purple-400/30 sm:col-span-2 lg:col-span-1">
-                            <div class="absolute top-0 right-0 w-40 h-40 opacity-20">
+                        <div v-if="user.role === 'admin' || user.role === 'cashier'" class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 p-4 shadow-xl transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:-translate-y-1 dark:from-purple-600 dark:to-purple-700 border border-purple-400/30 sm:col-span-2 lg:col-span-1">
+                            <div class="absolute top-0 right-0 w-32 h-32 opacity-20">
                                 <svg viewBox="0 0 100 100" class="w-full h-full text-white" fill="currentColor">
                                     <circle cx="70" cy="20" r="12" opacity="0.8"/>
                                     <circle cx="85" cy="45" r="15" opacity="0.5"/>
                                     <circle cx="75" cy="75" r="10" opacity="0.6"/>
                                 </svg>
                             </div>
-                            <div class="absolute right-0 top-0 h-32 w-32 translate-x-8 -translate-y-8 rounded-full bg-white/10 blur-2xl"></div>
+                            <div class="absolute right-0 top-0 h-24 w-24 translate-x-6 -translate-y-6 rounded-full bg-white/10 blur-2xl"></div>
                             <div class="relative">
-                                <div class="flex items-center justify-between mb-4">
-                                    <div class="rounded-2xl bg-white/20 p-3 backdrop-blur-sm border border-white/30">
-                                        <DollarSign class="h-6 w-6 text-white" />
+                                <div class="flex items-center justify-between mb-2">
+                                    <div class="rounded-lg bg-white/20 p-2 backdrop-blur-sm border border-white/30">
+                                        <DollarSign class="h-4 w-4 text-white" />
                                     </div>
-                                    <span class="text-xs font-bold uppercase tracking-wider text-purple-100 bg-white/20 px-3 py-1 rounded-full">Revenue</span>
+                                    <span class="text-xs font-bold uppercase tracking-wider text-purple-100 bg-white/20 px-2 py-0.5 rounded-full">Revenue</span>
                                 </div>
-                                <p class="text-xs sm:text-sm font-medium text-purple-100 uppercase tracking-wide">Total Revenue</p>
-                                <p class="mt-3 text-2xl sm:text-3xl font-bold text-white">{{ currency || 'KES' }} {{ stats.payments.total_amount }}</p>
-                                <div class="mt-4 flex items-center gap-2 text-xs sm:text-sm text-purple-100">
-                                    <TrendingUp class="h-4 w-4" />
+                                <p class="text-xs font-medium text-purple-100 uppercase tracking-wide">Total Revenue</p>
+                                <p class="mt-2 text-xl sm:text-2xl font-bold text-white">{{ currency || 'KES' }} {{ stats.payments.total_amount }}</p>
+                                <div class="mt-2 flex items-center gap-2 text-xs text-purple-100">
+                                    <TrendingUp class="h-3 w-3" />
                                     <span>{{ stats.payments.count }} payments</span>
                                 </div>
                             </div>
