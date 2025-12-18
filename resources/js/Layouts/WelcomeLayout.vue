@@ -14,6 +14,7 @@ const navItems = [
     { label: 'Features', href: '#features', id: 'features' },
     { label: 'How It Works', href: '#how-it-works', id: 'how-it-works' },
     { label: 'Advanced', href: '#advanced', id: 'advanced' },
+    { label: 'Demo', href: '#demo', id: 'demo' },
 ];
 
 // Footer sections for sidebar
@@ -321,7 +322,7 @@ const handleNavClick = (e, href) => {
                         Built with <span class="text-emerald-600 dark:text-emerald-400">❤</span> by skilled developers
                     </p>
                     <div class="flex gap-6 mt-6 md:mt-0">
-                        <a href="#" class="text-gray-600 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all duration-300 hover:scale-110">
+                        <a href="x.com@ATG_Officia" class="text-gray-600 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all duration-300 hover:scale-110">
                             <span class="sr-only">Twitter</span>
                             <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M8.29 20c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0022 5.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-7.678 3.743A11.65 11.65 0 012.909 5.114a4.106 4.106 0 001.27 5.478A4.072 4.072 0 012.8 10.77v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 012 18.407a11.616 11.616 0 006.29 1.84" />

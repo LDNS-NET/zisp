@@ -2,6 +2,7 @@
 import { Head, Link } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import WelcomeLayout from '@/Layouts/WelcomeLayout.vue';
+import Modal from '@/Components/Modal.vue';
 
 defineProps({
     canLogin: Boolean,
@@ -90,6 +91,13 @@ const howItWorksSteps = [
             'Track user sessions, enforce data limits, receive router uptime alerts, and make data-driven decisions.',
     },
 ];
+
+const showDemoModal = ref(false)
+
+const goToDemo = () => {
+    window.open('https://demo.zyraaf.cloud/login', '_blank')
+}
+
 </script>
 
 <template>
@@ -152,20 +160,6 @@ const howItWorksSteps = [
                         </div>
                     </div>
                 </div>
-
-                <div class="flex-1 flex items-center justify-center animate-fade-in-up" style="animation-delay: 200ms">
-                    <div class="relative">
-                        <!-- Floating Background (muted accents) -->
-                        <div class="absolute inset-0 bg-gradient-to-br from-emerald-300/12 to-sky-300/12 rounded-3xl blur-2xl animate-pulse"></div>
-                        <div class="absolute inset-0 bg-gradient-to-tr from-teal-300/8 to-emerald-300/8 rounded-3xl blur-3xl animate-pulse" style="animation-delay: 1s"></div>
-                        
-                        <img
-                            src="/images/zyraisp.png"
-                            alt="ZiSP Logo"
-                            class="relative w-full max-w-md rounded-3xl shadow-2xl ring-1 ring-white/20 backdrop-blur-sm transition-transform duration-500 hover:scale-105"
-                        />
-                    </div>
-                </div>
             </div>
         </div>
 
@@ -173,7 +167,7 @@ const howItWorksSteps = [
         <section id="features" class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-24">
             <div class="text-center mb-16">
                 <h2 class="text-5xl sm:text-6xl font-bold text-gray-900 dark:text-white mb-4 tracking-tight">
-                    Core Features That Drive Growth
+                    Core Features
                 </h2>
                 <p class="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto font-light">
                     Everything you need to run a modern, scalable ISP business
@@ -324,42 +318,65 @@ const howItWorksSteps = [
         </section>
 
         <!-- CTA -->
-        <section class="relative mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-24">
-            <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-600 dark:from-emerald-800 dark:via-teal-700 dark:to-cyan-700 p-12 sm:p-16 lg:p-20 shadow-2xl border border-white/20 transition-all duration-500 hover:shadow-3xl">
-                <!-- Decorative blur -->
-                <div class="absolute inset-0 bg-white/5 rounded-3xl blur-xl"></div>
-                <!-- Animated gradient overlay -->
-                <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent rounded-3xl opacity-0 hover:opacity-100 transition-opacity duration-500"></div>
-                
+        <section id="demo" class="relative mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-24">
+            <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-600 p-12 sm:p-16 lg:p-20 shadow-2xl border border-white/20">
                 <div class="relative text-center">
-                    <h2 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 tracking-tight leading-tight">
+                    <h2 class="text-4xl sm:text-5xl font-bold text-white mb-6">
                         Ready to Supercharge Your ISP?
                     </h2>
-                    <p class="text-lg text-emerald-100 mb-10 max-w-2xl mx-auto font-light leading-relaxed">
-                        Let Zyraaf Cloud help you automate billing, optimize networks, and grow with confidence. Start your free trial today.
+
+                    <p class="text-lg text-emerald-100 mb-10 max-w-2xl mx-auto">
+                        Experience Zyraaf Cloud with a live demo environment.
                     </p>
-                    
-                    <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                        <Link
-                            v-if="canRegister"
-                            :href="route('register')"
-                            class="group inline-flex items-center justify-center rounded-xl bg-white text-emerald-600 px-8 py-4 font-bold shadow-2xl transition-all duration-300 hover:scale-105 hover:shadow-3xl active:scale-95"
+
+                    <button
+                        @click="showDemoModal = true"
+                        class="inline-flex items-center justify-center rounded-xl bg-white px-8 py-4 text-base font-semibold text-emerald-700 shadow-lg hover:bg-emerald-50 transition"
+                    >
+                        View Live Demo
+                    </button>
+                </div>
+            </div>
+
+            <!-- Demo Modal -->
+            <div
+                v-if="showDemoModal"
+                class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+            >
+                <div class="w-full max-w-md rounded-2xl bg-white dark:bg-gray-900 p-8 shadow-2xl">
+                    <h3 class="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
+                        Demo Access
+                    </h3>
+
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-6">
+                        Use the credentials below to explore the Zyraaf Cloud demo system.
+                    </p>
+
+                    <div class="space-y-3 mb-6">
+                        <div class="flex justify-between rounded-lg bg-gray-100 dark:bg-gray-800 px-4 py-3">
+                            <span class="text-sm text-gray-500">Username</span>
+                            <span class="font-mono font-semibold text-emerald-600">demo</span>
+                        </div>
+                        <div class="flex justify-between rounded-lg bg-gray-100 dark:bg-gray-800 px-4 py-3">
+                            <span class="text-sm text-gray-500">Password</span>
+                            <span class="font-mono font-semibold text-emerald-600">password</span>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-3">
+                        <button
+                            @click="showDemoModal = false"
+                            class="flex-1 rounded-lg border border-gray-300 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100"
                         >
-                            <span class="relative z-10">Get Started Free</span>
-                            <svg class="ml-2 h-5 w-5 transition-transform duration-300 group-hover:translate-x-1" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M10.293 15.707a1 1 0 010-1.414L14.586 10l-4.293-4.293a1 1 0 111.414-1.414l5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0z" clip-rule="evenodd" />
-                            </svg>
-                        </Link>
-                        <Link
-                            v-if="canLogin"
-                            :href="route('login')"
-                            class="group inline-flex items-center justify-center rounded-xl border-2 border-white text-white px-8 py-4 font-bold hover:bg-white/10 transition-all duration-300 hover:scale-105 active:scale-95"
+                            Close
+                        </button>
+
+                        <button
+                            @click="goToDemo"
+                            class="flex-1 rounded-lg bg-emerald-600 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-700"
                         >
-                            <span class="relative z-10">View Demo</span>
-                            <svg class="ml-2 h-5 w-5 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                            </svg>
-                        </Link>
+                            Login to Demo
+                        </button>
                     </div>
                 </div>
             </div>
