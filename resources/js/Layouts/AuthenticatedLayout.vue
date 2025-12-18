@@ -103,7 +103,16 @@ function toggleSidebar() {
             <!-- Logo Area -->
             <div class="h-16 flex items-center justify-between px-4 border-b border-gray-100 dark:border-slate-800">
                 <!-- Tenant Logo -->
-                <div v-if="tenantLogo" class="flex-shrink-0">
+                <div v-if="tenantLogo && !collapsed" class="flex-shrink-0 hidden lg:block">
+                    <img 
+                        :src="tenantLogo" 
+                        alt="Tenant Logo" 
+                        class="h-12 w-12 object-contain rounded-lg transition-all duration-300"
+                    />
+                </div>
+
+                <!-- Mobile Logo -->
+                <div v-if="tenantLogo" class="flex-shrink-0 lg:hidden">
                     <img 
                         :src="tenantLogo" 
                         alt="Tenant Logo" 
