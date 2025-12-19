@@ -2,7 +2,12 @@
 import { ref, computed } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
+import { useTheme } from '@/composables/useTheme';
+import { Moon, Sun } from 'lucide-vue-next';
 
+
+
+const { theme, setTheme } = useTheme();
 const page = usePage();
 const tenantLogo = page.props.tenantLogo;
 const mobileMenuOpen = ref(false);
@@ -70,14 +75,34 @@ const handleNavClick = (e, href) => {
         mobileMenuOpen.value = false;
     }
 };
+
+const openX = () => {
+    window.open('https://x.com/ATG_Officia', '_blank');
+};
+
+const openTikTok = () => {
+    window.open(
+        'https://www.tiktok.com/@zyraaf_cloud',
+        '_blank',
+        'noopener,noreferrer'
+    );
+};
+
+const openTube = () => {
+    window.open(
+        'https://www.youtube.com/@zyraaf_cloud',
+        '_blank',
+        'noopener,noreferrer'
+    );
+};
 </script>
 
 <template>
-    <div class="min-h-screen bg-gradient-to-br from-white via-blue-50/30 to-emerald-50/40 dark:from-slate-950 dark:via-blue-950/20 dark:to-slate-900 relative overflow-x-hidden">
+    <div class="min-h-screen bg-gradient-to-br from-cyan-200 via-indigo-200 to-emerald-200 dark:from-slate-950 dark:via-blue-950/20 dark:to-slate-900 relative overflow-x-hidden">
         <!-- Premium Gradient Overlays (Background) -->
         <div class="fixed inset-0 -z-10">
             <!-- Main background gradient -->
-            <div class="absolute inset-0 bg-gradient-to-br from-white/80 via-blue-100/10 to-emerald-100/15 dark:from-slate-950/80 dark:via-blue-900/5 dark:to-emerald-900/10"></div>
+            <div class="absolute inset-0 bg-gradient-to-br from-white/80 via-blue-300 to-emerald-200 dark:from-slate-950/80 dark:via-blue-900/5 dark:to-emerald-900/10"></div>
             
             <!-- Subtle radial gradient from top-right (sun effect) -->
             <div class="absolute -top-96 -right-96 w-[800px] h-[800px] bg-gradient-to-br from-amber-200/20 via-orange-200/10 to-transparent dark:from-amber-900/15 dark:via-orange-900/5 dark:to-transparent rounded-full blur-3xl"></div>
@@ -107,7 +132,7 @@ const handleNavClick = (e, href) => {
                     : 'bg-transparent'
             ]"
         >
-            <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div class="mx-auto max-w-9xl px-4 sm:px-6 lg:px-6">
                 <div class="flex h-20 items-center justify-between">
                     <!-- Logo -->
                     <Link
@@ -128,7 +153,6 @@ const handleNavClick = (e, href) => {
                             Zyraaf Cloud
                         </span>
                     </Link>
-
                     <!-- Desktop Navigation -->
                     <div class="hidden md:flex items-center gap-8">
                         <a
@@ -162,6 +186,14 @@ const handleNavClick = (e, href) => {
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                             </svg>
                         </Link>
+                        <button 
+                            @click="setTheme(theme === 'dark' ? 'light' : 'dark')"
+                            class="p-2 text-gray-500 hover:bg-black rounded-full dark:text-gray-400 dark:hover:bg-white transition-colors"
+                            :title="theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
+                        >
+                            <Sun v-if="theme === 'dark'" class="w-5 h-5 text-yellow-500 rounded-xl" />
+                            <Moon v-else class="w-6 h-6 text-white text-extrabold" />
+                        </button>
                     </div>
 
                     <!-- Mobile Menu Button -->
@@ -244,19 +276,7 @@ const handleNavClick = (e, href) => {
             >
                 <div class="flex flex-col h-full">
                     <!-- Logo Area in Sidebar -->
-                    <div class="flex items-center justify-center h-20 border-b border-gray-200/50 dark:border-gray-800/50 px-4">
-                        <Link href="/" class="group flex items-center gap-2 transition-all duration-300 hover:scale-105">
-                            <img
-                                v-if="tenantLogo"
-                                :src="tenantLogo"
-                                alt="Logo"
-                                class="h-8 w-8 object-contain"
-                            />
-                            <ApplicationLogo
-                                v-else
-                                class="h-8 w-8 fill-current text-emerald-600 dark:text-emerald-400"
-                            />
-                        </Link>
+                    <div class="flex items-center justify-between px-4 py-6 border-b border-gray-200/50 dark:border-gray-800/50">
                     </div>
 
                     <!-- Sidebar Content -->
@@ -278,29 +298,10 @@ const handleNavClick = (e, href) => {
                         </div>
                     </nav>
 
-                    <!-- Social Links at Bottom -->
-                    <div class="border-t border-gray-200/50 dark:border-gray-800/50 px-4 py-6">
-                        <p class="text-xs font-semibold text-gray-600 dark:text-gray-400 tracking-widest uppercase mb-4">Follow Us</p>
-                        <div class="flex gap-4">
-                            <a href="#" class="text-gray-600 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all duration-300 hover:scale-110">
-                                <span class="sr-only">Twitter</span>
-                                <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-                                    <path d="M8.29 20c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0022 5.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-7.678 3.743A11.65 11.65 0 012.909 5.114a4.106 4.106 0 001.27 5.478A4.072 4.072 0 012.8 10.77v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 012 18.407a11.616 11.616 0 006.29 1.84" />
-                                </svg>
-                            </a>
-                            <a href="#" class="text-gray-600 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all duration-300 hover:scale-110">
-                                <span class="sr-only">LinkedIn</span>
-                                <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-                                    <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
-                                </svg>
-                            </a>
-                        </div>
-                    </div>
-
                     <!-- Copyright -->
                     <div class="border-t border-gray-200/50 dark:border-gray-800/50 px-4 py-4">
                         <p class="text-xs text-gray-500 dark:text-gray-500 text-center">
-                            LDNS NETWORKS &copy; {{ new Date().getFullYear() }}
+                            ZYRAAF NETWORKS &copy; {{ new Date().getFullYear() }}
                         </p>
                     </div>
                 </div>
@@ -322,18 +323,52 @@ const handleNavClick = (e, href) => {
                         Built with <span class="text-emerald-600 dark:text-emerald-400">❤</span> by skilled developers
                     </p>
                     <div class="flex gap-6 mt-6 md:mt-0">
-                        <a href="x.com@ATG_Officia" class="text-gray-600 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all duration-300 hover:scale-110">
+                        <button @click="openX" class="text-gray-600 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all duration-300 hover:scale-110">
                             <span class="sr-only">Twitter</span>
                             <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M8.29 20c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0022 5.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-7.678 3.743A11.65 11.65 0 012.909 5.114a4.106 4.106 0 001.27 5.478A4.072 4.072 0 012.8 10.77v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 012 18.407a11.616 11.616 0 006.29 1.84" />
                             </svg>
-                        </a>
-                        <a href="#" class="text-gray-600 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all duration-300 hover:scale-110">
-                            <span class="sr-only">LinkedIn</span>
-                            <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
-                            </svg>
-                        </a>
+                        </button>
+                        <button @click="openTikTok" class="text-gray-600 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all duration-300 hover:scale-110">
+                            <span class="sr-only">Tiktok</span>
+                            <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                            class="h-6 w-6"
+                            aria-hidden="true"
+                        >
+                            <path d="M16.5 1.5c.7 1.9 2.1 3.3 4 4v3.2c-1.8-.1-3.5-.7-5-1.8v7.1c0 4.1-3.4 7.5-7.5 7.5S.5 18.1.5 14s3.4-7.5 7.5-7.5c.5 0 1 .1 1.5.2v3.3c-.5-.3-1-.4-1.5-.4-2.1 0-3.9 1.7-3.9 3.9s1.7 3.9 3.9 3.9 3.9-1.7 3.9-3.9V1.5h4.1z"/>
+                        </svg>
+
+                        </button>
+                        <button @click="openTube" class="text-gray-600 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all duration-300 hover:scale-110">
+                            <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            class="h-6 w-6"
+                            aria-hidden="true"
+                        >
+                            <!-- Soft red background -->
+                            <rect
+                                x="2"
+                                y="5"
+                                width="20"
+                                height="14"
+                                rx="4"
+                                fill="currentColor"
+                                class="text-red-600"
+                            />
+
+                            <!-- Play icon -->
+                            <polygon
+                                points="10,9 16,12 10,15"
+                                fill="white"
+                            />
+                        </svg>
+
+
+                        </button>
                     </div>
                 </div>
             </div>

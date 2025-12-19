@@ -109,7 +109,7 @@ const goToDemo = () => {
             <div class="mx-auto flex max-w-7xl w-full flex-col-reverse items-center gap-16 pt-20 lg:flex-row px-4 sm:px-6 lg:px-8">
                 <div class="max-w-2xl text-center lg:text-left flex-1 animate-fade-in">
                     <div class="mb-6 inline-block rounded-full bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/30 px-4 py-2 text-sm font-semibold text-emerald-700 dark:text-emerald-300 backdrop-blur-md border border-emerald-200/60 dark:border-emerald-700/60 shadow-sm transition-all duration-300 hover:shadow-md hover:border-emerald-300/80 dark:hover:border-emerald-600/80">
-                        <span class="inline-block mr-2">✨</span>The #1 ISP Management Platform in Africa
+                        <span class="inline-block mr-2">✨</span>Top ISP Management Platform In Africa
                     </div>
                     
                     <h1 class="mb-6 text-5xl sm:text-6xl lg:text-7xl font-extrabold leading-tight text-gray-900 dark:text-white tracking-tight">
@@ -147,8 +147,8 @@ const goToDemo = () => {
                     <!-- Stats -->
                     <div class="mt-16 grid grid-cols-3 gap-8">
                         <div class="text-center group">
-                            <div class="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 dark:from-emerald-400 dark:to-teal-400 bg-clip-text text-transparent transition-all duration-300 group-hover:scale-110">10K+</div>
-                            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400 font-medium">Active Users</p>
+                            <div class="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 dark:from-emerald-400 dark:to-teal-400 bg-clip-text text-transparent transition-all duration-300 group-hover:scale-110">100+</div>
+                            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400 font-medium">Active ISP's</p>
                         </div>
                         <div class="text-center group">
                             <div class="text-3xl font-bold bg-gradient-to-r from-teal-600 to-cyan-600 dark:from-teal-400 dark:to-cyan-400 bg-clip-text text-transparent transition-all duration-300 group-hover:scale-110">99.9%</div>
