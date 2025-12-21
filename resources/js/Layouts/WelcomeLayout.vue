@@ -20,6 +20,7 @@ const navItems = [
     { label: 'How It Works', href: '#how-it-works', id: 'how-it-works' },
     { label: 'Advanced', href: '#advanced', id: 'advanced' },
     { label: 'Demo', href: '#demo', id: 'demo' },
+    { label: 'Pricing', href: '#pricing', id: 'pricing' },
 ];
 
 // Footer sections for sidebar
@@ -192,7 +193,7 @@ const openTube = () => {
                             :title="theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
                         >
                             <Sun v-if="theme === 'dark'" class="w-5 h-5 text-yellow-500 rounded-xl" />
-                            <Moon v-else class="w-6 h-6 text-white text-extrabold" />
+                            <Moon v-else class="w-6 h-6 text-extrabold" />
                         </button>
                     </div>
 

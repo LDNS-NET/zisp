@@ -1,8 +1,9 @@
 <script setup>
 import { Head, Link } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import WelcomeLayout from '@/Layouts/WelcomeLayout.vue';
 import Modal from '@/Components/Modal.vue';
+import { countries } from '@/Data/countries';
 
 defineProps({
     canLogin: Boolean,
@@ -14,6 +15,20 @@ defineProps({
 defineOptions({
     layout: WelcomeLayout,
 });
+
+//find selected country and apply prices
+const selectedCountryCode = ref('KE'); // Default to Kenya
+
+const selectedCountry = computed(() => {
+    return (
+        countries.find(c => c.code === selectedCountryCode.value) || {
+            name: 'Default',
+            pppoePricePerMonth: 500,
+            hotspotPricePerMonth: '3%',
+        }
+    )
+})
+
 
 // Animation state
 const hoveredFeature = ref(null);
@@ -338,6 +353,8 @@ const goToDemo = () => {
                 </div>
             </div>
 
+            
+
             <!-- Demo Modal -->
             <div
                 v-if="showDemoModal"
@@ -379,6 +396,95 @@ const goToDemo = () => {
                         </button>
                     </div>
                 </div>
+            </div>
+        </section>
+
+        <section id="pricing">
+            <!--Pricing section for each country-->
+            <div class="mt-10 text-center border-t pt-8 border-gray-300 dark:border-gray-700">
+                <label for="country" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Select Your Country:</label>
+                <select
+                    id="country"
+                    v-model="selectedCountryCode"
+                    class="mx-auto block w-40 rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm"
+                >
+                    <option v-for="country in countries" :key="country.code" :value="country.code">
+                        {{ country.name }}
+                    </option>
+                </select>
+
+
+                <!-- Toggle benefits of PPPoE and Hotspot -->
+                <div class="flex gap-10 mt-8 max-w-4xl mx-auto border border-blue-200/50 dark:border-blue-700/50 rounded-2xl p-6 bg-blue-50/30 dark:bg-blue-900/30 backdrop-blur-md shadow-lg">
+                    
+                    <!-- PPPoE -->
+                    <div class="flex-1 p-6 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md rounded-2xl border border-white/50 dark:border-gray-700/50 shadow-lg">
+                        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-1">
+                            PPPoE Plan for <span class="text-blue-500">{{ selectedCountry.name }}</span>
+                        </h3>
+
+                        <div class="bg-blue-100 dark:bg-gray-700 mb-4 pb-4 rounded-xl">
+                            <p class="text-gray-800 dark:text-gray-200">
+                                <span class="text-xs uppercase text-cyan-500">Price per active user</span><br>
+                                <span class="font-mono font-semibold text-emerald-600">
+                                    {{ selectedCountry.pppoePricePerMonth }}
+                                </span>
+                                {{ selectedCountry.currency || 'KES' }} / Month
+                            </p>
+                        </div>
+
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                            Best for Fiber and Wireless subscriber management
+                        </p>
+
+                        <ul class="space-y-2 text-md text-gray-700 dark:text-gray-300 mb-4 text-left px-6 hover:">
+                            <li>• Unlimited Mikrtik Routers</li>
+                            <li>• Monthly billing & expiry control</li>
+                            <li>• Always-on internet access</li>
+                            <li>• MikroTik & ISP-ready</li>
+                            <li>• Multiple Payment Gateways</li>
+                            <li>• Multiple SMS Gateways</li>
+                            <li>• Instant connection on payments</li>
+                        </ul>
+                    </div>
+
+                    <!-- Hotspot -->
+                    <div class="flex-1 p-6 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md rounded-2xl border border-white/50 dark:border-gray-700/50 shadow-lg">
+                        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-1">
+                            Hotspot Plan for <span class="text-blue-500">{{ selectedCountry.name }}</span>
+                        </h3>
+
+                        <div class="bg-blue-100 dark:bg-gray-700 mb-4 pb-4 rounded-xl">
+                            <p class="text-gray-800 dark:text-gray-200">
+                                <span class="text-xs uppercase text-gray-500">Price per active user</span><br>
+                                <span class="font-mono font-semibold text-emerald-600">
+                                    {{ selectedCountry.hotspotPricePerMonth }}
+                                </span>
+                                {{ selectedCountry.currency || 'USD' }} / transaction
+                            </p>
+                        </div>
+
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                            Best for public Wi-Fi & pay-as-you-go access
+                        </p>
+
+                        <ul class="px-6 space-y-2 text-md text-gray-700 dark:text-gray-300 mb-4 text-left">
+                            <li>• Unlimited MikroTik routers</li>
+                            <li>• Pay-as-you-go access</li>
+                            <li>• STK Push & voucher login</li>
+                            <li>• Session-based billing</li>
+                            <li>• Instant connection on payments</li>
+                            <li>• Self-care customer portal</li>
+                            <li>• Multiple payment gateways</li>
+                            <li>• Multiple SMS gateways</li>
+                            <li>• No limits on revenue</li>
+                        </ul>
+
+                    </div>
+
+                </div>
+
+
             </div>
         </section>
     </div>

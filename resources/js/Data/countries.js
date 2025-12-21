@@ -5,20 +5,18 @@ export const countries = [
     currency: "KES",
     currency_name: "Kenyan Shilling",
     dial_code: "+254",
+    pppoePricePerMonth: 18,
+    hotspotPricePerMonth: "3%",
+  
   },
-  {
-    name: "Nigeria",
-    code: "NG",
-    currency: "NGN",
-    currency_name: "Nigerian Naira",
-    dial_code: "+234",
-  },
-  {
-    name: "Ghana",
-    code: "GH",
-    currency: "GHS",
-    currency_name: "Ghanaian Cedi",
-    dial_code: "+233",
+  {name: "Somalia",
+    code: "SO",
+    currency: "SOS",
+    currency_name: "Somali Shilling",
+    dial_code: "+252",
+    pppoePricePerMonth: 88,
+    hotspotPricePerMonth: "3%",
+
   },
   {
     name: "South Sudan",
@@ -26,6 +24,8 @@ export const countries = [
     currency: "SSP",
     currency_name: "South Sudanese Pound",
     dial_code: "+211",
+    pppoePricePerMonth: 680,
+    hotspotPricePerMonth: "3%",
   },
   {
     name: "Uganda",
@@ -33,6 +33,8 @@ export const countries = [
     currency: "UGX",
     currency_name: "Ugandan Shilling",
     dial_code: "+256",
+    pppoePricePerMonth: 530,
+    hotspotPricePerMonth: "3%",
   },
   {
     name: "Tanzania",
@@ -40,6 +42,26 @@ export const countries = [
     currency: "TZS",
     currency_name: "Tanzanian Shilling",
     dial_code: "+255",
+    pppoePricePerMonth: 350,
+    hotspotPricePerMonth: "3%",
+  },
+  /*{
+    name: "Nigeria",
+    code: "NG",
+    currency: "NGN",
+    currency_name: "Nigerian Naira",
+    dial_code: "+234",
+    pppoePricePerMonth: 220,
+    hotspotPricePerMonth: "3%",
+  },
+  {
+    name: "Ghana",
+    code: "GH",
+    currency: "GHS",
+    currency_name: "Ghanaian Cedi",
+    dial_code: "+233",
+    pppoePricePerMonth: 2,
+    hotspotPricePerMonth: "3%",
   },
   {
     name: "Rwanda",
@@ -47,6 +69,8 @@ export const countries = [
     currency: "RWF",
     currency_name: "Rwandan Franc",
     dial_code: "+250",
+    pppoePricePerMonth: 220,
+    hotspotPricePerMonth: "3%",
   },
   {
     name: "Ethiopia",
@@ -54,6 +78,26 @@ export const countries = [
     currency: "ETB",
     currency_name: "Ethiopian Birr",
     dial_code: "+251",
+    pppoePricePerMonth: 23,
+    hotspotPricePerMonth: "3%",
   },
-  // I can give you the FULL 250-country dataset if you want ↑
+  {
+    name: "Egypt",
+    code: "EG",
+    currency: "EGP",
+    currency_name: "Egyptian Pound",
+    dial_code: "+20",
+    pppoePricePerMonth: 23,
+    hotspotPricePerMonth: "3%",
+  },
+  {
+    name: "South Africa",
+    code: "ZA",
+    currency: "ZAR",
+    currency_name: "South African Rand",
+    dial_code: "+27",
+    pppoePricePerMonth: 120,
+    hotspotPricePerMonth: "3%",
+  },
+  */
 ];
