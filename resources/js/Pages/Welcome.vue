@@ -120,63 +120,93 @@ const goToDemo = () => {
 
     <div class="min-h-screen relative overflow-hidden">
         <!-- Hero Section -->
-        <div class="relative flex min-h-screen flex-col justify-between">
-            <div class="mx-auto flex max-w-7xl w-full flex-col-reverse items-center gap-16 pt-20 lg:flex-row px-4 sm:px-6 lg:px-8">
-                <div class="max-w-2xl text-center lg:text-left flex-1 animate-fade-in">
-                    <div class="mb-6 inline-block rounded-full bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/30 px-4 py-2 text-sm font-semibold text-emerald-700 dark:text-emerald-300 backdrop-blur-md border border-emerald-200/60 dark:border-emerald-700/60 shadow-sm transition-all duration-300 hover:shadow-md hover:border-emerald-300/80 dark:hover:border-emerald-600/80">
-                        <span class="inline-block mr-2">✨</span>Top ISP Management Platform In Africa
-                    </div>
-                    
-                    <h1 class="mb-6 text-5xl sm:text-6xl lg:text-7xl font-extrabold leading-tight text-gray-900 dark:text-white tracking-tight">
-                        Empower Your ISP with
-                        <span class="block mt-2 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 dark:from-emerald-300 dark:via-teal-300 dark:to-cyan-300 bg-clip-text text-transparent bg-size-200 animate-gradient">Zyraaf Cloud</span>
-                    </h1>
-                    
-                    <p class="mt-8 text-xl leading-relaxed text-gray-700 dark:text-gray-300 max-w-xl font-light">
-                        The all-in-one platform for billing, bandwidth management, and customer experience. Seamless M-Pesa payments, advanced Mikrotik controls, and automated invoicing – all from one powerful dashboard.
-                    </p>
+        <div class="relative overflow-hidden">
+    <!-- Soft background accents -->
+        <div class="absolute -top-24 -right-24 h-96 w-96 rounded-full bg-emerald-500/10 blur-3xl"></div>
+        <div class="absolute -bottom-24 -left-24 h-96 w-96 rounded-full bg-cyan-500/10 blur-3xl"></div>
 
-                    <div class="mt-12 flex flex-col justify-center gap-4 sm:flex-row lg:justify-start">
-                        <Link
-                            v-if="canRegister"
-                            :href="route('register')"
-                            class="group inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-8 py-4 font-bold text-white shadow-xl transition-all duration-300 hover:shadow-2xl hover:scale-105 hover:-translate-y-1 dark:from-emerald-500 dark:to-teal-500 active:scale-95"
-                        >
-                            <span class="relative z-10">Start Free Trial</span>
-                            <svg class="ml-2 h-5 w-5 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                            </svg>
-                        </Link>
-                        <Link
-                            v-if="canLogin"
-                            :href="route('login')"
-                            class="group inline-flex items-center justify-center rounded-xl border-2 border-emerald-600 dark:border-emerald-400 bg-white/80 dark:bg-slate-800/80 px-8 py-4 font-bold text-emerald-600 dark:text-emerald-400 shadow-lg backdrop-blur-sm transition-all duration-300 hover:scale-105 hover:bg-emerald-50 dark:hover:bg-slate-700/80 hover:shadow-xl active:scale-95"
-                        >
-                            <span class="relative z-10">Log In</span>
-                            <svg class="ml-2 h-5 w-5 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h2m0-16V9a2 2 0 012 2m0 0h2a2 2 0 012-2m0 0V5a2 2 0 00-2-2m0 16V9a2 2 0 012 2m0 0h2a2 2 0 00-2 2v2" />
-                            </svg>
-                        </Link>
-                    </div>
+        <div class="relative mx-auto flex max-w-7xl w-full flex-col-reverse items-center gap-20 pt-24 lg:flex-row px-4 sm:px-6 lg:px-8">
 
-                    <!-- Stats -->
-                    <div class="mt-16 grid grid-cols-3 gap-8">
-                        <div class="text-center group">
-                            <div class="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 dark:from-emerald-400 dark:to-teal-400 bg-clip-text text-transparent transition-all duration-300 group-hover:scale-110">100+</div>
-                            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400 font-medium">Active ISP's</p>
-                        </div>
-                        <div class="text-center group">
-                            <div class="text-3xl font-bold bg-gradient-to-r from-teal-600 to-cyan-600 dark:from-teal-400 dark:to-cyan-400 bg-clip-text text-transparent transition-all duration-300 group-hover:scale-110">99.9%</div>
-                            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400 font-medium">Uptime</p>
-                        </div>
-                        <div class="text-center group">
-                            <div class="text-3xl font-bold bg-gradient-to-r from-cyan-600 to-sky-600 dark:from-cyan-400 dark:to-sky-400 bg-clip-text text-transparent transition-all duration-300 group-hover:scale-110">24/7</div>
-                            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400 font-medium">Support</p>
-                        </div>
+            <!-- LEFT: Copy -->
+            <div class="max-w-2xl text-center lg:text-left flex-1 animate-fade-in">
+                <!-- Badge -->
+                <div class="mb-6 inline-flex items-center gap-2 rounded-full bg-white/80 dark:bg-gray-800/80 px-4 py-2 text-sm font-semibold text-emerald-700 dark:text-emerald-300 backdrop-blur border border-emerald-200/60 dark:border-emerald-700/60 shadow-sm">
+                    ✨ Top ISP Management Platform in Africa
+                </div>
+
+                <h1 class="mb-6 text-5xl sm:text-6xl lg:text-7xl font-extrabold leading-tight text-gray-900 dark:text-white">
+                    Empower Your ISP with
+                    <span class="block mt-2 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 bg-clip-text text-transparent">
+                        Zyraaf Cloud
+                    </span>
+                </h1>
+
+                <p class="mt-6 text-xl text-gray-700 dark:text-gray-300 max-w-xl">
+                    Billing, bandwidth control, payments, and customer management —
+                    built specifically for African ISPs using MikroTik.
+                </p>
+
+                <!-- CTA -->
+                <div class="mt-10 flex flex-col gap-4 sm:flex-row lg:justify-start justify-center">
+                    <Link
+                        v-if="canRegister"
+                        :href="route('register')"
+                        class="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-8 py-4 font-bold text-white shadow-xl hover:scale-105 transition"
+                    >
+                        Start Free Trial →
+                    </Link>
+
+                    <Link
+                        v-if="canLogin"
+                        :href="route('login')"
+                        class="inline-flex items-center justify-center rounded-xl border border-emerald-500 px-8 py-4 font-bold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-gray-800 transition"
+                    >
+                        Log In
+                    </Link>
+                </div>
+
+                <!-- Trust stats -->
+                <div class="mt-14 grid grid-cols-3 gap-6 max-w-lg mx-auto lg:mx-0">
+                    <div class="rounded-xl bg-white/70 dark:bg-gray-800/70 p-4 text-center backdrop-blur border">
+                        <div class="text-2xl font-bold text-emerald-600">100+</div>
+                        <p class="text-xs text-gray-600 dark:text-gray-400">Active ISPs</p>
+                    </div>
+                    <div class="rounded-xl bg-white/70 dark:bg-gray-800/70 p-4 text-center backdrop-blur border">
+                        <div class="text-2xl font-bold text-teal-600">99.9%</div>
+                        <p class="text-xs text-gray-600 dark:text-gray-400">Uptime</p>
+                    </div>
+                    <div class="rounded-xl bg-white/70 dark:bg-gray-800/70 p-4 text-center backdrop-blur border">
+                        <div class="text-2xl font-bold text-cyan-600">24/7</div>
+                        <p class="text-xs text-gray-600 dark:text-gray-400">Support</p>
                     </div>
                 </div>
             </div>
+
+            <!-- RIGHT: Visual feature card -->
+            <div class="flex-1 max-w-lg w-full">
+                <div class="relative rounded-3xl bg-transparent dark:bg-gray-800/20 backdrop-blur-xl border border-white/50 dark:border-gray-700 shadow-2xl p-8">
+                    
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-6">
+                        Everything your ISP needs
+                    </h3>
+
+                    <ul class="space-y-4 text-gray-700 dark:text-gray-300">
+                        <li>⚡ PPPoE & Hotspot billing</li>
+                        <li>📡 MikroTik router management</li>
+                        <li>💳 Payment automation</li>
+                        <li>📩 SMS & customer notifications</li>
+                        <li>📊 Real-time usage & analytics</li>
+                    </ul>
+
+                    <div class="mt-6 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 p-4 text-sm text-emerald-700 dark:text-emerald-300">
+                        Designed for scale - from small to large Deployements.
+                    </div>
+                </div>
+            </div>
+
         </div>
+    </div>
+
 
         <!-- Feature Grid -->
         <section id="features" class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-24">

@@ -20,7 +20,6 @@ const navItems = [
     { label: 'How It Works', href: '#how-it-works', id: 'how-it-works' },
     { label: 'Advanced', href: '#advanced', id: 'advanced' },
     { label: 'Demo', href: '#demo', id: 'demo' },
-    { label: 'Pricing', href: '#pricing', id: 'pricing' },
 ];
 
 // Footer sections for sidebar
@@ -28,12 +27,12 @@ const sidebarSections = [
     {
         title: 'Product',
         links: [
-            { label: 'Features', href: '#' },
-            { label: 'Pricing', href: '#' },
-            { label: 'Security', href: '#' },
+            { label: 'Features', href: '#features', id: 'features' },
+            { label: 'Pricing', href: '#pricing', id: 'pricing' },
+            //{ label: 'Security', href: '#' },
         ],
     },
-    {
+    /*{
         title: 'Company',
         links: [
             { label: 'About', href: '#' },
@@ -56,7 +55,7 @@ const sidebarSections = [
             { label: 'Terms', href: '#' },
             { label: 'Contact', href: '#' },
         ],
-    },
+    },*/
 ];
 
 // Handle scroll for navbar background
