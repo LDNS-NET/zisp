@@ -428,95 +428,132 @@ const goToDemo = () => {
                 </div>
             </div>
         </section>
+        
 
-        <section id="pricing">
-            <!--Pricing section for each country-->
-            <div class="mt-10 text-center border-t pt-8 border-gray-300 dark:border-gray-700">
-                <label for="country" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Select Your Country:</label>
-                <select
-                    id="country"
-                    v-model="selectedCountryCode"
-                    class="mx-auto block w-40 rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm"
+        <section id="pricing" class="relative mt-20">
+    <!-- subtle background -->
+    <div class="absolute inset-0 -z-10 bg-gradient-to-br from-blue-50/40 via-transparent to-cyan-50/40 dark:from-blue-900/20 dark:to-cyan-900/20"></div>
+
+    <div class="text-center border-t pt-12 border-gray-300 dark:border-gray-700 px-4">
+        <!-- Country selector -->
+        <div class="animate-fade-in-up">
+            <label
+                for="country"
+                class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3"
+            >
+                Select your country to view pricing
+            </label>
+
+            <select
+                id="country"
+                v-model="selectedCountryCode"
+                class="mx-auto block w-full max-w-xs rounded-lg border-gray-300 dark:border-gray-600
+                       bg-white dark:bg-gray-800 px-4 py-3 text-gray-900 dark:text-gray-100
+                       shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm"
+            >
+                <option
+                    v-for="country in countries"
+                    :key="country.code"
+                    :value="country.code"
                 >
-                    <option v-for="country in countries" :key="country.code" :value="country.code">
-                        {{ country.name }}
-                    </option>
-                </select>
+                    {{ country.name }}
+                </option>
+            </select>
+        </div>
 
+        <!-- Pricing cards -->
+        <div
+            class="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto
+                   rounded-2xl border border-blue-200/50 dark:border-blue-700/50
+                   bg-blue-50/30 dark:bg-blue-900/30 backdrop-blur-md
+                   p-4 sm:p-6 shadow-lg animate-fade-in-up delay-150"
+        >
+            <!-- PPPoE -->
+            <div
+                class="group p-6 bg-white/80 dark:bg-gray-800/80 rounded-2xl
+                       border border-white/50 dark:border-gray-700/50
+                       shadow-lg transition-all duration-300
+                       hover:-translate-y-1 hover:shadow-2xl"
+            >
+                <h3 class="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
+                    PPPoE Plan
+                    <span class="block text-sm font-medium text-blue-500">
+                        {{ selectedCountry.name }}
+                    </span>
+                </h3>
 
-                <!-- Toggle benefits of PPPoE and Hotspot -->
-                <div class="flex gap-10 mt-8 max-w-4xl mx-auto border border-blue-200/50 dark:border-blue-700/50 rounded-2xl p-6 bg-blue-50/30 dark:bg-blue-900/30 backdrop-blur-md shadow-lg">
-                    
-                    <!-- PPPoE -->
-                    <div class="flex-1 p-6 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md rounded-2xl border border-white/50 dark:border-gray-700/50 shadow-lg">
-                        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-1">
-                            PPPoE Plan for <span class="text-blue-500">{{ selectedCountry.name }}</span>
-                        </h3>
-
-                        <div class="bg-blue-100 dark:bg-gray-700 mb-4 pb-4 rounded-xl">
-                            <p class="text-gray-800 dark:text-gray-200">
-                                <span class="text-xs uppercase text-cyan-500">Price per active user</span><br>
-                                <span class="font-mono font-semibold text-emerald-600">
-                                    {{ selectedCountry.pppoePricePerMonth }}
-                                </span>
-                                {{ selectedCountry.currency || 'KES' }} / Month
-                            </p>
-                        </div>
-
-                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                            Best for Fiber and Wireless subscriber management
-                        </p>
-
-                        <ul class="space-y-2 text-md text-gray-700 dark:text-gray-300 mb-4 text-left px-6 hover:">
-                            <li>• Unlimited Mikrtik Routers</li>
-                            <li>• Monthly billing & expiry control</li>
-                            <li>• Always-on internet access</li>
-                            <li>• MikroTik & ISP-ready</li>
-                            <li>• Multiple Payment Gateways</li>
-                            <li>• Multiple SMS Gateways</li>
-                            <li>• Instant connection on payments</li>
-                        </ul>
+                <div class="mt-4 rounded-xl bg-blue-100 dark:bg-gray-700 p-4 text-center sm:text-left">
+                    <span class="block text-xs uppercase tracking-wide text-cyan-500">
+                        Price per active user
+                    </span>
+                    <div class="mt-1 text-2xl font-mono font-bold text-emerald-600">
+                        {{ selectedCountry.pppoePricePerMonth }}
+                        <span class="text-sm font-medium text-gray-500">
+                            {{ selectedCountry.currency || 'KES' }} / month
+                        </span>
                     </div>
-
-                    <!-- Hotspot -->
-                    <div class="flex-1 p-6 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md rounded-2xl border border-white/50 dark:border-gray-700/50 shadow-lg">
-                        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-1">
-                            Hotspot Plan for <span class="text-blue-500">{{ selectedCountry.name }}</span>
-                        </h3>
-
-                        <div class="bg-blue-100 dark:bg-gray-700 mb-4 pb-4 rounded-xl">
-                            <p class="text-gray-800 dark:text-gray-200">
-                                <span class="text-xs uppercase text-gray-500">Price per active user</span><br>
-                                <span class="font-mono font-semibold text-emerald-600">
-                                    {{ selectedCountry.hotspotPricePerMonth }}
-                                </span>
-                                {{ selectedCountry.currency || 'USD' }} / transaction
-                            </p>
-                        </div>
-
-                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                            Best for public Wi-Fi & pay-as-you-go access
-                        </p>
-
-                        <ul class="px-6 space-y-2 text-md text-gray-700 dark:text-gray-300 mb-4 text-left">
-                            <li>• Unlimited MikroTik routers</li>
-                            <li>• Pay-as-you-go access</li>
-                            <li>• STK Push & voucher login</li>
-                            <li>• Session-based billing</li>
-                            <li>• Instant connection on payments</li>
-                            <li>• Self-care customer portal</li>
-                            <li>• Multiple payment gateways</li>
-                            <li>• Multiple SMS gateways</li>
-                            <li>• No limits on revenue</li>
-                        </ul>
-
-                    </div>
-
                 </div>
 
+                <p class="mt-4 text-sm text-gray-600 dark:text-gray-400">
+                    Best for fiber & wireless ISP subscribers
+                </p>
 
+                <ul class="mt-6 space-y-2 text-sm text-gray-700 dark:text-gray-300 text-left">
+                    <li>✔ Unlimited MikroTik routers</li>
+                    <li>✔ Monthly billing & expiry control</li>
+                    <li>✔ Always-on internet access</li>
+                    <li>✔ ISP & MikroTik ready</li>
+                    <li>✔ Multiple payment gateways</li>
+                    <li>✔ Multiple SMS gateways</li>
+                    <li>✔ Instant connection on payment</li>
+                </ul>
             </div>
-        </section>
+
+            <!-- Hotspot -->
+            <div
+                class="group p-6 bg-white/80 dark:bg-gray-800/80 rounded-2xl
+                       border border-white/50 dark:border-gray-700/50
+                       shadow-lg transition-all duration-300
+                       hover:-translate-y-1 hover:shadow-2xl"
+            >
+                <h3 class="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
+                    Hotspot Plan
+                    <span class="block text-sm font-medium text-blue-500">
+                        {{ selectedCountry.name }}
+                    </span>
+                </h3>
+
+                <div class="mt-4 rounded-xl bg-blue-100 dark:bg-gray-700 p-4 text-center sm:text-left">
+                    <span class="block text-xs uppercase tracking-wide text-cyan-500">
+                        Revenue based pricing
+                    </span>
+                    <div class="mt-1 text-2xl font-mono font-bold text-emerald-600">
+                        {{ selectedCountry.hotspotPricePerMonth }}
+                        <span class="text-sm font-medium text-gray-500">
+                            per transaction
+                        </span>
+                    </div>
+                </div>
+
+                <p class="mt-4 text-sm text-gray-600 dark:text-gray-400">
+                    Best for public Wi-Fi & pay-as-you-go access
+                </p>
+
+                <ul class="mt-6 space-y-2 text-sm text-gray-700 dark:text-gray-300 text-left">
+                    <li>✔ Unlimited MikroTik routers</li>
+                    <li>✔ Pay-as-you-go access</li>
+                    <li>✔ STK Push & voucher login</li>
+                    <li>✔ Session-based billing</li>
+                    <li>✔ Instant connection on payment</li>
+                    <li>✔ Customer self-care portal</li>
+                    <li>✔ Multiple payment & SMS gateways</li>
+                    <li>✔ No revenue limits</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
     </div>
 </template>
 
@@ -566,5 +603,8 @@ const goToDemo = () => {
 .animate-gradient {
     background-size: 200% 200%;
     animation: gradient 3s ease infinite;
+}
+.delay-150 {
+    animation-delay: 150ms;
 }
 </style>
