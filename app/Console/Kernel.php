@@ -19,7 +19,7 @@ class Kernel extends ConsoleKernel
 
 
         // Sync WireGuard peers every minute to pick up new registrations quickly
-        $schedule->command('wireguard:sync-peers')->everyFourMinutes();
+        $schedule->command('wireguard:sync-peers')->everyMinute()->withoutOverlapping()->runInBackground();
 
         // Disconnect expired users who are still active (every 10 minutes)
         $schedule->command('users:disconnect-expired')->everyTenMinutes();
