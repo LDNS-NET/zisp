@@ -130,7 +130,7 @@ class TenantHotspotController extends Controller
                 'intasend_reference' => $responseData['id'] ?? $responseData['invoice'] ?? null,
                 'intasend_checkout_id' => $responseData['checkout_id'] ?? null,
                 'response' => $responseData,
-                'created_by' => $tenant->id,
+                'created_by' => auth()->id(),
             ]);
 
             // Queue job to check payment status
