@@ -1,9 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue';
-import { usePage, router } from '@inertiajs/vue3';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-import DangerButton from '@/Components/DangerButton.vue';
-import SecondaryButton from '@/Components/SecondaryButton.vue';
+import { usePage } from '@inertiajs/vue3';
 import Modal from '@/Components/Modal.vue';
 
 const showModal = ref(false);
@@ -16,33 +13,25 @@ const userCredentials = ref(null);
 const isCheckingPayment = ref(false);
 const pollingInterval = ref(null);
 const paymentAttempts = ref(0);
-const maxPollingAttempts = 20; // Check for up to 10 minutes (20 * 30 seconds)
+const maxPollingAttempts = 20;
 
-// Packages received from Inertia
 const page = usePage();
-const hotspots = computed(() => {
-    const packages = page.props?.packages || [];
-    console.log('Loaded packages:', packages);
-    return packages;
-});
+const hotspots = computed(() => page.props.value.packages || []);
 
 function openModal(hotspot) {
-    console.log('Opening modal for hotspot:', hotspot);
     selectedHotspot.value = hotspot;
     phoneNumber.value = '';
     paymentMessage.value = '';
     paymentError.value = '';
+    userCredentials.value = null;
     showModal.value = true;
-    console.log('showModal set to:', showModal.value);
 }
 
 function closeModal() {
-    // Clear any active polling
     if (pollingInterval.value) {
         clearInterval(pollingInterval.value);
         pollingInterval.value = null;
     }
-    
     showModal.value = false;
     selectedHotspot.value = null;
     phoneNumber.value = '';
@@ -55,12 +44,10 @@ function closeModal() {
 
 async function checkPaymentStatus() {
     if (!selectedHotspot.value || !phoneNumber.value) return;
-    
+
     isCheckingPayment.value = true;
-    
+
     try {
-        console.log(`Checking payment status for phone: ${phoneNumber.value}, attempt: ${paymentAttempts.value + 1}`);
-        
         const response = await fetch('/hotspot/callback', {
             method: 'POST',
             headers: {
@@ -72,240 +59,113 @@ async function checkPaymentStatus() {
                 package_id: selectedHotspot.value.id
             })
         });
-        
+
         const data = await response.json();
-        console.log('Payment status response:', data);
-        
+
         if (data.success && data.user) {
             userCredentials.value = data.user;
-            paymentMessage.value = data.message;
+            paymentMessage.value = data.message || 'Payment confirmed!';
             paymentError.value = '';
-            
-            // Stop polling on success
             if (pollingInterval.value) {
                 clearInterval(pollingInterval.value);
                 pollingInterval.value = null;
             }
-            
-            // Auto-close modal after showing credentials
-            setTimeout(() => {
-                closeModal();
-            }, 10000);
+            setTimeout(() => closeModal(), 10000);
         } else {
-            paymentError.value = data.message || 'Payment not confirmed yet. Please try again in a moment.';
-            console.log('Payment not confirmed yet:', data.message);
+            paymentError.value = data.message || 'Payment not confirmed yet.';
         }
     } catch (error) {
-        console.error('Error checking payment status:', error);
-        paymentError.value = 'Failed to check payment status. Please try again.';
+        paymentError.value = 'Failed to check payment status. Try again.';
+        console.error(error);
     } finally {
         isCheckingPayment.value = false;
     }
 }
 
 function startPaymentPolling() {
-    console.log('Starting payment polling...');
     paymentAttempts.value = 0;
-    
-    // Clear any existing polling
-    if (pollingInterval.value) {
-        clearInterval(pollingInterval.value);
-    }
-    
-    // Start polling every 30 seconds
+
+    if (pollingInterval.value) clearInterval(pollingInterval.value);
+
     pollingInterval.value = setInterval(async () => {
         paymentAttempts.value++;
-        console.log(`Polling attempt ${paymentAttempts.value} of ${maxPollingAttempts}`);
-        
-        // Check if we've exceeded max attempts
         if (paymentAttempts.value >= maxPollingAttempts) {
-            console.log('Max polling attempts reached, stopping polling');
-            if (pollingInterval.value) {
-                clearInterval(pollingInterval.value);
-                pollingInterval.value = null;
-            }
-            
-            paymentError.value = 'Payment confirmation timeout. Please click "Check Payment Status" to try again.';
+            clearInterval(pollingInterval.value);
+            pollingInterval.value = null;
+            paymentError.value = 'Payment confirmation timeout. Click "Check Payment Status".';
             return;
         }
-        
-        // Check payment status
-        try {
-            const response = await fetch('/hotspot/callback', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                },
-                body: JSON.stringify({
-                    phone: phoneNumber.value,
-                    package_id: selectedHotspot.value.id
-                })
-            });
-            
-            const data = await response.json();
-            console.log(`Polling response (attempt ${paymentAttempts.value}):`, data);
-            
-            if (data.success && data.user) {
-                console.log('Payment confirmed! Stopping polling and showing credentials');
-                userCredentials.value = data.user;
-                paymentMessage.value = data.message;
-                paymentError.value = '';
-                
-                // Stop polling on success
-                if (pollingInterval.value) {
-                    clearInterval(pollingInterval.value);
-                    pollingInterval.value = null;
-                }
-                
-                // Auto-close modal after showing credentials
-                setTimeout(() => {
-                    closeModal();
-                }, 10000);
-            } else {
-                console.log(`Payment still pending (attempt ${paymentAttempts.value}): ${data.message}`);
-                // Update message to show we're still checking
-                if (!userCredentials.value) {
-                    paymentMessage.value = `STK Push sent! Checking payment status... (${paymentAttempts.value}/${maxPollingAttempts})`;
-                }
-            }
-        } catch (error) {
-            console.error(`Polling error (attempt ${paymentAttempts.value}):`, error);
-            // Continue polling on error, but log it
-        }
-    }, 30000); // Check every 30 seconds
+        await checkPaymentStatus();
+    }, 30000);
 }
 
 async function processPayment() {
-    console.log('Process payment called');
-    console.log('Phone number:', phoneNumber.value);
-    console.log('Selected hotspot:', selectedHotspot.value);
-    
-    // Updated validation to accept multiple formats
     if (!phoneNumber.value.match(/^(01\d{8}|07\d{8}|254\d{9}|2547\d{8}|2541\d{8})$/)) {
-        console.log('Phone validation failed');
-        paymentError.value = 'Please enter a valid Safaricom number (01XXXXXXXX, 07XXXXXXXX, 254XXXXXXXX, 2541XXXXXXXX, or 2547XXXXXXXX)';
+        paymentError.value = 'Enter a valid Safaricom number';
         return;
     }
 
-    console.log('Phone validation passed, starting payment...');
     isProcessing.value = true;
     paymentError.value = '';
     paymentMessage.value = '';
 
     try {
-        const payload = {
-            package_id: selectedHotspot.value.id,
-            phone: phoneNumber.value,
-            email: 'customer@example.com' // Optional email
-        };
-        console.log('Sending payload:', payload);
-
         const response = await fetch('/hotspot/checkout', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
             },
-            body: JSON.stringify(payload)
+            body: JSON.stringify({
+                package_id: selectedHotspot.value.id,
+                phone: phoneNumber.value,
+                email: 'customer@example.com'
+            })
         });
 
-        console.log('Response status:', response.status);
-        if (response.ok) {
-            const data = await response.json();
-            console.log('Payment response:', data);
-            
-            if (data.success) {
-                paymentMessage.value = data.message;
-                paymentError.value = '';
-                
-                // Start polling for payment confirmation
-                startPaymentPolling();
-                
-                showToast('STK Push sent successfully! Please complete the payment on your phone.', 'success');
-            } else {
-                paymentError.value = data.message;
-                showToast(data.message, 'error');
-            }
+        const data = await response.json();
+
+        if (data.success) {
+            paymentMessage.value = data.message;
+            startPaymentPolling();
+            showToast('STK Push sent! Complete payment on your phone.', 'success');
         } else {
-            const errorData = await response.json();
-            console.error('Payment error:', errorData);
-            paymentError.value = errorData.message || 'Payment failed';
-            showToast(errorData.message || 'Payment failed', 'error');
+            paymentError.value = data.message;
+            showToast(data.message, 'error');
         }
     } catch (error) {
-        console.error('Payment error:', error);
-        paymentError.value = 'Payment failed. Please try again.';
-        showToast('Payment failed. Please try again.', 'error');
+        console.error(error);
+        paymentError.value = 'Payment failed. Try again.';
+        showToast('Payment failed. Try again.', 'error');
     } finally {
         isProcessing.value = false;
     }
 }
 
-// Toast notification function
 function showToast(message, type = 'info') {
-    // Create toast element
     const toast = document.createElement('div');
-    toast.className = `fixed top-4 right-4 px-6 py-3 rounded-lg text-white font-medium z-50 transition-all duration-300 transform translate-x-full`;
-    
-    // Set color based on type
-    if (type === 'success') {
-        toast.classList.add('bg-green-500');
-    } else if (type === 'error') {
-        toast.classList.add('bg-red-500');
-    } else {
-        toast.classList.add('bg-blue-500');
-    }
-    
+    toast.className = `fixed top-4 right-4 px-6 py-3 rounded-lg text-white z-50 transition-all duration-300 transform translate-x-full ${
+        type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500'
+    }`;
     toast.textContent = message;
     document.body.appendChild(toast);
-    
-    // Animate in
     setTimeout(() => {
         toast.classList.remove('translate-x-full');
         toast.classList.add('translate-x-0');
     }, 100);
-    
-    // Remove after 5 seconds
     setTimeout(() => {
         toast.classList.add('translate-x-full');
-        setTimeout(() => {
-            document.body.removeChild(toast);
-        }, 300);
+        setTimeout(() => document.body.removeChild(toast), 300);
     }, 5000);
 }
 
 function formatPhoneNumber(event) {
     let value = event.target.value.replace(/\D/g, '');
-    
-    // Only format for display, but keep the original value
-    // Let the backend handle the conversion to 2547 format
-    if (value.startsWith('01') && value.length >= 10) {
-        // Keep as 01... format for backend
-        value = value;
-    } else if (value.startsWith('07') && value.length >= 10) {
-        // Keep as 07... format for backend
-        value = value;
-    } else if (value.startsWith('1') && value.length >= 9) {
-        // Convert to 01... format
-        value = '01' + value.substring(1);
-    } else if (value.startsWith('7') && value.length >= 9) {
-        // Convert to 07... format
-        value = '07' + value;
-    } else if (value.startsWith('2547') && value.length >= 12) {
-        // Already in correct format, keep as is
-        value = value;
-    } else if (value.startsWith('2541') && value.length >= 12) {
-        // Already in correct format, keep as is
-        value = value;
-    } else if (value.startsWith('254') && value.length >= 12) {
-        // Keep as 254... format for backend
-        value = value;
-    }
-    
+    if (value.startsWith('7') && value.length >= 9) value = '07' + value;
     phoneNumber.value = value;
 }
 </script>
+
 
 <template>
     <Head title="Hotspot" />
