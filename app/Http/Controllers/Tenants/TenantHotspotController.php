@@ -66,12 +66,12 @@ class TenantHotspotController extends Controller
     {
         try {
             $request->validate([
-                'package_id' => 'required|exists:tenant_hotspot_packages,id',
+                'hotspot_package_id' => 'required|exists:tenant_hotspot_packages,id',
                 'phone' => 'required|string',
                 'email' => 'nullable|email',
             ]);
 
-            $package = $this->findTenantPackage($request->package_id);
+            $package = $this->findTenantPackage($request->hotspot_package_id);
             $amount = $package->price;
             $phone = $request->phone;
 
