@@ -28,7 +28,7 @@ class TenantHotspotController extends Controller
         $tenant = Tenant::where('subdomain', $subdomain)->firstOrFail();
 
         // Get packages belonging to this tenant
-        $packages = TenantHotspotPackage::where('tenant_id', $tenant->id)->get();
+        $packages = TenantHotspot::where('tenant_id', $tenant->id)->get();
 
         // Return to Inertia
         return inertia('Hotspot/Index', [
