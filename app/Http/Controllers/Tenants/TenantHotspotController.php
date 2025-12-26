@@ -47,7 +47,7 @@ class TenantHotspotController extends Controller
             'phone' => 'required|string|regex:/^(01\d{8}|07\d{8}|254\d{9}|2547\d{8}|2541\d{8})$/',
         ]);
 
-        $package = TenantHotspot::findOrFail($data['id']);
+        $package = $this->findTenantPackage($data['id']);
         // Forward to TenantPaymentController
         $paymentController = new TenantPaymentController();
         $request->merge([
@@ -71,7 +71,7 @@ class TenantHotspotController extends Controller
                 'email' => 'nullable|email',
             ]);
 
-            $package = TenantHotspot::findOrFail($request->package_id);
+            $package = $this->findTenantPackage($request->package_id);
             $amount = $package->price;
             $phone = $request->phone;
 
@@ -83,13 +83,10 @@ class TenantHotspotController extends Controller
             ]);
 
             // Accept phone in 07xxxxxxxx or 01xxxxxxxx or 2547xxxxxxxx or 2541xxxxxxxx
-            if (preg_match('/^(07|01)\d{8}$/', $phone)) {
-                // Convert to 2547xxxxxxxx or 2541xxxxxxxx
-                $phone = '254' . substr($phone, 1);
-            }
-            if (!preg_match('/^254(7|1)\d{8}$/', $phone)) {
-                \Log::error('Invalid phone format for STK Push', ['phone' => $phone]);
-                return response()->json(['success' => false, 'message' => 'Invalid phone number format. Use 07xxxxxxxx, 01xxxxxxxx, or 2547xxxxxxxx/2541xxxxxxxx.']);
+            $phone = $this->formatPhoneNumber($request->phone);
+            if (!$phone) {
+                \Log::warning('Invalid phone number format', ['phone' => $request->phone]);
+                return response()->json(['success' => false, 'message' => 'Invalid phone number format. Use 07xxxxxxxx, 01xxxxxxxx, or 2547xxxxxxxx format.']);
             }
 
             $credentials = [
@@ -227,7 +224,7 @@ class TenantHotspotController extends Controller
                 ]);
 
                 // Create user if payment is paid but no user exists
-                $package = TenantHotspot::find($request->package_id);
+                $package = $this->findTenantPackage($request->package_id);
                 return $this->handleSuccessfulPayment($payment, $package);
             }
 
@@ -264,7 +261,7 @@ class TenantHotspotController extends Controller
                 $payment->paid_at = now();
                 $payment->save();
 
-                $package = TenantHotspot::find($request->package_id);
+                $package = $this->findTenantPackage($request->package_id);
                 return $this->handleSuccessfulPayment($payment, $package);
             }
 
@@ -331,7 +328,7 @@ class TenantHotspotController extends Controller
                 'phone' => $payment->phone,
                 'type' => 'hotspot',
                 'package_id' => $package->id,
-                'expires_at' => now()->addDays($package->duration),
+                'expires_at' => $this->calculateExpiry($package),
                 'registered_at' => now(),
             ]);
 
@@ -340,7 +337,7 @@ class TenantHotspotController extends Controller
                 'username' => $username,
                 'phone' => $payment->phone,
                 'package' => $package->name,
-                'duration' => $package->duration,
+                'duration' => $package->duration_value . ' ' . $package->duration_unit,
                 'expires_at' => $user->expires_at
             ]);
 
@@ -352,7 +349,7 @@ class TenantHotspotController extends Controller
                     'password' => $plainPassword,
                     'expires_at' => $user->expires_at->toDateTimeString(),
                     'package_name' => $package->name,
-                    'duration_days' => $package->duration,
+                    'duration_days' => $package->duration_value . ' ' . $package->duration_unit,
                 ]
             ]);
 
@@ -396,5 +393,29 @@ class TenantHotspotController extends Controller
             return $phone;
         }
         return null;
+    }
+
+    private function findTenantPackage(int $id): TenantHotspot
+    {
+        $host = request()->getHost();
+        $subdomain = explode('.', $host)[0];
+
+        $tenant = Tenant::where('subdomain', $subdomain)->firstOrFail();
+
+        return TenantHotspot::where('id', $id)
+            ->where('tenant_id', $tenant->id)
+            ->firstOrFail();
+    }
+
+    private function calculateExpiry(TenantHotspot $package)
+    {
+        return match ($package->duration_unit) {
+            'minutes' => now()->addMinutes($package->duration_value),
+            'hours'   => now()->addHours($package->duration_value),
+            'days'    => now()->addDays($package->duration_value),
+            'weeks'   => now()->addWeeks($package->duration_value),
+            'months'  => now()->addMonths($package->duration_value),
+            default   => now()->addDays(1),
+        };
     }
 }
