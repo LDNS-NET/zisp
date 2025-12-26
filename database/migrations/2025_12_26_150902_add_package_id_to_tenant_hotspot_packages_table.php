@@ -12,8 +12,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('tenant_hotspot_packages', function (Blueprint $table) {
-            $table->unsignedBigInteger('package_id')->after('id')->nullable();
-        });
+        $table->unsignedBigInteger('package_id')->after('id')->nullable();
+        $table->foreign('package_id')->references('id')->on('packages')->onDelete('cascade');
+    });
+
     }
 
 
@@ -23,7 +25,9 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('tenant_hotspot_packages', function (Blueprint $table) {
+            $table->dropForeign(['package_id']);
             $table->dropColumn('package_id');
+
         });
     }
 };
