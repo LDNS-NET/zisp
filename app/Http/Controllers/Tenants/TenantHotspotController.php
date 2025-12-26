@@ -8,6 +8,7 @@ use App\Models\Tenants\TenantPayment;
 use App\Models\Tenants\NetworkUser;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use App\Models\Tenant;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use App\Jobs\CheckIntaSendPaymentStatusJob;
