@@ -25,7 +25,7 @@ return new class extends Migration
     $table->string('name');
 
     $table->unsignedInteger('duration_value'); // e.g. 30
-    $table->enum('duration_unit', ['minutes', 'hours', 'days']);
+    $table->enum('duration_unit', ['minutes', 'hours', 'days',]);
 
     $table->unsignedInteger('price'); // store in cents if possible
     $table->unsignedTinyInteger('device_limit')->default(1);
