@@ -47,7 +47,7 @@ class TenantHotspotController extends Controller
             'phone' => 'required|string|regex:/^(01\d{8}|07\d{8}|254\d{9}|2547\d{8}|2541\d{8})$/',
         ]);
 
-        $package = TenantHotspot::findOrFail($data['id']);
+        $package = TenantHotspot::findOrFail($data['package_id']);
 
         // Forward to TenantPaymentController
         $paymentController = new TenantPaymentController();
