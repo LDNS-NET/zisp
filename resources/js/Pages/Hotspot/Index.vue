@@ -69,7 +69,7 @@ async function checkPaymentStatus() {
             },
             body: JSON.stringify({
                 phone: phoneNumber.value,
-                package_id: selectedHotspot.value.id
+                hotspot_package_id: selectedHotspot.value.id
             })
         });
         
@@ -139,7 +139,7 @@ function startPaymentPolling() {
                 },
                 body: JSON.stringify({
                     phone: phoneNumber.value,
-                    package_id: selectedHotspot.value.id
+                    hotspot_package_id: selectedHotspot.value.id
                 })
             });
             
@@ -195,7 +195,7 @@ async function processPayment() {
 
     try {
         const payload = {
-            package_id: selectedHotspot.value.id,
+            hotspot_package_id: selectedHotspot.value.id,
             phone: phoneNumber.value,
             email: 'customer@example.com' // Optional email
         };
