@@ -22,21 +22,28 @@ class TenantHotspotController extends Controller
     /**
      * Display a listing of the resource.
      */
+    /**
+ * Display a listing of the tenant hotspot packages.
+ */
     public function index()
     {
-        $query = Package::where('type', 'hotspot');
+        // Resolve tenant ID safely
+        $tenantId = tenant()?->id ?? auth()->user()?->tenant_id;
 
-        // Filter by tenant if accessed via tenant domain
-        if ($tenant = tenant()) {
-            $query->where('tenant_id', $tenant->id);
+        if (!$tenantId) {
+            abort(403, 'Tenant not resolved');
         }
 
-        $packages = $query->orderBy('name')->get();
+        // Query only packages belonging to this tenant
+        $packages = TenantHotspot::where('tenant_id', $tenantId)
+            ->orderBy('name')
+            ->get();
 
         return Inertia::render('Hotspot/Index', [
             'packages' => $packages,
         ]);
     }
+
 
     /**
      * Process hotspot package purchase with STK Push
