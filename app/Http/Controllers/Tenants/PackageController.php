@@ -53,6 +53,7 @@ class PackageController extends Controller
             if ($package->type === 'hotspot') {
                 TenantHotspot::create([
                     'tenant_id'       => $tenantId,
+                    'package_id'      => $package->id,
                     'name'            => $package->name,
                     'duration_value'  => $package->duration_value,
                     'duration_unit'   => $package->duration_unit,
