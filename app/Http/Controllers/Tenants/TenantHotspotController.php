@@ -135,6 +135,7 @@ class TenantHotspotController extends Controller
                 'intasend_reference' => $responseData['id'] ?? $responseData['invoice'] ?? null,
                 'intasend_checkout_id' => $responseData['checkout_id'] ?? null,
                 'response' => $responseData,
+                'created_by' => $tenant->id,
             ]);
 
             // Dispatch job to check payment status and create user automatically
@@ -295,7 +296,7 @@ class TenantHotspotController extends Controller
             if ($existingUser) {
                 // Update existing user's package and expiry
                 $existingUser->package_id = $package->id;
-                $existingUser->expires_at = now()->addDays($package->duration);
+                $existingUser->expires_at = $this->calculateExpiry($package);
                 $existingUser->save();
 
                 \Log::info('Updated existing hotspot user', [
