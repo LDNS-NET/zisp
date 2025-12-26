@@ -31,7 +31,7 @@ class TenantHotspotController extends Controller
         $packages = TenantHotspotPackage::where('tenant_id', $tenant->id)->get();
 
         // Return to Inertia
-        return inertia('Tenants/CaptivePortal/Index', [
+        return inertia('Hotspot/Index', [
             'tenant' => $tenant,
             'packages' => $packages,
         ]);
