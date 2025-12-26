@@ -65,65 +65,60 @@ class TenantHotspotController extends Controller
     public function checkout(Request $request)
     {
         try {
+            // Validate input
             $request->validate([
                 'hotspot_package_id' => 'required|exists:tenant_hotspot_packages,id',
                 'phone' => 'required|string',
                 'email' => 'nullable|email',
             ]);
 
+         // Get current tenant from subdomain
+            $host = $request->getHost();
+            $subdomain = explode('.', $host)[0];
+            $tenant = Tenant::where('subdomain', $subdomain)->firstOrFail();
+
+            // Find hotspot package
             $package = $this->findTenantPackage($request->hotspot_package_id);
             $amount = $package->price;
-            $phone = $request->phone;
 
-            // Log the incoming request
-            \Log::info('STK Push initiation request', [
-                'package_id' => $request->package_id,
-                'phone' => $phone,
-                'amount' => $amount,
-            ]);
-
-            // Accept phone in 07xxxxxxxx or 01xxxxxxxx or 2547xxxxxxxx or 2541xxxxxxxx
+            // Normalize phone
             $phone = $this->formatPhoneNumber($request->phone);
             if (!$phone) {
                 \Log::warning('Invalid phone number format', ['phone' => $request->phone]);
-                return response()->json(['success' => false, 'message' => 'Invalid phone number format. Use 07xxxxxxxx, 01xxxxxxxx, or 2547xxxxxxxx format.']);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid phone number format. Use 07xxxxxxxx, 01xxxxxxxx, or 2547xxxxxxxx format.'
+                ]);
             }
-
-            $credentials = [
-                'token' => env('INTASEND_SECRET_KEY'),
-                'publishable_key' => env('INTASEND_PUBLIC_KEY'),
-                'test' => env('APP_ENV') !== 'production',
-            ];
-
-            // Mask credentials for logging
-            $maskedCreds = $credentials;
-            $maskedCreds['token'] = substr($credentials['token'] ?? '', 0, 6) . '...';
-            $maskedCreds['publishable_key'] = substr($credentials['publishable_key'] ?? '', 0, 6) . '...';
-            \Log::info('Using IntaSend credentials', $maskedCreds);
 
             $api_ref = 'HS-' . uniqid();
 
-            // Use direct HTTP API call instead of SDK to avoid wallet requirement
+            // Send STK Push request to IntaSend
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $credentials['token'],
+                'Authorization' => 'Bearer ' . env('INTASEND_SECRET_KEY'),
                 'Content-Type' => 'application/json',
             ])->post('https://payment.intasend.com/api/v1/payment/mpesa-stk-push/', [
-                        'amount' => $amount,
-                        'phone_number' => $phone,
-                        'currency' => 'KES',
-                        'api_ref' => $api_ref,
-                        'email' => $request->email ?? 'customer@example.com',
-                    ]);
+                'amount' => $amount,
+                'phone_number' => $phone,
+                'currency' => 'KES',
+                'api_ref' => $api_ref,
+                'email' => $request->email ?? 'customer@example.com',
+            ]);
 
             $responseData = $response->json();
-            \Log::info('IntaSend API response', ['response' => $responseData]);
+            \Log::info('IntaSend API response', [
+                'status' => $response->status(),
+                'body' => $responseData,
+            ]);
 
             if (!$response->successful()) {
-                \Log::error('IntaSend API error', ['response' => $responseData]);
-                return response()->json(['success' => false, 'message' => 'Failed to initiate payment: ' . ($responseData['message'] ?? 'Unknown error')]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to initiate payment: ' . ($responseData['message'] ?? 'Unknown error'),
+                ]);
             }
 
-            // Store payment request
+            // Save payment record
             $payment = TenantPayment::create([
                 'phone' => $phone,
                 'package_id' => $package->id,
@@ -138,15 +133,27 @@ class TenantHotspotController extends Controller
                 'created_by' => $tenant->id,
             ]);
 
-            // Dispatch job to check payment status and create user automatically
+            // Queue job to check payment status
             CheckIntaSendPaymentStatusJob::dispatch($payment)->delay(now()->addSeconds(30));
 
-            return response()->json(['success' => true, 'message' => 'STK Push sent. Complete payment on your phone.', 'payment_id' => $payment->id]);
+            return response()->json([
+                'success' => true,
+                'message' => 'STK Push sent. Complete payment on your phone.',
+                'payment_id' => $payment->id,
+            ]);
         } catch (\Exception $e) {
-            \Log::error('IntaSend SDK exception', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
-            return response()->json(['success' => false, 'message' => 'Payment error. ' . $e->getMessage()]);
+            \Log::error('STK Push exception', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Payment error: ' . $e->getMessage(),
+            ]);
         }
     }
+
 
 
     /**
