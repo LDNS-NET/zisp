@@ -66,12 +66,12 @@ class TenantHotspotController extends Controller
     {
         try {
             $request->validate([
-                'package_id' => 'required|exists:packages,id',
+                'package_id' => 'required|exists:tenant_hotspot_packages,id',
                 'phone' => 'required|string',
                 'email' => 'nullable|email',
             ]);
 
-            $package = Package::findOrFail($request->package_id);
+            $package = TenantHotspot::findOrFail($request->package_id);
             $amount = $package->price;
             $phone = $request->phone;
 
@@ -166,7 +166,7 @@ class TenantHotspotController extends Controller
 
             $request->validate([
                 'phone' => 'required|string',
-                'package_id' => 'required|exists:packages,id',
+                'package_id' => 'required|exists:tenant_hotspot_packages,id',
             ]);
 
             \Log::info('Callback validation passed', [
@@ -227,7 +227,7 @@ class TenantHotspotController extends Controller
                 ]);
 
                 // Create user if payment is paid but no user exists
-                $package = Package::find($request->package_id);
+                $package = TenantHotspot::find($request->package_id);
                 return $this->handleSuccessfulPayment($payment, $package);
             }
 
@@ -264,7 +264,7 @@ class TenantHotspotController extends Controller
                 $payment->paid_at = now();
                 $payment->save();
 
-                $package = Package::find($request->package_id);
+                $package = TenantHotspot::find($request->package_id);
                 return $this->handleSuccessfulPayment($payment, $package);
             }
 
@@ -287,7 +287,7 @@ class TenantHotspotController extends Controller
     /**
      * Handle post-payment success actions.
      */
-    private function handleSuccessfulPayment(TenantPayment $payment, Package $package)
+    private function handleSuccessfulPayment(TenantPayment $payment,  TenantHotspot $package)
     {
         try {
             // Check if user already exists for this phone number
