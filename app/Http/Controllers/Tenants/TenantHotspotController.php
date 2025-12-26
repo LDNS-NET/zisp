@@ -19,9 +19,19 @@ class TenantHotspotController extends Controller
      */
     public function index()
     {
-        $packages = TenantHotspot::orderBy('name')->get(); // Global scope ensures tenant filtering
+        // Extract subdomain
+        $host = request()->getHost(); // e.g., user1.zyraaf.cloud
+        $subdomain = explode('.', $host)[0]; // "user1"
 
-        return Inertia::render('Hotspot/Index', [
+        // Find tenant
+        $tenant = Tenant::where('subdomain', $subdomain)->firstOrFail();
+
+        // Get packages belonging to this tenant
+        $packages = TenantHotspotPackage::where('tenant_id', $tenant->id)->get();
+
+        // Return to Inertia
+        return inertia('Tenants/CaptivePortal/Index', [
+            'tenant' => $tenant,
             'packages' => $packages,
         ]);
     }
