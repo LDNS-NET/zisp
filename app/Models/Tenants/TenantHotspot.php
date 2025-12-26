@@ -13,7 +13,7 @@ class TenantHotspot extends Model
 
     protected $fillable = [
         'tenant_id',
-        'package_id',
+        //'package_id',
         'name',
         'duration_value',
         'duration_unit',
@@ -23,6 +23,6 @@ class TenantHotspot extends Model
         'download_speed',
         'burst_limit',
         'created_by',
-        'domain',
+        //'domain',
     ];
 }

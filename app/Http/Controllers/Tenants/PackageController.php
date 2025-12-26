@@ -32,29 +32,40 @@ class PackageController extends Controller
     /**
      * Store a newly created package in storage.
      */
-    public function store(Request $request)
+   public function store(Request $request)
     {
         $validated = $this->validatePackage($request);
-        $validated['created_by'] = auth()->id();
 
-        // Determine tenant_id
-        $tenantId = tenant('id') ?? ($request->user() ? $request->user()->tenant_id : null);
-        if (!$tenantId) {
-            $tenantId = \App\Models\Tenant::first()?->id;
-        }
-        $validated['tenant_id'] = $tenantId;
+        DB::transaction(function () use ($validated) {
 
-        // Debug logging
-        \Log::info('PackageController::store called', [
-            'validated_type' => $validated['type'] ?? 'none',
-            'tenant_id' => $tenantId,
-        ]);
+            // 1. Create the base package
+            $package = Package::create([
+                ...$validated,
+                'tenant_id'  => tenant()->id,
+                'created_by' => auth()->id(),
+            ]);
 
-        Package::create($validated);
+            // 2. If it's a hotspot package, sync to tenant_hotspot
+            if ($package->type === 'hotspot') {
+                TenantHotspot::create([
+                    'tenant_id'       => tenant()->id,
+                    'name'            => $package->name,
+                    'duration_value'  => $package->duration_value,
+                    'duration_unit'   => $package->duration_unit,
+                    'price'           => $package->price,
+                    'device_limit'    => $package->device_limit,
+                    'upload_speed'    => $package->upload_speed,
+                    'download_speed'  => $package->download_speed,
+                    'burst_limit'     => $package->burst_limit,
+                    'created_by'      => auth()->id(),
+                ]);
+            }
+        });
 
         return redirect()->route('packages.index')
             ->with('success', 'Package created successfully.');
     }
+
 
 
 
