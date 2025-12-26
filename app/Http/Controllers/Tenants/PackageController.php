@@ -36,19 +36,23 @@ class PackageController extends Controller
     {
         $validated = $this->validatePackage($request);
 
-        DB::transaction(function () use ($validated) {
+        $tenantId = tenant()?->id ?? auth()->user()?->tenant_id;
 
-            // 1. Create the base package
+        if (!$tenantId) {
+            abort(500, 'Tenant context not resolved');
+        }
+
+        DB::transaction(function () use ($validated, $tenantId) {
+
             $package = Package::create([
                 ...$validated,
-                'tenant_id'  => tenant()->id,
+                'tenant_id'  => $tenantId,
                 'created_by' => auth()->id(),
             ]);
 
-            // 2. If it's a hotspot package, sync to tenant_hotspot
             if ($package->type === 'hotspot') {
                 TenantHotspot::create([
-                    'tenant_id'       => tenant()->id,
+                    'tenant_id'       => $tenantId,
                     'name'            => $package->name,
                     'duration_value'  => $package->duration_value,
                     'duration_unit'   => $package->duration_unit,
@@ -65,6 +69,7 @@ class PackageController extends Controller
         return redirect()->route('packages.index')
             ->with('success', 'Package created successfully.');
     }
+
 
 
 
