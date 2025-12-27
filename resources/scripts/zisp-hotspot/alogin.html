@@ -1,16 +1,114 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <meta charset="UTF-8" />
-  <meta http-equiv="refresh" content="0; URL='https://{{ $tenant->domain }}/hotspot?src={{ $src ?? '' }}'" />
-  <title>Redirecting...</title>
+  <title>Login Successful</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+      color: #fff;
+      text-align: center;
+      padding-top: 100px;
+      margin: 0;
+    }
+
+    .container {
+      max-width: 400px;
+      margin: 0 auto;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 40px;
+      border-radius: 15px;
+      backdrop-filter: blur(10px);
+    }
+
+    h2 {
+      margin-bottom: 20px;
+    }
+
+    .checkmark {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      display: block;
+      stroke-width: 4;
+      stroke: #fff;
+      stroke-miterlimit: 10;
+      margin: 20px auto;
+      box-shadow: inset 0px 0px 0px #7ac142;
+      animation: fill .4s ease-in-out .4s forwards, scale .3s ease-in-out .9s both;
+    }
+
+    .checkmark__circle {
+      stroke-dasharray: 166;
+      stroke-dashoffset: 166;
+      stroke-width: 4;
+      stroke-miterlimit: 10;
+      stroke: #7ac142;
+      fill: none;
+      animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+    }
+
+    .checkmark__check {
+      transform-origin: 50% 50%;
+      stroke-dasharray: 48;
+      stroke-dashoffset: 48;
+      animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.8s forwards;
+    }
+
+    @keyframes stroke {
+      100% {
+        stroke-dashoffset: 0;
+      }
+    }
+
+    @keyframes scale {
+
+      0%,
+      100% {
+        transform: none;
+      }
+
+      50% {
+        transform: scale3d(1.1, 1.1, 1);
+      }
+    }
+
+    @keyframes fill {
+      100% {
+        box-shadow: inset 0px 0px 0px 30px #7ac142;
+      }
+    }
+  </style>
 </head>
-<body style="font-family: Arial; background:#111; color:#fff; text-align:center; padding-top:50px;">
-  <h2>Redirecting...</h2>
-  <p>If you are not redirected automatically, click below:</p>
-  <a href="https://{{ $tenant->domain }}/hotspot?src={{ $src ?? '' }}" 
-     style="color:#4FC3F7; font-size:20px;">
-     Continue
-  </a>
+
+<body>
+  <div class="container">
+    <svg class="checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+      <circle class="checkmark__circle" cx="26" cy="26" r="25" fill="none" />
+      <path class="checkmark__check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8" />
+    </svg>
+    <h2>Connected Successfully!</h2>
+    <p>You are now connected to the internet.</p>
+    <p id="redirect-msg">Redirecting to your requested page...</p>
+  </div>
+
+  <script>
+    // Get the original URL the user was trying to access
+    var urlParams = new URLSearchParams(window.location.search);
+    var origUrl = urlParams.get('link-orig') || urlParams.get('orig');
+
+    if (origUrl && origUrl !== '' && origUrl !== 'http://1.1.1.1/') {
+      // Redirect to original URL after 3 seconds
+      setTimeout(function () {
+        window.location.href = origUrl;
+      }, 3000);
+    } else {
+      // No original URL, just show success message
+      document.getElementById('redirect-msg').textContent = 'You can now browse the internet!';
+    }
+  </script>
 </body>
+
 </html>

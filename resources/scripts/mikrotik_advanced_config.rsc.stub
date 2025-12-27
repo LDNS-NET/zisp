@@ -78,7 +78,24 @@
 :put " =================== Hotspot server created =================== "
 
 
+:put " =================== Downloading and configuring hotspot HTML templates =================== "
+# Download hotspot template files from server
+:local baseUrl "{{hotspot_url}}"
+:local templateFiles [:toarray "login.html,alogin.html,rlogin.html,flogin.html,logout.html,redirect.html,error.html"]
+
+:foreach fileName in=$templateFiles do={
+    :local downloadUrl ($baseUrl . "/hotspot-templates/" . $fileName)
+    :put ("Downloading: " . $fileName)
+    :do {
+        /tool fetch url=$downloadUrl mode=https dst-path=("hotspot/" . $fileName)
+        :put ("  Success: " . $fileName)
+    } on-error={
+        :put ("  Failed to download: " . $fileName)
+    }
+    :delay 1s
+}
 :put " =================== Hotspot HTML templates configured =================== "
+
 
 :put " =================== Configuring hotspot masquerade =================== "
 :do {

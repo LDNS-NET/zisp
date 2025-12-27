@@ -1421,6 +1421,11 @@ class TenantMikrotikController extends Controller
         $radius_ip = '10.100.0.1';
         $radius_secret = $router->api_password;
 
+        // Get current tenant domain for hotspot URL
+        $currentTenant = tenant();
+        $tenantDomain = $currentTenant ? $currentTenant->domains()->first()?->domain : null;
+        $hotspotUrl = $tenantDomain ? "https://{$tenantDomain}" : url('/');
+
         $script = $scriptGenerator->generateAdvancedConfig([
             'name' => $router->name,
             'router_id' => $router->id,
@@ -1432,6 +1437,7 @@ class TenantMikrotikController extends Controller
             'username' => $router->router_username,
             'router_password' => $router->router_password,
             'trusted_ip' => $this->getTrustedIpForScripts(),
+            'hotspot_url' => $hotspotUrl,
         ]);
 
         $router->logs()->create([
