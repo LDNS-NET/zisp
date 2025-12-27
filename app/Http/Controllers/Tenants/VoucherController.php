@@ -8,238 +8,135 @@ use App\Models\Package;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
-use Illuminate\Support\Facades\Log; // For robust error logging
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use App\Services\Mikrotik\HotspotUserService;
-
 
 class VoucherController extends Controller
 {
-    /**
-     * Display a listing of the vouchers with filters, search, and pagination.
-     * Passes 'vouchers', 'creating' state, and 'filters' to the Inertia component.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Inertia\Response
-     */
     public function index(Request $request): \Inertia\Response
     {
-        $query = Voucher::query()
-            ->where('created_by', auth()->id()) // Scope to vouchers created by the current user
-            ->latest(); // Order by latest created
+        $query = Voucher::query()->where('created_by', auth()->id())->latest();
 
-        // Apply search filter on 'code' and 'name'
         if ($search = $request->query('search')) {
-            $query->where(function ($q) use ($search) {
-                $q->where('code', 'like', "%{$search}%")
-                    ->orWhere('name', 'like', "%{$search}%");
-            });
+            $query->where(fn($q) => $q->where('code', 'like', "%{$search}%")
+                                        ->orWhere('name', 'like', "%{$search}%"));
         }
 
-        // Apply status filter if present in the request (assuming you might add this to your UI later)
         if ($status = $request->query('status')) {
             $query->where('status', $status);
         }
 
-        // Paginate the results and append query string for pagination links
         $vouchers = $query->paginate(10)->withQueryString();
 
         return Inertia::render('Vouchers/Index', [
-            'vouchers' => $vouchers,
-            'voucherCount' => Voucher::count(),
-            'filters' => $request->only('search', 'status', 'page'),
-            'creating' => $request->boolean('create'),
-            'editing' => $request->boolean('edit'),
-            'voucherToEdit' => $request->boolean('edit') && $request->has('voucher_id') ?
-                Voucher::find($request->query('voucher_id')) : null,
-            'packages' => Package::where('type', 'hotspot')->get(), // Only hotspot packages
-            'currency' => auth()->user()?->tenant?->currency ?? 'KES',
-            'flash' => [
+            'vouchers'      => $vouchers,
+            'voucherCount'  => Voucher::count(),
+            'filters'       => $request->only('search', 'status', 'page'),
+            'creating'      => $request->boolean('create'),
+            'editing'       => $request->boolean('edit'),
+            'voucherToEdit' => $request->boolean('edit') && $request->has('voucher_id')
+                               ? Voucher::find($request->query('voucher_id'))
+                               : null,
+            'packages'      => Package::where('type', 'hotspot')->get(),
+            'currency'      => auth()->user()?->tenant?->currency ?? 'KES',
+            'flash'         => [
                 'success' => session('success'),
-                'error' => session('error'),
+                'error'   => session('error'),
             ],
         ]);
     }
 
-    /**
-     * Show the form for creating a new voucher.
-     * This method is typically used if you have a separate page for creation,
-     * not just a modal on the index page.
-     *
-     * @return \Inertia\Response
-     */
-    public function create(): \Inertia\Response
-    {
-        $packages = Package::where('type', 'hotspot')->get();
-        return Inertia::render('Vouchers/Create', [
-            'packages' => $packages,
-        ]);  // Assumes a dedicated Create.vue component
-    }
-
-    /**
-     * Store a newly created voucher in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\RedirectResponse
-     */
     public function store(Request $request)
-{
-    $validated = $request->validate([
-        'prefix' => ['nullable', 'string', 'max:4'],
-        'length' => ['required', 'integer', 'min:6'],
-        'quantity' => ['required', 'integer', 'min:1', 'max:1000'],
-        'package_id' => ['required', 'exists:packages,id'],
-    ]);
+    {
+        $validated = $request->validate([
+            'prefix'     => ['nullable', 'string', 'max:4'],
+            'length'     => ['required', 'integer', 'min:6'],
+            'quantity'   => ['required', 'integer', 'min:1', 'max:1000'],
+            'package_id' => ['required', 'exists:packages,id'],
+        ]);
 
-    $package = Package::where('type', 'hotspot')->findOrFail($validated['package_id']);
-
-    DB::transaction(function () use ($request, $package) {
-
+        $package = Package::where('type', 'hotspot')->findOrFail($validated['package_id']);
         $mikrotik = app(HotspotUserService::class);
 
-        for ($i = 0; $i < $request->quantity; $i++) {
+        DB::transaction(function () use ($request, $package, $mikrotik) {
+            for ($i = 0; $i < $request->quantity; $i++) {
+                $code = strtoupper(($request->prefix ?? '') . Str::random($request->length - strlen($request->prefix ?? '')));
 
-            $code = strtoupper(
-                ($request->prefix ?? '') .
-                Str::random($request->length - strlen($request->prefix ?? ''))
-            );
+                $voucher = Voucher::create([
+                    'code'       => $code,
+                    'username'   => $code,
+                    'password'   => $code,
+                    'package_id' => $package->id,
+                    'profile'    => $package->mikrotik_profile,
+                    'value'      => $package->price,
+                    'expires_at' => now()->addDays($package->duration_in_days ?? 30),
+                    'created_by' => auth()->id(),
+                ]);
 
-            // 1️⃣ Create voucher in DB
-            $voucher = Voucher::create([
-                'code' => $code,
-                'username' => $code,
-                'password' => $code,
-                'package_id' => $package->id,
-                'profile' => $package->mikrotik_profile, // IMPORTANT
-                'value' => $package->price,
-                'expires_at' => now()->addDays($package->duration_in_days ?? 30),
-                'created_by' => auth()->id(),
-            ]);
+                $mikrotik->createUser([
+                    'username' => $voucher->username,
+                    'password' => $voucher->password,
+                    'profile'  => $voucher->profile,
+                ]);
+            }
+        });
 
-            // 2️⃣ Create hotspot user in MikroTik
-            $mikrotik->createUser([
-                'username' => $voucher->username,
-                'password' => $voucher->password,
-                'profile'  => $voucher->profile,
-            ]);
-        }
-    });
-
-    return redirect()
-        ->route('vouchers.index')
-        ->with('success', "{$request->quantity} vouchers created successfully.");
-}
-
-
-
-    /**
-     * Display the specified voucher.
-     * This is typically an API endpoint or a dedicated show page.
-     *
-     * @param  \App\Models\Voucher  $voucher
-     * @return \Illuminate\Http\JsonResponse|\Inertia\Response
-     */
-    public function show(Voucher $voucher)
-    {
-        $this->authorizeAccess($voucher); // Ensure authorization
-
-        // You can choose to return JSON for an API, or an Inertia component for a dedicated page.
-        // For a full CRUD application, a separate Inertia page is common.
-        return Inertia::render('Vouchers/Show', [ // Assumes Tenants/Vouchers/Show.vue exists
-            'voucher' => $voucher,
-        ]);
+        return redirect()->route('vouchers.index')
+                         ->with('success', "{$request->quantity} vouchers created successfully.");
     }
 
-    /**
-     * Show the form for editing the specified voucher.
-     *
-     * @param  \App\Models\Voucher  $voucher
-     * @return \Inertia\Response|\Illuminate\Http\RedirectResponse
-     */
     public function edit(Voucher $voucher)
     {
-        $this->authorizeAccess($voucher); // Ensure authorization
-
-        // This method could redirect to the index page with 'edit' and 'voucher_id' query parameters
-        // to open the modal, or render a separate edit page.
-        // Using redirect to index for modal approach, similar to 'create'.
-        return redirect()
-            ->route('vouchers.index', ['edit' => true, 'voucher_id' => $voucher->id])
-            ->with('voucherToEdit', $voucher); // Pass the voucher directly through session for convenience
+        $this->authorizeAccess($voucher);
+        return redirect()->route('vouchers.index', ['edit' => true, 'voucher_id' => $voucher->id])
+                         ->with('voucherToEdit', $voucher);
     }
 
-
-    /**
-     * Update the specified voucher in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \App\Models\Voucher  $voucher
-     * @return \Illuminate\Http\RedirectResponse
-     */
-    public function update(Request $request, Voucher $voucher): \Illuminate\Http\RedirectResponse
+    public function update(Request $request, Voucher $voucher)
     {
-        $this->authorizeAccess($voucher); // Ensure authorization
+        $this->authorizeAccess($voucher);
 
         $validated = $request->validate([
-            'code' => ['sometimes', 'string', 'max:255', Rule::unique('vouchers', 'code')->ignore($voucher->id)],
-            'name' => ['sometimes', 'string', 'max:255'],
-            'type' => ['sometimes', Rule::in(['percentage', 'fixed'])],
-            'value' => ['sometimes', 'numeric', 'min:0'],
+            'code'        => ['sometimes', 'string', 'max:255', Rule::unique('vouchers', 'code')->ignore($voucher->id)],
+            'name'        => ['sometimes', 'string', 'max:255'],
+            'type'        => ['sometimes', Rule::in(['percentage', 'fixed'])],
+            'value'       => ['sometimes', 'numeric', 'min:0'],
             'usage_limit' => ['nullable', 'integer', 'min:1'],
-            'expires_at' => ['nullable', 'date'],
-            'status' => ['sometimes', Rule::in(['active', 'used', 'expired', 'revoked'])], // Allow updating status
-            'is_active' => ['sometimes', 'boolean'], // Allow updating active status
-            'note' => ['nullable', 'string', 'max:1000'],
+            'expires_at'  => ['nullable', 'date'],
+            'status'      => ['sometimes', Rule::in(['active', 'used', 'expired', 'revoked'])],
+            'is_active'   => ['sometimes', 'boolean'],
+            'note'        => ['nullable', 'string', 'max:1000'],
         ]);
 
         try {
             $voucher->update($validated);
-            return redirect()
-                ->route('vouchers.index') // Redirect to index after successful update
-                ->with('success', 'Voucher updated successfully.');
+            return redirect()->route('vouchers.index')->with('success', 'Voucher updated successfully.');
         } catch (\Throwable $e) {
-            Log::error("Failed to update voucher: " . $e->getMessage(), ['trace' => $e->getTraceAsString(), 'voucher_id' => $voucher->id]);
-            return redirect()
-                ->route('vouchers.index', ['edit' => true, 'voucher_id' => $voucher->id]) // Keep modal open on error
-                ->with('error', 'Failed to update voucher. ' . $e->getMessage())
-                ->withInput();
+            Log::error("Failed to update voucher: {$e->getMessage()}", ['trace' => $e->getTraceAsString(), 'voucher_id' => $voucher->id]);
+            return redirect()->route('vouchers.index', ['edit' => true, 'voucher_id' => $voucher->id])
+                             ->with('error', 'Failed to update voucher. ' . $e->getMessage())
+                             ->withInput();
         }
     }
 
-    /**
-     * Remove the specified voucher from storage.
-     *
-     * @param  \App\Models\Voucher  $voucher
-     * @return \Illuminate\Http\RedirectResponse
-     */
-    public function destroy(Voucher $voucher): \Illuminate\Http\RedirectResponse
+    public function destroy(Voucher $voucher)
     {
-        $this->authorizeAccess($voucher); // Ensure authorization
+        $this->authorizeAccess($voucher);
 
         try {
             $voucher->delete();
-            return redirect()
-                ->route('vouchers.index')
-                ->with('success', 'Voucher deleted successfully.');
+            return redirect()->route('vouchers.index')->with('success', 'Voucher deleted successfully.');
         } catch (\Throwable $e) {
-            Log::error("Failed to delete voucher: " . $e->getMessage(), ['trace' => $e->getTraceAsString(), 'voucher_id' => $voucher->id]);
-            return redirect()
-                ->route('vouchers.index')
-                ->with('error', 'Failed to delete voucher. ' . $e->getMessage());
+            Log::error("Failed to delete voucher: {$e->getMessage()}", ['trace' => $e->getTraceAsString(), 'voucher_id' => $voucher->id]);
+            return redirect()->route('vouchers.index')->with('error', 'Failed to delete voucher. ' . $e->getMessage());
         }
     }
 
-    /**
-     * Send a voucher to a specific user.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \App\Models\Voucher  $voucher
-     * @return \Illuminate\Http\RedirectResponse
-     */
-    public function send(Request $request, Voucher $voucher): \Illuminate\Http\RedirectResponse
+    public function send(Request $request, Voucher $voucher)
     {
-        $this->authorizeAccess($voucher); // Ensure authorization
+        $this->authorizeAccess($voucher);
 
         $validated = $request->validate([
             'user_id' => ['required', 'exists:users,id'],
@@ -249,20 +146,13 @@ class VoucherController extends Controller
         try {
             $voucher->update([
                 'sent_to' => $validated['user_id'],
-                'sent_at' => now(), // Set sent timestamp
+                'sent_at' => now(),
             ]);
 
-            // You would typically dispatch a notification or an event here
-            // e.g., Notification::send(User::find($validated['user_id']), new VoucherSentNotification($voucher));
-
-            return redirect()
-                ->back() // Redirect back to wherever the send action was triggered
-                ->with('success', 'Voucher sent successfully.');
+            return redirect()->back()->with('success', 'Voucher sent successfully.');
         } catch (\Throwable $e) {
-            Log::error("Failed to send voucher: " . $e->getMessage(), ['trace' => $e->getTraceAsString(), 'voucher_id' => $voucher->id]);
-            return redirect()
-                ->back()
-                ->with('error', 'Failed to send voucher. ' . $e->getMessage());
+            Log::error("Failed to send voucher: {$e->getMessage()}", ['trace' => $e->getTraceAsString(), 'voucher_id' => $voucher->id]);
+            return redirect()->back()->with('error', 'Failed to send voucher. ' . $e->getMessage());
         }
     }
 
@@ -278,17 +168,6 @@ class VoucherController extends Controller
         return redirect()->back()->with('success', 'Selected vouchers deleted successfully.');
     }
 
-
-
-
-    /**
-     * Authorize access to a voucher based on 'created_by' field.
-     * For more robust authorization, consider using Laravel Policies.
-     *
-     * @param  \App\Models\Voucher  $voucher
-     * @return void
-     * @throws \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException
-     */
     protected function authorizeAccess(Voucher $voucher): void
     {
         if ($voucher->created_by !== auth()->id()) {
