@@ -76,11 +76,25 @@
     var domain = "{{DOMAIN}}";
     var redirectUrl = 'https://' + domain + '/hotspot';
 
+    // MikroTik variables
+    var loginUrl = "$(link-login-only)";
+    var linkOrig = "$(link-orig)";
+    var error = "$(error)";
+    var mac = "$(mac)";
+    var ip = "$(ip)";
+
     var params = new URLSearchParams();
+
+    if (mac && mac != '$' + '(mac)') params.append('mac', mac);
+    if (ip && ip != '$' + '(ip)') params.append('ip', ip);
+    if (linkOrig && linkOrig != '$' + '(link-orig)') params.append('orig', linkOrig);
+    if (loginUrl && loginUrl != '$' + '(link-login-only)') params.append('login_url', loginUrl);
+
+    // Fallback/Override from URL params
     var urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('mac')) params.append('mac', urlParams.get('mac'));
-    if (urlParams.get('ip')) params.append('ip', urlParams.get('ip'));
-    if (urlParams.get('link-orig')) params.append('orig', urlParams.get('link-orig'));
+    if (urlParams.get('mac')) params.set('mac', urlParams.get('mac'));
+    if (urlParams.get('ip')) params.set('ip', urlParams.get('ip'));
+    if (urlParams.get('link-orig')) params.set('orig', urlParams.get('link-orig'));
 
     if (params.toString()) {
       redirectUrl += '?' + params.toString();

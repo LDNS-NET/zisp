@@ -19,61 +19,74 @@
 :local trustedIp "{{trusted_ip}}"
 :local hotspotUrl "{{hotspot_url}}"
 
+
 :put " =================== Starting advanced configuration =================== "
 
+:put " =================== CLEANUP PHASE =================== "
+# Remove resources in reverse dependency order to avoid "in use" errors
+
+# 1. Remove Hotspot Server & Profile
+:put "Cleaning up Hotspot..."
+:do { /ip hotspot remove [find interface=$bridgeName] } on-error={}
+:do { /ip hotspot profile remove [find name=$hotspotProfile] } on-error={}
+:do { /ip hotspot user profile remove [find name="default"] } on-error={} 
+
+# 2. Remove DHCP Server & Network
+:put "Cleaning up DHCP..."
+:do { /ip dhcp-server remove [find interface=$bridgeName] } on-error={}
+:do { /ip dhcp-server network remove [find address=172.20.0.0/16] } on-error={}
+
+# 3. Remove PPPoE Server & Profile
+:put "Cleaning up PPPoE..."
+:do { /interface pppoe-server server remove [find interface=$bridgeName] } on-error={}
+:do { /ppp profile remove [find name=$pppoeProfile] } on-error={}
+
+# 4. Remove IP Pool (used by DHCP, Hotspot, PPPoE)
+:put "Cleaning up IP Pool..."
+:do { /ip pool remove [find name=$poolName] } on-error={}
+
+# 5. Remove IP Address
+:put "Cleaning up IP Address..."
+:do { /ip address remove [find interface=$bridgeName] } on-error={}
+
+# 6. Remove Bridge
+:put "Cleaning up Bridge..."
+:do { /interface bridge remove [find name=$bridgeName] } on-error={}
+
+
+:put " =================== CREATION PHASE =================== "
 
 :put " =================== Creating bridge =================== "
-:do {
-    /interface bridge remove [find name=$bridgeName]
-} on-error={}
 /interface bridge add name=$bridgeName
 :put " =================== Bridge created =================== "
 
 
 :put " =================== Configuring bridge address =================== "
-:do {
-    /ip address remove [find interface=$bridgeName]
-} on-error={}
 /ip address add address=172.20.0.1/16 interface=$bridgeName
 :put " =================== Bridge address configured =================== "
 
 
 :put " =================== Creating unified IP pool for hotspot and PPPoE =================== "
-:do {
-    /ip pool remove [find name=$poolName]
-} on-error={}
 /ip pool add name=$poolName ranges=172.20.0.2-172.20.255.254
 :put " =================== Unified IP pool created =================== "
 
 
 :put " =================== Creating DHCP server =================== "
-:do {
-    /ip dhcp-server remove [find interface=$bridgeName]
-} on-error={}
 /ip dhcp-server add address-pool=$poolName disabled=no interface=$bridgeName lease-time=00:10:00 name=zisp_dhcp
 :put " =================== DHCP server created =================== "
 
 
 :put " =================== Configuring DHCP network =================== "
-:do {
-    /ip dhcp-server network remove [find address=172.20.0.0/16]
-} on-error={}
 /ip dhcp-server network add address=172.20.0.0/16 comment="zisp_hs_network" gateway=172.20.0.1
 :put " =================== DHCP network configured =================== "
 
 
 :put " =================== Creating hotspot profile =================== "
-:do {
-    /ip hotspot profile remove [find name=$hotspotProfile]
-} on-error={}
 /ip hotspot profile add hotspot-address=172.20.0.1 login-by=cookie,http-chap,http-pap,mac-cookie name=$hotspotProfile use-radius=yes radius-interim-update=00:10:00
 :put " =================== Hotspot profile created =================== "
 
 
 :put " =================== Creating hotspot server =================== "
-:do {
-    /ip hotspot remove [find interface=$bridgeName]
-} on-error={}
 /ip hotspot add address-pool=$poolName addresses-per-mac=1 disabled=no idle-timeout=1m interface=$bridgeName name=$bridgeName profile=$hotspotProfile
 :put " =================== Hotspot server created =================== "
 
@@ -136,17 +149,11 @@
 
 
 :put " =================== Creating PPPoE profile =================== "
-:do {
-    /ppp profile remove [find name=$pppoeProfile]
-} on-error={}
 /ppp profile add dns-server=8.8.8.8,8.8.4.4 local-address=$poolName name=$pppoeProfile remote-address=$poolName
 :put " =================== PPPoE profile created =================== "
 
 
 :put " =================== Creating PPPoE server =================== "
-:do {
-    /interface pppoe-server server remove [find interface=$bridgeName]
-} on-error={}
 /interface pppoe-server server add authentication=pap,chap default-profile=$pppoeProfile disabled=no interface=$bridgeName one-session-per-host=yes keepalive-timeout=10 service-name="zisp_pppoe"
 :put " =================== PPPoE server created =================== "
 

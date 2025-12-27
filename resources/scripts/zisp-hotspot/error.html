@@ -72,11 +72,23 @@
     var domain = "{{DOMAIN}}";
     var redirectUrl = 'https://' + domain + '/hotspot';
 
+    var loginUrl = "$(link-login-only)";
+    var errorVar = "$(error)";
+
     var urlParams = new URLSearchParams(window.location.search);
-    var errorMsg = urlParams.get('error');
+    var errorMsg = urlParams.get('error') || (errorVar && errorVar != '$' + '(error)' ? errorVar : null);
+
+    var params = new URLSearchParams();
 
     if (errorMsg) {
       document.getElementById('error-message').textContent = decodeURIComponent(errorMsg);
+      params.append('error', errorMsg);
+    }
+
+    if (loginUrl && loginUrl != '$' + '(link-login-only)') params.append('login_url', loginUrl);
+
+    if (params.toString()) {
+      redirectUrl += '?' + params.toString();
     }
 
     document.getElementById('retry-link').href = redirectUrl;

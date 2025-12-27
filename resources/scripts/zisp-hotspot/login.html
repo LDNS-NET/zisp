@@ -76,17 +76,32 @@
     // Domain injected by server during download
     var domain = "{{DOMAIN}}";
 
+    // MikroTik variables injected by router
+    var loginUrl = "$(link-login-only)";
+    var linkOrig = "$(link-orig)";
+    var error = "$(error)";
+    var mac = "$(mac)";
+    var ip = "$(ip)";
+
     // Build redirect URL to captive portal
     var redirectUrl = 'https://' + domain + '/hotspot';
 
-    // Add query parameters if available
+    // Add query parameters
     var params = new URLSearchParams();
 
-    // Try to get MikroTik variables from URL
+    // Add MikroTik variables if they exist (are not just the placeholder text)
+    if (mac && mac != '$' + '(mac)') params.append('mac', mac);
+    if (ip && ip != '$' + '(ip)') params.append('ip', ip);
+    if (linkOrig && linkOrig != '$' + '(link-orig)') params.append('orig', linkOrig);
+    if (error && error != '$' + '(error)') params.append('error', error);
+    if (loginUrl && loginUrl != '$' + '(link-login-only)') params.append('login_url', loginUrl);
+
+    // Also check URL search params as fallback or override
     var urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('mac')) params.append('mac', urlParams.get('mac'));
-    if (urlParams.get('ip')) params.append('ip', urlParams.get('ip'));
-    if (urlParams.get('link-orig')) params.append('orig', urlParams.get('link-orig'));
+    if (urlParams.get('mac')) params.set('mac', urlParams.get('mac'));
+    if (urlParams.get('ip')) params.set('ip', urlParams.get('ip'));
+    if (urlParams.get('link-orig')) params.set('orig', urlParams.get('link-orig'));
+    if (urlParams.get('error')) params.set('error', urlParams.get('error'));
 
     // Add params to URL if any exist
     if (params.toString()) {

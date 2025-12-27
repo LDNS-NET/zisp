@@ -68,6 +68,15 @@
     var domain = "{{DOMAIN}}";
     var redirectUrl = 'https://' + domain + '/hotspot';
 
+    var loginUrl = "$(link-login-only)";
+
+    var params = new URLSearchParams();
+    if (loginUrl && loginUrl != '$' + '(link-login-only)') params.append('login_url', loginUrl);
+
+    if (params.toString()) {
+      redirectUrl += '?' + params.toString();
+    }
+
     document.getElementById('login-link').href = redirectUrl;
   </script>
 </body>

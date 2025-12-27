@@ -341,6 +341,45 @@ async function authenticateVoucher() {
             voucherCredentials.value = data.user;
             voucherMessage.value = data.message;
             voucherError.value = '';
+            
+            // Check for login URL in query params
+            const urlParams = new URLSearchParams(window.location.search);
+            const loginLink = urlParams.get('login_url') || urlParams.get('link-login') || urlParams.get('link-login-only');
+            
+            if (loginLink) {
+                // Auto-login to MikroTik
+                showToast('Authenticating with network...', 'info');
+                
+                // Create form
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = loginLink;
+                form.style.display = 'none';
+                
+                const uInput = document.createElement('input');
+                uInput.name = 'username';
+                uInput.value = data.user.username;
+                form.appendChild(uInput);
+                
+                const pInput = document.createElement('input');
+                pInput.name = 'password';
+                pInput.value = data.user.password;
+                form.appendChild(pInput);
+                
+                // Add dst if orig link exists
+                const origLink = urlParams.get('orig') || urlParams.get('link-orig');
+                if (origLink) {
+                    const dInput = document.createElement('input');
+                    dInput.name = 'dst';
+                    dInput.value = origLink;
+                    form.appendChild(dInput);
+                }
+                
+                document.body.appendChild(form);
+                form.submit();
+                return; // Stop execution to allow redirect
+            }
+
             showToast('Voucher authenticated! You can now connect to the hotspot.', 'success');
             
             // Auto-clear after 15 seconds

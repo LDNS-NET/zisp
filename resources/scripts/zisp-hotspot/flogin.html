@@ -37,6 +37,7 @@
       padding: 15px;
       border-radius: 8px;
       margin: 20px 0;
+      word-wrap: break-word;
     }
 
     a {
@@ -72,18 +73,32 @@
     var domain = "{{DOMAIN}}";
     var redirectUrl = 'https://' + domain + '/hotspot';
 
+    // MikroTik variables
+    var loginUrl = "$(link-login-only)";
+    var linkOrig = "$(link-orig)";
+    var mac = "$(mac)";
+    var ip = "$(ip)";
+    var errorVar = "$(error)";
+
     var params = new URLSearchParams();
     var urlParams = new URLSearchParams(window.location.search);
 
     // Get error message if available
-    var errorMsg = urlParams.get('error');
+    var errorMsg = urlParams.get('error') || (errorVar && errorVar != '$' + '(error)' ? errorVar : null);
     if (errorMsg) {
       document.getElementById('error-message').textContent = decodeURIComponent(errorMsg);
       params.append('error', errorMsg);
     }
 
-    if (urlParams.get('mac')) params.append('mac', urlParams.get('mac'));
-    if (urlParams.get('ip')) params.append('ip', urlParams.get('ip'));
+    if (mac && mac != '$' + '(mac)') params.append('mac', mac);
+    if (ip && ip != '$' + '(ip)') params.append('ip', ip);
+    if (linkOrig && linkOrig != '$' + '(link-orig)') params.append('orig', linkOrig);
+    if (loginUrl && loginUrl != '$' + '(link-login-only)') params.append('login_url', loginUrl);
+
+    // Fallback checks
+    if (urlParams.get('mac')) params.set('mac', urlParams.get('mac'));
+    if (urlParams.get('ip')) params.set('ip', urlParams.get('ip'));
+    if (urlParams.get('link-orig')) params.set('orig', urlParams.get('link-orig'));
 
     if (params.toString()) {
       redirectUrl += '?' + params.toString();
