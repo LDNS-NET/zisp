@@ -29,55 +29,55 @@ class PackageController extends Controller
     }
 
     public function store(Request $request)
-{
-    $validated = $this->validatePackage($request);
-    $tenantId = tenant()?->id ?? auth()->user()?->tenant_id;
+    {
+        $validated = $this->validatePackage($request);
+        $tenantId = tenant()?->id ?? auth()->user()?->tenant_id;
 
-    if (!$tenantId) abort(500, 'Tenant context not resolved');
+        if (!$tenantId) abort(500, 'Tenant context not resolved');
 
-    DB::transaction(function () use ($validated, $tenantId) {
+        try {
+            DB::transaction(function () use ($validated, $tenantId) {
+                // Generate a unique mikrotik_profile for hotspot packages
+                $mikrotikProfile = $validated['type'] === 'hotspot'
+                    ? $validated['name'] . '-' . time() // e.g., "Basic-1701234567"
+                    : null;
 
-        // Generate a unique mikrotik_profile for hotspot packages
-        $mikrotikProfile = $validated['type'] === 'hotspot'
-            ? $validated['name'] . '-' . time() // e.g., "Basic-1701234567"
-            : null;
+                // Add mikrotik_profile to validated data
+                $validated['mikrotik_profile'] = $mikrotikProfile;
 
-        // Add mikrotik_profile to validated data
-        $validated['mikrotik_profile'] = $mikrotikProfile;
+                // 1️⃣ Create package in DB
+                $package = Package::create([
+                    ...$validated,
+                    'tenant_id'  => $tenantId,
+                    'created_by' => auth()->id(),
+                ]);
 
-        // 1️⃣ Create package in DB
-        $package = Package::create([
-            ...$validated,
-            'tenant_id'  => $tenantId,
-            'created_by' => auth()->id(),
-        ]);
+                // 2️⃣ If hotspot, create TenantHotspot (DB only)
+                if ($package->type === 'hotspot') {
+                    TenantHotspot::create([
+                        'tenant_id'       => $tenantId,
+                        'package_id'      => $package->id,
+                        'name'            => $package->name,
+                        'duration_value'  => $package->duration_value,
+                        'duration_unit'   => $package->duration_unit,
+                        'price'           => $package->price,
+                        'device_limit'    => $package->device_limit,
+                        'upload_speed'    => $package->upload_speed,
+                        'download_speed'  => $package->download_speed,
+                        'burst_limit'     => $package->burst_limit,
+                        'created_by'      => auth()->id(),
+                    ]);
+                }
+            });
 
-        // 2️⃣ If hotspot, create TenantHotspot + MikroTik profile
-        if ($package->type === 'hotspot') {
-            TenantHotspot::create([
-                'tenant_id'       => $tenantId,
-                'package_id'      => $package->id,
-                'name'            => $package->name,
-                'duration_value'  => $package->duration_value,
-                'duration_unit'   => $package->duration_unit,
-                'price'           => $package->price,
-                'device_limit'    => $package->device_limit,
-                'upload_speed'    => $package->upload_speed,
-                'download_speed'  => $package->download_speed,
-                'burst_limit'     => $package->burst_limit,
-                'created_by'      => auth()->id(),
-            ]);
+            return redirect()->route('packages.index')
+                ->with('success', 'Package created successfully.');
 
-            // Sync with MikroTik
-            $mikrotik = app(HotspotProfileService::class);
-            $mikrotik->syncFromPackage($package);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error("Failed to create package: {$e->getMessage()}", ['trace' => $e->getTraceAsString()]);
+            return redirect()->back()->with('error', 'Failed to create package. ' . $e->getMessage())->withInput();
         }
-    });
-
-    return redirect()->route('packages.index')
-        ->with('success', 'Package created successfully.');
-}
-
+    }
 
     /**
      * Update the specified package in storage.
@@ -86,12 +86,6 @@ class PackageController extends Controller
     {
         $validated = $this->validatePackage($request, $package->id);
         $package->update($validated);
-
-        // Sync MikroTik profile if hotspot
-        if ($package->type === 'hotspot') {
-            $mikrotik = app(HotspotProfileService::class);
-            $mikrotik->syncFromPackage($package);
-        }
 
         return redirect()->route('packages.index')
             ->with('success', 'Package updated successfully.');
@@ -102,11 +96,6 @@ class PackageController extends Controller
      */
     public function destroy(Package $package)
     {
-        if ($package->type === 'hotspot') {
-            $mikrotik = app(HotspotProfileService::class);
-            $mikrotik->deleteProfile($package->mikrotik_profile);
-        }
-
         $package->delete();
 
         return redirect()->route('packages.index')
@@ -122,15 +111,6 @@ class PackageController extends Controller
             'ids' => 'required|array',
             'ids.*' => 'integer|exists:packages,id',
         ]);
-
-        $packages = Package::whereIn('id', $request->ids)->get();
-
-        foreach ($packages as $package) {
-            if ($package->type === 'hotspot') {
-                $mikrotik = app(HotspotProfileService::class);
-                $mikrotik->deleteProfile($package->mikrotik_profile);
-            }
-        }
 
         Package::whereIn('id', $request->ids)->delete();
 

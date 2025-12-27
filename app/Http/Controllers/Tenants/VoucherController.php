@@ -58,11 +58,16 @@ class VoucherController extends Controller
         ]);
 
         $package = Package::where('type', 'hotspot')->findOrFail($validated['package_id']);
-        $mikrotik = app(HotspotUserService::class);
+        $mikrotikUser = app(HotspotUserService::class);
+        $mikrotikProfile = app(\App\Services\Mikrotik\HotspotProfileService::class);
         $createdVouchers = [];
 
         DB::beginTransaction();
         try {
+            // Ensure the profile exists on MikroTik before creating users
+            // This is the "Lazy Sync" step
+            $mikrotikProfile->syncFromPackage($package);
+
             for ($i = 0; $i < $request->quantity; $i++) {
                 $code = strtoupper(($request->prefix ?? '') . Str::random($request->length - strlen($request->prefix ?? '')));
                 
@@ -81,7 +86,7 @@ class VoucherController extends Controller
                 ]);
 
                 // We'll use the code as username and password for simplicity as per requirements
-                $mikrotik->create([
+                $mikrotikUser->create([
                     'username' => $voucher->code,
                     'password' => $voucher->code,
                     'profile'  => $package->mikrotik_profile,
@@ -106,7 +111,7 @@ class VoucherController extends Controller
             // Compensation: Remove any vouchers created on MikroTik before the error
             foreach ($createdVouchers as $code) {
                 try {
-                    $mikrotik->remove($code);
+                    $mikrotikUser->remove($code);
                 } catch (\Exception $ex) {
                     Log::warning("Failed to rollback voucher from MikroTik: {$code}");
                 }
