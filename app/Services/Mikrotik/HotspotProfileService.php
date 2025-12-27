@@ -3,18 +3,23 @@
 namespace App\Services\Mikrotik;
 
 use App\Models\Package;
-use App\Models\Tenants\TenantMikrotik;
 use RouterOS\Query;
 use Exception;
 
 class HotspotProfileService
 {
-    public function __construct(
-        protected RouterApiService $api
-    ) {}
+    public function __construct(protected RouterApiService $api) {}
 
     /**
-     * Ensure hotspot profile exists & is updated from package.
+     * Create a new hotspot profile on MikroTik
+     */
+    public function createProfile(Package $package): void
+    {
+        $this->syncFromPackage($package);
+    }
+
+    /**
+     * Ensure hotspot profile exists & is updated from package
      */
     public function syncFromPackage(Package $package): void
     {
@@ -58,6 +63,30 @@ class HotspotProfileService
                 ->equal('name', $package->mikrotik_profile)
                 ->equal('rate-limit', $rateLimit)
                 ->equal('session-timeout', $sessionTimeout);
+
+            $client->getClient()->query($query)->read();
+        }
+    }
+
+    /**
+     * Delete a hotspot profile by name
+     */
+    public function deleteProfile(string $profileName): void
+    {
+        $client = $this->api->connect()
+            ? $this->api
+            : throw new Exception('Router is offline');
+
+        $profiles = $client->getClient()
+            ->query('/ip/hotspot/user/profile/print')
+            ->read();
+
+        $existing = collect($profiles)
+            ->firstWhere('name', $profileName);
+
+        if ($existing) {
+            $query = (new Query('/ip/hotspot/user/profile/remove'))
+                ->equal('.id', $existing['.id']);
 
             $client->getClient()->query($query)->read();
         }
