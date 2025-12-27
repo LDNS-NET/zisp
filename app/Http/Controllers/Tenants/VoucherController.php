@@ -305,6 +305,20 @@ class VoucherController extends Controller
         ]);
 
         try {
+            // Extract subdomain to get current tenant
+            $host = $request->getHost();
+            $subdomain = explode('.', $host)[0];
+            
+            // Find current tenant
+            $currentTenant = \App\Models\Tenant::where('subdomain', $subdomain)->first();
+            
+            if (!$currentTenant) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid tenant domain.'
+                ], 404);
+            }
+
             // Find voucher
             $voucher = Voucher::where('code', $validated['code'])->first();
 
@@ -313,6 +327,24 @@ class VoucherController extends Controller
                     'success' => false,
                     'message' => 'Invalid voucher code.'
                 ], 404);
+            }
+
+            // CRITICAL: Verify voucher belongs to current tenant
+            // Get the user who created the voucher and check their tenant
+            $voucherCreator = \App\Models\User::find($voucher->created_by);
+            
+            if (!$voucherCreator || $voucherCreator->tenant_id !== $currentTenant->id) {
+                Log::warning("Voucher cross-tenant usage attempt", [
+                    'voucher_code' => $voucher->code,
+                    'voucher_tenant_id' => $voucherCreator?->tenant_id,
+                    'current_tenant_id' => $currentTenant->id,
+                    'current_subdomain' => $subdomain
+                ]);
+                
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This voucher is not valid for this network.'
+                ], 403);
             }
 
             // Check voucher status
@@ -388,7 +420,9 @@ class VoucherController extends Controller
                 Log::info("Voucher authenticated successfully", [
                     'code' => $voucher->code,
                     'user_id' => $networkUser->id,
-                    'package' => $package->name
+                    'package' => $package->name,
+                    'tenant_id' => $currentTenant->id,
+                    'subdomain' => $subdomain
                 ]);
 
                 return response()->json([
