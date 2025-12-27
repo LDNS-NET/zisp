@@ -84,6 +84,8 @@ class VoucherController extends Controller
                     'created_by' => auth()->id(),
                 ]);
 
+                Log::info("Voucher created in transaction: {$voucher->id} - Code: {$voucher->code}");
+
                 // --- RADIUS Creation ---
                 
                 // 1. Authentication (RadCheck)
@@ -123,6 +125,7 @@ class VoucherController extends Controller
             }
             
             DB::commit();
+            Log::info("Voucher transaction committed. Count: " . count($createdVouchers));
 
             return redirect()->route('vouchers.index')
                              ->with('success', "{$request->quantity} vouchers created successfully.");
