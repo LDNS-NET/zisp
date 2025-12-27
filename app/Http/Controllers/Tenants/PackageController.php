@@ -65,13 +65,8 @@ class PackageController extends Controller
                 ]);
 
                 $mikrotik = app(HotspotProfileService::class);
-                $mikrotik->createProfile([
-                    'name'         => $package->name,
-                    'rate_limit'   => "{$package->upload_speed}M/{$package->download_speed}M",
-                    'burst_limit'  => $package->burst_limit,
-                    'shared_users' => $package->device_limit,
-                ]);
-            }
+                $mikrotik->createProfile($package);
+            }   
         });
 
         return redirect()->route('packages.index')
@@ -89,11 +84,7 @@ class PackageController extends Controller
         // Update MikroTik profile if hotspot
         if ($package->type === 'hotspot') {
             $mikrotik = app(HotspotProfileService::class);
-            $mikrotik->updateProfile($package->name, [
-                'rate_limit'   => "{$package->upload_speed}M/{$package->download_speed}M",
-                'burst_limit'  => $package->burst_limit,
-                'shared_users' => $package->device_limit,
-            ]);
+            $mikrotik->updateProfile($package);
         }
 
         return redirect()->route('packages.index')
