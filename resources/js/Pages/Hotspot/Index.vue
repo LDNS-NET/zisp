@@ -18,6 +18,13 @@ const pollingInterval = ref(null);
 const paymentAttempts = ref(0);
 const maxPollingAttempts = 20; // Check for up to 10 minutes (20 * 30 seconds)
 
+// Voucher authentication
+const voucherCode = ref('');
+const isAuthenticatingVoucher = ref(false);
+const voucherMessage = ref('');
+const voucherError = ref('');
+const voucherCredentials = ref(null);
+
 // Packages received from Inertia
 const page = usePage();
 const hotspots = computed(() => {
@@ -305,6 +312,55 @@ function formatPhoneNumber(event) {
     
     phoneNumber.value = value;
 }
+
+async function authenticateVoucher() {
+    if (!voucherCode.value || voucherCode.value.trim().length < 6) {
+        voucherError.value = 'Please enter a valid voucher code (minimum 6 characters)';
+        return;
+    }
+
+    isAuthenticatingVoucher.value = true;
+    voucherError.value = '';
+    voucherMessage.value = '';
+
+    try {
+        const response = await fetch('/hotspot/voucher-auth', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({
+                code: voucherCode.value.trim().toUpperCase()
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success && data.user) {
+            voucherCredentials.value = data.user;
+            voucherMessage.value = data.message;
+            voucherError.value = '';
+            showToast('Voucher authenticated! You can now connect to the hotspot.', 'success');
+            
+            // Auto-clear after 15 seconds
+            setTimeout(() => {
+                voucherCode.value = '';
+                voucherCredentials.value = null;
+                voucherMessage.value = '';
+            }, 15000);
+        } else {
+            voucherError.value = data.message || 'Failed to authenticate voucher';
+            showToast(data.message || 'Failed to authenticate voucher', 'error');
+        }
+    } catch (error) {
+        console.error('Voucher authentication error:', error);
+        voucherError.value = 'An error occurred. Please try again.';
+        showToast('An error occurred. Please try again.', 'error');
+    } finally {
+        isAuthenticatingVoucher.value = false;
+    }
+}
 </script>
 
 <template>
@@ -346,6 +402,76 @@ function formatPhoneNumber(event) {
                 <!-- Scrollable Content Area -->
                 <div class="h-full overflow-y-auto bg-gradient-to-b from-gray-50 to-white">
                     <div class="p-4 pb-6">
+                        <!-- Voucher Authentication Section -->
+                        <div class="mb-6 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 border-2 border-green-200">
+                            <div class="flex items-center gap-2 mb-3">
+                                <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"></path>
+                                </svg>
+                                <h3 class="text-sm font-bold text-gray-900">Have a Voucher Code?</h3>
+                            </div>
+                            <p class="text-xs text-gray-600 mb-3">Enter your voucher code to connect instantly</p>
+                            
+                            <div class="space-y-2">
+                                <input
+                                    v-model="voucherCode"
+                                    type="text"
+                                    placeholder="Enter voucher code"
+                                    class="w-full px-3 py-2 border-2 border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm uppercase"
+                                    :disabled="isAuthenticatingVoucher"
+                                    @keyup.enter="authenticateVoucher"
+                                />
+                                
+                                <button
+                                    @click="authenticateVoucher"
+                                    :disabled="isAuthenticatingVoucher || !voucherCode"
+                                    class="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold py-2 px-4 rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none text-sm flex items-center justify-center gap-2"
+                                >
+                                    <svg v-if="isAuthenticatingVoucher" class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    <span v-if="isAuthenticatingVoucher">Authenticating...</span>
+                                    <span v-else>Use Voucher</span>
+                                </button>
+                            </div>
+
+                            <!-- Voucher Success Message -->
+                            <div v-if="voucherMessage && voucherCredentials" class="mt-3 bg-white border-2 border-green-300 rounded-lg p-3">
+                                <p class="text-xs font-semibold text-green-800 mb-2">✓ {{ voucherMessage }}</p>
+                                <div class="space-y-1 text-xs">
+                                    <div class="flex justify-between items-center bg-green-50 px-2 py-1 rounded">
+                                        <span class="font-medium text-gray-700">Username:</span>
+                                        <span class="font-mono font-bold text-green-700">{{ voucherCredentials.username }}</span>
+                                    </div>
+                                    <div class="flex justify-between items-center bg-green-50 px-2 py-1 rounded">
+                                        <span class="font-medium text-gray-700">Password:</span>
+                                        <span class="font-mono font-bold text-green-700">{{ voucherCredentials.password }}</span>
+                                    </div>
+                                    <div v-if="voucherCredentials.package_name" class="flex justify-between items-center bg-green-50 px-2 py-1 rounded">
+                                        <span class="font-medium text-gray-700">Package:</span>
+                                        <span class="text-gray-900">{{ voucherCredentials.package_name }}</span>
+                                    </div>
+                                </div>
+                                <p class="text-xs text-green-600 mt-2 italic">Use these credentials to connect to the hotspot</p>
+                            </div>
+
+                            <!-- Voucher Error Message -->
+                            <div v-if="voucherError" class="mt-3 bg-red-50 border border-red-200 text-red-800 px-3 py-2 rounded-lg text-xs flex items-center gap-2">
+                                <svg class="w-4 h-4 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                                </svg>
+                                {{ voucherError }}
+                            </div>
+                        </div>
+
+                        <!-- Divider -->
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="flex-1 h-px bg-gray-300"></div>
+                            <span class="text-xs text-gray-500 font-medium">OR BUY A PACKAGE</span>
+                            <div class="flex-1 h-px bg-gray-300"></div>
+                        </div>
+
                         <!-- Package Cards -->
                         <div v-if="hotspots.length === 0" class="text-center py-12">
                             <div class="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">

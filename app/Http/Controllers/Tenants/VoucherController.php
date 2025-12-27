@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Tenants;
 use App\Http\Controllers\Controller;
 use App\Models\Voucher;
 use App\Models\Package;
+use App\Models\Tenants\NetworkUser;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -292,5 +293,137 @@ class VoucherController extends Controller
             'months'  => $value * 2592000,
             default   => 0
         };
+    }
+
+    /**
+     * Authenticate user with voucher code
+     */
+    public function authenticate(Request $request)
+    {
+        $validated = $request->validate([
+            'code' => ['required', 'string'],
+        ]);
+
+        try {
+            // Find voucher
+            $voucher = Voucher::where('code', $validated['code'])->first();
+
+            if (!$voucher) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid voucher code.'
+                ], 404);
+            }
+
+            // Check voucher status
+            if ($voucher->status !== 'active') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This voucher has already been used or is no longer active.'
+                ], 400);
+            }
+
+            // Check if expired
+            if ($voucher->isExpired()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This voucher has expired.'
+                ], 400);
+            }
+
+            // Verify voucher exists in RADIUS
+            $radcheckExists = \App\Models\Radius\Radcheck::where('username', $voucher->code)
+                ->where('attribute', 'Cleartext-Password')
+                ->exists();
+
+            if (!$radcheckExists) {
+                Log::error("Voucher exists in DB but not in RADIUS", ['code' => $voucher->code]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Voucher authentication failed. Please contact support.'
+                ], 500);
+            }
+
+            // Get package details
+            $package = $voucher->package;
+            if (!$package) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Voucher package not found.'
+                ], 404);
+            }
+
+            // Calculate expiry based on package
+            $expiresAt = now();
+            if ($package->duration_unit && $package->duration_value) {
+                $seconds = $this->toSeconds($package->duration_value, $package->duration_unit);
+                $expiresAt = now()->addSeconds($seconds);
+            }
+
+            DB::beginTransaction();
+            try {
+                // Create network user with voucher code as username/password
+                $networkUser = NetworkUser::create([
+                    'username' => $voucher->code,
+                    'password' => $voucher->code,
+                    'full_name' => 'Voucher User - ' . $voucher->code,
+                    'phone' => $request->input('phone', 'N/A'),
+                    'type' => 'hotspot',
+                    'package_id' => $package->id,
+                    'status' => 'active',
+                    'registered_at' => now(),
+                    'expires_at' => $expiresAt,
+                    'created_by' => $voucher->created_by,
+                ]);
+
+                // Mark voucher as used
+                $voucher->update([
+                    'status' => 'used',
+                    'is_used' => true,
+                    'used_by' => $networkUser->created_by,
+                ]);
+
+                DB::commit();
+
+                Log::info("Voucher authenticated successfully", [
+                    'code' => $voucher->code,
+                    'user_id' => $networkUser->id,
+                    'package' => $package->name
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Voucher authenticated successfully! You can now connect to the hotspot.',
+                    'user' => [
+                        'username' => $networkUser->username,
+                        'password' => $networkUser->password,
+                        'expires_at' => $networkUser->expires_at,
+                        'package_name' => $package->name,
+                    ]
+                ]);
+
+            } catch (\Throwable $e) {
+                DB::rollBack();
+                Log::error("Failed to authenticate voucher: {$e->getMessage()}", [
+                    'code' => $voucher->code,
+                    'trace' => $e->getTraceAsString()
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to authenticate voucher. Please try again.'
+                ], 500);
+            }
+
+        } catch (\Throwable $e) {
+            Log::error("Voucher authentication error: {$e->getMessage()}", [
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred. Please try again.'
+            ], 500);
+        }
     }
 }
