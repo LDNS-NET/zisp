@@ -14,7 +14,7 @@ use App\Services\Mikrotik\HotspotProfileService;
 class PackageController extends Controller
 {
     /**
-     * Display a listing of the packages.
+     * Display a listing of packages.
      */
     public function index()
     {
@@ -40,14 +40,20 @@ class PackageController extends Controller
 
         DB::transaction(function () use ($validated, $tenantId) {
 
-            // 1️⃣ Create package in DB
+            // 1️⃣ Generate a unique mikrotik_profile for hotspot packages
+            $mikrotikProfile = $validated['type'] === 'hotspot'
+                ? $validated['name'] . '-' . time()
+                : null;
+
+            // 2️⃣ Create package in DB
             $package = Package::create([
                 ...$validated,
-                'tenant_id'  => $tenantId,
-                'created_by' => auth()->id(),
+                'tenant_id'        => $tenantId,
+                'created_by'       => auth()->id(),
+                'mikrotik_profile' => $mikrotikProfile,
             ]);
 
-            // 2️⃣ If hotspot, create TenantHotspot + MikroTik profile
+            // 3️⃣ If hotspot, create TenantHotspot + MikroTik profile
             if ($package->type === 'hotspot') {
 
                 TenantHotspot::create([
@@ -65,8 +71,8 @@ class PackageController extends Controller
                 ]);
 
                 $mikrotik = app(HotspotProfileService::class);
-                $mikrotik->createProfile($package);
-            }   
+                $mikrotik->syncFromPackage($package);
+            }
         });
 
         return redirect()->route('packages.index')
@@ -81,10 +87,10 @@ class PackageController extends Controller
         $validated = $this->validatePackage($request, $package->id);
         $package->update($validated);
 
-        // Update MikroTik profile if hotspot
+        // Sync MikroTik profile if hotspot
         if ($package->type === 'hotspot') {
             $mikrotik = app(HotspotProfileService::class);
-            $mikrotik->updateProfile($package);
+            $mikrotik->syncFromPackage($package);
         }
 
         return redirect()->route('packages.index')
@@ -97,9 +103,8 @@ class PackageController extends Controller
     public function destroy(Package $package)
     {
         if ($package->type === 'hotspot') {
-            // Remove MikroTik profile
             $mikrotik = app(HotspotProfileService::class);
-            $mikrotik->deleteProfile($package->name);
+            $mikrotik->deleteProfile($package->mikrotik_profile);
         }
 
         $package->delete();
@@ -123,7 +128,7 @@ class PackageController extends Controller
         foreach ($packages as $package) {
             if ($package->type === 'hotspot') {
                 $mikrotik = app(HotspotProfileService::class);
-                $mikrotik->deleteProfile($package->name);
+                $mikrotik->deleteProfile($package->mikrotik_profile);
             }
         }
 
