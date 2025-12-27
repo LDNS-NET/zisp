@@ -14,6 +14,10 @@ class HotspotUserService
     /**
      * Create a hotspot user (voucher).
      */
+    /**
+     * Create a hotspot user (voucher).
+     * @throws Exception
+     */
     public function create(array $data): void
     {
         foreach (['username', 'password', 'profile'] as $field) {
@@ -27,12 +31,7 @@ class HotspotUserService
         }
 
         // Prevent duplicates
-        $existing = $this->api->getClient()
-            ->query('/ip/hotspot/user/print')
-            ->where('name', $data['username'])
-            ->read();
-
-        if (!empty($existing)) {
+        if ($this->exists($data['username'])) {
             return; // already exists → idempotent
         }
 
@@ -40,6 +39,14 @@ class HotspotUserService
             ->equal('name', $data['username'])
             ->equal('password', $data['password'])
             ->equal('profile', $data['profile']);
+
+        if (isset($data['comment'])) {
+            $query->equal('comment', $data['comment']);
+        }
+        
+        if (isset($data['limit-uptime'])) {
+             $query->equal('limit-uptime', $data['limit-uptime']);
+        }
 
         $this->api->getClient()->query($query)->read();
     }
@@ -55,14 +62,30 @@ class HotspotUserService
 
         $users = $this->api->getClient()
             ->query('/ip/hotspot/user/print')
+            ->where('name', $username)
             ->read();
 
         foreach ($users as $user) {
-            if (($user['name'] ?? null) === $username) {
-                $query = (new Query('/ip/hotspot/user/remove'))
-                    ->equal('.id', $user['.id']);
-                $this->api->getClient()->query($query)->read();
-            }
+             $query = (new Query('/ip/hotspot/user/remove'))
+                 ->equal('.id', $user['.id']);
+             $this->api->getClient()->query($query)->read();
         }
+    }
+
+    /**
+     * Check if a hotspot user exists.
+     */
+    public function exists(string $username): bool
+    {
+        if (!$this->api->connect()) {
+            return false; // Assuming false if offline, strictly handling might require exception
+        }
+
+        $users = $this->api->getClient()
+            ->query('/ip/hotspot/user/print')
+            ->where('name', $username)
+            ->read();
+
+        return !empty($users);
     }
 }

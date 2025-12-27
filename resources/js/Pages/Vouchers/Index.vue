@@ -253,11 +253,13 @@ const openActions = (voucher) => {
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <span :class="[
-                                        'px-2 py-0.5 text-xs font-semibold rounded-full',
-                                        voucher.is_active && !isExpired(voucher.expires_at) ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                                        'px-2 py-0.5 text-xs font-semibold rounded-full capitalize',
+                                        voucher.status === 'active' && !isExpired(voucher.expires_at) ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                                        voucher.status === 'used' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' :
+                                        voucher.status === 'revoked' ? 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300' :
                                         'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
                                     ]">
-                                        {{ voucher.is_active && !isExpired(voucher.expires_at) ? 'Active' : 'Inactive' }}
+                                        {{ isExpired(voucher.expires_at) && voucher.status === 'active' ? 'Expired' : voucher.status }}
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -297,11 +299,13 @@ const openActions = (voucher) => {
                                         {{ voucher.type }}
                                     </span>
                                     <span :class="[
-                                        'px-2 py-0.5 text-xs font-semibold rounded-full',
-                                        voucher.is_active && !isExpired(voucher.expires_at) ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                                        'px-2 py-0.5 text-xs font-semibold rounded-full capitalize',
+                                        voucher.status === 'active' && !isExpired(voucher.expires_at) ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                                        voucher.status === 'used' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' :
+                                        voucher.status === 'revoked' ? 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300' :
                                         'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
                                     ]">
-                                        {{ voucher.is_active && !isExpired(voucher.expires_at) ? 'Active' : 'Inactive' }}
+                                        {{ isExpired(voucher.expires_at) && voucher.status === 'active' ? 'Expired' : voucher.status }}
                                     </span>
                                 </div>
                             </div>

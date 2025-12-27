@@ -59,32 +59,62 @@ class VoucherController extends Controller
 
         $package = Package::where('type', 'hotspot')->findOrFail($validated['package_id']);
         $mikrotik = app(HotspotUserService::class);
+        $createdVouchers = [];
 
-        DB::transaction(function () use ($request, $package, $mikrotik) {
+        DB::beginTransaction();
+        try {
             for ($i = 0; $i < $request->quantity; $i++) {
                 $code = strtoupper(($request->prefix ?? '') . Str::random($request->length - strlen($request->prefix ?? '')));
+                
+                // Ensure uniqueness in DB just in case
+                while (Voucher::where('code', $code)->exists()) {
+                    $code = strtoupper(($request->prefix ?? '') . Str::random($request->length - strlen($request->prefix ?? '')));
+                }
 
                 $voucher = Voucher::create([
                     'code'       => $code,
-                    'username'   => $code,
-                    'password'   => $code,
                     'package_id' => $package->id,
-                    'profile'    => $package->mikrotik_profile,
                     'value'      => $package->price,
+                    'status'     => 'active',
                     'expires_at' => now()->addDays($package->duration_in_days ?? 30),
                     'created_by' => auth()->id(),
                 ]);
 
-                $mikrotik->createUser([
-                    'username' => $voucher->username,
-                    'password' => $voucher->password,
-                    'profile'  => $voucher->profile,
+                // We'll use the code as username and password for simplicity as per requirements
+                $mikrotik->create([
+                    'username' => $voucher->code,
+                    'password' => $voucher->code,
+                    'profile'  => $package->mikrotik_profile,
+                    'comment'  => "Voucher {$voucher->code}",
+                    'limit-uptime' => $package->duration_unit === 'minutes' ? $package->duration_value . 'm' : 
+                                     ($package->duration_unit === 'hours' ? $package->duration_value . 'h' : 
+                                     ($package->duration_unit === 'days' ? $package->duration_value . 'd' : null))
                 ]);
+                
+                $createdVouchers[] = $voucher->code;
             }
-        });
+            
+            DB::commit();
 
-        return redirect()->route('vouchers.index')
-                         ->with('success', "{$request->quantity} vouchers created successfully.");
+            return redirect()->route('vouchers.index')
+                             ->with('success', "{$request->quantity} vouchers created successfully.");
+
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error("Failed to create vouchers: {$e->getMessage()}", ['trace' => $e->getTraceAsString()]);
+            
+            // Compensation: Remove any vouchers created on MikroTik before the error
+            foreach ($createdVouchers as $code) {
+                try {
+                    $mikrotik->remove($code);
+                } catch (\Exception $ex) {
+                    Log::warning("Failed to rollback voucher from MikroTik: {$code}");
+                }
+            }
+
+            return redirect()->back()
+                             ->with('error', "Failed to create vouchers. Error: {$e->getMessage()}");
+        }
     }
 
     public function edit(Voucher $voucher)
@@ -100,21 +130,38 @@ class VoucherController extends Controller
 
         $validated = $request->validate([
             'code'        => ['sometimes', 'string', 'max:255', Rule::unique('vouchers', 'code')->ignore($voucher->id)],
-            'name'        => ['sometimes', 'string', 'max:255'],
-            'type'        => ['sometimes', Rule::in(['percentage', 'fixed'])],
-            'value'       => ['sometimes', 'numeric', 'min:0'],
-            'usage_limit' => ['nullable', 'integer', 'min:1'],
-            'expires_at'  => ['nullable', 'date'],
             'status'      => ['sometimes', Rule::in(['active', 'used', 'expired', 'revoked'])],
-            'is_active'   => ['sometimes', 'boolean'],
             'note'        => ['nullable', 'string', 'max:1000'],
         ]);
+        
+        $oldStatus = $voucher->status;
 
         try {
-            $voucher->update($validated);
+            DB::transaction(function() use ($voucher, $validated, $oldStatus) {
+                $voucher->update($validated);
+                
+                $mikrotik = app(HotspotUserService::class);
+                
+                // Sync status with MikroTik
+                if (isset($validated['status'])) {
+                    if (in_array($validated['status'], ['revoked', 'expired']) && $oldStatus === 'active') {
+                        $mikrotik->remove($voucher->code);
+                    } elseif ($validated['status'] === 'active' && in_array($oldStatus, ['revoked', 'expired'])) {
+                        // Re-create user if reactivating
+                         $mikrotik->create([
+                            'username' => $voucher->code,
+                            'password' => $voucher->code,
+                            'profile'  => $voucher->package->mikrotik_profile,
+                            'comment'  => "Voucher {$voucher->code}",
+                        ]);
+                    }
+                }
+            });
+
             return redirect()->route('vouchers.index')->with('success', 'Voucher updated successfully.');
+
         } catch (\Throwable $e) {
-            Log::error("Failed to update voucher: {$e->getMessage()}", ['trace' => $e->getTraceAsString(), 'voucher_id' => $voucher->id]);
+            Log::error("Failed to update voucher: {$e->getMessage()}", ['voucher_id' => $voucher->id]);
             return redirect()->route('vouchers.index', ['edit' => true, 'voucher_id' => $voucher->id])
                              ->with('error', 'Failed to update voucher. ' . $e->getMessage())
                              ->withInput();
@@ -124,12 +171,24 @@ class VoucherController extends Controller
     public function destroy(Voucher $voucher)
     {
         $this->authorizeAccess($voucher);
+        $code = $voucher->code;
 
         try {
-            $voucher->delete();
+            DB::transaction(function() use ($voucher) {
+                $voucher->delete();
+            });
+            
+            // Remove from MikroTik
+            try {
+                app(HotspotUserService::class)->remove($code);
+            } catch (\Exception $e) {
+                 Log::warning("Failed to remove voucher from MikroTik during deletion: {$code}");
+                 // Proceed without erroring the user request, but log it.
+            }
+
             return redirect()->route('vouchers.index')->with('success', 'Voucher deleted successfully.');
         } catch (\Throwable $e) {
-            Log::error("Failed to delete voucher: {$e->getMessage()}", ['trace' => $e->getTraceAsString(), 'voucher_id' => $voucher->id]);
+            Log::error("Failed to delete voucher: {$e->getMessage()}", ['voucher_id' => $voucher->id]);
             return redirect()->route('vouchers.index')->with('error', 'Failed to delete voucher. ' . $e->getMessage());
         }
     }
@@ -151,7 +210,7 @@ class VoucherController extends Controller
 
             return redirect()->back()->with('success', 'Voucher sent successfully.');
         } catch (\Throwable $e) {
-            Log::error("Failed to send voucher: {$e->getMessage()}", ['trace' => $e->getTraceAsString(), 'voucher_id' => $voucher->id]);
+            Log::error("Failed to send voucher: {$e->getMessage()}", ['voucher_id' => $voucher->id]);
             return redirect()->back()->with('error', 'Failed to send voucher. ' . $e->getMessage());
         }
     }
@@ -162,6 +221,17 @@ class VoucherController extends Controller
             'ids' => 'required|array',
             'ids.*' => 'integer|exists:vouchers,id',
         ]);
+        
+        $vouchers = Voucher::whereIn('id', $request->ids)->get();
+        $mikrotik = app(HotspotUserService::class);
+
+        foreach ($vouchers as $voucher) {
+            try {
+                $mikrotik->remove($voucher->code);
+            } catch (\Exception $e) {
+                 Log::warning("Failed to remove voucher from MikroTik during bulk deletion: {$voucher->code}");
+            }
+        }
 
         Voucher::whereIn('id', $request->ids)->delete();
 
