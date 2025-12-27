@@ -1,15 +1,17 @@
 <?php
 
-namespace App\Http\Controllers\Tenants; // Retaining your specified namespace
+namespace App\Http\Controllers\Tenants;
 
 use App\Http\Controllers\Controller;
-use App\Models\Voucher; // Ensure your Voucher model is correctly imported
+use App\Models\Voucher;
 use App\Models\Package;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
-use Inertia\Inertia; // Essential for Inertia responses
+use Inertia\Inertia;
 use Illuminate\Support\Facades\Log; // For robust error logging
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
+use App\Services\Mikrotik\HotspotUserService;
 
 
 class VoucherController extends Controller
@@ -81,61 +83,54 @@ class VoucherController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\RedirectResponse
      */
-    public function store(Request $request): \Illuminate\Http\RedirectResponse
-    {
-        $validated = $request->validate([
-            'prefix' => ['nullable', 'string', 'max:4'],
-            'length' => ['required', 'integer', 'min:6'],
-            'quantity' => ['required', 'integer', 'min:1', 'max:1000'],
-            'package_id' => [
-                'required',
-                'exists:packages,id',
-                function ($attribute, $value, $fail) {
-                    $package = Package::find($value);
-                    if (!$package || $package->type !== 'hotspot') {
-                        $fail('Selected package is not a hotspot package.');
-                    }
-                },
-            ],
-        ]);
+    public function store(Request $request)
+{
+    $validated = $request->validate([
+        'prefix' => ['nullable', 'string', 'max:4'],
+        'length' => ['required', 'integer', 'min:6'],
+        'quantity' => ['required', 'integer', 'min:1', 'max:1000'],
+        'package_id' => ['required', 'exists:packages,id'],
+    ]);
 
-        $package = Package::findOrFail($request->package_id);
+    $package = Package::where('type', 'hotspot')->findOrFail($validated['package_id']);
 
-        $vouchers = [];
+    DB::transaction(function () use ($request, $package) {
+
+        $mikrotik = app(HotspotUserService::class);
 
         for ($i = 0; $i < $request->quantity; $i++) {
-            $code = strtoupper($request->prefix ?? '') . strtoupper(Str::random($request->length - strlen($request->prefix ?? '')));
 
-            $duration = $package->duration_in_days ?? 30;
-            $vouchers[] = [
+            $code = strtoupper(
+                ($request->prefix ?? '') .
+                Str::random($request->length - strlen($request->prefix ?? ''))
+            );
+
+            // 1️⃣ Create voucher in DB
+            $voucher = Voucher::create([
                 'code' => $code,
+                'username' => $code,
+                'password' => $code,
                 'package_id' => $package->id,
+                'profile' => $package->mikrotik_profile, // IMPORTANT
                 'value' => $package->price,
-                'expires_at' => now()->addDays($duration),
+                'expires_at' => now()->addDays($package->duration_in_days ?? 30),
                 'created_by' => auth()->id(),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ];
-        }
-
-        try {
-            Voucher::insert($vouchers); // ✅ Correct way to insert multiple vouchers
-
-            return redirect()
-                ->route('vouchers.index')
-                ->with('success', "{$request->quantity} vouchers created successfully.");
-        } catch (\Throwable $e) {
-            Log::error("Failed to create vouchers: " . $e->getMessage(), [
-                'trace' => $e->getTraceAsString(),
-                'user_id' => auth()->id(),
             ]);
 
-            return redirect()
-                ->route('vouchers.index', ['create' => true])
-                ->with('error', 'Failed to create vouchers. ' . $e->getMessage())
-                ->withInput();
+            // 2️⃣ Create hotspot user in MikroTik
+            $mikrotik->createUser([
+                'username' => $voucher->username,
+                'password' => $voucher->password,
+                'profile'  => $voucher->profile,
+            ]);
         }
-    }
+    });
+
+    return redirect()
+        ->route('vouchers.index')
+        ->with('success', "{$request->quantity} vouchers created successfully.");
+}
+
 
 
     /**
