@@ -56,6 +56,31 @@ Route::get('/', function () {
     ]);
 });
 
+// Public route for MikroTik to download hotspot template files
+Route::get('hotspot-templates/{file}', function ($file) {
+    // Allowed files
+    $allowedFiles = ['login.html', 'alogin.html', 'rlogin.html', 'flogin.html', 'logout.html', 'redirect.html', 'error.html'];
+
+    if (!in_array($file, $allowedFiles)) {
+        abort(404, 'Template file not found');
+    }
+
+    $templatePath = resource_path('scripts/zisp-hotspot/' . $file);
+
+    if (!file_exists($templatePath)) {
+        abort(404, 'Template file not found');
+    }
+
+    // Return raw HTML content (no tenant replacement needed - JavaScript handles domain detection)
+    $content = file_get_contents($templatePath);
+
+    return response($content)
+        ->header('Content-Type', 'text/html')
+        ->header('Cache-Control', 'no-cache, no-store, must-revalidate')
+        ->header('Pragma', 'no-cache')
+        ->header('Expires', '0');
+})->name('hotspot.templates.public');
+
 // Hotspot routes (protected by subscription check) replace subscription with a safer middleware for hotspot safe redirects
 
 Route::middleware(['check.subscription'])->group(function () {
@@ -193,58 +218,6 @@ Route::middleware(['auth', 'verified', 'check.subscription', 'tenant.domain'])
         Route::get('mikrotiks/{mikrotik}/remote-management', [TenantMikrotikController::class, 'remoteManagement'])->name('mikrotiks.remoteManagement');
         Route::get('mikrotiks/{mikrotik}/ca.crt', [TenantMikrotikController::class, 'downloadCACert'])->name('mikrotiks.downloadCACert');
         Route::get('mikrotiks/{mikrotik}/reprovision', [TenantMikrotikController::class, 'reprovision'])->name('mikrotiks.reprovision');
-
-        // Hotspot template file serving
-        Route::get('hotspot-templates/{file}', function ($file) {
-            // Allowed files
-            $allowedFiles = ['login.html', 'alogin.html', 'rlogin.html', 'flogin.html', 'logout.html', 'redirect.html', 'error.html'];
-
-            if (!in_array($file, $allowedFiles)) {
-                abort(404, 'Template file not found');
-            }
-
-            $templatePath = resource_path('scripts/zisp-hotspot/' . $file);
-
-            if (!file_exists($templatePath)) {
-                abort(404, 'Template file not found');
-            }
-
-            // Get current tenant and replace domain placeholder
-            $currentTenant = tenant();
-            $tenantDomain = $currentTenant ? $currentTenant->domains()->first()->domain : null;
-
-            // Fetch settings
-            $settings = null;
-            if ($currentTenant) {
-                $settings = \Illuminate\Support\Facades\Cache::remember("tenant_general_setting_{$currentTenant->id}", 60, function () use ($currentTenant) {
-                    return \App\Models\TenantGeneralSetting::where('tenant_id', $currentTenant->id)->first();
-                });
-            }
-
-            $content = file_get_contents($templatePath);
-
-            if ($tenantDomain) {
-                $content = str_replace('{{ $tenant->domain }}', $tenantDomain, $content);
-            }
-
-            if ($currentTenant) {
-                $businessName = $settings?->business_name ?? $currentTenant->name;
-                $logo = $settings?->logo ?? '';
-                $phone = $settings?->support_phone ?? '';
-                $email = $settings?->support_email ?? '';
-
-                $content = str_replace('{{ $tenant->name }}', $businessName, $content);
-                $content = str_replace('{{ $tenant->logo }}', $logo, $content);
-                $content = str_replace('{{ $tenant->phone }}', $phone, $content);
-                $content = str_replace('{{ $tenant->email }}', $email, $content);
-            }
-
-            return response($content)
-                ->header('Content-Type', 'text/html')
-                ->header('Cache-Control', 'no-cache, no-store, must-revalidate')
-                ->header('Pragma', 'no-cache')
-                ->header('Expires', '0');
-        })->name('hotspot.templates');
         Route::post('mikrotiks/{mikrotik}/provision-hotspot', [TenantMikrotikController::class, 'provisionHotspot'])->name('mikrotiks.provisionHotspot');
 
 
