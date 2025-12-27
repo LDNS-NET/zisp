@@ -54,6 +54,7 @@ class HotspotProfileService
             $query = (new Query('/ip/hotspot/user/profile/set'))
                 ->equal('.id', $existing['.id'])
                 ->equal('rate-limit', $rateLimit)
+                ->equal('shared-users', (string)$package->device_limit)
                 ->equal('session-timeout', $sessionTimeout);
 
             $client->getClient()->query($query)->read();
@@ -62,6 +63,7 @@ class HotspotProfileService
             $query = (new Query('/ip/hotspot/user/profile/add'))
                 ->equal('name', $package->mikrotik_profile)
                 ->equal('rate-limit', $rateLimit)
+                ->equal('shared-users', (string)$package->device_limit)
                 ->equal('session-timeout', $sessionTimeout);
 
             $client->getClient()->query($query)->read();
