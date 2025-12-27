@@ -11,7 +11,6 @@ use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
-use App\Services\Mikrotik\HotspotUserService;
 
 class VoucherController extends Controller
 {
@@ -58,16 +57,16 @@ class VoucherController extends Controller
         ]);
 
         $package = Package::where('type', 'hotspot')->findOrFail($validated['package_id']);
-        $mikrotikUser = app(HotspotUserService::class);
-        $mikrotikProfile = app(\App\Services\Mikrotik\HotspotProfileService::class);
+        
+        // Calculate RADIUS attributes from Package
+        $rateLimit = "{$package->upload_speed}M/{$package->download_speed}M";
+        $sessionTimeout = $this->toSeconds($package->duration_value, $package->duration_unit);
+        $deviceLimit = $package->device_limit ?? 1;
+
         $createdVouchers = [];
 
         DB::beginTransaction();
         try {
-            // Ensure the profile exists on MikroTik before creating users
-            // This is the "Lazy Sync" step
-            $mikrotikProfile->syncFromPackage($package);
-
             for ($i = 0; $i < $request->quantity; $i++) {
                 $code = strtoupper(($request->prefix ?? '') . Str::random($request->length - strlen($request->prefix ?? '')));
                 
@@ -85,15 +84,39 @@ class VoucherController extends Controller
                     'created_by' => auth()->id(),
                 ]);
 
-                // We'll use the code as username and password for simplicity as per requirements
-                $mikrotikUser->create([
-                    'username' => $voucher->code,
-                    'password' => $voucher->code,
-                    'profile'  => $package->mikrotik_profile,
-                    'comment'  => "Voucher {$voucher->code}",
-                    'limit-uptime' => $package->duration_unit === 'minutes' ? $package->duration_value . 'm' : 
-                                     ($package->duration_unit === 'hours' ? $package->duration_value . 'h' : 
-                                     ($package->duration_unit === 'days' ? $package->duration_value . 'd' : null))
+                // --- RADIUS Creation ---
+                
+                // 1. Authentication (RadCheck)
+                \App\Models\Radius\RadCheck::create([
+                    'username'  => $voucher->code,
+                    'attribute' => 'Cleartext-Password',
+                    'op'        => ':=',
+                    'value'     => $voucher->code,
+                ]);
+
+                // 2. Limits (RadReply)
+                // Rate Limit
+                \App\Models\Radius\RadReply::create([
+                    'username'  => $voucher->code,
+                    'attribute' => 'Mikrotik-Rate-Limit',
+                    'op'        => ':=',
+                    'value'     => $rateLimit,
+                ]);
+
+                // Session Timeout (Duration)
+                \App\Models\Radius\RadReply::create([
+                    'username'  => $voucher->code,
+                    'attribute' => 'Session-Timeout',
+                    'op'        => ':=',
+                    'value'     => (string)$sessionTimeout,
+                ]);
+
+                // Simultaneous Use (Devices)
+                \App\Models\Radius\RadReply::create([
+                    'username'  => $voucher->code,
+                    'attribute' => 'Simultaneous-Use',
+                    'op'        => ':=',
+                    'value'     => (string)$deviceLimit,
                 ]);
                 
                 $createdVouchers[] = $voucher->code;
@@ -108,12 +131,13 @@ class VoucherController extends Controller
             DB::rollBack();
             Log::error("Failed to create vouchers: {$e->getMessage()}", ['trace' => $e->getTraceAsString()]);
             
-            // Compensation: Remove any vouchers created on MikroTik before the error
+            // Cleanup RADIUS if transaction failed
             foreach ($createdVouchers as $code) {
                 try {
-                    $mikrotikUser->remove($code);
+                    \App\Models\Radius\RadCheck::where('username', $code)->delete();
+                    \App\Models\Radius\RadReply::where('username', $code)->delete();
                 } catch (\Exception $ex) {
-                    Log::warning("Failed to rollback voucher from MikroTik: {$code}");
+                    Log::warning("Failed to rollback voucher from RADIUS: {$code}");
                 }
             }
 
@@ -145,20 +169,28 @@ class VoucherController extends Controller
             DB::transaction(function() use ($voucher, $validated, $oldStatus) {
                 $voucher->update($validated);
                 
-                $mikrotik = app(HotspotUserService::class);
-                
-                // Sync status with MikroTik
+                // Sync status with RADIUS
                 if (isset($validated['status'])) {
                     if (in_array($validated['status'], ['revoked', 'expired']) && $oldStatus === 'active') {
-                        $mikrotik->remove($voucher->code);
+                        // Disable user in RADIUS
+                        \App\Models\Radius\RadCheck::where('username', $voucher->code)
+                            ->where('attribute', 'Cleartext-Password')
+                            ->delete();
+                            
                     } elseif ($validated['status'] === 'active' && in_array($oldStatus, ['revoked', 'expired'])) {
-                        // Re-create user if reactivating
-                         $mikrotik->create([
-                            'username' => $voucher->code,
-                            'password' => $voucher->code,
-                            'profile'  => $voucher->package->mikrotik_profile,
-                            'comment'  => "Voucher {$voucher->code}",
-                        ]);
+                        // Re-enable user in RADIUS
+                         $exists = \App\Models\Radius\RadCheck::where('username', $voucher->code)
+                            ->where('attribute', 'Cleartext-Password')
+                            ->exists();
+                            
+                         if (!$exists) {
+                            \App\Models\Radius\RadCheck::create([
+                                'username'  => $voucher->code,
+                                'attribute' => 'Cleartext-Password',
+                                'op'        => ':=',
+                                'value'     => $voucher->code,
+                            ]);
+                         }
                     }
                 }
             });
@@ -179,17 +211,13 @@ class VoucherController extends Controller
         $code = $voucher->code;
 
         try {
-            DB::transaction(function() use ($voucher) {
+            DB::transaction(function() use ($voucher, $code) {
                 $voucher->delete();
+                
+                // Remove from RADIUS
+                 \App\Models\Radius\RadCheck::where('username', $code)->delete();
+                 \App\Models\Radius\RadReply::where('username', $code)->delete();
             });
-            
-            // Remove from MikroTik
-            try {
-                app(HotspotUserService::class)->remove($code);
-            } catch (\Exception $e) {
-                 Log::warning("Failed to remove voucher from MikroTik during deletion: {$code}");
-                 // Proceed without erroring the user request, but log it.
-            }
 
             return redirect()->route('vouchers.index')->with('success', 'Voucher deleted successfully.');
         } catch (\Throwable $e) {
@@ -215,7 +243,7 @@ class VoucherController extends Controller
 
             return redirect()->back()->with('success', 'Voucher sent successfully.');
         } catch (\Throwable $e) {
-            Log::error("Failed to send voucher: {$e->getMessage()}", ['voucher_id' => $voucher->id]);
+            Log::error("Failed to send voucher: {$e->getMessage()}", ['trace' => $e->getTraceAsString(), 'voucher_id' => $voucher->id]);
             return redirect()->back()->with('error', 'Failed to send voucher. ' . $e->getMessage());
         }
     }
@@ -228,14 +256,15 @@ class VoucherController extends Controller
         ]);
         
         $vouchers = Voucher::whereIn('id', $request->ids)->get();
-        $mikrotik = app(HotspotUserService::class);
+        // Collect codes for RADIUS deletion
+        $codes = $vouchers->pluck('code')->toArray();
 
-        foreach ($vouchers as $voucher) {
-            try {
-                $mikrotik->remove($voucher->code);
-            } catch (\Exception $e) {
-                 Log::warning("Failed to remove voucher from MikroTik during bulk deletion: {$voucher->code}");
-            }
+        // Delete from RADIUS
+        try {
+            \App\Models\Radius\RadCheck::whereIn('username', $codes)->delete();
+            \App\Models\Radius\RadReply::whereIn('username', $codes)->delete();
+        } catch (\Exception $e) {
+             Log::error("Failed to remove vouchers from RADIUS during bulk deletion: " . $e->getMessage());
         }
 
         Voucher::whereIn('id', $request->ids)->delete();
@@ -248,5 +277,17 @@ class VoucherController extends Controller
         if ($voucher->created_by !== auth()->id()) {
             abort(403, 'Unauthorized. You do not own this voucher.');
         }
+    }
+
+    protected function toSeconds(int $value, string $unit): int
+    {
+        return match ($unit) {
+            'minutes' => $value * 60,
+            'hours'   => $value * 3600,
+            'days'    => $value * 86400,
+            'weeks'   => $value * 604800,
+            'months'  => $value * 2592000,
+            default   => 0
+        };
     }
 }
