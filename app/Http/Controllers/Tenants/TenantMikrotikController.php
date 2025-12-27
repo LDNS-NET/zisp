@@ -1438,6 +1438,7 @@ class TenantMikrotikController extends Controller
             'router_password' => $router->router_password,
             'trusted_ip' => $this->getTrustedIpForScripts(),
             'hotspot_url' => $hotspotUrl,
+            'tenant_domain' => $tenantDomain ?? '',
         ]);
 
         $router->logs()->create([

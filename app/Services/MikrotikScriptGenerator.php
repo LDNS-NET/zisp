@@ -185,6 +185,7 @@ class MikrotikScriptGenerator
             'router_password' => $router_password,
             'trusted_ip' => $trusted_ip,
             'hotspot_url' => $hotspot_url ?? '',
+            'tenant_domain' => $options['tenant_domain'] ?? '',
         ];
 
         foreach ($replacements as $key => $value) {
