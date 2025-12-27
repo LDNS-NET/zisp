@@ -88,17 +88,17 @@ class VoucherController extends Controller
 
                 // --- RADIUS Creation ---
                 
-                // 1. Authentication (RadCheck)
-                \App\Models\Radius\RadCheck::create([
+                // 1. Authentication (Radcheck)
+                \App\Models\Radius\Radcheck::create([
                     'username'  => $voucher->code,
                     'attribute' => 'Cleartext-Password',
                     'op'        => ':=',
                     'value'     => $voucher->code,
                 ]);
 
-                // 2. Limits (RadReply)
+                // 2. Limits (Radreply)
                 // Rate Limit
-                \App\Models\Radius\RadReply::create([
+                \App\Models\Radius\Radreply::create([
                     'username'  => $voucher->code,
                     'attribute' => 'Mikrotik-Rate-Limit',
                     'op'        => ':=',
@@ -106,7 +106,7 @@ class VoucherController extends Controller
                 ]);
 
                 // Session Timeout (Duration)
-                \App\Models\Radius\RadReply::create([
+                \App\Models\Radius\Radreply::create([
                     'username'  => $voucher->code,
                     'attribute' => 'Session-Timeout',
                     'op'        => ':=',
@@ -114,7 +114,7 @@ class VoucherController extends Controller
                 ]);
 
                 // Simultaneous Use (Devices)
-                \App\Models\Radius\RadReply::create([
+                \App\Models\Radius\Radreply::create([
                     'username'  => $voucher->code,
                     'attribute' => 'Simultaneous-Use',
                     'op'        => ':=',
@@ -137,8 +137,8 @@ class VoucherController extends Controller
             // Cleanup RADIUS if transaction failed
             foreach ($createdVouchers as $code) {
                 try {
-                    \App\Models\Radius\RadCheck::where('username', $code)->delete();
-                    \App\Models\Radius\RadReply::where('username', $code)->delete();
+                    \App\Models\Radius\Radcheck::where('username', $code)->delete();
+                    \App\Models\Radius\Radreply::where('username', $code)->delete();
                 } catch (\Exception $ex) {
                     Log::warning("Failed to rollback voucher from RADIUS: {$code}");
                 }
@@ -176,18 +176,18 @@ class VoucherController extends Controller
                 if (isset($validated['status'])) {
                     if (in_array($validated['status'], ['revoked', 'expired']) && $oldStatus === 'active') {
                         // Disable user in RADIUS
-                        \App\Models\Radius\RadCheck::where('username', $voucher->code)
+                        \App\Models\Radius\Radcheck::where('username', $voucher->code)
                             ->where('attribute', 'Cleartext-Password')
                             ->delete();
                             
                     } elseif ($validated['status'] === 'active' && in_array($oldStatus, ['revoked', 'expired'])) {
                         // Re-enable user in RADIUS
-                         $exists = \App\Models\Radius\RadCheck::where('username', $voucher->code)
+                         $exists = \App\Models\Radius\Radcheck::where('username', $voucher->code)
                             ->where('attribute', 'Cleartext-Password')
                             ->exists();
                             
                          if (!$exists) {
-                            \App\Models\Radius\RadCheck::create([
+                            \App\Models\Radius\Radcheck::create([
                                 'username'  => $voucher->code,
                                 'attribute' => 'Cleartext-Password',
                                 'op'        => ':=',
@@ -218,8 +218,8 @@ class VoucherController extends Controller
                 $voucher->delete();
                 
                 // Remove from RADIUS
-                 \App\Models\Radius\RadCheck::where('username', $code)->delete();
-                 \App\Models\Radius\RadReply::where('username', $code)->delete();
+                 \App\Models\Radius\Radcheck::where('username', $code)->delete();
+                 \App\Models\Radius\Radreply::where('username', $code)->delete();
             });
 
             return redirect()->route('vouchers.index')->with('success', 'Voucher deleted successfully.');
@@ -264,8 +264,8 @@ class VoucherController extends Controller
 
         // Delete from RADIUS
         try {
-            \App\Models\Radius\RadCheck::whereIn('username', $codes)->delete();
-            \App\Models\Radius\RadReply::whereIn('username', $codes)->delete();
+            \App\Models\Radius\Radcheck::whereIn('username', $codes)->delete();
+            \App\Models\Radius\Radreply::whereIn('username', $codes)->delete();
         } catch (\Exception $e) {
              Log::error("Failed to remove vouchers from RADIUS during bulk deletion: " . $e->getMessage());
         }

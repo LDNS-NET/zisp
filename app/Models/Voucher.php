@@ -16,6 +16,7 @@ class Voucher extends Model
         'value',
         'status',
         'expires_at',
+        'is_used',
         'package_id',
         'created_by',
         'used_by',
