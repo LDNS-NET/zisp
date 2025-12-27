@@ -78,23 +78,40 @@
 :put " =================== Hotspot server created =================== "
 
 
+
 :put " =================== Downloading and configuring hotspot HTML templates =================== "
 # Download hotspot template files from server
 :local baseUrl "{{hotspot_url}}"
 :local templateFiles [:toarray "login.html,alogin.html,rlogin.html,flogin.html,logout.html,redirect.html,error.html"]
 
+:put ("Base URL: " . $baseUrl)
+
+# Create zisp-hotspot directory if it doesn't exist
+:do {
+    /file remove [find name="zisp-hotspot"]
+} on-error={}
+
 :foreach fileName in=$templateFiles do={
     :local downloadUrl ($baseUrl . "/hotspot-templates/" . $fileName)
-    :put ("Downloading: " . $fileName)
+    :put ("Downloading from: " . $downloadUrl)
     :do {
-        /tool fetch url=$downloadUrl mode=https dst-path=("hotspot/" . $fileName)
-        :put ("  Success: " . $fileName)
+        /tool fetch url=$downloadUrl mode=https dst-path=("zisp-hotspot/" . $fileName)
+        :delay 2s
+        # Check if file was downloaded
+        :local fileExists [/file find name=("zisp-hotspot/" . $fileName)]
+        :if ([:len $fileExists] > 0) do={
+            :put ("  SUCCESS: " . $fileName . " downloaded")
+        } else={
+            :put ("  WARNING: " . $fileName . " not found after download")
+        }
     } on-error={
-        :put ("  Failed to download: " . $fileName)
+        :put ("  FAILED: Could not download " . $fileName)
+        :put ("  Check: 1) URL is accessible, 2) HTTPS certificate is valid, 3) DNS resolution works")
     }
-    :delay 1s
 }
 :put " =================== Hotspot HTML templates configured =================== "
+
+
 
 
 :put " =================== Configuring hotspot masquerade =================== "

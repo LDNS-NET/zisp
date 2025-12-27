@@ -57,6 +57,7 @@ Route::get('/', function () {
 });
 
 // Public route for MikroTik to download hotspot template files
+// Public route for MikroTik to download hotspot template files
 Route::get('hotspot-templates/{file}', function ($file) {
     // Allowed files
     $allowedFiles = ['login.html', 'alogin.html', 'rlogin.html', 'flogin.html', 'logout.html', 'redirect.html', 'error.html'];
@@ -71,8 +72,12 @@ Route::get('hotspot-templates/{file}', function ($file) {
         abort(404, 'Template file not found');
     }
 
-    // Return raw HTML content (no tenant replacement needed - JavaScript handles domain detection)
     $content = file_get_contents($templatePath);
+
+    // Inject the tenant domain from the request host header
+    // This allows the HTML file (served locally by MikroTik) to know the correct cloud URL
+    $domain = request()->getHost();
+    $content = str_replace('{{DOMAIN}}', $domain, $content);
 
     return response($content)
         ->header('Content-Type', 'text/html')
