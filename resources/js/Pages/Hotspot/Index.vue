@@ -472,53 +472,44 @@ function formatPhoneNumber(event) {
                         <p class="text-gray-500 mt-1">Please check back later</p>
                     </div>
 
-                    <!-- Responsive Grid -->
-                    <div v-else class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-6">
+                    <!-- Row-based Package List -->
+                    <div v-else class="space-y-4">
                         <div 
                             v-for="hotspot in hotspots" 
                             :key="hotspot.id" 
-                            class="group relative bg-white rounded-2xl border border-gray-100 shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden flex flex-col"
+                            class="group relative bg-white/60 backdrop-blur-sm rounded-2xl border border-white p-4 md:p-6 hover:bg-white transition-all duration-300 shadow-sm hover:shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4"
                         >
-                            <div class="h-2 w-full bg-gradient-to-r from-purple-500 to-blue-500"></div>
-                            
-                            <div class="p-6 flex-1 flex flex-col">
-                                <div class="mb-4">
-                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-600 uppercase tracking-wider">
-                                        {{ hotspot.duration_value }} {{ hotspot.duration_unit }} Access
-                                    </span>
+                            <div class="flex-1 w-full sm:w-auto">
+                                <div class="flex flex-wrap items-center gap-2 mb-3">
+                                    <h3 class="text-lg md:text-xl font-bold text-gray-900 truncate">
+                                        {{ hotspot.name }}
+                                    </h3>
+                                    <span class="text-gray-400 font-black text-xl">@</span>
+                                    <div class="text-xl md:text-2xl font-black text-blue-600">
+                                        <span class="text-xs font-bold uppercase mr-1">KES</span>
+                                        {{ hotspot.price }}
+                                    </div>
                                 </div>
                                 
-                                <div class="flex-1">
-                                    <h3 class="text-xl font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">{{ hotspot.name }}</h3>
-                                    
-                                    <div class="flex items-baseline mb-6">
-                                        <span class="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-blue-600">KES {{ hotspot.price }}</span>
+                                <div class="flex flex-wrap justify-between items-center gap-4 border-t border-gray-100 pt-3">
+                                    <div class="flex items-center text-xs md:text-sm text-gray-500 font-bold bg-blue-50 px-3 py-1.5 rounded-lg">
+                                        <svg class="w-4 h-4 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                                        {{ hotspot.upload_speed }} / {{ hotspot.download_speed }}
                                     </div>
-
-                                    <ul class="space-y-3 mb-6">
-                                        <li class="flex items-center text-sm text-gray-600">
-                                            <svg class="w-5 h-5 mr-3 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                            <span class="font-medium text-gray-900">{{ hotspot.device_limit }}</span> &nbsp;Devices allowed
-                                        </li>
-                                        <li class="flex items-center text-sm text-gray-600">
-                                            <svg class="w-5 h-5 mr-3 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                                            <span class="font-medium text-gray-900">{{ hotspot.download_speed }}</span> &nbsp;Download Speed
-                                        </li>
-                                        <li class="flex items-center text-sm text-gray-600">
-                                            <svg class="w-5 h-5 mr-3 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
-                                            <span class="font-medium text-gray-900">{{ hotspot.upload_speed }}</span> &nbsp;Upload Speed
-                                        </li>
-                                    </ul>
+                                    <div class="flex items-center text-xs md:text-sm text-gray-500 font-bold bg-green-50 px-3 py-1.5 rounded-lg">
+                                        <svg class="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                                        {{ hotspot.device_limit }} Devices
+                                    </div>
                                 </div>
-
-                                <button 
-                                    @click="openModal(hotspot)"
-                                    class="w-full bg-gray-50 text-gray-900 font-bold py-3 px-4 rounded-xl hover:bg-gradient-to-r hover:from-purple-600 hover:to-blue-600 hover:text-white transition-all duration-300 group-hover:shadow-lg border border-gray-200 hover:border-transparent flex items-center justify-center gap-2"
-                                >
-                                    Select Package
-                                    <svg class="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-                                </button>
                             </div>
+
+                            <button 
+                                @click="openModal(hotspot)"
+                                class="w-full sm:w-auto min-w-[120px] bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-black py-4 px-8 rounded-2xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 shadow-lg hover:shadow-blue-500/25 active:scale-95 flex items-center justify-center gap-2 uppercase tracking-tighter text-base"
+                            >
+                                Buy
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                            </button>
                         </div>
                     </div>
                 </div>
