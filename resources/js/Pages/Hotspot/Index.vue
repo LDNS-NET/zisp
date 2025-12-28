@@ -63,7 +63,6 @@ function closeModal() {
 
 async function authenticateMember() {
     if (!memberUsername.value || !memberPassword.value) {
-        // Use the general error display or a toast
         showToast('Please enter both username and password', 'error');
         return;
     }
@@ -81,10 +80,8 @@ async function authenticateMember() {
             targetUrl.searchParams.append('username', memberUsername.value);
             targetUrl.searchParams.append('password', memberPassword.value);
             
-            const origLink = urlParams.get('orig') || urlParams.get('link-orig');
-            if (origLink) {
-                targetUrl.searchParams.append('dst', origLink);
-            }
+            // Force redirect to Google as requested
+            targetUrl.searchParams.append('dst', 'http://www.google.com');
             
             window.location.href = targetUrl.toString();
         } else {
@@ -136,10 +133,8 @@ async function authenticateVoucher() {
                 targetUrl.searchParams.append('username', data.user.username);
                 targetUrl.searchParams.append('password', data.user.password);
                 
-                const origLink = urlParams.get('orig') || urlParams.get('link-orig');
-                if (origLink) {
-                    targetUrl.searchParams.append('dst', origLink);
-                }
+                // Force redirect to Google as requested
+                targetUrl.searchParams.append('dst', 'http://www.google.com');
                 
                 window.location.href = targetUrl.toString();
                 return; 
@@ -348,7 +343,7 @@ function formatPhoneNumber(event) {
                                 v-model="voucherCode"
                                 type="text"
                                 placeholder="Enter Code (e.g. AB123)"
-                                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-lg uppercase font-mono tracking-widest text-center"
+                                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-lg uppercase font-mono tracking-widest text-center text-gray-900"
                                 :disabled="isAuthenticatingVoucher"
                                 @keyup.enter="authenticateVoucher"
                             />
@@ -384,14 +379,14 @@ function formatPhoneNumber(event) {
                                 v-model="memberUsername"
                                 type="text"
                                 placeholder="Username"
-                                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm text-gray-900"
                                 :disabled="isAuthenticatingMember"
                             />
                             <input
                                 v-model="memberPassword"
                                 type="password"
                                 placeholder="Password"
-                                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm text-gray-900"
                                 :disabled="isAuthenticatingMember"
                                 @keyup.enter="authenticateMember"
                             />
