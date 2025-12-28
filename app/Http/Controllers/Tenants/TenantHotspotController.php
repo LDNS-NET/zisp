@@ -35,7 +35,7 @@ class TenantHotspotController extends Controller
         $tenantData = $tenant->toArray();
         if ($settings) {
             // Apply overrides from General Settings
-            $tenantData['name'] = $settings->business_name ?: $tenantData['id']; // Fallback to ID if no name
+            $tenantData['name'] = $settings->business_name ?: ($tenantData['name'] ?: $tenantData['id']); // Prefer business name, then tenant name, then ID
             $tenantData['logo'] = $settings->logo ? '/storage/' . $settings->logo : null; // Assume storage link
             $tenantData['support_phone'] = $settings->support_phone ?: $settings->primary_phone;
             $tenantData['support_email'] = $settings->support_email ?: $settings->primary_email;
