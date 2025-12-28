@@ -347,36 +347,22 @@ async function authenticateVoucher() {
             const loginLink = urlParams.get('login_url') || urlParams.get('link-login') || urlParams.get('link-login-only');
             
             if (loginLink) {
-                // Auto-login to MikroTik
+                // Auto-login to MikroTik using GET request to avoid Mixed Content form blocking
                 showToast('Authenticating with network...', 'info');
                 
-                // Create form
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = loginLink;
-                form.style.display = 'none';
-                
-                const uInput = document.createElement('input');
-                uInput.name = 'username';
-                uInput.value = data.user.username;
-                form.appendChild(uInput);
-                
-                const pInput = document.createElement('input');
-                pInput.name = 'password';
-                pInput.value = data.user.password;
-                form.appendChild(pInput);
+                // Construct URL with parameters
+                const targetUrl = new URL(loginLink);
+                targetUrl.searchParams.append('username', data.user.username);
+                targetUrl.searchParams.append('password', data.user.password);
                 
                 // Add dst if orig link exists
                 const origLink = urlParams.get('orig') || urlParams.get('link-orig');
                 if (origLink) {
-                    const dInput = document.createElement('input');
-                    dInput.name = 'dst';
-                    dInput.value = origLink;
-                    form.appendChild(dInput);
+                    targetUrl.searchParams.append('dst', origLink);
                 }
                 
-                document.body.appendChild(form);
-                form.submit();
+                // Perform redirect
+                window.location.href = targetUrl.toString();
                 return; // Stop execution to allow redirect
             }
 
