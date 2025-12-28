@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Tenants\TenantHotspot;
 use App\Models\Tenants\TenantPayment;
 use App\Models\Tenants\NetworkUser;
-use App\Models\Tenants\TenantGeneralSetting;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use App\Models\Tenant;
@@ -31,15 +30,10 @@ class TenantHotspotController extends Controller
         // Get packages belonging to this tenant
         $packages = TenantHotspot::where('tenant_id', $tenant->id)->get();
 
-        // Get General Settings for Logo
-        $settings = TenantGeneralSetting::where('tenant_id', $tenant->id)->first();
-        $logo = $settings ? $settings->logo : null;
-
         // Return to Inertia
         return inertia('Hotspot/Index', [
             'tenant' => $tenant,
             'packages' => $packages,
-            'logo_url' => $logo,
         ]);
     }
 

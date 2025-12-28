@@ -1,12 +1,10 @@
 <script setup>
-import { ref, computed, onMounted, defineAsyncComponent } from 'vue';
+import { ref, computed } from 'vue';
 import { usePage, router } from '@inertiajs/vue3';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import DangerButton from '@/Components/DangerButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
-
-// Lazy load Modal to reduce initial bundle size
-const Modal = defineAsyncComponent(() => import('@/Components/Modal.vue'));
+import Modal from '@/Components/Modal.vue';
 
 const showModal = ref(false);
 const selectedHotspot = ref(null);
@@ -19,9 +17,6 @@ const isCheckingPayment = ref(false);
 const pollingInterval = ref(null);
 const paymentAttempts = ref(0);
 const maxPollingAttempts = 20;
-
-// Logo lazy loading
-const showLogo = ref(false);
 
 // Voucher authentication
 const voucherCode = ref('');
@@ -41,14 +36,6 @@ const page = usePage();
 const hotspots = computed(() => {
     const packages = page.props?.packages || [];
     return packages;
-});
-
-// Lazy load logo effect
-onMounted(() => {
-    // Delay logo loading slightly to prioritize text and layout
-    setTimeout(() => {
-        showLogo.value = true;
-    }, 800);
 });
 
 function openModal(hotspot) {
@@ -309,23 +296,10 @@ function formatPhoneNumber(event) {
                 <!-- Branding Card -->
                 <div class="bg-white/10 backdrop-blur-xl rounded-2xl p-8 border border-white/20 shadow-xl">
                     <div class="inline-flex items-center justify-center w-20 h-20 bg-white/20 rounded-full mb-6 overflow-hidden ring-4 ring-white/10">
-                        <transition
-                            enter-active-class="transition ease-out duration-700"
-                            enter-from-class="opacity-0 scale-90"
-                            enter-to-class="opacity-100 scale-100"
-                        >
-                            <img 
-                                v-if="showLogo && ($page.props.logo_url || $page.props.tenant?.logo)" 
-                                :src="$page.props.logo_url || $page.props.tenant.logo" 
-                                alt="Logo" 
-                                class="w-full h-full object-cover" 
-                            />
-                            <svg v-else-if="showLogo" class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"></path>
-                            </svg>
-                            <!-- Skeleton/Placeholder while waiting for lazy load -->
-                            <div v-else class="w-full h-full bg-white/10 animate-pulse"></div>
-                        </transition>
+                        <img v-if="$page.props.tenant?.logo" :src="$page.props.tenant.logo" alt="Logo" class="w-full h-full object-cover" />
+                        <svg v-else class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"></path>
+                        </svg>
                     </div>
                     <h1 class="text-3xl font-bold mb-2">{{ $page.props.tenant?.name || 'Hotspot Access' }}</h1>
                     <p class="text-white/80 leading-relaxed max-w-sm">
