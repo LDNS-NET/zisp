@@ -52,6 +52,13 @@ createInertiaApp({
         });
 
         vueApp.mount(el);
+
+        // Remove initial loader with fade out
+        const loader = document.getElementById('app-loader');
+        if (loader) {
+            loader.style.opacity = '0';
+            setTimeout(() => loader.remove(), 500);
+        }
     },
     progress: {
         color: '#4B5563',

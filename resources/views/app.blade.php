@@ -16,7 +16,29 @@
         @vite(['resources/js/app.js'])
         @inertiaHead
     </head>
-    <body class="font-sans antialiased">
-        @inertia
-    </body>
+    <style>
+        #app-loader {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            background: linear-gradient(to bottom right, #7c3aed, #2563eb, #0891b2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.5s ease-out;
+        }
+        .loader-spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid rgba(255,255,255,0.2);
+            border-left-color: #fff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+    </style>
+    <div id="app-loader">
+        <div class="loader-spinner"></div>
+    </div>
+    @inertia
 </html>
