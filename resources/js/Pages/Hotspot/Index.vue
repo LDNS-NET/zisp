@@ -1,12 +1,10 @@
 <script setup>
-import { ref, computed, onMounted, defineAsyncComponent } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { usePage, router } from '@inertiajs/vue3';
-// Lazy load expensive components
-const Modal = defineAsyncComponent(() => import('@/Components/Modal.vue'));
-// Removed unused imports strictly to reduce bundle size if not used, 
-// but PrimaryButton etc were imported before. I will keep them if used in templates, 
-// usually they are. But wait, new design doesn't use Button components, it uses native <button> with Tailwind classes.
-// I will remove unused imports to be "lightweight".
+import PrimaryButton from '@/Components/PrimaryButton.vue';
+import DangerButton from '@/Components/DangerButton.vue';
+import SecondaryButton from '@/Components/SecondaryButton.vue';
+import Modal from '@/Components/Modal.vue';
 
 const showModal = ref(false);
 const selectedHotspot = ref(null);
@@ -33,15 +31,7 @@ const memberUsername = ref('');
 const memberPassword = ref('');
 const isAuthenticatingMember = ref(false);
 
-// Lazy Logo State
-const showLogo = ref(false);
-
-onMounted(() => {
-    // Defer logo rendering to prioritize text and layout paint
-    setTimeout(() => {
-        showLogo.value = true;
-    }, 800);
-});
+const logoUrl = ref(null);
 
 // Packages received from Inertia
 const page = usePage();
@@ -50,10 +40,13 @@ const hotspots = computed(() => {
     return packages;
 });
 
-// Computed for logo to fallback safely
-const tenantLogoUrl = computed(() => {
-    // Prefer explicitly passed logo from controller, fallback to tenant.logo object if exists
-    return page.props.tenantLogo || page.props.tenant?.logo;
+onMounted(() => {
+    // Lazy load the logo to prioritize page rendering
+    if (page.props.tenant?.logo) {
+        setTimeout(() => {
+            logoUrl.value = page.props.tenant.logo;
+        }, 300); // Slight delay to ensure content paint first
+    }
 });
 
 function openModal(hotspot) {
@@ -79,9 +72,6 @@ function closeModal() {
     paymentAttempts.value = 0;
 }
 
-// ... existing auth functions (authenticateMember, authenticateVoucher) ...
-// preserving them exactly as fixed in previous step
-
 async function authenticateMember() {
     if (!memberUsername.value || !memberPassword.value) {
         showToast('Please enter both username and password', 'error');
@@ -100,6 +90,8 @@ async function authenticateMember() {
             const targetUrl = new URL(loginLink);
             targetUrl.searchParams.append('username', memberUsername.value);
             targetUrl.searchParams.append('password', memberPassword.value);
+            
+             // Force redirect to Google as requested
             targetUrl.searchParams.append('dst', 'http://www.google.com');
             
             window.location.href = targetUrl.toString();
@@ -151,8 +143,10 @@ async function authenticateVoucher() {
                 const targetUrl = new URL(loginLink);
                 targetUrl.searchParams.append('username', data.user.username);
                 targetUrl.searchParams.append('password', data.user.password);
-                targetUrl.searchParams.append('dst', 'http://www.google.com');
                 
+                // Force redirect to Google as requested
+                targetUrl.searchParams.append('dst', 'http://www.google.com');
+
                 window.location.href = targetUrl.toString();
                 return; 
             }
@@ -201,7 +195,7 @@ function showToast(message, type = 'info') {
     }, 5000);
 }
 
-// ... Payment Logic (Preserved) ...
+// ... Payment Logic ...
 async function checkPaymentStatus() {
     if (!selectedHotspot.value || !phoneNumber.value) return;
     isCheckingPayment.value = true;
@@ -305,25 +299,42 @@ function formatPhoneNumber(event) {
 
 <template>
     <Head title="Hotspot" />
-    <div class="min-h-screen bg-gradient-to-br from-purple-600 via-blue-600 to-cyan-600 p-4 md:p-8 overflow-y-auto">
-        <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+    <div class="min-h-screen bg-gradient-to-br from-purple-600 via-blue-600 to-cyan-600 p-4 md:p-8">
+        <div class="max-w-7xl mx-auto h-full grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             
             <!-- Left Column: Branding / Info (Desktop) -->
             <div class="lg:col-span-4 lg:sticky lg:top-8 text-white space-y-6">
                 <!-- Branding Card -->
                 <div class="bg-white/10 backdrop-blur-xl rounded-2xl p-8 border border-white/20 shadow-xl">
-                    <!-- Lazy Loaded Logo -->
-                    <div class="inline-flex items-center justify-center w-20 h-20 bg-white/20 rounded-full mb-6 overflow-hidden ring-4 ring-white/10 transition-opacity duration-1000" :class="{ 'opacity-100': showLogo, 'opacity-0': !showLogo }">
-                        <img v-if="showLogo && tenantLogoUrl" :src="tenantLogoUrl" alt="Logo" class="w-full h-full object-cover" />
-                        <svg v-else class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="inline-flex items-center justify-center w-20 h-20 bg-white/20 rounded-full mb-6 overflow-hidden ring-4 ring-white/10 relative">
+                        <!-- Lazy loaded logo -->
+                        <img v-if="logoUrl" :src="logoUrl" alt="Logo" class="w-full h-full object-cover transition-opacity duration-700 opacity-100" />
+                        
+                        <!-- Fallback Placeholder -->
+                        <svg v-else class="w-10 h-10 text-white transition-opacity duration-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"></path>
                         </svg>
                     </div>
-                    
                     <h1 class="text-3xl font-bold mb-2">{{ $page.props.tenant?.name || 'Hotspot Access' }}</h1>
                     <p class="text-white/80 leading-relaxed max-w-sm">
                         Welcome to our high-speed network. Login or choose a package to connect instantly.
                     </p>
+                    
+                     <!-- Contact Info -->
+                    <div v-if="$page.props.tenant?.support_phone || $page.props.tenant?.support_email" class="mt-8 pt-6 border-t border-white/10 space-y-3">
+                        <div v-if="$page.props.tenant?.support_phone" class="flex items-center gap-3 text-white/90">
+                            <div class="p-2 bg-white/10 rounded-lg">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
+                            </div>
+                            <span class="font-medium">{{ $page.props.tenant.support_phone }}</span>
+                        </div>
+                        <div v-if="$page.props.tenant?.support_email" class="flex items-center gap-3 text-white/90">
+                            <div class="p-2 bg-white/10 rounded-lg">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                            </div>
+                            <span class="font-medium">{{ $page.props.tenant.support_email }}</span>
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- Login Panel with Tabs -->
@@ -514,7 +525,7 @@ function formatPhoneNumber(event) {
             </div>
         </div>
 
-        <!-- Checkout Modal (Lazy Loaded) -->
+        <!-- Checkout Modal -->
         <Modal :show="showModal" @close="closeModal">
             <div class="bg-white rounded-2xl overflow-hidden max-w-md w-full mx-auto shadow-2xl">
                 <div class="bg-gradient-to-r from-purple-600 to-blue-600 p-6 text-white relative overflow-hidden">

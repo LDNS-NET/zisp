@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use App\Jobs\CheckIntaSendPaymentStatusJob;
 
+use App\Models\Tenants\TenantGeneralSetting;
+
 class TenantHotspotController extends Controller
 {
     /**
@@ -27,18 +29,25 @@ class TenantHotspotController extends Controller
         // Find tenant
         $tenant = Tenant::where('subdomain', $subdomain)->firstOrFail();
 
+        // Get merged tenant settings (Logo, Business Name, etc.)
+        $settings = TenantGeneralSetting::where('tenant_id', $tenant->id)->first();
+        
+        $tenantData = $tenant->toArray();
+        if ($settings) {
+            // Apply overrides from General Settings
+            $tenantData['name'] = $settings->business_name ?: $tenantData['id']; // Fallback to ID if no name
+            $tenantData['logo'] = $settings->logo ? '/storage/' . $settings->logo : null; // Assume storage link
+            $tenantData['support_phone'] = $settings->support_phone ?: $settings->primary_phone;
+            $tenantData['support_email'] = $settings->support_email ?: $settings->primary_email;
+        }
+
         // Get packages belonging to this tenant
         $packages = TenantHotspot::where('tenant_id', $tenant->id)->get();
-        
-        // Get generic settings for logo
-        $generalSettings = \App\Models\Tenants\TenantGeneralSetting::where('tenant_id', $tenant->id)->first();
-        $logo = $generalSettings ? $generalSettings->logo : null;
 
         // Return to Inertia
         return inertia('Hotspot/Index', [
-            'tenant' => $tenant,
+            'tenant' => $tenantData,
             'packages' => $packages,
-            'tenantLogo' => $logo, // Pass explicit logo
         ]);
     }
 

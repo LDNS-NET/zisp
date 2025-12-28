@@ -7,12 +7,13 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class TenantGeneralSetting extends Model
 {
-    // use SoftDeletes;
+    use SoftDeletes;
 
     protected $table = 'tenant_general_settings';
 
     protected $fillable = [
         'tenant_id',
+        'logo',
         'business_name',
         'business_description',
         'business_type',
