@@ -29,11 +29,16 @@ class TenantHotspotController extends Controller
 
         // Get packages belonging to this tenant
         $packages = TenantHotspot::where('tenant_id', $tenant->id)->get();
+        
+        // Get generic settings for logo
+        $generalSettings = \App\Models\Tenants\TenantGeneralSetting::where('tenant_id', $tenant->id)->first();
+        $logo = $generalSettings ? $generalSettings->logo : null;
 
         // Return to Inertia
         return inertia('Hotspot/Index', [
             'tenant' => $tenant,
             'packages' => $packages,
+            'tenantLogo' => $logo, // Pass explicit logo
         ]);
     }
 
