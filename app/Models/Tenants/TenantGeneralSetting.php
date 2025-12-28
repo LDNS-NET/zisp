@@ -3,11 +3,9 @@
 namespace App\Models\Tenants;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class TenantGeneralSetting extends Model
 {
-    use SoftDeletes;
 
     protected $table = 'tenant_general_settings';
 
