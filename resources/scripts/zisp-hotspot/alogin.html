@@ -3,111 +3,36 @@
 
 <head>
   <meta charset="UTF-8" />
-  <title>Login Successful</title>
+  <title>Redirecting...</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+      background: #667eea;
       color: #fff;
+      font-family: sans-serif;
       text-align: center;
-      padding-top: 100px;
-      margin: 0;
-    }
-
-    .container {
-      max-width: 400px;
-      margin: 0 auto;
-      background: rgba(255, 255, 255, 0.1);
-      padding: 40px;
-      border-radius: 15px;
-      backdrop-filter: blur(10px);
-    }
-
-    h2 {
-      margin-bottom: 20px;
-    }
-
-    .checkmark {
-      width: 80px;
-      height: 80px;
-      border-radius: 50%;
-      display: block;
-      stroke-width: 4;
-      stroke: #fff;
-      stroke-miterlimit: 10;
-      margin: 20px auto;
-      box-shadow: inset 0px 0px 0px #7ac142;
-      animation: fill .4s ease-in-out .4s forwards, scale .3s ease-in-out .9s both;
-    }
-
-    .checkmark__circle {
-      stroke-dasharray: 166;
-      stroke-dashoffset: 166;
-      stroke-width: 4;
-      stroke-miterlimit: 10;
-      stroke: #7ac142;
-      fill: none;
-      animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
-    }
-
-    .checkmark__check {
-      transform-origin: 50% 50%;
-      stroke-dasharray: 48;
-      stroke-dashoffset: 48;
-      animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.8s forwards;
-    }
-
-    @keyframes stroke {
-      100% {
-        stroke-dashoffset: 0;
-      }
-    }
-
-    @keyframes scale {
-
-      0%,
-      100% {
-        transform: none;
-      }
-
-      50% {
-        transform: scale3d(1.1, 1.1, 1);
-      }
-    }
-
-    @keyframes fill {
-      100% {
-        box-shadow: inset 0px 0px 0px 30px #7ac142;
-      }
+      padding-top: 100px
     }
   </style>
 </head>
 
 <body>
-  <div class="container">
-    <svg class="checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
-      <circle class="checkmark__circle" cx="26" cy="26" r="25" fill="none" />
-      <path class="checkmark__check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8" />
-    </svg>
-    <h2>Connected Successfully!</h2>
-    <p>You are now connected to the internet.</p>
-    <p id="redirect-msg">Redirecting to your requested page...</p>
-  </div>
-
+  <p>Success! Redirecting...</p>
+  <a href="#" id="orig-link" style="color:#fff">Continue</a>
   <script>
-    // Get the original URL the user was trying to access
-    var urlParams = new URLSearchParams(window.location.search);
-    var origUrl = urlParams.get('link-orig') || urlParams.get('orig');
+    var domain = "{{DOMAIN}}";
+    // Check if we have an original link to redirect to
+    var linkOrig = "$(link-orig)";
+    var redirectUrl = 'https://' + domain + '/hotspot/success';
 
-    if (origUrl && origUrl !== '' && origUrl !== 'http://1.1.1.1/') {
-      // Redirect to original URL after 3 seconds
-      setTimeout(function () {
-        window.location.href = origUrl;
-      }, 3000);
+    if (linkOrig && linkOrig.indexOf('$') !== 0 && linkOrig.indexOf('http') === 0) {
+      redirectUrl = linkOrig;
     } else {
-      // No original URL, just show success message
-      document.getElementById('redirect-msg').textContent = 'You can now browse the internet!';
+      var urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('link-orig')) redirectUrl = urlParams.get('link-orig');
     }
+
+    document.getElementById('orig-link').href = redirectUrl;
+    window.location.replace(redirectUrl);
   </script>
 </body>
 

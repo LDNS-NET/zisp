@@ -6,92 +6,45 @@
   <title>Error</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+      background: #eb3349;
       color: #fff;
+      font-family: sans-serif;
       text-align: center;
-      padding-top: 100px;
-      margin: 0;
-    }
-
-    .container {
-      max-width: 400px;
-      margin: 0 auto;
-      background: rgba(255, 255, 255, 0.1);
-      padding: 40px;
-      border-radius: 15px;
-      backdrop-filter: blur(10px);
-    }
-
-    h2 {
-      margin-bottom: 20px;
-    }
-
-    .error-icon {
-      font-size: 60px;
-      margin: 20px 0;
-    }
-
-    .error-msg {
-      background: rgba(255, 255, 255, 0.2);
-      padding: 15px;
-      border-radius: 8px;
-      margin: 20px 0;
-      word-wrap: break-word;
+      padding-top: 100px
     }
 
     a {
-      color: #fff;
-      font-size: 18px;
-      text-decoration: none;
-      display: inline-block;
-      margin-top: 20px;
-      padding: 12px 30px;
-      background: rgba(255, 255, 255, 0.3);
-      border-radius: 5px;
-      font-weight: bold;
-    }
-
-    a:hover {
-      background: rgba(255, 255, 255, 0.4);
+      color: #fff
     }
   </style>
 </head>
 
 <body>
-  <div class="container">
-    <div class="error-icon">❌</div>
-    <h2>An Error Occurred</h2>
-    <div class="error-msg" id="error-message">
-      Something went wrong. Please try again.
-    </div>
-    <a href="#" id="retry-link">Go Back</a>
-  </div>
-
+  <h2>Error</h2>
+  <div id="error-message"></div>
+  <a href="#" id="retry-link">Back</a>
   <script>
     var domain = "{{DOMAIN}}";
     var redirectUrl = 'https://' + domain + '/hotspot';
+    var params = new URLSearchParams();
 
     var loginUrl = "$(link-login-only)";
     var errorVar = "$(error)";
 
     var urlParams = new URLSearchParams(window.location.search);
-    var errorMsg = urlParams.get('error') || (errorVar && errorVar != '$' + '(error)' ? errorVar : null);
-
-    var params = new URLSearchParams();
+    var errorMsg = urlParams.get('error') || (errorVar && errorVar.indexOf('$') !== 0 ? errorVar : null);
 
     if (errorMsg) {
       document.getElementById('error-message').textContent = decodeURIComponent(errorMsg);
       params.append('error', errorMsg);
     }
 
-    if (loginUrl && loginUrl != '$' + '(link-login-only)') params.append('login_url', loginUrl);
+    if (loginUrl && loginUrl.indexOf('$') !== 0) params.append('login_url', loginUrl);
 
-    if (params.toString()) {
-      redirectUrl += '?' + params.toString();
-    }
+    if (params.toString()) redirectUrl += '?' + params.toString();
 
     document.getElementById('retry-link').href = redirectUrl;
+    // No auto redirect on error page, let user read
   </script>
 </body>
 

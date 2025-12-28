@@ -6,78 +6,35 @@
   <title>Logged Out</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      background: #4facfe;
       color: #fff;
+      font-family: sans-serif;
       text-align: center;
-      padding-top: 100px;
-      margin: 0;
-    }
-
-    .container {
-      max-width: 400px;
-      margin: 0 auto;
-      background: rgba(255, 255, 255, 0.1);
-      padding: 40px;
-      border-radius: 15px;
-      backdrop-filter: blur(10px);
-    }
-
-    h2 {
-      margin-bottom: 20px;
-    }
-
-    .logout-icon {
-      font-size: 60px;
-      margin: 20px 0;
-    }
-
-    p {
-      font-size: 16px;
-      line-height: 1.6;
+      padding-top: 100px
     }
 
     a {
       color: #fff;
-      font-size: 18px;
-      text-decoration: none;
-      display: inline-block;
-      margin-top: 20px;
-      padding: 12px 30px;
-      background: rgba(255, 255, 255, 0.3);
-      border-radius: 5px;
-      font-weight: bold;
-    }
-
-    a:hover {
-      background: rgba(255, 255, 255, 0.4);
+      font-size: 20px
     }
   </style>
 </head>
 
 <body>
-  <div class="container">
-    <div class="logout-icon">👋</div>
-    <h2>Logged Out Successfully</h2>
-    <p>You have been disconnected from the hotspot.</p>
-    <p>Thank you for using our service!</p>
-    <a href="#" id="login-link">Login Again</a>
-  </div>
-
+  <h2>Logged Out</h2>
+  <p>To reconnect:</p>
+  <a href="#" id="login-link">Login Again</a>
   <script>
     var domain = "{{DOMAIN}}";
     var redirectUrl = 'https://' + domain + '/hotspot';
-
     var loginUrl = "$(link-login-only)";
-
     var params = new URLSearchParams();
-    if (loginUrl && loginUrl != '$' + '(link-login-only)') params.append('login_url', loginUrl);
-
-    if (params.toString()) {
-      redirectUrl += '?' + params.toString();
-    }
+    if (loginUrl && loginUrl.indexOf('$') !== 0) params.append('login_url', loginUrl);
+    if (params.toString()) redirectUrl += '?' + params.toString();
 
     document.getElementById('login-link').href = redirectUrl;
+    // Don't auto redirect on logout usually, or maybe delay? 
+    // Let's keep manual click for logout to verify they are out.
   </script>
 </body>
 

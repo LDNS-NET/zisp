@@ -111,10 +111,8 @@
     // Update manual link
     document.getElementById('manual-link').href = redirectUrl;
 
-    // Redirect after 1 second
-    setTimeout(function () {
-      window.location.href = redirectUrl;
-    }, 1000);
+    // Redirect immediately
+    window.location.replace(redirectUrl);
   </script>
 </body>
 

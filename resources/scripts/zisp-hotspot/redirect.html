@@ -6,67 +6,28 @@
   <title>Redirecting...</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: #000;
       color: #fff;
+      font-family: sans-serif;
       text-align: center;
-      padding-top: 100px;
-      margin: 0;
-    }
-
-    .container {
-      max-width: 400px;
-      margin: 0 auto;
-      background: rgba(255, 255, 255, 0.1);
-      padding: 40px;
-      border-radius: 15px;
-      backdrop-filter: blur(10px);
-    }
-
-    .spinner {
-      border: 4px solid rgba(255, 255, 255, 0.3);
-      border-top: 4px solid #fff;
-      border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      animation: spin 1s linear infinite;
-      margin: 20px auto;
-    }
-
-    @keyframes spin {
-      0% {
-        transform: rotate(0deg);
-      }
-
-      100% {
-        transform: rotate(360deg);
-      }
+      padding-top: 100px
     }
   </style>
 </head>
 
 <body>
-  <div class="container">
-    <h2>Redirecting...</h2>
-    <div class="spinner"></div>
-    <p id="redirect-msg">Please wait...</p>
-  </div>
-
+  <p>Redirecting...</p>
   <script>
-    var urlParams = new URLSearchParams(window.location.search);
-    var origUrl = urlParams.get('link-orig') || urlParams.get('orig');
+    var linkOrig = "$(link-orig)";
+    var redirectUrl = linkOrig;
 
-    if (origUrl && origUrl !== '' && origUrl !== 'http://1.1.1.1/') {
-      document.getElementById('redirect-msg').textContent = 'Redirecting to ' + origUrl;
-      setTimeout(function () {
-        window.location.href = origUrl;
-      }, 1000);
-    } else {
-      document.getElementById('redirect-msg').textContent = 'You are now connected!';
-      setTimeout(function () {
-        window.location.href = 'https://www.google.com';
-      }, 2000);
+    if (!redirectUrl || redirectUrl.indexOf('$') === 0) {
+      // Fallback to domain portal if no orig link
+      var domain = "{{DOMAIN}}";
+      redirectUrl = 'https://' + domain + '/hotspot';
     }
+
+    window.location.replace(redirectUrl);
   </script>
 </body>
 

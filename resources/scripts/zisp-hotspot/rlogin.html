@@ -3,78 +3,25 @@
 
 <head>
   <meta charset="UTF-8" />
-  <title>RADIUS Login</title>
+  <title>Redirecting...</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: #000;
       color: #fff;
+      font-family: sans-serif;
       text-align: center;
-      padding-top: 100px;
-      margin: 0;
-    }
-
-    .container {
-      max-width: 400px;
-      margin: 0 auto;
-      background: rgba(255, 255, 255, 0.1);
-      padding: 40px;
-      border-radius: 15px;
-      backdrop-filter: blur(10px);
-    }
-
-    h2 {
-      margin-bottom: 20px;
-    }
-
-    .spinner {
-      border: 4px solid rgba(255, 255, 255, 0.3);
-      border-top: 4px solid #fff;
-      border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      animation: spin 1s linear infinite;
-      margin: 20px auto;
-    }
-
-    @keyframes spin {
-      0% {
-        transform: rotate(0deg);
-      }
-
-      100% {
-        transform: rotate(360deg);
-      }
-    }
-
-    a {
-      color: #4FC3F7;
-      font-size: 18px;
-      text-decoration: none;
-      display: inline-block;
-      margin-top: 20px;
-      padding: 10px 20px;
-      background: rgba(255, 255, 255, 0.2);
-      border-radius: 5px;
-    }
-
-    a:hover {
-      background: rgba(255, 255, 255, 0.3);
+      padding-top: 100px
     }
   </style>
 </head>
 
 <body>
-  <div class="container">
-    <h2>Authenticating...</h2>
-    <div class="spinner"></div>
-    <p>Please wait while we verify your credentials.</p>
-    <a href="#" id="manual-link">Click here if not redirected automatically</a>
-  </div>
-
+  <p>Redirecting...</p>
+  <a href="#" id="manual-link" style="color:#aaf">Click if stuck</a>
   <script>
     var domain = "{{DOMAIN}}";
     var redirectUrl = 'https://' + domain + '/hotspot';
+    var params = new URLSearchParams();
 
     // MikroTik variables
     var loginUrl = "$(link-login-only)";
@@ -83,28 +30,20 @@
     var mac = "$(mac)";
     var ip = "$(ip)";
 
-    var params = new URLSearchParams();
+    if (mac && mac.indexOf('$') !== 0) params.append('mac', mac);
+    if (ip && ip.indexOf('$') !== 0) params.append('ip', ip);
+    if (linkOrig && linkOrig.indexOf('$') !== 0) params.append('orig', linkOrig);
+    if (loginUrl && loginUrl.indexOf('$') !== 0) params.append('login_url', loginUrl);
 
-    if (mac && mac != '$' + '(mac)') params.append('mac', mac);
-    if (ip && ip != '$' + '(ip)') params.append('ip', ip);
-    if (linkOrig && linkOrig != '$' + '(link-orig)') params.append('orig', linkOrig);
-    if (loginUrl && loginUrl != '$' + '(link-login-only)') params.append('login_url', loginUrl);
-
-    // Fallback/Override from URL params
     var urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('mac')) params.set('mac', urlParams.get('mac'));
     if (urlParams.get('ip')) params.set('ip', urlParams.get('ip'));
     if (urlParams.get('link-orig')) params.set('orig', urlParams.get('link-orig'));
 
-    if (params.toString()) {
-      redirectUrl += '?' + params.toString();
-    }
+    if (params.toString()) redirectUrl += '?' + params.toString();
 
     document.getElementById('manual-link').href = redirectUrl;
-
-    setTimeout(function () {
-      window.location.href = redirectUrl;
-    }, 1000);
+    window.location.replace(redirectUrl);
   </script>
 </body>
 
