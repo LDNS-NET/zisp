@@ -528,7 +528,7 @@ class VoucherController extends Controller
             ->get();
 
         $tenant = auth()->user()->tenant;
-        $settings = \App\Models\Tenants\TenantGeneralSettings::where('created_by', auth()->id())->first();
+        $settings = \App\Models\TenantGeneralSetting::where('created_by', auth()->id())->first();
         $businessName = $settings?->business_name ?? $tenant?->name ?? 'Internet Service Provider';
 
         return view('vouchers.print', [
