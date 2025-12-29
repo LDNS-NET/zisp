@@ -81,7 +81,7 @@
 
 
 :put " =================== Configuring DHCP network =================== "
-/ip dhcp-server network add address=172.20.0.0/16 comment="zisp_hs_network" gateway=172.20.0.1
+/ip dhcp-server network add address=172.20.0.0/16 comment="zisp_hs_network" gateway=172.20.0.1 dns-server=1.1.1.1,8.8.8.8
 :put " =================== DHCP network configured =================== "
 
 
@@ -91,7 +91,7 @@
 
 
 :put " =================== Creating hotspot server =================== "
-/ip hotspot add address-pool=$poolName addresses-per-mac=1 disabled=no idle-timeout=1m interface=$bridgeName name=$bridgeName profile=$hotspotProfile
+/ip hotspot add address-pool=$poolName addresses-per-mac=1 disabled=no idle-timeout=30m keepalive-timeout=10m interface=$bridgeName name=$bridgeName profile=$hotspotProfile
 :put " =================== Hotspot server created =================== "
 
 
@@ -212,9 +212,7 @@
 :do {
     /ip hotspot walled-garden remove [find comment="zisp-walled-garden"]
 } on-error={}
-/ip hotspot walled-garden add action=allow dst-host=*.google.com comment="zisp-walled-garden"
-/ip hotspot walled-garden add action=allow dst-host=*.googleapis.com comment="zisp-walled-garden"
-/ip hotspot walled-garden add action=allow dst-host=*.gstatic.com comment="zisp-walled-garden"
+/ip hotspot walled-garden add action=allow dst-host=*.bunny.net comment="zisp-walled-garden"
 /ip hotspot walled-garden add action=allow dst-host=*.mikrotik.com comment="zisp-walled-garden"
 
 # Allow tenant domain

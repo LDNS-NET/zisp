@@ -91,8 +91,8 @@ async function authenticateMember() {
             targetUrl.searchParams.append('username', memberUsername.value);
             targetUrl.searchParams.append('password', memberPassword.value);
             
-             // Force redirect to Google as requested
-            targetUrl.searchParams.append('dst', 'http://www.google.com');
+             // Force redirect to 204 success to clear Captive Portal immediately
+            targetUrl.searchParams.append('dst', 'http://connectivitycheck.gstatic.com/generate_204');
             
             window.location.href = targetUrl.toString();
         } else {
@@ -156,8 +156,8 @@ async function authenticateVoucher() {
                 targetUrl.searchParams.append('username', data.user.username);
                 targetUrl.searchParams.append('password', data.user.password);
                 
-                // Force redirect to Google as requested
-                targetUrl.searchParams.append('dst', 'http://www.google.com');
+                // Force redirect to 204 success to clear Captive Portal immediately
+                targetUrl.searchParams.append('dst', 'http://connectivitycheck.gstatic.com/generate_204');
 
                 window.location.href = targetUrl.toString();
                 return; 
