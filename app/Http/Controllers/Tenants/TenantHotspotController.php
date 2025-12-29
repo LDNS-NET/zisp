@@ -354,6 +354,9 @@ class TenantHotspotController extends Controller
                 'registered_at' => now(),
             ]);
 
+            // Link user to payment
+            $payment->update(['user_id' => $user->id]);
+
             \Log::info('Created new hotspot user', [
                 'user_id' => $user->id,
                 'username' => $username,

@@ -18,6 +18,7 @@ class TenantPayment extends Model
         "created_by",
         "disbursement_type",
         "hotspot_package_id",
+        "package_id",
         "status",
         "intasend_reference",
         "intasend_checkout_id",
