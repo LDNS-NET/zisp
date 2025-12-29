@@ -119,7 +119,10 @@ const submitForm = () => {
     });
 };
 
-const formatDate = (dateString) => {
+const formatDate = (dateString, voucher = null) => {
+    if (voucher?.package) {
+        return `${voucher.package.duration_value} ${voucher.package.duration_unit}`;
+    }
     if (!dateString) return 'No Expiry';
     return new Date(dateString).toLocaleDateString('en-US', {
         year: 'numeric',
@@ -128,7 +131,12 @@ const formatDate = (dateString) => {
     });
 };
 
-const isExpired = (dateString) => {
+const isExpired = (dateString, voucher = null) => {
+    // For hotspot vouchers, they only expire after use (Access-Period)
+    // or if a specific hard expiry is set. 
+    // If we want to show as 'active' until used, we return false here.
+    if (voucher?.package && voucher.status === 'active') return false;
+    
     if (!dateString) return false;
     return new Date(dateString) < new Date();
 };
@@ -246,9 +254,9 @@ const openActions = (voucher) => {
                                     {{ voucher.usage_limit || 'Unlimited' }}
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="flex items-center gap-1 text-sm" :class="isExpired(voucher.expires_at) ? 'text-red-600 dark:text-red-400' : 'text-gray-600 dark:text-gray-300'">
+                                    <div class="flex items-center gap-1 text-sm" :class="isExpired(voucher.expires_at, voucher) ? 'text-red-600 dark:text-red-400' : 'text-gray-600 dark:text-gray-300'">
                                         <Calendar class="w-3 h-3" />
-                                        <span>{{ formatDate(voucher.expires_at) }}</span>
+                                        <span>{{ formatDate(voucher.expires_at, voucher) }}</span>
                                     </div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
@@ -259,7 +267,7 @@ const openActions = (voucher) => {
                                         voucher.status === 'revoked' ? 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300' :
                                         'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
                                     ]">
-                                        {{ isExpired(voucher.expires_at) && voucher.status === 'active' ? 'Expired' : voucher.status }}
+                                        {{ isExpired(voucher.expires_at, voucher) && voucher.status === 'active' ? 'Expired' : voucher.status }}
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -318,8 +326,8 @@ const openActions = (voucher) => {
 
                         <div class="grid grid-cols-2 gap-2 text-sm text-gray-600 dark:text-gray-300">
                             <div>Usage: {{ voucher.usage_limit || 'Unlimited' }}</div>
-                            <div :class="isExpired(voucher.expires_at) ? 'text-red-600 dark:text-red-400' : ''">
-                                {{ formatDate(voucher.expires_at) }}
+                            <div :class="isExpired(voucher.expires_at, voucher) ? 'text-red-600 dark:text-red-400' : ''">
+                                {{ formatDate(voucher.expires_at, voucher) }}
                             </div>
                         </div>
 

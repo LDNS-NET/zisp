@@ -28,7 +28,7 @@ class VoucherController extends Controller
             $query->where('status', $status);
         }
 
-        $vouchers = $query->paginate(10)->withQueryString();
+        $vouchers = $query->with('package')->paginate(10)->withQueryString();
 
         return Inertia::render('Vouchers/Index', [
             'vouchers'      => $vouchers,
@@ -81,7 +81,7 @@ class VoucherController extends Controller
                     'package_id' => $package->id,
                     'value'      => $package->price,
                     'status'     => 'active',
-                    'expires_at' => now()->addDays($package->duration_in_days ?? 30),
+                    'expires_at' => null, // Stays valid until used, then Access-Period starts
                     'created_by' => auth()->id(),
                 ]);
 
