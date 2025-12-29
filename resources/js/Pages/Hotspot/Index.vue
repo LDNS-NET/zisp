@@ -116,6 +116,17 @@ async function authenticateVoucher() {
     voucherError.value = '';
     voucherMessage.value = '';
 
+    // Check if connected to hotspot (similar to member login)
+    const urlParams = new URLSearchParams(window.location.search);
+    const loginLink = urlParams.get('login_url') || urlParams.get('link-login') || urlParams.get('link-login-only');
+    
+    if (!loginLink) {
+        voucherError.value = 'Authentication unavailable (Not connected to hotspot network)';
+        showToast('Authentication unavailable (Not connected to hotspot network)', 'error');
+        isAuthenticatingVoucher.value = false;
+        return;
+    }
+
     try {
         const response = await fetch('/hotspot/voucher-auth', {
             method: 'POST',
@@ -124,7 +135,8 @@ async function authenticateVoucher() {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
             },
             body: JSON.stringify({
-                code: voucherCode.value.trim().toUpperCase()
+                code: voucherCode.value.trim().toUpperCase(),
+                login_link: loginLink
             })
         });
 

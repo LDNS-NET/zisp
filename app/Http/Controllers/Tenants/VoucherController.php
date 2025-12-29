@@ -303,6 +303,7 @@ class VoucherController extends Controller
     {
         $validated = $request->validate([
             'code' => ['required', 'string'],
+            'login_link' => ['required', 'string'], // Ensure user is connected to hotspot
         ]);
 
         try {
