@@ -424,6 +424,8 @@ class VoucherController extends Controller
                     'receipt_number' => 'VOUCHER-' . $voucher->code,
                     'status' => 'paid',
                     'paid_at' => now(),
+                    'checked' => true,
+                    'disbursement_type' => 'true',
                     'created_by' => $voucher->created_by,
                     'package_id' => $package->id,
                 ]);
