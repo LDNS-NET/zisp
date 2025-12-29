@@ -234,7 +234,7 @@ class TenantHotspotController extends Controller
                         'success' => true,
                         'message' => 'Payment already processed',
                         'user' => [
-                            'username' => $existingUser->getScopedUsername(),
+                            'username' => $existingUser->username,
                             'password' => 'Password already set',
                             'expires_at' => $existingUser->expires_at->toDateTimeString(),
                         ]
@@ -331,7 +331,7 @@ class TenantHotspotController extends Controller
                     'success' => true,
                     'message' => 'Payment successful! Your existing account has been extended.',
                     'user' => [
-                        'username' => $existingUser->getScopedUsername(),
+                        'username' => $existingUser->username,
                         'password' => 'Use your existing password',
                         'expires_at' => $existingUser->expires_at->toDateTimeString(),
                     ]
@@ -367,7 +367,7 @@ class TenantHotspotController extends Controller
                 'success' => true,
                 'message' => 'Payment successful! Your hotspot account has been created.',
                 'user' => [
-                    'username' => $user->getScopedUsername(),
+                    'username' => $username,
                     'password' => $plainPassword,
                     'package_name' => $package->name,
                     'duration' => $package->duration_value . ' ' . $package->duration_unit,
@@ -438,60 +438,5 @@ class TenantHotspotController extends Controller
             'months'  => now()->addMonths($package->duration_value),
             default   => now()->addDays(1),
         };
-    }
-
-    /**
-     * Authenticate member login on the hotspot portal.
-     */
-    public function memberAuth(Request $request)
-    {
-        $validated = $request->validate([
-            'username' => ['required', 'string'],
-            'password' => ['required', 'string'],
-            'login_url' => ['required', 'string'], // Enforce hotspot connectivity
-        ]);
-
-        // Find current tenant
-        $host = $request->getHost();
-        $subdomain = explode('.', $host)[0];
-        $currentTenant = Tenant::where('subdomain', $subdomain)->first();
-
-        if (!$currentTenant) {
-            return response()->json(['success' => false, 'message' => 'Invalid tenant domain.'], 404);
-        }
-
-        // Find the tenant admin who "owns" the network users
-        $tenantAdmin = \App\Models\User::where('tenant_id', $currentTenant->id)
-            ->where('type', 'admin')
-            ->first();
-        
-        if (!$tenantAdmin) {
-            return response()->json(['success' => false, 'message' => 'Service provider details not found.'], 404);
-        }
-
-        // Find user by username within the current tenant context
-        $user = NetworkUser::where('username', $validated['username'])
-            ->where('created_by', $tenantAdmin->id)
-            ->first();
-
-        if (!$user) {
-            return response()->json(['success' => false, 'message' => 'Invalid username or password.'], 401);
-        }
-
-        // Verify password
-        $isValid = ($user->password === $validated['password']) || \Illuminate\Support\Facades\Hash::check($validated['password'], $user->password);
-
-        if (!$isValid) {
-            return response()->json(['success' => false, 'message' => 'Invalid username or password.'], 401);
-        }
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Authentication successful! Connecting you to the network...',
-            'user' => [
-                'username' => $user->getScopedUsername(),
-                'password' => $validated['password'],
-            ]
-        ]);
     }
 }

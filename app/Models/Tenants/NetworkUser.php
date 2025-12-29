@@ -55,16 +55,6 @@ class NetworkUser extends Model
         return $this->belongsTo(TenantHotspot::class, 'package_id');
     }
 
-    /**
-     * Get the tenant-scoped username for RADIUS (prefixed with tenant ID).
-     */
-    public function getScopedUsername(): string
-    {
-        $creator = \App\Models\User::find($this->created_by);
-        $tenantId = $creator ? $creator->tenant_id : '0';
-        return "{$tenantId}_{$this->username}";
-    }
-
     protected static function booted()
     {
         /** Apply created_by scope */
@@ -98,11 +88,9 @@ class NetworkUser extends Model
          *  Sync with RADIUS after creation
          */
         static::created(function ($user) {
-            $scopedUsername = $user->getScopedUsername();
-
             // Create radcheck entry (password)
             Radcheck::create([
-                'username' => $scopedUsername,
+                'username' => $user->username,
                 'attribute' => 'Cleartext-Password',
                 'op' => ':=',
                 'value' => $user->password,
@@ -114,7 +102,7 @@ class NetworkUser extends Model
                 // Rate limit
                 $rateValue = "{$package->upload_speed}M/{$package->download_speed}M";
                 Radreply::create([
-                    'username' => $scopedUsername,
+                    'username' => $user->username,
                     'attribute' => 'Mikrotik-Rate-Limit',
                     'op' => ':=',
                     'value' => $rateValue,
@@ -122,7 +110,7 @@ class NetworkUser extends Model
 
                 // Group
                 Radusergroup::create([
-                    'username' => $scopedUsername,
+                    'username' => $user->username,
                     'groupname' => $package->name ?? 'default',
                     'priority' => 1,
                 ]);
@@ -142,7 +130,7 @@ class NetworkUser extends Model
 
                     if ($seconds > 0) {
                         Radcheck::create([
-                            'username' => $scopedUsername,
+                            'username' => $user->username,
                             'attribute' => 'Access-Period',
                             'op' => ':=',
                             'value' => (string)$seconds,
@@ -151,7 +139,7 @@ class NetworkUser extends Model
                 } elseif ($user->expires_at) {
                     // Standard absolute expiration for other types
                     Radcheck::create([
-                        'username' => $scopedUsername,
+                        'username' => $user->username,
                         'attribute' => 'Expiration',
                         'op' => ':=',
                         'value' => $user->expires_at->format('d M Y H:i:s'),
@@ -164,11 +152,9 @@ class NetworkUser extends Model
          *  Update RADIUS entries when user is updated
          */
         static::updated(function ($user) {
-            $scopedUsername = $user->getScopedUsername();
-
             // Update password if changed
             Radcheck::updateOrCreate(
-                ['username' => $scopedUsername, 'attribute' => 'Cleartext-Password'],
+                ['username' => $user->username, 'attribute' => 'Cleartext-Password'],
                 ['op' => ':=', 'value' => $user->password]
             );
 
@@ -177,12 +163,12 @@ class NetworkUser extends Model
             if ($package) {
                 $rateValue = "{$package->upload_speed}M/{$package->download_speed}M";
                 Radreply::updateOrCreate(
-                    ['username' => $scopedUsername, 'attribute' => 'Mikrotik-Rate-Limit'],
+                    ['username' => $user->username, 'attribute' => 'Mikrotik-Rate-Limit'],
                     ['op' => ':=', 'value' => $rateValue]
                 );
 
                 Radusergroup::updateOrCreate(
-                    ['username' => $scopedUsername],
+                    ['username' => $user->username],
                     ['groupname' => $package->name ?? 'default', 'priority' => 1]
                 );
 
@@ -200,21 +186,21 @@ class NetworkUser extends Model
 
                     if ($seconds > 0) {
                         Radcheck::updateOrCreate(
-                            ['username' => $scopedUsername, 'attribute' => 'Access-Period'],
+                            ['username' => $user->username, 'attribute' => 'Access-Period'],
                             ['op' => ':=', 'value' => (string)$seconds]
                         );
                         // Ensure Expiration is removed if switched to hotspot
-                        Radcheck::where('username', $scopedUsername)->where('attribute', 'Expiration')->delete();
+                        Radcheck::where('username', $user->username)->where('attribute', 'Expiration')->delete();
                     }
                 } elseif ($user->expires_at) {
                     Radcheck::updateOrCreate(
-                        ['username' => $scopedUsername, 'attribute' => 'Expiration'],
+                        ['username' => $user->username, 'attribute' => 'Expiration'],
                         ['op' => ':=', 'value' => $user->expires_at->format('d M Y H:i:s')]
                     );
                     // Ensure Access-Period is removed
-                    Radcheck::where('username', $scopedUsername)->where('attribute', 'Access-Period')->delete();
+                    Radcheck::where('username', $user->username)->where('attribute', 'Access-Period')->delete();
                 } else {
-                    Radcheck::where('username', $scopedUsername)
+                    Radcheck::where('username', $user->username)
                         ->whereIn('attribute', ['Expiration', 'Access-Period'])
                         ->delete();
                 }
@@ -225,11 +211,10 @@ class NetworkUser extends Model
          *  Cleanup RADIUS entries when user is deleted
          */
         static::deleted(function ($user) {
-            $scopedUsername = $user->getScopedUsername();
             // Cleanup all RADIUS entries for this user
-            Radcheck::where('username', $scopedUsername)->delete();
-            Radreply::where('username', $scopedUsername)->delete();
-            Radusergroup::where('username', $scopedUsername)->delete();
+            Radcheck::where('username', $user->username)->delete();
+            Radreply::where('username', $user->username)->delete();
+            Radusergroup::where('username', $user->username)->delete();
         });
     }
 }

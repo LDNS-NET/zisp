@@ -95,7 +95,6 @@ Route::middleware(['check.subscription'])->group(function () {
     Route::post('/hotspot/checkout', [TenantHotspotController::class, 'checkout'])->name('hotspot.checkout');
     Route::post('/hotspot/callback', [TenantHotspotController::class, 'callback'])->name('hotspot.callback');
     Route::post('/hotspot/voucher-auth', [VoucherController::class, 'authenticate'])->name('voucher.authenticate');
-    Route::post('/hotspot/member-auth', [TenantHotspotController::class, 'memberAuth'])->name('hotspot.member-auth');
 });
 
 
