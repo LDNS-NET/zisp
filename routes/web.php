@@ -158,6 +158,7 @@ Route::middleware(['auth', 'verified', 'check.subscription', 'tenant.domain'])
         Route::delete('/equipment/bulk-delete', [TenantEquipmentController::class, 'bulkDelete'])->name('equipment.bulk-delete');
 
         //vouchers
+        Route::get('/vouchers/print', [VoucherController::class, 'print'])->name('vouchers.print');
         Route::resource('vouchers', VoucherController::class);
         Route::post('/vouchers/{voucher}/send', [VoucherController::class, 'send'])->name('vouchers.send');
         Route::delete('/vouchers/bulk-delete', [VoucherController::class, 'bulkDelete'])->name('vouchers.bulk-delete');

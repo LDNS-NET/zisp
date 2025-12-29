@@ -515,4 +515,25 @@ class VoucherController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Print active vouchers (batch of 20)
+     */
+    public function print()
+    {
+        $vouchers = Voucher::where('status', 'active')
+            ->latest()
+            ->limit(20)
+            ->with('package')
+            ->get();
+
+        $tenant = auth()->user()->tenant;
+        $settings = \App\Models\Tenants\TenantGeneralSettings::where('created_by', auth()->id())->first();
+        $businessName = $settings?->business_name ?? $tenant?->name ?? 'Internet Service Provider';
+
+        return view('vouchers.print', [
+            'vouchers' => $vouchers,
+            'businessName' => $businessName,
+        ]);
+    }
 }

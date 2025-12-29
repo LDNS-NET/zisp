@@ -20,7 +20,8 @@ import {
     XCircle, 
     Edit,
     Calendar,
-    Tag
+    Tag,
+    Printer
 } from 'lucide-vue-next';
 
 const toast = useToast();
@@ -189,10 +190,20 @@ const openActions = (voucher) => {
                         Manage discount vouchers and promotional codes
                     </p>
                 </div>
-                <PrimaryButton @click="openCreateModal" class="flex items-center gap-2">
-                    <Plus class="w-4 h-4" />
-                    <span>New Voucher</span>
-                </PrimaryButton>
+                <div class="flex items-center gap-3">
+                    <a 
+                        :href="route('vouchers.print')" 
+                        target="_blank"
+                        class="inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors shadow-sm"
+                    >
+                        <Printer class="w-4 h-4" />
+                        <span>Print Vouchers</span>
+                    </a>
+                    <PrimaryButton @click="openCreateModal" class="flex items-center gap-2">
+                        <Plus class="w-4 h-4" />
+                        <span>New Voucher</span>
+                    </PrimaryButton>
+                </div>
             </div>
         </template>
 
