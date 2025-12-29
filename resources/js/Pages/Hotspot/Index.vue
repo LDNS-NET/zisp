@@ -84,19 +84,39 @@ async function authenticateMember() {
         const urlParams = new URLSearchParams(window.location.search);
         const loginLink = urlParams.get('login_url') || urlParams.get('link-login') || urlParams.get('link-login-only');
         
-        if (loginLink) {
+        if (!loginLink) {
+             showToast('Not connected to hotspot. Please make sure you are connected to the hotspot network.', 'error');
+             return;
+        }
+
+        const response = await fetch('/hotspot/member-auth', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({
+                username: memberUsername.value,
+                password: memberPassword.value,
+                login_url: loginLink
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success && data.user) {
             showToast('Authenticating member...', 'info');
             
             const targetUrl = new URL(loginLink);
-            targetUrl.searchParams.append('username', memberUsername.value);
-            targetUrl.searchParams.append('password', memberPassword.value);
+            targetUrl.searchParams.append('username', data.user.username);
+            targetUrl.searchParams.append('password', data.user.password);
             
              // Force redirect to Google as requested
             targetUrl.searchParams.append('dst', 'http://www.google.com');
             
             window.location.href = targetUrl.toString();
         } else {
-             showToast('Authentication unavailable (Not connected to hotspot network)', 'error');
+            showToast(data.message || 'Invalid username or password', 'error');
         }
     } catch (error) {
         console.error('Member auth error:', error);
@@ -117,6 +137,15 @@ async function authenticateVoucher() {
     voucherMessage.value = '';
 
     try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const loginLink = urlParams.get('login_url') || urlParams.get('link-login') || urlParams.get('link-login-only');
+
+        if (!loginLink) {
+            voucherError.value = 'Not connected to hotspot. Please make sure you are connected to the hotspot network before activating a voucher.';
+            showToast('Hotspot network not detected', 'error');
+            return;
+        }
+
         const response = await fetch('/hotspot/voucher-auth', {
             method: 'POST',
             headers: {
@@ -124,7 +153,8 @@ async function authenticateVoucher() {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
             },
             body: JSON.stringify({
-                code: voucherCode.value.trim().toUpperCase()
+                code: voucherCode.value.trim().toUpperCase(),
+                login_url: loginLink
             })
         });
 
@@ -135,29 +165,16 @@ async function authenticateVoucher() {
             voucherMessage.value = data.message;
             voucherError.value = '';
             
-            const urlParams = new URLSearchParams(window.location.search);
-            const loginLink = urlParams.get('login_url') || urlParams.get('link-login') || urlParams.get('link-login-only');
+            showToast('Authenticating with network...', 'info');
+            const targetUrl = new URL(loginLink);
+            targetUrl.searchParams.append('username', data.user.username);
+            targetUrl.searchParams.append('password', data.user.password);
             
-            if (loginLink) {
-                showToast('Authenticating with network...', 'info');
-                const targetUrl = new URL(loginLink);
-                targetUrl.searchParams.append('username', data.user.username);
-                targetUrl.searchParams.append('password', data.user.password);
-                
-                // Force redirect to Google as requested
-                targetUrl.searchParams.append('dst', 'http://www.google.com');
+            // Force redirect to Google as requested
+            targetUrl.searchParams.append('dst', 'http://www.google.com');
 
-                window.location.href = targetUrl.toString();
-                return; 
-            }
-
-            showToast('Voucher authenticated! Connect to hotspot to use internet.', 'success');
-            
-            setTimeout(() => {
-                voucherCode.value = '';
-                voucherCredentials.value = null;
-                voucherMessage.value = '';
-            }, 15000);
+            window.location.href = targetUrl.toString();
+            return; 
         } else {
             voucherError.value = data.message || 'Failed to authenticate voucher';
             showToast(data.message || 'Failed to authenticate voucher', 'error');

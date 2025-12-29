@@ -303,6 +303,7 @@ class VoucherController extends Controller
     {
         $validated = $request->validate([
             'code' => ['required', 'string'],
+            'login_url' => ['required', 'string'], // Enforce hotspot connectivity
         ]);
 
         try {
@@ -364,13 +365,18 @@ class VoucherController extends Controller
                 ], 400);
             }
 
+            // Scoped username for RADIUS
+            $creator = \App\Models\User::find($voucher->created_by);
+            $tenantId = $creator ? $creator->tenant_id : '0';
+            $scopedUsername = "{$tenantId}_{$voucher->code}";
+
             // Verify voucher exists in RADIUS
-            $radcheckExists = \App\Models\Radius\Radcheck::where('username', $voucher->code)
+            $radcheckExists = \App\Models\Radius\Radcheck::where('username', $scopedUsername)
                 ->where('attribute', 'Cleartext-Password')
                 ->exists();
 
             if (!$radcheckExists) {
-                Log::error("Voucher exists in DB but not in RADIUS", ['code' => $voucher->code]);
+                Log::error("Voucher exists in DB but not in RADIUS", ['code' => $voucher->code, 'scoped_username' => $scopedUsername]);
                 return response()->json([
                     'success' => false,
                     'message' => 'Voucher authentication failed. Please contact support.'
@@ -442,9 +448,9 @@ class VoucherController extends Controller
 
                 return response()->json([
                     'success' => true,
-                    'message' => 'Voucher authenticated successfully! You can now connect to the hotspot.',
+                    'message' => 'Voucher authenticated successfully! Connecting you to the network...',
                     'user' => [
-                        'username' => $networkUser->username,
+                        'username' => $scopedUsername, // Return scoped username for RADIUS
                         'password' => $networkUser->password,
                         'expires_at' => $networkUser->expires_at,
                         'package_name' => $package->name,
