@@ -86,7 +86,7 @@
 
 
 :put " =================== Creating hotspot profile =================== "
-/ip hotspot profile add hotspot-address=172.20.0.1 login-by=cookie,http-chap,http-pap,mac-cookie name=$hotspotProfile use-radius=yes radius-interim-update=00:10:00
+/ip hotspot profile add hotspot-address=172.20.0.1 dns-name=hotspot.zisp.cloud login-by=cookie,http-chap,http-pap,mac-cookie name=$hotspotProfile use-radius=yes radius-interim-update=00:10:00
 :put " =================== Hotspot profile created =================== "
 
 
@@ -200,19 +200,14 @@
 :put " =================== SNMP configured =================== "
 
 
-:put " =================== Configuring Walled Garden (Connectivity Checks) =================== "
+:put " =================== Configuring Walled Garden (Minimum Required) =================== "
 :do {
     /ip hotspot walled-garden remove [find comment="zisp-walled-garden"]
 } on-error={}
-/ip hotspot walled-garden add action=allow dst-host=*.google.com comment="zisp-walled-garden"
-/ip hotspot walled-garden add action=allow dst-host=*.gstatic.com comment="zisp-walled-garden"
-/ip hotspot walled-garden add action=allow dst-host=*.googleapis.com comment="zisp-walled-garden"
-/ip hotspot walled-garden add action=allow dst-host=*.clients3.google.com comment="zisp-walled-garden"
-/ip hotspot walled-garden add action=allow dst-host=*.apple.com comment="zisp-walled-garden"
-/ip hotspot walled-garden add action=allow dst-host=*.apple-cloudkit.com comment="zisp-walled-garden"
-/ip hotspot walled-garden add action=allow dst-host=*.akamaiedge.net comment="zisp-walled-garden"
 /ip hotspot walled-garden add action=allow dst-host=*.bunny.net comment="zisp-walled-garden"
 /ip hotspot walled-garden add action=allow dst-host=*.mikrotik.com comment="zisp-walled-garden"
+/ip hotspot walled-garden add action=allow dst-host=connectivitycheck.gstatic.com comment="zisp-walled-garden" 
+/ip hotspot walled-garden add action=allow dst-host=connectivitycheck.android.com comment="zisp-walled-garden"
 
 # Allow tenant domain
 :local tenantDomain "{{tenant_domain}}"
