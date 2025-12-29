@@ -89,6 +89,9 @@
                 background-color: transparent !important;
                 padding: 10mm !important;
             }
+            .no-print {
+                display: none !important;
+            }
             .voucher-card {
                 border: 1px dashed #000 !important;
                 box-shadow: none !important;
@@ -101,6 +104,26 @@
     </style>
 </head>
 <body>
+    <div class="no-print" style="position: fixed; top: 0; left: 0; right: 0; background: #fff; border-bottom: 2px solid #3b82f6; padding: 10px 20px; display: flex; align-items: center; justify-content: space-between; z-index: 1000; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-weight: 700; color: #1e40af;">Voucher Print Center</span>
+            <span style="font-size: 12px; color: #6b7280; font-style: italic;">(Tip: To save as PDF, select "Save as PDF" in the printer destination)</span>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button onclick="window.print()" style="background: #2563eb; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer;">
+                🖨️ Print to Printer
+            </button>
+            <button onclick="window.print()" style="background: #059669; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer;">
+                📄 Save as PDF
+            </button>
+            <button onclick="window.close()" style="background: #ef4444; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer;">
+                ✖ Close
+            </button>
+        </div>
+    </div>
+
+    <div style="height: 60px;" class="no-print"></div>
+
     <div class="container">
         @foreach($vouchers as $voucher)
             <div class="voucher-card">
@@ -130,13 +153,6 @@
             </div>
         @endforeach
     </div>
-
-    <script>
-        window.onload = function() {
-            setTimeout(function() {
-                window.print();
-            }, 500);
-        }
-    </script>
 </body>
 </html>
+
