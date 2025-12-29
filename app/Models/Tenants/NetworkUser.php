@@ -11,6 +11,7 @@ use App\Models\Radius\Radreply;
 use App\Models\Radius\Radusergroup;
 use App\Models\Package;
 use App\Models\Tenant;
+use App\Models\Tenants\TenantHotspot;
 
 class NetworkUser extends Model
 {
@@ -43,7 +44,15 @@ class NetworkUser extends Model
 
     public function package(): BelongsTo
     {
+        if ($this->type === 'hotspot') {
+            return $this->belongsTo(TenantHotspot::class, 'package_id');
+        }
         return $this->belongsTo(Package::class, 'package_id');
+    }
+
+    public function hotspotPackage(): BelongsTo
+    {
+        return $this->belongsTo(TenantHotspot::class, 'package_id');
     }
 
     protected static function booted()
@@ -87,19 +96,10 @@ class NetworkUser extends Model
                 'value' => $user->password,
             ]);
 
-            // Add expiration to radcheck if expires_at is set
-            if ($user->expires_at) {
-                Radcheck::create([
-                    'username' => $user->username,
-                    'attribute' => 'Expiration',
-                    'op' => ':=',
-                    'value' => $user->expires_at->format('d M Y H:i:s'),
-                ]);
-            }
-
-            // Package speed handling
+            // Package handling
             $package = $user->package;
             if ($package) {
+                // Rate limit
                 $rateValue = "{$package->upload_speed}M/{$package->download_speed}M";
                 Radreply::create([
                     'username' => $user->username,
@@ -108,15 +108,44 @@ class NetworkUser extends Model
                     'value' => $rateValue,
                 ]);
 
-                // Group name can be package name or type
+                // Group
                 Radusergroup::create([
                     'username' => $user->username,
                     'groupname' => $package->name ?? 'default',
                     'priority' => 1,
                 ]);
+
+                // Expiry / Duration handling
+                if ($user->type === 'hotspot') {
+                    // Use Access-Period for relative expiry (start on first use)
+                    $seconds = 0;
+                    $val = $package->duration_value;
+                    switch ($package->duration_unit) {
+                        case 'minutes': $seconds = $val * 60; break;
+                        case 'hours':   $seconds = $val * 3600; break;
+                        case 'days':    $seconds = $val * 86400; break;
+                        case 'weeks':   $seconds = $val * 604800; break;
+                        case 'months':  $seconds = $val * 2592000; break;
+                    }
+
+                    if ($seconds > 0) {
+                        Radcheck::create([
+                            'username' => $user->username,
+                            'attribute' => 'Access-Period',
+                            'op' => ':=',
+                            'value' => (string)$seconds,
+                        ]);
+                    }
+                } elseif ($user->expires_at) {
+                    // Standard absolute expiration for other types
+                    Radcheck::create([
+                        'username' => $user->username,
+                        'attribute' => 'Expiration',
+                        'op' => ':=',
+                        'value' => $user->expires_at->format('d M Y H:i:s'),
+                    ]);
+                }
             }
-
-
         });
 
         /**
@@ -128,19 +157,6 @@ class NetworkUser extends Model
                 ['username' => $user->username, 'attribute' => 'Cleartext-Password'],
                 ['op' => ':=', 'value' => $user->password]
             );
-
-            // Update or create expiration
-            if ($user->expires_at) {
-                Radcheck::updateOrCreate(
-                    ['username' => $user->username, 'attribute' => 'Expiration'],
-                    ['op' => ':=', 'value' => $user->expires_at->format('d M Y H:i:s')]
-                );
-            } else {
-                // Remove expiration if expires_at is null
-                Radcheck::where('username', $user->username)
-                    ->where('attribute', 'Expiration')
-                    ->delete();
-            }
 
             // Update package-related entries
             $package = $user->package;
@@ -155,9 +171,40 @@ class NetworkUser extends Model
                     ['username' => $user->username],
                     ['groupname' => $package->name ?? 'default', 'priority' => 1]
                 );
+
+                // Update Expiry / Duration
+                if ($user->type === 'hotspot') {
+                    $seconds = 0;
+                    $val = $package->duration_value;
+                    switch ($package->duration_unit) {
+                        case 'minutes': $seconds = $val * 60; break;
+                        case 'hours':   $seconds = $val * 3600; break;
+                        case 'days':    $seconds = $val * 86400; break;
+                        case 'weeks':   $seconds = $val * 604800; break;
+                        case 'months':  $seconds = $val * 2592000; break;
+                    }
+
+                    if ($seconds > 0) {
+                        Radcheck::updateOrCreate(
+                            ['username' => $user->username, 'attribute' => 'Access-Period'],
+                            ['op' => ':=', 'value' => (string)$seconds]
+                        );
+                        // Ensure Expiration is removed if switched to hotspot
+                        Radcheck::where('username', $user->username)->where('attribute', 'Expiration')->delete();
+                    }
+                } elseif ($user->expires_at) {
+                    Radcheck::updateOrCreate(
+                        ['username' => $user->username, 'attribute' => 'Expiration'],
+                        ['op' => ':=', 'value' => $user->expires_at->format('d M Y H:i:s')]
+                    );
+                    // Ensure Access-Period is removed
+                    Radcheck::where('username', $user->username)->where('attribute', 'Access-Period')->delete();
+                } else {
+                    Radcheck::where('username', $user->username)
+                        ->whereIn('attribute', ['Expiration', 'Access-Period'])
+                        ->delete();
+                }
             }
-
-
         });
 
         /**

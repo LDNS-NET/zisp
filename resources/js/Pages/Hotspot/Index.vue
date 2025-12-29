@@ -579,7 +579,7 @@ function formatPhoneNumber(event) {
 
                         <div v-if="userCredentials" class="bg-blue-50 border border-blue-200 rounded-xl p-4">
                             <h4 class="font-bold text-blue-900 mb-2 text-sm uppercase tracking-wide">Login Credentials</h4>
-                            <div class="grid grid-cols-2 gap-4">
+                            <div class="grid grid-cols-2 gap-4 mb-4">
                                 <div class="bg-white p-2 rounded-lg border border-blue-100">
                                     <div class="text-xs text-gray-500 mb-1">Username</div>
                                     <div class="font-mono font-bold text-lg text-blue-600">{{ userCredentials.username }}</div>
@@ -588,6 +588,10 @@ function formatPhoneNumber(event) {
                                     <div class="text-xs text-gray-500 mb-1">Password</div>
                                     <div class="font-mono font-bold text-lg text-blue-600">{{ userCredentials.password }}</div>
                                 </div>
+                            </div>
+                            <div class="bg-blue-600 text-white p-3 rounded-lg flex items-center justify-between">
+                                <div class="text-xs font-bold uppercase opacity-80">Validity Period</div>
+                                <div class="font-black text-sm uppercase tracking-tighter">Starts on first login: {{ userCredentials.duration }}</div>
                             </div>
                         </div>
 

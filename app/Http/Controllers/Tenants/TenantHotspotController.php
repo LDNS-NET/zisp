@@ -369,9 +369,8 @@ class TenantHotspotController extends Controller
                 'user' => [
                     'username' => $username,
                     'password' => $plainPassword,
-                    'expires_at' => $user->expires_at->toDateTimeString(),
                     'package_name' => $package->name,
-                    'duration_days' => $package->duration_value . ' ' . $package->duration_unit,
+                    'duration' => $package->duration_value . ' ' . $package->duration_unit,
                 ]
             ]);
 
