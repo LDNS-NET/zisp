@@ -131,9 +131,6 @@ function toggleSidebar() {
 
             <!-- Navigation -->
             <div class="flex-1 overflow-y-auto py-4 px-3 space-y-1 custom-scrollbar">
-                <div v-if="!collapsed" class="px-4 py-2 text-[10px] text-gray-400 italic">
-                    Data: {{ $page.props.sidebarCounts ? 'OK' : 'Missing' }}
-                </div>
                 <template v-for="(item, index) in navigation" :key="index">
                     <!-- Section Header -->
                     <div 
@@ -169,10 +166,10 @@ function toggleSidebar() {
                         
                         <!-- Count Badge -->
                         <span 
-                            v-if="item.countKey && $page.props.sidebarCounts && !collapsed" 
+                            v-if="item.countKey && $page.props.sidebarCounts && $page.props.sidebarCounts[item.countKey] > 0 && !collapsed" 
                             class="ml-auto inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300"
                         >
-                            {{ $page.props.sidebarCounts[item.countKey] || 0 }}
+                            {{ $page.props.sidebarCounts[item.countKey] }}
                         </span>
                     </Link>
                 </template>
