@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Voucher;
 use App\Models\Package;
 use App\Models\Tenants\NetworkUser;
-use App\Models\Tenants\TenantPayment;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -407,20 +406,6 @@ class VoucherController extends Controller
                     'registered_at' => now(),
                     'expires_at' => $expiresAt,
                     'created_by' => $voucher->created_by,
-                ]);
-
-                // Record payment for tracking
-                TenantPayment::create([
-                    'user_id' => $networkUser->id,
-                    'phone' => $networkUser->phone,
-                    'receipt_number' => 'VOUCHER-' . $voucher->code,
-                    'amount' => $voucher->value ?? $package->price,
-                    'paid_at' => now(),
-                    'checked' => true,
-                    'created_by' => $currentTenant->id, // Use tenant ID for global scope visibility
-                    'disbursement_type' => 'voucher',
-                    'package_id' => $package->id,
-                    'status' => 'paid',
                 ]);
 
                 // Mark voucher as used
