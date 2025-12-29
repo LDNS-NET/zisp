@@ -1423,6 +1423,15 @@ class TenantMikrotikController extends Controller
 
         // Get current tenant domain for hotspot URL
         $currentTenant = tenant();
+        
+        // If global tenant helper fails, try to derive from router owner
+        if (!$currentTenant && $router->created_by) {
+            $owner = \App\Models\User::find($router->created_by);
+            if ($owner) {
+                $currentTenant = $owner->tenant;
+            }
+        }
+
         $tenantDomain = $currentTenant ? $currentTenant->domains()->first()?->domain : null;
         $hotspotUrl = $tenantDomain ? "https://{$tenantDomain}" : url('/');
 

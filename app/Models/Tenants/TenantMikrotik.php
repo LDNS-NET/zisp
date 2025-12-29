@@ -105,6 +105,11 @@ class TenantMikrotik extends Model
         return $this->belongsTo(TenantOpenVPNProfile::class, 'openvpn_profile_id');
     }
 
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\User::class, 'created_by');
+    }
+
     // Scopes
     public function scopeOnline($query)
     {
