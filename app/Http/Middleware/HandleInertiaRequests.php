@@ -55,6 +55,35 @@ class HandleInertiaRequests extends Middleware
             }
         }
 
+        // Fetch counts for navigation
+        $counts = [
+            'all_users' => \App\Models\Tenants\NetworkUser::count(),
+            'online_users' => 0,
+            'leads' => \App\Models\Tenants\TenantLeads::count(),
+            'tickets' => \App\Models\Tenants\TenantTickets::count(),
+            'packages' => \App\Models\Package::count(),
+            'vouchers' => \App\Models\Voucher::count(),
+            'invoices' => \App\Models\Tenants\TenantInvoice::count(),
+            'mikrotiks' => \App\Models\Tenants\TenantMikrotik::count(),
+        ];
+
+        // Fetch online users count from RADIUS
+        if ($tenant) {
+            $routers = \App\Models\Tenants\TenantMikrotik::all();
+            $routerIps = $routers->pluck('wireguard_address')
+                ->merge($routers->pluck('ip_address'))
+                ->filter()
+                ->unique()
+                ->values()
+                ->toArray();
+
+            if (!empty($routerIps)) {
+                $counts['online_users'] = \App\Models\Radius\Radacct::whereNull('acctstoptime')
+                    ->whereIn('nasipaddress', $routerIps)
+                    ->count();
+            }
+        }
+
         return [
             ...parent::share($request),
             'auth' => [
@@ -68,6 +97,7 @@ class HandleInertiaRequests extends Middleware
                 'support_phone' => $settings?->support_phone,
                 'support_email' => $settings?->support_email,
             ] : null,
+            'counts' => $counts,
         ];
     }
 }

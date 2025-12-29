@@ -48,19 +48,19 @@ const navigation = [
     { name: 'Dashboard', href: route('dashboard'), icon: LayoutDashboard, active: 'dashboard' },
     
     { header: 'User Management' },
-    { name: 'Online Users', href: route('activeusers.index'), icon: Activity, active: 'activeusers.*' },
-    { name: 'All Users', href: route('users.index'), icon: Users, active: 'users.*' },
-    { name: 'Leads', href: route('leads.index'), icon: Layers, active: 'leads.*' },
-    { name: 'Tickets', href: route('tickets.index'), icon: HelpCircle, active: 'tickets.*' },
+    { name: 'Online Users', href: route('activeusers.index'), icon: Activity, active: 'activeusers.*', countKey: 'online_users' },
+    { name: 'All Users', href: route('users.index'), icon: Users, active: 'users.*', countKey: 'all_users' },
+    { name: 'Leads', href: route('leads.index'), icon: Layers, active: 'leads.*', countKey: 'leads' },
+    { name: 'Tickets', href: route('tickets.index'), icon: HelpCircle, active: 'tickets.*', countKey: 'tickets' },
     
     { header: 'Billing & Finance' },
-    { name: 'Packages', href: route('packages.index'), icon: Layers, active: 'packages.*' },
-    { name: 'Vouchers', href: route('vouchers.index'), icon: Gift, active: 'vouchers.*' },
+    { name: 'Packages', href: route('packages.index'), icon: Layers, active: 'packages.*', countKey: 'packages' },
+    { name: 'Vouchers', href: route('vouchers.index'), icon: Gift, active: 'vouchers.*', countKey: 'vouchers' },
     { name: 'Payments', href: route('payments.index'), icon: Banknote, active: 'payments.*' },
-    { name: 'Invoices', href: route('invoices.index'), icon: FileText, active: 'invoices.*' },
+    { name: 'Invoices', href: route('invoices.index'), icon: FileText, active: 'invoices.*', countKey: 'invoices' },
 
     { header: 'Network Management' },
-    { name: 'Mikrotiks', href: route('mikrotiks.index'), icon: Network, active: 'mikrotiks.*' },
+    { name: 'Mikrotiks', href: route('mikrotiks.index'), icon: Network, active: 'mikrotiks.*', countKey: 'mikrotiks' },
     /*{ name: 'Hotspot', href: route('hotspot.index'), icon: Wifi, active: 'hotspot.*' },*/
     
     { header: 'Communication' },
@@ -162,6 +162,14 @@ function toggleSidebar() {
                         />
                         <span :class="['transition-all duration-300 whitespace-nowrap', collapsed ? 'lg:hidden' : 'block']">
                             {{ item.name }}
+                        </span>
+                        
+                        <!-- Count Badge -->
+                        <span 
+                            v-if="item.countKey && page.props.counts[item.countKey] > 0 && !collapsed" 
+                            class="ml-auto inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300"
+                        >
+                            {{ page.props.counts[item.countKey] }}
                         </span>
                     </Link>
                 </template>
