@@ -17,6 +17,10 @@
             --gray-900: #111827;
         }
 
+        * {
+            box-sizing: border-box;
+        }
+
         @page {
             size: A4;
             margin: 10mm;
@@ -94,10 +98,10 @@
 
         .container {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 30px;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
             width: 100%;
-            max-width: 190mm; /* A4 width minus margins */
+            max-width: 190mm;
         }
 
         /* Voucher Card Design */
@@ -110,8 +114,10 @@
             border: 1px solid var(--gray-200);
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
             position: relative;
-            aspect-ratio: 1.6 / 1;
-            height: 125px;
+            height: 110px; /* Reduced to fit better */
+            width: 100%;
+            min-width: 0;
+            z-index: 1;
         }
 
         .card-header {
@@ -220,7 +226,8 @@
                 display: none !important;
             }
             .container {
-                gap: 12mm; /* Substantial gap for cutting */
+                gap: 15mm; /* Very large gap for cutting */
+                grid-template-columns: repeat(3, 1fr);
             }
             .voucher-card {
                 box-shadow: none !important;
