@@ -97,7 +97,7 @@ class HandleInertiaRequests extends Middleware
                 'support_phone' => $settings?->support_phone,
                 'support_email' => $settings?->support_email,
             ] : null,
-            'counts' => $counts,
+            'sidebarCounts' => $counts,
         ];
     }
 }
