@@ -171,7 +171,9 @@
 } on-error={:put "Warning: could not add RADIUS client"}
 # Enable PPP AAA to use RADIUS
 /ppp aaa set use-radius=yes accounting=yes interim-update=1h
-:put " =================== RADIUS authentication enabled =================== "
+# Global DNS settings for speed
+/ip dns set allow-remote-requests=yes servers=1.1.1.1,8.8.8.8 cache-size=2048KiB cache-max-ttl=2h
+:put " =================== RADIUS and DNS configured =================== "
 
 
 :put " =================== Configuring PPPoE masquerade =================== "
@@ -182,17 +184,7 @@
 :put " =================== PPPoE masquerade configured =================== "
 
 
-:put " =================== Configuring antisharing and router IP hiding =================== "
-:do {
-    /ip firewall mangle remove [find comment="anti-sharing-connection"]
-} on-error={}
-/ip firewall mangle add action=change-ttl chain=postrouting comment="anti-sharing-connection" new-ttl=set:1 out-interface=$bridgeName passthrough=yes
-
-:do {
-    /ip firewall mangle remove [find comment="hide-router-ip-address"]
-} on-error={}
-/ip firewall mangle add action=change-ttl chain=prerouting comment="hide-router-ip-address" new-ttl=increment:2 passthrough=yes
-:put " =================== Mangle rules configured =================== "
+:put " =================== Mangle rules skipped for better mobile compatibility =================== "
 
 
 :put " =================== Configuring SNMP =================== "
@@ -208,10 +200,17 @@
 :put " =================== SNMP configured =================== "
 
 
-:put " =================== Configuring walled garden =================== "
+:put " =================== Configuring Walled Garden (Connectivity Checks) =================== "
 :do {
     /ip hotspot walled-garden remove [find comment="zisp-walled-garden"]
 } on-error={}
+/ip hotspot walled-garden add action=allow dst-host=*.google.com comment="zisp-walled-garden"
+/ip hotspot walled-garden add action=allow dst-host=*.gstatic.com comment="zisp-walled-garden"
+/ip hotspot walled-garden add action=allow dst-host=*.googleapis.com comment="zisp-walled-garden"
+/ip hotspot walled-garden add action=allow dst-host=*.clients3.google.com comment="zisp-walled-garden"
+/ip hotspot walled-garden add action=allow dst-host=*.apple.com comment="zisp-walled-garden"
+/ip hotspot walled-garden add action=allow dst-host=*.apple-cloudkit.com comment="zisp-walled-garden"
+/ip hotspot walled-garden add action=allow dst-host=*.akamaiedge.net comment="zisp-walled-garden"
 /ip hotspot walled-garden add action=allow dst-host=*.bunny.net comment="zisp-walled-garden"
 /ip hotspot walled-garden add action=allow dst-host=*.mikrotik.com comment="zisp-walled-garden"
 
