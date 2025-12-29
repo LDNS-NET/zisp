@@ -159,9 +159,9 @@ Route::middleware(['auth', 'verified', 'check.subscription', 'tenant.domain'])
 
         //vouchers
         Route::get('/vouchers/print', [VoucherController::class, 'print'])->name('vouchers.print');
+        Route::delete('/vouchers/bulk-delete', [VoucherController::class, 'bulkDelete'])->name('vouchers.bulk-delete');
         Route::resource('vouchers', VoucherController::class);
         Route::post('/vouchers/{voucher}/send', [VoucherController::class, 'send'])->name('vouchers.send');
-        Route::delete('/vouchers/bulk-delete', [VoucherController::class, 'bulkDelete'])->name('vouchers.bulk-delete');
 
         //Payments
         Route::resource('payments', TenantPaymentController::class)->only(['index', 'store', 'update', 'destroy']);

@@ -253,28 +253,37 @@ class VoucherController extends Controller
         }
     }
 
+    /**
+     * Bulk delete vouchers
+     */
     public function bulkDelete(Request $request)
     {
         $request->validate([
             'ids' => 'required|array',
             'ids.*' => 'integer|exists:vouchers,id',
         ]);
-        
+
         $vouchers = Voucher::whereIn('id', $request->ids)->get();
-        // Collect codes for RADIUS deletion
         $codes = $vouchers->pluck('code')->toArray();
 
-        // Delete from RADIUS
         try {
+            DB::beginTransaction();
+
+            // Delete from RADIUS
             \App\Models\Radius\Radcheck::whereIn('username', $codes)->delete();
             \App\Models\Radius\Radreply::whereIn('username', $codes)->delete();
+
+            // Delete from DB
+            Voucher::whereIn('id', $request->ids)->delete();
+
+            DB::commit();
+
+            return redirect()->back()->with('success', count($request->ids) . ' vouchers deleted successfully.');
         } catch (\Exception $e) {
-             Log::error("Failed to remove vouchers from RADIUS during bulk deletion: " . $e->getMessage());
+            DB::rollBack();
+            Log::error("Bulk delete vouchers failed: " . $e->getMessage());
+            return redirect()->back()->with('error', 'Failed to delete some vouchers.');
         }
-
-        Voucher::whereIn('id', $request->ids)->delete();
-
-        return redirect()->back()->with('success', 'Selected vouchers deleted successfully.');
     }
 
     protected function authorizeAccess(Voucher $voucher): void
@@ -515,6 +524,8 @@ class VoucherController extends Controller
             ], 500);
         }
     }
+
+
 
     /**
      * Print active vouchers (batch of 20)

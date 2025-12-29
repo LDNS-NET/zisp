@@ -67,7 +67,7 @@ const bulkDelete = () => {
     if (selected.value.length === 0) return;
 
     if (confirm('Are you sure you want to delete selected vouchers?')) {
-        router.delete('/vouchers/bulk-delete', {
+        router.delete(route('vouchers.bulk-delete'), {
             data: { ids: selected.value },
             preserveScroll: true,
             onSuccess: () => {
