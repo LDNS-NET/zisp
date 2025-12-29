@@ -95,7 +95,7 @@
         .container {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 12px;
+            gap: 30px;
             width: 100%;
             max-width: 190mm; /* A4 width minus margins */
         }
@@ -220,7 +220,7 @@
                 display: none !important;
             }
             .container {
-                gap: 5mm;
+                gap: 12mm; /* Substantial gap for cutting */
             }
             .voucher-card {
                 box-shadow: none !important;
