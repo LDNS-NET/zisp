@@ -213,6 +213,15 @@ class VoucherController extends Controller
     public function destroy(Voucher $voucher)
     {
         $this->authorizeAccess($voucher);
+        
+        // Check if used and not yet expired
+        if ($voucher->status === 'used') {
+            $networkUser = NetworkUser::where('username', $voucher->code)->first();
+            if ($networkUser && $networkUser->expires_at && now()->lessThan($networkUser->expires_at)) {
+                return redirect()->back()->with('error', 'This voucher is currently in use and has not yet expired. It cannot be deleted.');
+            }
+        }
+
         $code = $voucher->code;
 
         try {
@@ -264,21 +273,44 @@ class VoucherController extends Controller
         ]);
 
         $vouchers = Voucher::whereIn('id', $request->ids)->get();
-        $codes = $vouchers->pluck('code')->toArray();
+        
+        // Filter out vouchers that are used and not expired
+        $vouchersToDelete = $vouchers->filter(function ($voucher) {
+            if ($voucher->status === 'used') {
+                $networkUser = NetworkUser::where('username', $voucher->code)->first();
+                if ($networkUser && $networkUser->expires_at && now()->lessThan($networkUser->expires_at)) {
+                    return false;
+                }
+            }
+            return true;
+        });
+
+        if ($vouchersToDelete->isEmpty()) {
+            return redirect()->back()->with('error', 'None of the selected vouchers could be deleted (they are all currently in use and not yet expired).');
+        }
+
+        $idsToDelete = $vouchersToDelete->pluck('id')->toArray();
+        $codesToDelete = $vouchersToDelete->pluck('code')->toArray();
 
         try {
             DB::beginTransaction();
 
             // Delete from RADIUS
-            \App\Models\Radius\Radcheck::whereIn('username', $codes)->delete();
-            \App\Models\Radius\Radreply::whereIn('username', $codes)->delete();
+            \App\Models\Radius\Radcheck::whereIn('username', $codesToDelete)->delete();
+            \App\Models\Radius\Radreply::whereIn('username', $codesToDelete)->delete();
 
             // Delete from DB
-            Voucher::whereIn('id', $request->ids)->delete();
+            Voucher::whereIn('id', $idsToDelete)->delete();
 
             DB::commit();
 
-            return redirect()->back()->with('success', count($request->ids) . ' vouchers deleted successfully.');
+            $skippedCount = $vouchers->count() - $vouchersToDelete->count();
+            $message = $vouchersToDelete->count() . ' vouchers deleted successfully.';
+            if ($skippedCount > 0) {
+                $message .= " $skippedCount vouchers were skipped because they are active and unexpired.";
+            }
+
+            return redirect()->back()->with('success', $message);
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error("Bulk delete vouchers failed: " . $e->getMessage());
