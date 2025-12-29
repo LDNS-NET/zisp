@@ -87,26 +87,14 @@ async function authenticateMember() {
         if (loginLink) {
             showToast('Authenticating member...', 'info');
             
-            // Create a hidden form to POST to the hotspot
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = loginLink;
-            form.style.display = 'none';
-
-            // Username field
-            const usernameInput = document.createElement('input');
-            usernameInput.name = 'username';
-            usernameInput.value = memberUsername.value;
-            form.appendChild(usernameInput);
-
-            // Password field
-            const passwordInput = document.createElement('input');
-            passwordInput.name = 'password';
-            passwordInput.value = memberPassword.value;
-            form.appendChild(passwordInput);
-
-            document.body.appendChild(form);
-            form.submit();
+            const targetUrl = new URL(loginLink);
+            targetUrl.searchParams.append('username', memberUsername.value);
+            targetUrl.searchParams.append('password', memberPassword.value);
+            
+             // Force redirect to system success page to clear Captive Portal reliably
+            targetUrl.searchParams.append('dst', 'https://' + window.location.host + '/hotspot/success');
+            
+            window.location.href = targetUrl.toString();
         } else {
              showToast('Authentication unavailable (Not connected to hotspot network)', 'error');
         }
@@ -164,27 +152,14 @@ async function authenticateVoucher() {
             
             if (loginLink) {
                 showToast('Authenticating with network...', 'info');
+                const targetUrl = new URL(loginLink);
+                targetUrl.searchParams.append('username', data.user.username);
+                targetUrl.searchParams.append('password', data.user.password);
                 
-                // Create a hidden form to POST to the hotspot
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = loginLink;
-                form.style.display = 'none';
+                // Force redirect to system success page to clear Captive Portal reliably
+                targetUrl.searchParams.append('dst', 'https://' + window.location.host + '/hotspot/success');
 
-                // Username field
-                const usernameInput = document.createElement('input');
-                usernameInput.name = 'username';
-                usernameInput.value = data.user.username;
-                form.appendChild(usernameInput);
-
-                // Password field
-                const passwordInput = document.createElement('input');
-                passwordInput.name = 'password';
-                passwordInput.value = data.user.password;
-                form.appendChild(passwordInput);
-
-                document.body.appendChild(form);
-                form.submit();
+                window.location.href = targetUrl.toString();
                 return; 
             }
 
