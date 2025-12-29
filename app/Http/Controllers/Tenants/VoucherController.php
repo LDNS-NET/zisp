@@ -349,11 +349,50 @@ class VoucherController extends Controller
                 ], 403);
             }
 
-            // Check voucher status
+            // Handle Re-authentication for "used" vouchers
+            if ($voucher->status === 'used') {
+                $existingNetworkUser = NetworkUser::where('username', $voucher->code)
+                    ->where('status', 'active')
+                    ->first();
+
+                if ($existingNetworkUser) {
+                    // Check if the session is still valid
+                    if ($existingNetworkUser->expires_at && now()->greaterThan($existingNetworkUser->expires_at)) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'This session has expired.'
+                        ], 400);
+                    }
+
+                    Log::info("Voucher re-authentication successful", [
+                        'code' => $voucher->code,
+                        'user_id' => $existingNetworkUser->id,
+                        'tenant_id' => $currentTenant->id
+                    ]);
+
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Welcome back! You can reconnect to the hotspot.',
+                        'user' => [
+                            'username' => $existingNetworkUser->username,
+                            'password' => $existingNetworkUser->password,
+                            'expires_at' => $existingNetworkUser->expires_at,
+                            'package_name' => $existingNetworkUser->package?->name ?? 'Hotspot Package',
+                        ]
+                    ]);
+                }
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This voucher has already been used and no active session was found.'
+                ], 400);
+            }
+
+            // Check voucher status for first-time use
             if ($voucher->status !== 'active') {
                 return response()->json([
                     'success' => false,
-                    'message' => 'This voucher has already been used or is no longer active.'
+                    'message' => 'This voucher is no longer active.'
                 ], 400);
             }
 
