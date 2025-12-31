@@ -129,6 +129,10 @@ class TenantHotspotController extends Controller
                 ]);
             }
 
+            // Find tenant admin to assign as creator
+            // Assuming the first user is the admin/owner
+            $adminUser = \App\Models\User::first();
+
             // Create payment record immediately with pending status
             $payment = TenantPayment::create([
                 'phone' => $phone,
@@ -141,6 +145,7 @@ class TenantHotspotController extends Controller
                 'status' => 'pending',
                 'checked' => false,
                 'disbursement_type' => 'pending',
+                'created_by' => $adminUser ? $adminUser->id : 1, // Default to 1 if no user found
                 'checkout_request_id' => $mpesaResponse['checkout_request_id'] ?? null,
                 'merchant_request_id' => $mpesaResponse['merchant_request_id'] ?? null,
                 'intasend_reference' => null, // Legacy field, keeping null
@@ -393,8 +398,10 @@ class TenantHotspotController extends Controller
                 'type' => 'hotspot',
                 'hotspot_package_id' => $package->id,
                 'package_id' => null,
+                'status' => 'active', // Set status to active
                 'expires_at' => $this->calculateExpiry($package),
                 'registered_at' => now(),
+                'created_by' => $payment->created_by, // Assign to same owner as payment
             ]);
 
             // Link user to payment

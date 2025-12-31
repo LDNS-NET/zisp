@@ -189,8 +189,10 @@ class CheckMpesaPaymentStatusJob implements ShouldQueue
                 'type' => 'hotspot',
                 'package_id' => $this->payment->package_id,
                 'hotspot_package_id' => $this->payment->hotspot_package_id,
+                'status' => 'active', // Set status to active
                 'expires_at' => $this->calculateExpiry($package),
                 'registered_at' => now(),
+                'created_by' => $this->payment->created_by, // Assign to same owner as payment
             ]);
             
             Log::info('Created new hotspot user after payment', [
