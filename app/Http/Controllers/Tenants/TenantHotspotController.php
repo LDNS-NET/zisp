@@ -135,7 +135,8 @@ class TenantHotspotController extends Controller
             // Save payment record
             $payment = TenantPayment::create([
                 'phone' => $phone,
-                'package_id' => $package->id,
+                'hotspot_package_id' => $package->id,
+                'package_id' => null, // Explicitly null to avoid FK constraint on 'packages' table
                 'amount' => $amount,
                 'receipt_number' => $api_ref,
                 'status' => 'pending',
@@ -185,23 +186,23 @@ class TenantHotspotController extends Controller
 
             $request->validate([
                 'phone' => 'required|string',
-                'package_id' => 'required|exists:tenant_hotspot_packages,id',
+                'hotspot_package_id' => 'required|exists:tenant_hotspot_packages,id',
             ]);
 
             \Log::info('Callback validation passed', [
                 'phone' => $request->phone,
-                'package_id' => $request->package_id
+                'hotspot_package_id' => $request->hotspot_package_id
             ]);
 
             $payment = TenantPayment::where('phone', $request->phone)
-                ->where('package_id', $request->package_id)
+                ->where('hotspot_package_id', $request->hotspot_package_id)
                 ->orderByDesc('id')
                 ->first();
 
             if (!$payment) {
                 \Log::warning('No payment found for callback', [
                     'phone' => $request->phone,
-                    'package_id' => $request->package_id
+                    'hotspot_package_id' => $request->hotspot_package_id
                 ]);
                 return response()->json(['success' => false, 'message' => 'No payment found.']);
             }
@@ -246,7 +247,7 @@ class TenantHotspotController extends Controller
                 ]);
 
                 // Create user if payment is paid but no user exists
-                $package = $this->findTenantPackage($request->package_id);
+                $package = $this->findTenantPackage($request->hotspot_package_id);
                 return $this->handleSuccessfulPayment($payment, $package);
             }
 
@@ -283,7 +284,7 @@ class TenantHotspotController extends Controller
                 $payment->paid_at = now();
                 $payment->save();
 
-                $package = $this->findTenantPackage($request->package_id);
+                $package = $this->findTenantPackage($request->hotspot_package_id);
                 return $this->handleSuccessfulPayment($payment, $package);
             }
 
@@ -316,7 +317,8 @@ class TenantHotspotController extends Controller
 
             if ($existingUser) {
                 // Update existing user's package and expiry
-                $existingUser->package_id = $package->id;
+                $existingUser->hotspot_package_id = $package->id;
+                $existingUser->package_id = null;
                 $existingUser->expires_at = $this->calculateExpiry($package);
                 $existingUser->save();
 
@@ -349,7 +351,8 @@ class TenantHotspotController extends Controller
                 'password' => bcrypt($plainPassword),
                 'phone' => $payment->phone,
                 'type' => 'hotspot',
-                'package_id' => $package->id,
+                'hotspot_package_id' => $package->id,
+                'package_id' => null,
                 'expires_at' => $this->calculateExpiry($package),
                 'registered_at' => now(),
             ]);

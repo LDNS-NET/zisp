@@ -29,6 +29,7 @@ class NetworkUser extends Model
         'location',
         'type',
         'package_id',
+        'hotspot_package_id',
         'status',
         'registered_at',
         'expires_at',
@@ -45,14 +46,14 @@ class NetworkUser extends Model
     public function package(): BelongsTo
     {
         if ($this->type === 'hotspot') {
-            return $this->belongsTo(TenantHotspot::class, 'package_id');
+            return $this->belongsTo(TenantHotspot::class, 'hotspot_package_id');
         }
         return $this->belongsTo(Package::class, 'package_id');
     }
 
     public function hotspotPackage(): BelongsTo
     {
-        return $this->belongsTo(TenantHotspot::class, 'package_id');
+        return $this->belongsTo(TenantHotspot::class, 'hotspot_package_id');
     }
 
     protected static function booted()

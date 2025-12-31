@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\Tenants\TenantPayment;
 use App\Models\Tenants\NetworkUser;
+use App\Models\Tenants\TenantHotspot;
 use App\Models\Package;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -130,7 +131,16 @@ class CheckIntaSendPaymentStatusJob implements ShouldQueue
     private function createHotspotUser(): void
     {
         try {
-            $package = Package::find($this->payment->package_id);
+            if ($this->payment->hotspot_package_id) {
+                $package = TenantHotspot::find($this->payment->hotspot_package_id);
+            } else {
+                $package = Package::find($this->payment->package_id);
+            }
+            
+            if (!$package) {
+                Log::error('Package not found for payment', ['payment_id' => $this->payment->id]);
+                return;
+            }
             
             // Check if user already exists
             $existingUser = NetworkUser::where('phone', $this->payment->phone)
@@ -139,8 +149,16 @@ class CheckIntaSendPaymentStatusJob implements ShouldQueue
                 
             if ($existingUser) {
                 // Update existing user
-                $existingUser->package_id = $package->id;
-                $existingUser->expires_at = now()->addDays($package->duration);
+                if ($this->payment->hotspot_package_id) {
+                    $existingUser->hotspot_package_id = $package->id;
+                    $existingUser->package_id = null;
+                } else {
+                    $existingUser->package_id = $package->id;
+                    $existingUser->hotspot_package_id = null;
+                }
+
+                // Calculate expiry
+                $existingUser->expires_at = $this->calculateExpiry($package);
                 $existingUser->save();
                 
                 Log::info('Updated existing hotspot user after payment', [
@@ -162,8 +180,9 @@ class CheckIntaSendPaymentStatusJob implements ShouldQueue
                 'password' => bcrypt($plainPassword),
                 'phone' => $this->payment->phone,
                 'type' => 'hotspot',
-                'package_id' => $package->id,
-                'expires_at' => now()->addDays($package->duration),
+                'package_id' => $this->payment->package_id,
+                'hotspot_package_id' => $this->payment->hotspot_package_id,
+                'expires_at' => $this->calculateExpiry($package),
                 'registered_at' => now(),
             ]);
             
@@ -182,6 +201,24 @@ class CheckIntaSendPaymentStatusJob implements ShouldQueue
                 'trace' => $e->getTraceAsString()
             ]);
         }
+    }
+
+    /**
+     * Calculate expiry date based on package.
+     */
+    private function calculateExpiry($package)
+    {
+        $value = $package->duration_value ?? $package->duration ?? 1;
+        $unit = $package->duration_unit ?? 'days';
+
+        return match ($unit) {
+            'minutes' => now()->addMinutes($value),
+            'hours'   => now()->addHours($value),
+            'days'    => now()->addDays($value),
+            'weeks'   => now()->addWeeks($value),
+            'months'  => now()->addMonths($value),
+            default   => now()->addDays($value),
+        };
     }
 
     /**
