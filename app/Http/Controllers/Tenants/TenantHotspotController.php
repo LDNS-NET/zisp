@@ -117,6 +117,7 @@ class TenantHotspotController extends Controller
                 'currency' => 'KES',
                 'api_ref' => $api_ref,
                 'email' => $request->email ?? 'customer@example.com',
+                'callback_url' => "https://{$host}/hotspot/callback", // Explicitly direct callback to this tenant
             ]);
 
             $responseData = $response->json();
@@ -145,7 +146,7 @@ class TenantHotspotController extends Controller
                 'intasend_reference' => $responseData['id'] ?? $responseData['invoice'] ?? null,
                 'intasend_checkout_id' => $responseData['checkout_id'] ?? null,
                 'response' => $responseData,
-                'created_by' => auth()->id(),
+                'created_by' => \App\Models\User::first()?->id, // Assign to first user (Admin) since hotspot user is guest
             ]);
 
             // Queue job to check payment status

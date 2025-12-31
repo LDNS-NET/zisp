@@ -38,11 +38,7 @@ class TenantPayment extends Model
 
     protected static function booted()
     {
-        static::addGlobalScope('tenant', function ($query) {
-            if (tenant()) {
-                $query->where('created_by', tenant()->id);
-            }
-        });
-
+        // Global scope removed to fix hotspot payment visibility.
+        // Data separation is handled by multi-tenant databases.
     }
 }
