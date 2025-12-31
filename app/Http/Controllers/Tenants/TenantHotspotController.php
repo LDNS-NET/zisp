@@ -379,6 +379,11 @@ class TenantHotspotController extends Controller
             $username = NetworkUser::generateUsername();
             $plainPassword = NetworkUser::generatePassword();
 
+            \Log::info('Generated credentials for new hotspot user', [
+                'payment_id' => $payment->id,
+                'username' => $username
+            ]);
+
             // Create new network user
             $user = NetworkUser::create([
                 'account_number' => $this->generateAccountNumber(),

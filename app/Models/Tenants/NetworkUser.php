@@ -227,12 +227,9 @@ class NetworkUser extends Model
             $businessName = null;
         }
 
-        $prefix = !empty($businessName)
-            ? strtoupper(substr(preg_replace('/\s+/', '', $businessName), 0, 1))
-            : 'U';
-
-        // Avoid confusing letters for prefix if possible, but strict requirement is first letter.
-        // If we strictly follow "first letter", we use it.
+        // Extract first alphanumeric character
+        $char = $businessName ? substr(preg_replace('/[^A-Za-z0-9]/', '', $businessName), 0, 1) : null;
+        $prefix = !empty($char) ? strtoupper($char) : 'U';
 
         // Find last username with this prefix and 3+ digits
         $lastUser = self::where('username', 'REGEXP', "^{$prefix}[0-9]+$")
