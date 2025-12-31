@@ -251,10 +251,8 @@ function startPaymentPolling() {
     paymentAttempts.value = 0;
     if (pollingInterval.value) clearInterval(pollingInterval.value);
     
-    // Initial check immediately
-    // checkPaymentStatus(); // Optional: might be too soon
-
-    pollingInterval.value = setInterval(async () => {
+    // Define polling logic
+    const poll = async () => {
         paymentAttempts.value++;
         if (paymentAttempts.value >= maxPollingAttempts) {
             if (pollingInterval.value) clearInterval(pollingInterval.value);
@@ -263,6 +261,11 @@ function startPaymentPolling() {
         }
         
         if (!currentPaymentId.value) return;
+
+        // Visual feedback
+        if (!userCredentials.value && !paymentMessage.value.includes('confirmed')) {
+             paymentMessage.value = `Waiting for M-Pesa... (Attempt ${paymentAttempts.value})`;
+        }
 
         try {
             const response = await fetch(`/hotspot/payment-status/${currentPaymentId.value}`, {
@@ -278,13 +281,18 @@ function startPaymentPolling() {
                  showToast('Payment confirmed!', 'success');
                 if (pollingInterval.value) clearInterval(pollingInterval.value);
             } else {
-                 // Update status message optionally
                  if (data.status === 'pending') {
-                     // paymentMessage.value = 'Waiting for payment confirmation...';
+                     // Keep waiting
                  }
             }
         } catch (error) {}
-    }, 5000); // Poll every 5 seconds
+    };
+
+    // Initial check immediately
+    poll();
+
+    // Start interval (3 seconds)
+    pollingInterval.value = setInterval(poll, 3000); 
 }
 
 async function processPayment() {
