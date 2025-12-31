@@ -105,33 +105,27 @@ class TenantHotspotController extends Controller
                 ]);
             }
 
-            // Encode api_ref: HS|package_id|phone|uniqid
-            $api_ref = "HS|{$package->id}|{$phone}|" . strtoupper(uniqid());
+            // Create reference: HS|package_id|phone|uniqid
+            $reference = "HS|{$package->id}|{$phone}|" . strtoupper(uniqid());
 
-            // Send STK Push request to IntaSend
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . env('INTASEND_SECRET_KEY'),
-                'Content-Type' => 'application/json',
-            ])->post('https://payment.intasend.com/api/v1/payment/mpesa-stk-push/', [
-                'amount' => $amount,
-                'phone_number' => $phone,
-                'currency' => 'KES',
-                'api_ref' => $api_ref,
-                'email' => $request->email ?? 'customer@example.com',
-                'callback_url' => "https://{$host}/hotspot/callback", // Explicitly direct callback to this tenant
+            // Initiate M-Pesa STK Push
+            $mpesa = app(\App\Services\MpesaService::class);
+            $mpesaResponse = $mpesa->stkPush(
+                $phone,
+                $amount,
+                $reference,
+                "Hotspot Package - {$package->name}"
+            );
+
+            \Log::info('M-Pesa STK Push initiated', [
+                'response' => $mpesaResponse,
+                'reference' => $reference,
             ]);
 
-            $responseData = $response->json();
-            \Log::info('IntaSend API response', [
-                'status' => $response->status(),
-                'body' => $responseData,
-                'api_ref' => $api_ref,
-            ]);
-
-            if (!$response->successful()) {
+            if (!$mpesaResponse['success']) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Failed to initiate payment: ' . ($responseData['message'] ?? 'Unknown error'),
+                    'message' => $mpesaResponse['message'] ?? 'Failed to initiate payment',
                 ]);
             }
 
@@ -141,28 +135,28 @@ class TenantHotspotController extends Controller
                 'hotspot_package_id' => $package->id,
                 'package_id' => null,
                 'amount' => $amount,
-                'receipt_number' => $api_ref,
+                'receipt_number' => $reference,
                 'status' => 'pending',
                 'checked' => false,
                 'disbursement_type' => 'pending',
-                'intasend_reference' => $responseData['invoice']['id'] ?? $responseData['id'] ?? null,
-                'intasend_checkout_id' => $responseData['invoice']['checkout_id'] ?? $responseData['checkout_id'] ?? null,
-                'response' => $responseData,
+                'intasend_reference' => $mpesaResponse['checkout_request_id'] ?? null, // Reuse field for CheckoutRequestID
+                'intasend_checkout_id' => $mpesaResponse['merchant_request_id'] ?? null, // Reuse field for MerchantRequestID
+                'response' => $mpesaResponse['response'] ?? [],
             ]);
 
             \Log::info('Payment record created', [
                 'payment_id' => $payment->id,
-                'api_ref' => $api_ref,
-                'intasend_reference' => $payment->intasend_reference,
+                'reference' => $reference,
+                'checkout_request_id' => $payment->intasend_reference,
             ]);
 
             // Queue job to check payment status (using payment ID)
-            CheckIntaSendPaymentStatusJob::dispatch($payment)->delay(now()->addSeconds(30));
+            \App\Jobs\CheckMpesaPaymentStatusJob::dispatch($payment)->delay(now()->addSeconds(30));
 
             return response()->json([
                 'success' => true,
-                'message' => 'STK Push sent. Complete payment on your phone.',
-                'payment_id' => $payment->id, // Use actual payment ID for polling
+                'message' => $mpesaResponse['message'] ?? 'STK Push sent. Complete payment on your phone.',
+                'payment_id' => $payment->id,
             ]);
         } catch (\Exception $e) {
             \Log::error('STK Push exception', [
@@ -254,70 +248,83 @@ class TenantHotspotController extends Controller
     }
 
     /**
-     * Handle IntaSend callback.
+     * Handle M-Pesa callback.
      */
     public function callback(Request $request)
     {
         try {
-            \Log::info('IntaSend callback received', [
+            \Log::info('M-Pesa callback received', [
                 'request_data' => $request->all(),
                 'ip' => $request->ip(),
                 'timestamp' => now()->toISOString()
             ]);
 
-            $invoiceId = $request->input('invoice_id');
-            $apiRef = $request->input('api_ref');
-            $state = strtoupper($request->input('state') ?? '');
+            // Parse M-Pesa callback data
+            $mpesa = app(\App\Services\MpesaService::class);
+            $callbackData = $mpesa->parseCallback($request->all());
 
-            if (!$invoiceId && !$apiRef) {
-                \Log::warning('Callback missing identifiers', ['data' => $request->all()]);
-                return response()->json(['success' => false, 'message' => 'Missing identifiers']);
+            \Log::info('M-Pesa callback parsed', ['parsed_data' => $callbackData]);
+
+            $checkoutRequestId = $callbackData['checkout_request_id'];
+            $status = $callbackData['status'];
+
+            if (!$checkoutRequestId) {
+                \Log::warning('Callback missing CheckoutRequestID', ['data' => $request->all()]);
+                return response()->json(['ResultCode' => 1, 'ResultDesc' => 'Missing CheckoutRequestID']);
             }
 
-            $payment = TenantPayment::where('intasend_reference', $invoiceId)
-                ->orWhere('receipt_number', $apiRef)
+            // Find payment by CheckoutRequestID (stored in intasend_reference field)
+            $payment = TenantPayment::where('intasend_reference', $checkoutRequestId)
                 ->orderByDesc('id')
                 ->first();
 
-            if ($payment && $payment->status === 'paid') {
-                return response()->json(['success' => true, 'message' => 'Already processed']);
+            if (!$payment) {
+                \Log::warning('Payment not found for callback', ['checkout_request_id' => $checkoutRequestId]);
+                return response()->json(['ResultCode' => 1, 'ResultDesc' => 'Payment not found']);
             }
 
-            if ($state === 'COMPLETE' || $state === 'SUCCESS' || $state === 'PAID') {
-                \Log::info('Payment confirmed via callback', ['payment_id' => $payment?->id, 'api_ref' => $apiRef, 'state' => $state]);
-
-                if ($payment) {
-                    $payment->status = 'paid';
-                    $payment->checked = true;
-                    $payment->transaction_id = $request->input('mpesa_reference') ?? $request->input('id') ?? $payment->transaction_id;
-                    $payment->response = array_merge($payment->response ?? [], $request->all());
-                    $payment->paid_at = now();
-                    $payment->save();
-
-                    $package = $this->findTenantPackage($payment->hotspot_package_id);
-                    return $this->handleSuccessfulPayment($payment, $package);
-                } else {
-                    \Log::warning('Payment not found for callback', ['api_ref' => $apiRef, 'invoice_id' => $invoiceId]);
-                }
+            if ($payment->status === 'paid') {
+                return response()->json(['ResultCode' => 0, 'ResultDesc' => 'Already processed']);
             }
 
-            // Handle failure in callback
-            if (in_array($state, ['FAILED', 'CANCELLED', 'REJECTED'])) {
-                if ($payment) {
-                    $payment->status = 'failed';
-                    $payment->response = array_merge($payment->response ?? [], $request->all());
-                    $payment->save();
-                }
+            if ($status === 'paid') {
+                \Log::info('Payment confirmed via M-Pesa callback', [
+                    'payment_id' => $payment->id,
+                    'mpesa_receipt' => $callbackData['mpesa_receipt_number']
+                ]);
+
+                $payment->status = 'paid';
+                $payment->checked = true;
+                $payment->transaction_id = $callbackData['mpesa_receipt_number'];
+                $payment->response = array_merge($payment->response ?? [], $callbackData['raw_data']);
+                $payment->paid_at = now();
+                $payment->save();
+
+                $package = $this->findTenantPackage($payment->hotspot_package_id);
+                $this->handleSuccessfulPayment($payment, $package);
+
+                return response()->json(['ResultCode' => 0, 'ResultDesc' => 'Success']);
             }
 
-            \Log::info('Payment not confirmed in callback', ['api_ref' => $apiRef, 'state' => $state]);
-            return response()->json(['success' => false, 'message' => 'Payment not confirmed.']);
+            // Handle failure/cancellation
+            if (in_array($status, ['failed', 'cancelled'])) {
+                $payment->status = $status;
+                $payment->response = array_merge($payment->response ?? [], $callbackData['raw_data']);
+                $payment->save();
+
+                \Log::info('Payment marked as ' . $status, ['payment_id' => $payment->id]);
+                return response()->json(['ResultCode' => 0, 'ResultDesc' => 'Acknowledged']);
+            }
+
+            \Log::info('Payment not confirmed in callback', ['status' => $status]);
+            return response()->json(['ResultCode' => 0, 'ResultDesc' => 'Acknowledged']);
+
         } catch (\Exception $e) {
-            \Log::error('IntaSend callback exception', [
+            \Log::error('M-Pesa callback exception', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            return response()->json(['success' => false, 'message' => 'Error processing callback']);
+            return response()->json(['ResultCode' => 1, 'ResultDesc' => 'Error processing callback']);
         }
     }
 

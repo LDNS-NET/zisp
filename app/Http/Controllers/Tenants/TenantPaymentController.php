@@ -268,33 +268,29 @@ class TenantPaymentController extends Controller
         $package = \App\Models\Package::findOrFail($data['package_id']);
 
         try {
-            $collection = new Collection();
-            $collection->init([
-                'token' => env('INTASEND_SECRET_KEY'),
-                'publishable_key' => env('INTASEND_PUBLISHABLE_KEY'),
-                'test' => env('INTASEND_TEST_ENV', false),
-            ]);
-
-            \Log::info('IntaSend collection initialized', [
-                'token_set' => !empty(env('INTASEND_SECRET_KEY')),
-                'publishable_key_set' => !empty(env('INTASEND_PUBLISHABLE_KEY')),
-                'test_env' => env('INTASEND_TEST_ENV', false)
-            ]);
-
-            // Use simple unique receipt number
+            // Create unique receipt number
             $receiptNumber = 'PK-' . strtoupper(uniqid()) . '-' . date('Ymd');
 
-            $response = $collection->create(
-                amount: $data['amount'],
-                phone_number: $phone,
-                currency: 'KES',
-                method: 'MPESA_STK_PUSH',
-                api_ref: $receiptNumber
+            // Initiate M-Pesa STK Push
+            $mpesa = app(\App\Services\MpesaService::class);
+            $mpesaResponse = $mpesa->stkPush(
+                $phone,
+                $data['amount'],
+                $receiptNumber,
+                "Package Payment - {$package->name}"
             );
 
-            $resp = json_decode(json_encode($response), true);
+            \Log::info('M-Pesa STK Push initiated', [
+                'response' => $mpesaResponse,
+                'receipt_number' => $receiptNumber,
+            ]);
 
-            \Log::info('IntaSend response received', ['response' => $resp]);
+            if (!$mpesaResponse['success']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $mpesaResponse['message'] ?? 'Failed to initiate payment',
+                ]);
+            }
 
             // Create payment record immediately with pending status
             $payment = TenantPayment::create([
@@ -306,19 +302,19 @@ class TenantPaymentController extends Controller
                 'status' => 'pending',
                 'checked' => false,
                 'disbursement_type' => 'pending',
-                'intasend_reference' => $resp['invoice']['id'] ?? $resp['id'] ?? null,
-                'intasend_checkout_id' => $resp['invoice']['checkout_id'] ?? $resp['checkout_id'] ?? null,
-                'response' => $resp,
+                'intasend_reference' => $mpesaResponse['checkout_request_id'] ?? null, // Reuse field for CheckoutRequestID
+                'intasend_checkout_id' => $mpesaResponse['merchant_request_id'] ?? null, // Reuse field for MerchantRequestID
+                'response' => $mpesaResponse['response'] ?? [],
             ]);
 
             \Log::info('Payment record created', [
                 'payment_id' => $payment->id,
                 'receipt_number' => $receiptNumber,
-                'intasend_reference' => $payment->intasend_reference,
+                'checkout_request_id' => $payment->intasend_reference,
             ]);
 
             // Dispatch job to check payment status (using payment model)
-            CheckIntaSendPaymentStatus::dispatch($payment)
+            \App\Jobs\CheckMpesaPaymentStatusJob::dispatch($payment)
                 ->delay(now()->addSeconds(30));
 
             return response()->json([

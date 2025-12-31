@@ -21,6 +21,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: [
             'mikrotiks/*/sync',
             'mikrotiks/*/register-wireguard',
+            'hotspot/callback',
+            'mpesa/callback',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
