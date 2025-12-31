@@ -178,115 +178,78 @@ class TenantHotspotController extends Controller
     }
 
     /**
-     * Check payment status on demand.
-     */
-    /**
-     * Check payment status on demand.
+     * Check payment status (checks database only, relies on IntaSend callback to update status)
      */
     public function checkPaymentStatus($identifier)
     {
         try {
-            \Log::info('Checking payment status', ['identifier' => $identifier]);
+            \Log::info('Checking payment status from database', ['identifier' => $identifier]);
 
-            // Try to find the payment record
+            // Find the payment record
             $payment = TenantPayment::where('id', $identifier)
                 ->orWhere('intasend_reference', $identifier)
                 ->orWhere('receipt_number', $identifier)
                 ->orderByDesc('id')
                 ->first();
 
-            \Log::info('Payment record found', [
-                'payment_id' => $payment?->id,
-                'current_status' => $payment?->status,
-                'intasend_reference' => $payment?->intasend_reference
-            ]);
-
             if (!$payment) {
-                \Log::warning('No payment record found for identifier', ['identifier' => $identifier]);
+                \Log::warning('No payment record found', ['identifier' => $identifier]);
                 return response()->json([
                     'success' => false,
                     'message' => 'Payment record not found'
                 ]);
             }
 
+            \Log::info('Payment record status', [
+                'payment_id' => $payment->id,
+                'status' => $payment->status,
+                'checked' => $payment->checked
+            ]);
+
+            // If already paid, return user credentials
             if ($payment->status === 'paid') {
-                 $user = NetworkUser::where('phone', $payment->phone)->where('type', 'hotspot')->first();
-                 if ($user) {
-                     return response()->json([
+                $user = NetworkUser::where('phone', $payment->phone)
+                    ->where('type', 'hotspot')
+                    ->first();
+                    
+                if ($user) {
+                    return response()->json([
                         'success' => true,
-                         'status' => 'paid',
-                         'user' => [
+                        'status' => 'paid',
+                        'user' => [
                             'username' => $user->username,
+                            'password' => $user->password,
                             'expires_at' => $user->expires_at->toDateTimeString(),
-                         ]
-                     ]);
-                 }
-                return response()->json(['success' => true, 'status' => 'paid']);
+                        ]
+                    ]);
+                }
+                
+                return response()->json([
+                    'success' => true,
+                    'status' => 'paid',
+                    'message' => 'Payment confirmed, generating user account...'
+                ]);
             }
 
-            // Check IntaSend for current status
-            \Log::info('Querying IntaSend for payment status', [
-                'invoice' => $payment->intasend_reference
-            ]);
-
-            $statusResponse = Http::withHeaders([
-                'Authorization' => 'Bearer ' . env('INTASEND_SECRET_KEY'),
-                'Content-Type' => 'application/json',
-            ])->get('https://payment.intasend.com/api/v1/payment/mpesa/transaction-status/', [
-                'invoice' => $payment->intasend_reference,
-            ]);
-
-            $statusData = $statusResponse->json();
-            
-            \Log::info('IntaSend status response', [
-                'status_code' => $statusResponse->status(),
-                'response' => $statusData
-            ]);
-
-            // Robust status extraction
-            $status = $statusData['invoice']['state'] ?? $statusData['status'] ?? $statusData['state'] ?? null;
-            $status = $status ? strtoupper($status) : null;
-
-            \Log::info('Extracted status from IntaSend', ['status' => $status]);
-
-            if ($statusResponse->successful() && ($status === 'PAID' || $status === 'COMPLETE' || $status === 'SUCCESS')) {
-                 \Log::info('Payment confirmed via polling', ['payment_id' => $payment->id, 'status' => $status]);
-                 
-                 $payment->status = 'paid';
-                 $payment->checked = true;
-                 $payment->transaction_id = $statusData['invoice']['mpesa_reference'] ?? $statusData['id'] ?? $statusData['transaction_id'] ?? $payment->transaction_id;
-                 $payment->response = array_merge($payment->response ?? [], $statusData);
-                 $payment->paid_at = now();
-                 $payment->save();
-
-                 \Log::info('Payment status updated to paid', ['payment_id' => $payment->id]);
-
-                 $package = $this->findTenantPackage($payment->hotspot_package_id);
-                 return $this->handleSuccessfulPayment($payment, $package);
-             }
-
-             // Handle failure
-             if ($statusResponse->successful() && in_array($status, ['FAILED', 'CANCELLED', 'REJECTED'])) {
-                 $payment->status = 'failed';
-                 $payment->response = array_merge($payment->response ?? [], $statusData);
-                 $payment->save();
-                 
-                 \Log::info('Payment marked as failed', ['payment_id' => $payment->id, 'status' => $status]);
-             }
-
+            // Return current status
             return response()->json([
-                'success' => true, 
+                'success' => true,
                 'status' => $payment->status,
-                'message' => $status === 'PENDING' ? 'Payment still pending' : 'Payment status checked'
+                'message' => $payment->status === 'pending' 
+                    ? 'Payment pending. Please complete payment on your phone, then click "I have Paid" again.'
+                    : 'Payment ' . $payment->status
             ]);
 
         } catch (\Exception $e) {
-             \Log::error('Check status exception', [
-                 'identifier' => $identifier,
-                 'error' => $e->getMessage(),
-                 'trace' => $e->getTraceAsString()
-             ]);
-            return response()->json(['success' => false, 'message' => $e->getMessage()]);
+            \Log::error('Check status exception', [
+                'identifier' => $identifier,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error checking payment status'
+            ]);
         }
     }
 
