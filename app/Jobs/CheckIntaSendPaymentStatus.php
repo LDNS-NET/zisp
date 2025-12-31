@@ -80,7 +80,7 @@ class CheckIntaSendPaymentStatus implements ShouldQueue
             $status = $status ? strtoupper($status) : null;
 
             // If we don't have a payment record yet and the status is PAID, create a minimal paid record
-            if (!$payment && in_array($status, ['PAID', 'SUCCESS', 'COMPLETED'])) {
+            if (!$payment && in_array($status, ['PAID', 'SUCCESS', 'COMPLETED', 'COMPLETE'])) {
                 $created = Payment::create([
                     'phone' => $resp['invoice']['customer_phone'] ?? $resp['data']['phone'] ?? null,
                     'package_id' => null,
@@ -108,7 +108,7 @@ class CheckIntaSendPaymentStatus implements ShouldQueue
                 return;
             }
 
-            if (in_array($status, ['PAID', 'SUCCESS', 'COMPLETED'])) {
+            if (in_array($status, ['PAID', 'SUCCESS', 'COMPLETED', 'COMPLETE'])) {
                 $payment->status = 'paid';
                 $payment->paid_at = $payment->paid_at ?? now();
                 $payment->transaction_id = $resp['invoice']['mpesa_reference'] ?? $resp['data']['transaction_id'] ?? $payment->transaction_id;

@@ -270,17 +270,6 @@ class TenantPaymentController extends Controller
         // Generate unique receipt number
         $receiptNumber = 'HS-' . strtoupper(uniqid()) . '-' . date('Ymd');
 
-        // Create payment record with pending status
-        $payment = TenantPayment::create([
-            'phone' => $phone, // Store normalized format
-            'package_id' => $data['package_id'],
-            'amount' => $data['amount'],
-            'receipt_number' => $receiptNumber,
-            'status' => 'pending',
-            'checked' => false,
-            'disbursement_type' => 'pending',
-        ]);
-
         try {
             // Log the attempt
             \Log::info('IntaSend STK Push attempt', [
@@ -314,8 +303,15 @@ class TenantPaymentController extends Controller
 
             \Log::info('IntaSend response received', ['response' => $resp]);
 
-            // Update payment with IntaSend response
-            $payment->update([
+            // Create payment record with pending status ONLY after successful request
+            $payment = TenantPayment::create([
+                'phone' => $phone, // Store normalized format
+                'package_id' => $data['package_id'],
+                'amount' => $data['amount'],
+                'receipt_number' => $receiptNumber,
+                'status' => 'pending',
+                'checked' => false,
+                'disbursement_type' => 'pending',
                 'intasend_reference' => $resp['invoice']['id'] ?? $resp['id'] ?? null,
                 'intasend_checkout_id' => $resp['invoice']['checkout_id'] ?? $resp['checkout_id'] ?? null,
                 'response' => $resp,
@@ -344,11 +340,8 @@ class TenantPaymentController extends Controller
                 'amount' => $data['amount']
             ]);
 
-            $payment->update([
-                'status' => 'failed',
-                'response' => ['error' => $e->getMessage()],
-            ]);
-
+            // Do NOT create payment record on failure
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to initiate STK Push: ' . $e->getMessage(),

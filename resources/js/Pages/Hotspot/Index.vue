@@ -16,7 +16,7 @@ const userCredentials = ref(null);
 const isCheckingPayment = ref(false);
 const pollingInterval = ref(null);
 const paymentAttempts = ref(0);
-const maxPollingAttempts = 20;
+const maxPollingAttempts = 30; // 30 * 3s = 90 seconds
 
 // Voucher authentication
 const voucherCode = ref('');
@@ -274,18 +274,23 @@ function startPaymentPolling() {
             });
             const data = await response.json();
             
-            if (data.success && data.status === 'paid' && data.user) {
+            if (data.success && (data.status === 'paid' || data.user)) {
                 userCredentials.value = data.user;
-                paymentMessage.value = 'Payment confirmed! Credentials generated.';
+                paymentMessage.value = 'Payment received! Your hotspot account is ready.';
                 paymentError.value = '';
-                 showToast('Payment confirmed!', 'success');
+                 showToast('Payment received!', 'success');
                 if (pollingInterval.value) clearInterval(pollingInterval.value);
             } else {
                  if (data.status === 'pending') {
                      // Keep waiting
+                 } else if (data.status === 'failed') {
+                     paymentError.value = 'Payment failed or was cancelled.';
+                     if (pollingInterval.value) clearInterval(pollingInterval.value);
                  }
             }
-        } catch (error) {}
+        } catch (error) {
+            console.error('Polling error:', error);
+        }
     };
 
     // Initial check immediately

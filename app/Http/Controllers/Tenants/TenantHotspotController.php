@@ -206,7 +206,7 @@ class TenantHotspotController extends Controller
 
             $statusData = $statusResponse->json();
             
-            if ($statusResponse->successful() && isset($statusData['status']) && $statusData['status'] === 'PAID') {
+            if ($statusResponse->successful() && isset($statusData['status']) && ($statusData['status'] === 'PAID' || $statusData['status'] === 'COMPLETE')) {
                  \Log::info('Payment confirmed via polling', ['payment_id' => $payment->id]);
                 
                  $payment->status = 'paid';
@@ -332,7 +332,7 @@ class TenantHotspotController extends Controller
                 'response_body' => $statusData
             ]);
 
-            if ($statusResponse->successful() && isset($statusData['status']) && $statusData['status'] === 'PAID') {
+            if ($statusResponse->successful() && isset($statusData['status']) && ($statusData['status'] === 'PAID' || $statusData['status'] === 'COMPLETE')) {
                 \Log::info('Payment confirmed as PAID, updating payment and creating user', [
                     'payment_id' => $payment->id,
                     'intasend_status' => $statusData['status'],
