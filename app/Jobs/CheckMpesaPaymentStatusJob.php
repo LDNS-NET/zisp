@@ -134,7 +134,7 @@ class CheckMpesaPaymentStatusJob implements ShouldQueue
     {
         try {
             if ($this->payment->hotspot_package_id) {
-                $package = TenantHotspot::find($this->payment->hotspot_package_id);
+                $package = TenantHotspot::withoutGlobalScopes()->find($this->payment->hotspot_package_id);
             } else {
                 $package = Package::find($this->payment->package_id);
             }

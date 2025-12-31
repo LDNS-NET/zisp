@@ -464,13 +464,10 @@ class TenantHotspotController extends Controller
 
     private function findTenantPackage(int $id): TenantHotspot
     {
-        $host = request()->getHost();
-        $subdomain = explode('.', $host)[0];
-
-        $tenant = Tenant::where('subdomain', $subdomain)->firstOrFail();
-
-        return TenantHotspot::where('id', $id)
-            ->where('tenant_id', $tenant->id)
+        // Bypass tenant scope as callback might come to a different domain
+        // or tenant resolution might not work as expected in this context
+        return TenantHotspot::withoutGlobalScopes()
+            ->where('id', $id)
             ->firstOrFail();
     }
 
