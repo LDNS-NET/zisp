@@ -185,11 +185,19 @@ class TenantHotspotController extends Controller
         try {
             \Log::info('Checking payment status from database', ['identifier' => $identifier]);
 
-            // Find the payment record
-            $payment = TenantPayment::where('id', $identifier)
-                ->orWhere('checkout_request_id', $identifier)
-                ->orWhere('intasend_reference', $identifier)
-                ->orWhere('receipt_number', $identifier)
+            // Identify tenant from subdomain
+            $host = request()->getHost();
+            $subdomain = explode('.', $host)[0];
+            $tenant = Tenant::where('subdomain', $subdomain)->firstOrFail();
+
+            // Find the payment record scoped to this tenant
+            $payment = TenantPayment::where('tenant_id', $tenant->id)
+                ->where(function($q) use ($identifier) {
+                    $q->where('id', $identifier)
+                        ->orWhere('checkout_request_id', $identifier)
+                        ->orWhere('intasend_reference', $identifier)
+                        ->orWhere('receipt_number', $identifier);
+                })
                 ->orderByDesc('id')
                 ->first();
 

@@ -18,62 +18,69 @@ class TenantPaymentController extends Controller
 {
     public function index(Request $request)
     {
-        $query = TenantPayment::query()->with('user');
-
-        // 🔍 Search filter
-        if ($request->search) {
-            $query->whereHas(
-                'user',
-                fn($q) =>
-                $q->where('username', 'like', "%{$request->search}%")
-                    ->orWhere('phone', 'like', "%{$request->search}%")
-            )->orWhere('phone', 'like', "%{$request->search}%");
-        }
-
-        // ✅ Disbursement filter
-        if ($request->disbursement) {
-            if ($request->disbursement === 'pending') {
-                $query->where(function ($q) {
-                    $q->whereNull('disbursement_type')
-                        ->orWhere('disbursement_type', '')
-                        ->orWhere('disbursement_type', 'pending');
-                });
-            } else {
-                $query->where('disbursement_type', $request->disbursement);
-            }
-        }
-
-        $businessName = \App\Models\Tenant::first()?->business_name ?? '';
-        $payments = $query->latest()->paginate(10)->through(function ($payment) use ($businessName) {
-            $disb = $payment->disbursement_type ?? 'pending';
-            $checkedBool = (bool) $payment->checked;
-            $userDisplay = $payment->user_id === null ? 'Deleted User' : ($payment->user?->username ?? 'Unknown');
-            return [
-                'id' => $payment->id,
-                'user' => $userDisplay,
-                'user_id' => $payment->user_id,
-                'phone' => $payment->phone ?? ($payment->user?->phone ?? 'N/A'),
-                'receipt_number' => $payment->receipt_number,
-                'amount' => $payment->amount,
-                'checked' => $checkedBool,
-                'paid_at' => optional($payment->paid_at)->toDateTimeString(),
-                'disbursement_type' => $disb,
-                'checked_label' => $checkedBool ? 'Yes' : 'No',
-                'disbursement_label' => ucfirst($disb),
-                'business_name' => $businessName,
-            ];
-        });
-
-        // Get all payments for summary (no pagination)
-        // Get all payments for summary (no pagination, ignore pagination and filters except search/disbursement)
-        $allPayments = TenantPayment::query()->with('user')
+        $user = auth()->user();
+        $tenantId = $user->tenant_id;
+        $businessName = $user->tenant?->name ?? 'ISP';
+        
+        $payments = TenantPayment::query()
+            ->where('tenant_id', $tenantId)
+            ->with('user')
             ->when($request->search, function ($q) use ($request) {
-                $q->whereHas(
-                    'user',
-                    fn($q2) =>
-                    $q2->where('username', 'like', "%{$request->search}%")
-                        ->orWhere('phone', 'like', "%{$request->search}%")
-                )->orWhere('phone', 'like', "%{$request->search}%");
+                $q->where(function($sub) use ($request) {
+                    $sub->whereHas(
+                        'user',
+                        fn($q2) =>
+                        $q2->where('username', 'like', "%{$request->search}%")
+                            ->orWhere('phone', 'like', "%{$request->search}%")
+                    )->orWhere('phone', 'like', "%{$request->search}%");
+                });
+            })
+            ->when($request->disbursement, function ($q) use ($request) {
+                if ($request->disbursement === 'pending') {
+                    $q->where(function ($q2) {
+                        $q2->whereNull('disbursement_type')
+                            ->orWhere('disbursement_type', '')
+                            ->orWhere('disbursement_type', 'pending');
+                    });
+                } else {
+                    $q->where('disbursement_type', $request->disbursement);
+                }
+            })
+            ->orderBy('created_at', 'desc')
+            ->paginate(10)
+            ->through(function ($payment) use ($businessName) {
+                $disb = $payment->disbursement_type ?? 'pending';
+                $checkedBool = (bool) $payment->checked;
+                $userDisplay = $payment->user_id === null ? 'Deleted User' : ($payment->user?->username ?? 'Unknown');
+                return [
+                    'id' => $payment->id,
+                    'user' => $userDisplay,
+                    'user_id' => $payment->user_id,
+                    'phone' => $payment->phone ?? ($payment->user?->phone ?? 'N/A'),
+                    'receipt_number' => $payment->receipt_number,
+                    'amount' => $payment->amount,
+                    'checked' => $checkedBool,
+                    'paid_at' => optional($payment->paid_at)->toDateTimeString(),
+                    'disbursement_type' => $disb,
+                    'checked_label' => $checkedBool ? 'Yes' : 'No',
+                    'disbursement_label' => ucfirst($disb),
+                    'business_name' => $businessName,
+                ];
+            });
+
+        // Get all payments for summary (no pagination, ignore pagination and filters except search/disbursement)
+        $allPayments = TenantPayment::query()
+            ->where('tenant_id', $tenantId)
+            ->with('user')
+            ->when($request->search, function ($q) use ($request) {
+                $q->where(function($sub) use ($request) {
+                    $sub->whereHas(
+                        'user',
+                        fn($q2) =>
+                        $q2->where('username', 'like', "%{$request->search}%")
+                            ->orWhere('phone', 'like', "%{$request->search}%")
+                    )->orWhere('phone', 'like', "%{$request->search}%");
+                });
             })
             ->when($request->disbursement, function ($q) use ($request) {
                 if ($request->disbursement === 'pending') {

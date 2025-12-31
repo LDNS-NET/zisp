@@ -509,6 +509,7 @@ class VoucherController extends Controller
                     'disbursement_type' => 'true',
                     'created_by' => $voucher->created_by,
                     'package_id' => $package->id,
+                    'tenant_id' => $currentTenant->id,
                 ]);
 
                 DB::commit();
