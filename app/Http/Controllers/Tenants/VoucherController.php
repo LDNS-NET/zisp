@@ -488,6 +488,7 @@ class VoucherController extends Controller
                     'registered_at' => now(),
                     'expires_at' => $expiresAt,
                     'created_by' => $voucher->created_by,
+                    'tenant_id' => $currentTenant->id,
                 ]);
 
                 // Mark voucher as used

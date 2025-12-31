@@ -35,6 +35,7 @@ class NetworkUser extends Model
         'expires_at',
         'online',
         'created_by',
+        'tenant_id',
     ];
 
     protected $casts = [
@@ -58,21 +59,61 @@ class NetworkUser extends Model
 
     protected static function booted()
     {
-        /** Apply created_by scope */
+        /** Apply tenant scope */
+        static::addGlobalScope('tenant', function ($query) {
+            if (tenant()) {
+                $query->where('tenant_id', tenant()->id);
+            } elseif (auth()->check()) {
+                $user = auth()->user();
+                if (!$user->is_super_admin && $user->tenant_id) {
+                    $query->where('tenant_id', $user->tenant_id);
+                }
+            } else {
+                // Fallback for public routes (hotspot page)
+                $host = request()->getHost();
+                $subdomain = explode('.', $host)[0];
+                $centralDomains = config('tenancy.central_domains', []);
+                
+                if (!in_array($host, $centralDomains)) {
+                    $tenant = \App\Models\Tenant::where('subdomain', $subdomain)->first();
+                    if ($tenant) {
+                        $query->where('tenant_id', $tenant->id);
+                    }
+                }
+            }
+        });
+
+        /** Apply created_by scope (legacy, keeping for compatibility if needed) */
         static::addGlobalScope('created_by', function ($query) {
             if (Auth::check()) {
                 $query->where('created_by', Auth::id());
             }
         });
 
-        /** Fill created_by + generate account number */
+        /** Fill tenant_id, created_by + generate account number */
         static::creating(function ($model) {
+            if (empty($model->tenant_id)) {
+                if (tenant()) {
+                    $model->tenant_id = tenant()->id;
+                } elseif (auth()->check() && auth()->user()->tenant_id) {
+                    $model->tenant_id = auth()->user()->tenant_id;
+                } else {
+                    // Fallback for public routes
+                    $host = request()->getHost();
+                    $subdomain = explode('.', $host)[0];
+                    $tenant = \App\Models\Tenant::where('subdomain', $subdomain)->first();
+                    if ($tenant) {
+                        $model->tenant_id = $tenant->id;
+                    }
+                }
+            }
+
             if (Auth::check() && empty($model->created_by)) {
                 $model->created_by = Auth::id();
             }
 
             if (empty($model->account_number)) {
-                $tenant = app(Tenant::class);
+                $tenant = \App\Models\Tenant::find($model->tenant_id) ?: app(Tenant::class);
                 $prefix = $tenant && !empty($tenant->business_name)
                     ? strtoupper(substr(preg_replace('/\s+/', '', $tenant->business_name), 0, 2))
                     : 'NU';

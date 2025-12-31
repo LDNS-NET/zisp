@@ -179,13 +179,14 @@ class CheckMpesaPaymentStatusJob implements ShouldQueue
             $user = NetworkUser::create([
                 'account_number' => $this->generateAccountNumber(),
                 'username' => $username,
-                'password' => bcrypt($plainPassword),
+                'password' => $plainPassword,
                 'phone' => $this->payment->phone,
                 'type' => 'hotspot',
                 'package_id' => $this->payment->package_id,
                 'hotspot_package_id' => $this->payment->hotspot_package_id,
                 'expires_at' => $this->calculateExpiry($package),
                 'registered_at' => now(),
+                'tenant_id' => $this->payment->tenant_id,
             ]);
             
             Log::info('Created new hotspot user after payment', [

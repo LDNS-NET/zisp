@@ -393,13 +393,14 @@ class TenantHotspotController extends Controller
             $user = NetworkUser::create([
                 'account_number' => $this->generateAccountNumber(),
                 'username' => $username,
-                'password' => bcrypt($plainPassword),
+                'password' => $plainPassword,
                 'phone' => $payment->phone,
                 'type' => 'hotspot',
                 'hotspot_package_id' => $package->id,
                 'package_id' => null,
                 'expires_at' => $this->calculateExpiry($package),
                 'registered_at' => now(),
+                'tenant_id' => $payment->tenant_id,
             ]);
 
             // Link user to payment
