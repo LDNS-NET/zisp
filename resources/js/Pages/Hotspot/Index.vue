@@ -73,6 +73,27 @@ function closeModal() {
     currentPaymentId.value = null;
 }
 
+function loginToNetwork(username, password) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const loginLink = urlParams.get('login_url') || urlParams.get('link-login') || urlParams.get('link-login-only');
+    
+    if (loginLink) {
+        showToast('Authenticating with network...', 'info');
+        
+        const targetUrl = new URL(loginLink);
+        targetUrl.searchParams.append('username', username);
+        targetUrl.searchParams.append('password', password);
+        
+        // Force redirect to system success page to clear Captive Portal reliably
+        targetUrl.searchParams.append('dst', 'https://' + window.location.host + '/hotspot/success');
+        
+        window.location.href = targetUrl.toString();
+        return true;
+    }
+    
+    return false;
+}
+
 async function authenticateMember() {
     if (!memberUsername.value || !memberPassword.value) {
         showToast('Please enter both username and password', 'error');
@@ -82,21 +103,7 @@ async function authenticateMember() {
     isAuthenticatingMember.value = true;
     
     try {
-        const urlParams = new URLSearchParams(window.location.search);
-        const loginLink = urlParams.get('login_url') || urlParams.get('link-login') || urlParams.get('link-login-only');
-        
-        if (loginLink) {
-            showToast('Authenticating member...', 'info');
-            
-            const targetUrl = new URL(loginLink);
-            targetUrl.searchParams.append('username', memberUsername.value);
-            targetUrl.searchParams.append('password', memberPassword.value);
-            
-             // Force redirect to system success page to clear Captive Portal reliably
-            targetUrl.searchParams.append('dst', 'https://' + window.location.host + '/hotspot/success');
-            
-            window.location.href = targetUrl.toString();
-        } else {
+        if (!loginToNetwork(memberUsername.value, memberPassword.value)) {
              showToast('Authentication unavailable (Not connected to hotspot network)', 'error');
         }
     } catch (error) {
@@ -148,29 +155,16 @@ async function authenticateVoucher() {
             voucherMessage.value = data.message;
             voucherError.value = '';
             
-            const urlParams = new URLSearchParams(window.location.search);
-            const loginLink = urlParams.get('login_url') || urlParams.get('link-login') || urlParams.get('link-login-only');
-            
-            if (loginLink) {
-                showToast('Authenticating with network...', 'info');
-                const targetUrl = new URL(loginLink);
-                targetUrl.searchParams.append('username', data.user.username);
-                targetUrl.searchParams.append('password', data.user.password);
+            if (!loginToNetwork(data.user.username, data.user.password)) {
+                showToast('Voucher authenticated! Connect to hotspot to use internet.', 'success');
                 
-                // Force redirect to system success page to clear Captive Portal reliably
-                targetUrl.searchParams.append('dst', 'https://' + window.location.host + '/hotspot/success');
-
-                window.location.href = targetUrl.toString();
-                return; 
+                setTimeout(() => {
+                    voucherCode.value = '';
+                    voucherCredentials.value = null;
+                    voucherMessage.value = '';
+                }, 15000);
             }
-
-            showToast('Voucher authenticated! Connect to hotspot to use internet.', 'success');
-            
-            setTimeout(() => {
-                voucherCode.value = '';
-                voucherCredentials.value = null;
-                voucherMessage.value = '';
-            }, 15000);
+            return; 
         } else {
             voucherError.value = data.message || 'Failed to authenticate voucher';
             showToast(data.message || 'Failed to authenticate voucher', 'error');
@@ -227,10 +221,15 @@ async function checkPaymentStatus() {
         
         if (data.success && data.status === 'paid' && data.user) {
             userCredentials.value = data.user;
-            paymentMessage.value = 'Payment confirmed! Credentials generated.';
+            paymentMessage.value = 'Payment confirmed! Connecting you now...';
             paymentError.value = '';
             showToast('Payment confirmed!', 'success');
             if (pollingInterval.value) { clearInterval(pollingInterval.value); pollingInterval.value = null; }
+            
+            // Automatic login
+            setTimeout(() => {
+                loginToNetwork(data.user.username, data.user.password);
+            }, 1000);
         } else {
              if (data.status === 'paid' && !data.user) {
                   // Paid but no user yet? Retry one more time or show meaningful error
@@ -276,10 +275,15 @@ function startPaymentPolling() {
             
             if (data.success && (data.status === 'paid' || data.user)) {
                 userCredentials.value = data.user;
-                paymentMessage.value = 'Payment received! Your hotspot account is ready.';
+                paymentMessage.value = 'Payment received! Connecting you now...';
                 paymentError.value = '';
-                 showToast('Payment received!', 'success');
+                showToast('Payment received!', 'success');
                 if (pollingInterval.value) clearInterval(pollingInterval.value);
+                
+                // Automatic login
+                setTimeout(() => {
+                    loginToNetwork(data.user.username, data.user.password);
+                }, 1000);
             } else {
                  if (data.status === 'pending') {
                      // Keep waiting
