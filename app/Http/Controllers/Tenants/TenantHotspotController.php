@@ -105,7 +105,8 @@ class TenantHotspotController extends Controller
                 ]);
             }
 
-            $api_ref = 'HS-' . uniqid();
+            // Encode api_ref: HS|package_id|phone|uniqid
+            $api_ref = "HS|{$package->id}|{$phone}|" . strtoupper(uniqid());
 
             // Send STK Push request to IntaSend
             $response = Http::withHeaders([
@@ -133,29 +134,14 @@ class TenantHotspotController extends Controller
                 ]);
             }
 
-            // Save payment record
-            $payment = TenantPayment::create([
-                'phone' => $phone,
-                'hotspot_package_id' => $package->id,
-                'package_id' => null, // Explicitly null to avoid FK constraint on 'packages' table
-                'amount' => $amount,
-                'receipt_number' => $api_ref,
-                'status' => 'pending',
-                'checked' => false,
-                'disbursement_type' => 'pending',
-                'intasend_reference' => $responseData['id'] ?? $responseData['invoice'] ?? null,
-                'intasend_checkout_id' => $responseData['checkout_id'] ?? null,
-                'response' => $responseData,
-                'created_by' => \App\Models\User::first()?->id, // Assign to first user (Admin) since hotspot user is guest
-            ]);
-
-            // Queue job to check payment status
-            CheckIntaSendPaymentStatusJob::dispatch($payment)->delay(now()->addSeconds(30));
+            // Queue job to check payment status (using invoice ID or api_ref as identifier)
+            $identifier = $responseData['id'] ?? $responseData['invoice'] ?? $api_ref;
+            CheckIntaSendPaymentStatusJob::dispatch($identifier)->delay(now()->addSeconds(30));
 
             return response()->json([
                 'success' => true,
                 'message' => 'STK Push sent. Complete payment on your phone.',
-                'payment_id' => $payment->id,
+                'payment_id' => $identifier, // Use identifier for polling
             ]);
         } catch (\Exception $e) {
             \Log::error('STK Push exception', [
@@ -173,15 +159,20 @@ class TenantHotspotController extends Controller
     /**
      * Check payment status on demand.
      */
-    public function checkPaymentStatus(TenantPayment $payment)
+    /**
+     * Check payment status on demand.
+     */
+    public function checkPaymentStatus($identifier)
     {
         try {
-            if ($payment->status === 'paid') {
-                \Log::info('Payment already paid (on check)', ['payment_id' => $payment->id]);
-                 // If paid, we need to return the user info.
-                 // We can reuse logic or just return success if the frontend handles the rest (e.g. via a separate call or just showing success)
-                 // But better to return the user credentials if available.
-                 
+            // Try to find the payment record
+            $payment = TenantPayment::where('id', $identifier)
+                ->orWhere('intasend_reference', $identifier)
+                ->orWhere('receipt_number', $identifier)
+                ->orderByDesc('id')
+                ->first();
+
+            if ($payment && $payment->status === 'paid') {
                  $user = NetworkUser::where('phone', $payment->phone)->where('type', 'hotspot')->first();
                  if ($user) {
                      return response()->json([
@@ -196,33 +187,56 @@ class TenantHotspotController extends Controller
                 return response()->json(['success' => true, 'status' => 'paid']);
             }
 
-            // Check with IntaSend
+            // If no payment record or not paid, check IntaSend
             $statusResponse = Http::withHeaders([
                 'Authorization' => 'Bearer ' . env('INTASEND_SECRET_KEY'),
                 'Content-Type' => 'application/json',
             ])->get('https://payment.intasend.com/api/v1/payment/mpesa/transaction-status/', [
-                'invoice' => $payment->intasend_reference,
+                'invoice' => $payment ? $payment->intasend_reference : $identifier,
             ]);
 
             $statusData = $statusResponse->json();
             
-            if ($statusResponse->successful() && isset($statusData['status']) && ($statusData['status'] === 'PAID' || $statusData['status'] === 'COMPLETE')) {
-                 \Log::info('Payment confirmed via polling', ['payment_id' => $payment->id]);
-                
-                 $payment->status = 'paid';
-                 $payment->checked = true;
-                 $payment->transaction_id = $statusData['id'] ?? $statusData['transaction_id'] ?? $payment->transaction_id;
-                 $payment->response = array_merge($payment->response ?? [], $statusData);
-                 $payment->paid_at = now();
-                 $payment->save();
+            // Robust status extraction
+            $status = $statusData['invoice']['state'] ?? $statusData['status'] ?? $statusData['state'] ?? null;
+            $status = $status ? strtoupper($status) : null;
 
-                 $package = $this->findTenantPackage($payment->hotspot_package_id);
-                 return $this->handleSuccessfulPayment($payment, $package);
+            if ($statusResponse->successful() && ($status === 'PAID' || $status === 'COMPLETE' || $status === 'SUCCESS')) {
+                 \Log::info('Payment confirmed via polling', ['identifier' => $identifier, 'status' => $status]);
+                
+                 if (!$payment) {
+                     $apiRef = $statusData['invoice']['api_ref'] ?? $identifier;
+                     $payment = $this->createPaymentFromApiRef($apiRef, $statusData);
+                 } else {
+                     $payment->status = 'paid';
+                     $payment->checked = true;
+                     $payment->transaction_id = $statusData['invoice']['mpesa_reference'] ?? $statusData['id'] ?? $statusData['transaction_id'] ?? $payment->transaction_id;
+                     $payment->response = array_merge($payment->response ?? [], $statusData);
+                     $payment->paid_at = now();
+                     $payment->save();
+                 }
+
+                 if ($payment) {
+                     $package = $this->findTenantPackage($payment->hotspot_package_id);
+                     return $this->handleSuccessfulPayment($payment, $package);
+                 }
+            }
+
+            // Handle failure
+            if ($statusResponse->successful() && in_array($status, ['FAILED', 'CANCELLED', 'REJECTED'])) {
+                if (!$payment) {
+                    $apiRef = $statusData['invoice']['api_ref'] ?? $identifier;
+                    $payment = $this->createPaymentFromApiRef($apiRef, $statusData, 'failed');
+                } else {
+                    $payment->status = 'failed';
+                    $payment->response = array_merge($payment->response ?? [], $statusData);
+                    $payment->save();
+                }
             }
 
             return response()->json([
                 'success' => true, 
-                'status' => $payment->status
+                'status' => $payment ? $payment->status : 'pending'
             ]);
 
         } catch (\Exception $e) {
@@ -230,8 +244,6 @@ class TenantHotspotController extends Controller
             return response()->json(['success' => false, 'message' => $e->getMessage()]);
         }
     }
-
-
 
     /**
      * Handle IntaSend callback.
@@ -242,132 +254,100 @@ class TenantHotspotController extends Controller
             \Log::info('IntaSend callback received', [
                 'request_data' => $request->all(),
                 'ip' => $request->ip(),
-                'user_agent' => $request->userAgent(),
                 'timestamp' => now()->toISOString()
             ]);
 
-            $request->validate([
-                'phone' => 'required|string',
-                'hotspot_package_id' => 'required|exists:tenant_hotspot_packages,id',
-            ]);
+            $invoiceId = $request->input('invoice_id');
+            $apiRef = $request->input('api_ref');
+            $state = strtoupper($request->input('state') ?? '');
 
-            \Log::info('Callback validation passed', [
-                'phone' => $request->phone,
-                'hotspot_package_id' => $request->hotspot_package_id
-            ]);
+            if (!$invoiceId && !$apiRef) {
+                \Log::warning('Callback missing identifiers', ['data' => $request->all()]);
+                return response()->json(['success' => false, 'message' => 'Missing identifiers']);
+            }
 
-            $payment = TenantPayment::where('phone', $request->phone)
-                ->where('hotspot_package_id', $request->hotspot_package_id)
+            $payment = TenantPayment::where('intasend_reference', $invoiceId)
+                ->orWhere('receipt_number', $apiRef)
                 ->orderByDesc('id')
                 ->first();
 
-            if (!$payment) {
-                \Log::warning('No payment found for callback', [
-                    'phone' => $request->phone,
-                    'hotspot_package_id' => $request->hotspot_package_id
-                ]);
-                return response()->json(['success' => false, 'message' => 'No payment found.']);
+            if ($payment && $payment->status === 'paid') {
+                return response()->json(['success' => true, 'message' => 'Already processed']);
             }
 
-            \Log::info('Payment record found', [
-                'payment_id' => $payment->id,
-                'status' => $payment->status,
-                'amount' => $payment->amount,
-                'created_at' => $payment->created_at
-            ]);
+            if ($state === 'COMPLETE' || $state === 'SUCCESS' || $state === 'PAID') {
+                \Log::info('Payment confirmed via callback', ['api_ref' => $apiRef, 'state' => $state]);
 
-            if ($payment->status === 'paid') {
-                \Log::info('Payment already processed, checking for existing user', [
-                    'payment_id' => $payment->id
-                ]);
-
-                // Already paid, return existing user if any
-                $existingUser = NetworkUser::where('phone', $request->phone)
-                    ->where('type', 'hotspot')
-                    ->first();
-
-                if ($existingUser) {
-                    \Log::info('Existing user found, returning credentials', [
-                        'user_id' => $existingUser->id,
-                        'username' => $existingUser->username,
-                        'expires_at' => $existingUser->expires_at
-                    ]);
-
-                    return response()->json([
-                        'success' => true,
-                        'message' => 'Payment already processed',
-                        'user' => [
-                            'username' => $existingUser->username,
-                            'password' => 'Password already set',
-                            'expires_at' => $existingUser->expires_at->toDateTimeString(),
-                        ]
-                    ]);
+                if (!$payment) {
+                    $payment = $this->createPaymentFromApiRef($apiRef, $request->all());
+                } else {
+                    $payment->status = 'paid';
+                    $payment->checked = true;
+                    $payment->transaction_id = $request->input('mpesa_reference') ?? $request->input('id') ?? $payment->transaction_id;
+                    $payment->response = array_merge($payment->response ?? [], $request->all());
+                    $payment->paid_at = now();
+                    $payment->save();
                 }
 
-                \Log::info('Payment paid but no user exists, creating user', [
-                    'payment_id' => $payment->id
-                ]);
-
-                // Create user if payment is paid but no user exists
-                $package = $this->findTenantPackage($request->hotspot_package_id);
-                return $this->handleSuccessfulPayment($payment, $package);
+                if ($payment) {
+                    $package = $this->findTenantPackage($payment->hotspot_package_id);
+                    return $this->handleSuccessfulPayment($payment, $package);
+                }
             }
 
-            \Log::info('Checking payment status with IntaSend', [
-                'payment_id' => $payment->id,
-                'intasend_reference' => $payment->intasend_reference
-            ]);
-
-            // Check payment status with IntaSend
-            $statusResponse = Http::withHeaders([
-                'Authorization' => 'Bearer ' . config('services.intasend.secret_key'),
-                'Content-Type' => 'application/json',
-            ])->get(config('services.intasend.base_url') . '/mpesa/transaction-status/', [
-                        'invoice' => $payment->intasend_reference,
-                    ]);
-
-            $statusData = $statusResponse->json();
-
-            \Log::info('IntaSend status check response', [
-                'payment_id' => $payment->id,
-                'status_code' => $statusResponse->status(),
-                'response_body' => $statusData
-            ]);
-
-            if ($statusResponse->successful() && isset($statusData['status']) && ($statusData['status'] === 'PAID' || $statusData['status'] === 'COMPLETE')) {
-                \Log::info('Payment confirmed as PAID, updating payment and creating user', [
-                    'payment_id' => $payment->id,
-                    'intasend_status' => $statusData['status'],
-                    'amount' => $statusData['amount'] ?? 'unknown'
-                ]);
-
-                $payment->status = 'paid';
-                $payment->checked = true;
-                $payment->transaction_id = $statusData['id'] ?? $statusData['transaction_id'] ?? $payment->transaction_id;
-                $payment->response = array_merge($payment->response ?? [], $statusData);
-                $payment->paid_at = now();
-                $payment->save();
-
-                $package = $this->findTenantPackage($request->hotspot_package_id);
-                return $this->handleSuccessfulPayment($payment, $package);
+            // Handle failure in callback
+            if (in_array($state, ['FAILED', 'CANCELLED', 'REJECTED'])) {
+                if (!$payment) {
+                    $this->createPaymentFromApiRef($apiRef, $request->all(), 'failed');
+                } else {
+                    $payment->status = 'failed';
+                    $payment->response = array_merge($payment->response ?? [], $request->all());
+                    $payment->save();
+                }
             }
 
-            \Log::info('Payment not yet confirmed', [
-                'payment_id' => $payment->id,
-                'intasend_status' => $statusData['status'] ?? 'unknown',
-                'response' => $statusData
-            ]);
-
-            return response()->json(['success' => false, 'message' => 'Payment not confirmed yet.']);
+            \Log::info('Payment not confirmed in callback', ['api_ref' => $apiRef, 'state' => $state]);
+            return response()->json(['success' => false, 'message' => 'Payment not confirmed.']);
         } catch (\Exception $e) {
             \Log::error('IntaSend callback exception', [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'request_data' => $request->all()
+                'trace' => $e->getTraceAsString()
             ]);
-            return response()->json(['success' => false, 'message' => 'Payment status error. ' . $e->getMessage()]);
+            return response()->json(['success' => false, 'message' => 'Error processing callback']);
         }
     }
+
+    /**
+     * Create a payment record from encoded api_ref.
+     */
+    private function createPaymentFromApiRef($apiRef, $statusData, $status = 'paid')
+    {
+        // Format: HS|{package_id}|{phone}|{uniqid}
+        $parts = explode('|', $apiRef);
+        if (count($parts) >= 3 && $parts[0] === 'HS') {
+            $packageId = $parts[1];
+            $phone = $parts[2];
+            
+            return TenantPayment::create([
+                'phone' => $phone,
+                'hotspot_package_id' => $packageId,
+                'package_id' => null,
+                'amount' => $statusData['invoice']['amount'] ?? $statusData['amount'] ?? 0,
+                'receipt_number' => $apiRef,
+                'status' => $status,
+                'checked' => ($status === 'paid'),
+                'paid_at' => ($status === 'paid') ? now() : null,
+                'transaction_id' => $statusData['invoice']['mpesa_reference'] ?? $statusData['mpesa_reference'] ?? $statusData['id'] ?? null,
+                'intasend_reference' => $statusData['invoice']['id'] ?? $statusData['invoice_id'] ?? $statusData['id'] ?? null,
+                'intasend_checkout_id' => $statusData['invoice']['checkout_id'] ?? $statusData['checkout_id'] ?? null,
+                'response' => $statusData,
+                'created_by' => \App\Models\User::first()?->id,
+            ]);
+        }
+        
+        return null;
+    }
+
     /**
      * Handle post-payment success actions.
      */

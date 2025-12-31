@@ -267,16 +267,9 @@ class TenantPaymentController extends Controller
 
         $package = \App\Models\Package::findOrFail($data['package_id']);
 
-        // Generate unique receipt number
-        $receiptNumber = 'HS-' . strtoupper(uniqid()) . '-' . date('Ymd');
-
         try {
-            // Log the attempt
-            \Log::info('IntaSend STK Push attempt', [
-                'phone' => $phone,
-                'amount' => $data['amount'],
-                'api_ref' => $receiptNumber
-            ]);
+            // Encode api_ref: PK|package_id|phone|uniqid
+            $apiRef = "PK|{$data['package_id']}|{$phone}|" . strtoupper(uniqid());
 
             $collection = new Collection();
             $collection->init([
@@ -296,39 +289,23 @@ class TenantPaymentController extends Controller
                 phone_number: $phone,
                 currency: 'KES',
                 method: 'MPESA_STK_PUSH',
-                api_ref: $receiptNumber
+                api_ref: $apiRef
             );
 
             $resp = json_decode(json_encode($response), true);
 
             \Log::info('IntaSend response received', ['response' => $resp]);
 
-            // Create payment record with pending status ONLY after successful request
-            $payment = TenantPayment::create([
-                'phone' => $phone, // Store normalized format
-                'package_id' => $data['package_id'],
-                'amount' => $data['amount'],
-                'receipt_number' => $receiptNumber,
-                'status' => 'pending',
-                'checked' => false,
-                'disbursement_type' => 'pending',
-                'intasend_reference' => $resp['invoice']['id'] ?? $resp['id'] ?? null,
-                'intasend_checkout_id' => $resp['invoice']['checkout_id'] ?? $resp['checkout_id'] ?? null,
-                'response' => $resp,
-            ]);
-
-            // Dispatch job to check payment status
-            if (!empty($resp['invoice']['id']) || !empty($resp['id'])) {
-                $invoiceId = $resp['invoice']['id'] ?? $resp['id'];
-                CheckIntaSendPaymentStatus::dispatch($invoiceId)
-                    ->delay(now()->addSeconds(30));
-            }
+            // Dispatch job to check payment status (using invoice ID or apiRef as identifier)
+            $identifier = $resp['invoice']['id'] ?? $resp['id'] ?? $apiRef;
+            CheckIntaSendPaymentStatus::dispatch($identifier)
+                ->delay(now()->addSeconds(30));
 
             return response()->json([
                 'success' => true,
                 'message' => 'STK Push sent successfully. Please check your phone.',
-                'payment_id' => $payment->id,
-                'receipt_number' => $receiptNumber,
+                'payment_id' => $identifier,
+                'receipt_number' => $apiRef,
                 'response' => $resp,
             ]);
 

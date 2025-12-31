@@ -19,16 +19,16 @@ class CheckIntaSendPaymentStatusJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    protected $payment;
+    protected $identifier;
     protected $maxAttempts = 10; // Check up to 10 times
     protected $retryDelay = 30; // 30 seconds between checks
 
     /**
      * Create a new job instance.
      */
-    public function __construct(TenantPayment $payment)
+    public function __construct($identifier)
     {
-        $this->payment = $payment;
+        $this->identifier = $identifier;
     }
 
     /**
@@ -37,56 +37,81 @@ class CheckIntaSendPaymentStatusJob implements ShouldQueue
     public function handle(): void
     {
         try {
+            $identifier = $this->identifier;
+            $payment = null;
+
+            if ($identifier instanceof TenantPayment) {
+                $payment = $identifier;
+            } elseif (is_numeric($identifier)) {
+                $payment = TenantPayment::find($identifier);
+            } else {
+                $payment = TenantPayment::where('intasend_reference', $identifier)
+                    ->orWhere('receipt_number', $identifier)
+                    ->first();
+            }
+
             // Skip if payment is already processed
-            if ($this->payment->status === 'paid') {
-                Log::info('Payment already processed, skipping job', ['payment_id' => $this->payment->id]);
+            if ($payment && $payment->status === 'paid') {
+                Log::info('Payment already processed, skipping job', ['identifier' => $identifier]);
                 return;
             }
 
             // Check payment status with IntaSend
             $statusResponse = Http::withHeaders([
-                'Authorization' => 'Bearer ' . config('services.intasend.secret_key'),
+                'Authorization' => config('services.intasend.secret_key') ? 'Bearer ' . config('services.intasend.secret_key') : 'Bearer ' . env('INTASEND_SECRET_KEY'),
                 'Content-Type' => 'application/json',
-            ])->get(config('services.intasend.base_url') . '/mpesa/transaction-status/', [
-                'invoice' => $this->payment->intasend_reference,
+            ])->get((config('services.intasend.base_url') ?? 'https://payment.intasend.com/api/v1/payment') . '/mpesa/transaction-status/', [
+                'invoice' => $payment ? $payment->intasend_reference : $identifier,
             ]);
 
             $statusData = $statusResponse->json();
 
+            // Robust status extraction
+            $status = $statusData['invoice']['state'] ?? $statusData['status'] ?? $statusData['state'] ?? null;
+            $status = $status ? strtoupper($status) : null;
+
             Log::info('Checking IntaSend payment status', [
-                'payment_id' => $this->payment->id,
-                'invoice' => $this->payment->intasend_reference,
-                'status' => $statusData['status'] ?? 'unknown',
+                'identifier' => $identifier,
+                'status' => $status,
                 'response' => $statusData
             ]);
 
-            if ($statusResponse->successful() && isset($statusData['status']) && ($statusData['status'] === 'PAID' || $statusData['status'] === 'COMPLETE')) {
-                // Mark payment as paid
-                $this->payment->status = 'paid';
-                $this->payment->checked = true;
-                $this->payment->transaction_id = $statusData['id'] ?? $statusData['transaction_id'] ?? $this->payment->transaction_id;
-                $this->payment->response = array_merge($this->payment->response ?? [], $statusData);
-                $this->payment->paid_at = now();
-                $this->payment->save();
+            if ($statusResponse->successful() && ($status === 'PAID' || $status === 'COMPLETE' || $status === 'SUCCESS')) {
+                if (!$payment) {
+                    $apiRef = $statusData['invoice']['api_ref'] ?? $identifier;
+                    $payment = $this->createPaymentFromApiRef($apiRef, $statusData);
+                } else {
+                    $payment->status = 'paid';
+                    $payment->checked = true;
+                    $payment->transaction_id = $statusData['invoice']['mpesa_reference'] ?? $statusData['id'] ?? $statusData['transaction_id'] ?? $payment->transaction_id;
+                    $payment->response = array_merge($payment->response ?? [], $statusData);
+                    $payment->paid_at = now();
+                    $payment->save();
+                }
 
-                Log::info('Payment confirmed as paid, creating user account', [
-                    'payment_id' => $this->payment->id,
-                    'phone' => $this->payment->phone,
-                    'amount' => $this->payment->amount
-                ]);
+                if ($payment) {
+                    Log::info('Payment confirmed as paid, creating user account', [
+                        'payment_id' => $payment->id,
+                        'phone' => $payment->phone,
+                        'amount' => $payment->amount
+                    ]);
+                    $this->payment = $payment; // Set for createHotspotUser
+                    $this->createHotspotUser();
+                }
 
-                // Create hotspot user
-                $this->createHotspotUser();
-
-            } elseif ($statusResponse->successful() && isset($statusData['status']) && in_array($statusData['status'], ['FAILED', 'CANCELLED'])) {
-                // Mark payment as failed
-                $this->payment->status = 'failed';
-                $this->payment->response = array_merge($this->payment->response ?? [], $statusData);
-                $this->payment->save();
+            } elseif ($statusResponse->successful() && in_array($status, ['FAILED', 'CANCELLED', 'REJECTED'])) {
+                if (!$payment) {
+                    $apiRef = $statusData['invoice']['api_ref'] ?? $identifier;
+                    $this->createPaymentFromApiRef($apiRef, $statusData, 'failed');
+                } else {
+                    $payment->status = 'failed';
+                    $payment->response = array_merge($payment->response ?? [], $statusData);
+                    $payment->save();
+                }
 
                 Log::info('Payment marked as failed', [
-                    'payment_id' => $this->payment->id,
-                    'status' => $statusData['status']
+                    'identifier' => $identifier,
+                    'status' => $status
                 ]);
 
             } else {
@@ -94,7 +119,7 @@ class CheckIntaSendPaymentStatusJob implements ShouldQueue
                 $attempts = $this->attempts();
                 if ($attempts < $this->maxAttempts) {
                     Log::info('Payment still pending, retrying', [
-                        'payment_id' => $this->payment->id,
+                        'identifier' => $identifier,
                         'attempt' => $attempts + 1,
                         'max_attempts' => $this->maxAttempts
                     ]);
@@ -102,19 +127,24 @@ class CheckIntaSendPaymentStatusJob implements ShouldQueue
                     $this->release($this->retryDelay);
                 } else {
                     Log::warning('Max retry attempts reached, marking as failed', [
-                        'payment_id' => $this->payment->id,
+                        'identifier' => $identifier,
                         'attempts' => $attempts
                     ]);
                     
-                    $this->payment->status = 'failed';
-                    $this->payment->response = array_merge($this->payment->response ?? [], ['error' => 'Max retry attempts reached']);
-                    $this->payment->save();
+                    if ($payment) {
+                        $payment->status = 'failed';
+                        $payment->response = array_merge($payment->response ?? [], ['error' => 'Max retry attempts reached']);
+                        $payment->save();
+                    } else {
+                        $apiRef = $statusData['invoice']['api_ref'] ?? $identifier;
+                        $this->createPaymentFromApiRef($apiRef, $statusData, 'failed');
+                    }
                 }
             }
 
         } catch (\Exception $e) {
             Log::error('Error checking IntaSend payment status', [
-                'payment_id' => $this->payment->id,
+                'identifier' => $this->identifier,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
@@ -125,6 +155,46 @@ class CheckIntaSendPaymentStatusJob implements ShouldQueue
                 $this->release($this->retryDelay);
             }
         }
+    }
+
+    /**
+     * Create a payment record from encoded api_ref.
+     */
+    private function createPaymentFromApiRef($apiRef, $statusData, $status = 'paid')
+    {
+        // Format: HS|{package_id}|{phone}|{uniqid} or PK|{package_id}|{phone}|{uniqid}
+        $parts = explode('|', $apiRef);
+        if (count($parts) >= 3) {
+            $prefix = $parts[0];
+            $packageId = $parts[1];
+            $phone = $parts[2];
+            
+            $data = [
+                'phone' => $phone,
+                'amount' => $statusData['invoice']['amount'] ?? $statusData['amount'] ?? 0,
+                'receipt_number' => $apiRef,
+                'status' => $status,
+                'checked' => ($status === 'paid'),
+                'paid_at' => ($status === 'paid') ? now() : null,
+                'transaction_id' => $statusData['invoice']['mpesa_reference'] ?? $statusData['mpesa_reference'] ?? $statusData['id'] ?? null,
+                'intasend_reference' => $statusData['invoice']['id'] ?? $statusData['invoice_id'] ?? $statusData['id'] ?? null,
+                'intasend_checkout_id' => $statusData['invoice']['checkout_id'] ?? $statusData['checkout_id'] ?? null,
+                'response' => $statusData,
+                'created_by' => \App\Models\User::first()?->id,
+            ];
+
+            if ($prefix === 'HS') {
+                $data['hotspot_package_id'] = $packageId;
+                $data['package_id'] = null;
+            } else {
+                $data['package_id'] = $packageId;
+                $data['hotspot_package_id'] = null;
+            }
+            
+            return TenantPayment::create($data);
+        }
+        
+        return null;
     }
 
     /**

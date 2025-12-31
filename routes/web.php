@@ -98,7 +98,7 @@ Route::middleware(['check.subscription'])->group(function () {
     Route::post('/hotspot/purchase-stk-push', [TenantHotspotController::class, 'purchaseSTKPush'])->name('hotspot.purchase-stk-push');
     Route::post('/hotspot/checkout', [TenantHotspotController::class, 'checkout'])->name('hotspot.checkout');
     Route::post('/hotspot/callback', [TenantHotspotController::class, 'callback'])->name('hotspot.callback');
-    Route::get('/hotspot/payment-status/{payment}', [TenantHotspotController::class, 'checkPaymentStatus'])->name('hotspot.check-status');
+    Route::get('/hotspot/payment-status/{identifier}', [TenantHotspotController::class, 'checkPaymentStatus'])->name('hotspot.check-status');
     Route::post('/hotspot/voucher-auth', [VoucherController::class, 'authenticate'])->name('voucher.authenticate');
 });
 
