@@ -168,8 +168,13 @@ class CheckIntaSendPaymentStatusJob implements ShouldQueue
                     $existingUser->hotspot_package_id = null;
                 }
 
+                // Accumulate expiry if current expiry is in the future
+                $baseDate = ($existingUser->expires_at && $existingUser->expires_at->isFuture()) 
+                    ? $existingUser->expires_at 
+                    : now();
+
                 // Calculate expiry
-                $existingUser->expires_at = $this->calculateExpiry($package);
+                $existingUser->expires_at = $this->calculateExpiry($package, $baseDate);
                 $existingUser->save();
                 
                 Log::info('Updated existing hotspot user after payment', [
@@ -219,18 +224,19 @@ class CheckIntaSendPaymentStatusJob implements ShouldQueue
     /**
      * Calculate expiry date based on package.
      */
-    private function calculateExpiry($package)
+    private function calculateExpiry($package, $baseDate = null)
     {
         $value = $package->duration_value ?? $package->duration ?? 1;
         $unit = $package->duration_unit ?? 'days';
+        $base = $baseDate ?: now();
 
         return match ($unit) {
-            'minutes' => now()->addMinutes($value),
-            'hours'   => now()->addHours($value),
-            'days'    => now()->addDays($value),
-            'weeks'   => now()->addWeeks($value),
-            'months'  => now()->addMonths($value),
-            default   => now()->addDays($value),
+            'minutes' => $base->copy()->addMinutes($value),
+            'hours'   => $base->copy()->addHours($value),
+            'days'    => $base->copy()->addDays($value),
+            'weeks'   => $base->copy()->addWeeks($value),
+            'months'  => $base->copy()->addMonths($value),
+            default   => $base->copy()->addDays($value),
         };
     }
 

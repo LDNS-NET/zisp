@@ -369,7 +369,13 @@ class TenantHotspotController extends Controller
                 // Update existing user's package and expiry
                 $existingUser->hotspot_package_id = $package->id;
                 $existingUser->package_id = null;
-                $existingUser->expires_at = $this->calculateExpiry($package);
+                
+                // Accumulate expiry if current expiry is in the future
+                $baseDate = ($existingUser->expires_at && $existingUser->expires_at->isFuture()) 
+                    ? $existingUser->expires_at 
+                    : now();
+                    
+                $existingUser->expires_at = $this->calculateExpiry($package, $baseDate);
                 $existingUser->save();
 
                 \Log::info('Updated existing hotspot user', [
@@ -488,15 +494,17 @@ class TenantHotspotController extends Controller
             ->firstOrFail();
     }
 
-    private function calculateExpiry(TenantHotspot $package)
+    private function calculateExpiry(TenantHotspot $package, $baseDate = null)
     {
+        $base = $baseDate ?: now();
+        
         return match ($package->duration_unit) {
-            'minutes' => now()->addMinutes($package->duration_value),
-            'hours'   => now()->addHours($package->duration_value),
-            'days'    => now()->addDays($package->duration_value),
-            'weeks'   => now()->addWeeks($package->duration_value),
-            'months'  => now()->addMonths($package->duration_value),
-            default   => now()->addDays(1),
+            'minutes' => $base->copy()->addMinutes($package->duration_value),
+            'hours'   => $base->copy()->addHours($package->duration_value),
+            'days'    => $base->copy()->addDays($package->duration_value),
+            'weeks'   => $base->copy()->addWeeks($package->duration_value),
+            'months'  => $base->copy()->addMonths($package->duration_value),
+            default   => $base->copy()->addDays(1),
         };
     }
 }
