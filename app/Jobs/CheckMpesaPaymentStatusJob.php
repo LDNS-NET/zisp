@@ -135,7 +135,7 @@ class CheckMpesaPaymentStatusJob implements ShouldQueue
     }
 
     /**
-     * Create hotspot user after successful payment
+     * Create or activate hotspot user after successful payment
      */
     private function createHotspotUser(): void
     {
@@ -151,38 +151,47 @@ class CheckMpesaPaymentStatusJob implements ShouldQueue
                 return;
             }
             
-            // Check if user already exists
-            $existingUser = NetworkUser::where('phone', $this->payment->phone)
-                ->where('type', 'hotspot')
-                ->first();
+            // Check if user exists (linked to payment or by phone)
+            $user = null;
+            if ($this->payment->user_id) {
+                $user = NetworkUser::find($this->payment->user_id);
+            }
+            
+            if (!$user) {
+                $user = NetworkUser::where('phone', $this->payment->phone)
+                    ->where('type', 'hotspot')
+                    ->first();
+            }
                 
-            if ($existingUser) {
-                // Update existing user
+            if ($user) {
+                // Update existing user (Activation or Renewal)
                 if ($this->payment->hotspot_package_id) {
-                    $existingUser->hotspot_package_id = $package->id;
-                    $existingUser->package_id = null;
+                    $user->hotspot_package_id = $package->id;
+                    $user->package_id = null;
                 } else {
-                    $existingUser->package_id = $package->id;
-                    $existingUser->hotspot_package_id = null;
+                    $user->package_id = $package->id;
+                    $user->hotspot_package_id = null;
                 }
 
                 // Calculate expiry
-                $existingUser->expires_at = $this->calculateExpiry($package);
-                $existingUser->save();
+                $user->expires_at = $this->calculateExpiry($package);
+                $user->status = 'active'; // Ensure status is active
+                $user->save();
                 
-                Log::info('Updated existing hotspot user after payment', [
-                    'user_id' => $existingUser->id,
-                    'username' => $existingUser->username,
-                    'payment_id' => $this->payment->id
+                Log::info('Activated/Renewed hotspot user after payment', [
+                    'user_id' => $user->id,
+                    'username' => $user->username,
+                    'payment_id' => $this->payment->id,
+                    'status' => 'active'
                 ]);
                 return;
             }
             
-            // Generate new user credentials
+            // Fallback: Create new user if not found (shouldn't happen with new flow)
             $username = NetworkUser::generateUsername();
             $plainPassword = NetworkUser::generatePassword();
             
-            Log::info('Generated credentials for new user', [
+            Log::info('Generated credentials for new user (fallback)', [
                 'payment_id' => $this->payment->id,
                 'username' => $username
             ]);
@@ -191,18 +200,22 @@ class CheckMpesaPaymentStatusJob implements ShouldQueue
             $user = NetworkUser::create([
                 'account_number' => $this->generateAccountNumber(),
                 'username' => $username,
-                'password' => $plainPassword, // Storing plain text for Cleartext-Password compatibility
+                'password' => $plainPassword,
                 'phone' => $this->payment->phone,
                 'type' => 'hotspot',
                 'package_id' => $this->payment->package_id,
                 'hotspot_package_id' => $this->payment->hotspot_package_id,
-                'status' => 'active', // Set status to active
+                'status' => 'active',
                 'expires_at' => $this->calculateExpiry($package),
                 'registered_at' => now(),
-                'created_by' => $this->payment->created_by, // Assign to same owner as payment
+                'created_by' => $this->payment->created_by,
             ]);
             
-            Log::info('Created new hotspot user after payment', [
+            // Link user to payment
+            $this->payment->user_id = $user->id;
+            $this->payment->save();
+            
+            Log::info('Created new hotspot user after payment (fallback)', [
                 'user_id' => $user->id,
                 'username' => $username,
                 'phone' => $this->payment->phone,
@@ -211,7 +224,7 @@ class CheckMpesaPaymentStatusJob implements ShouldQueue
             ]);
             
         } catch (\Exception $e) {
-            Log::error('Failed to create hotspot user after payment', [
+            Log::error('Failed to create/activate hotspot user after payment', [
                 'payment_id' => $this->payment->id,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()

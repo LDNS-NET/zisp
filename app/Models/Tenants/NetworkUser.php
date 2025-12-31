@@ -89,6 +89,11 @@ class NetworkUser extends Model
          *  Sync with RADIUS after creation
          */
         static::created(function ($user) {
+            // Only sync if active
+            if ($user->status !== 'active') {
+                return;
+            }
+
             // Create radcheck entry (password)
             Radcheck::create([
                 'username' => $user->username,
@@ -153,6 +158,13 @@ class NetworkUser extends Model
          *  Update RADIUS entries when user is updated
          */
         static::updated(function ($user) {
+            // Only sync if active
+            if ($user->status !== 'active') {
+                // Optionally remove entries if status changed to inactive?
+                // For now, just don't create/update.
+                return;
+            }
+
             // Update password if changed
             Radcheck::updateOrCreate(
                 ['username' => $user->username, 'attribute' => 'Cleartext-Password'],
