@@ -167,16 +167,18 @@ class NetworkUser extends Model
                     'value' => $rateValue,
                 ]);
 
-                // Group
-                Radusergroup::create([
+                // Simultaneous Use (Devices)
+                $deviceLimit = $package->device_limit ?? 1;
+                Radreply::create([
                     'username' => $user->username,
-                    'groupname' => $package->name ?? 'default',
-                    'priority' => 1,
+                    'attribute' => 'Simultaneous-Use',
+                    'op' => ':=',
+                    'value' => (string)$deviceLimit,
                 ]);
 
                 // Expiry / Duration handling
                 if ($user->type === 'hotspot') {
-                    // Use Access-Period for relative expiry (start on first use)
+                    // Session-Timeout (Duration in seconds)
                     $seconds = 0;
                     $val = $package->duration_value;
                     switch ($package->duration_unit) {
@@ -188,20 +190,31 @@ class NetworkUser extends Model
                     }
 
                     if ($seconds > 0) {
-                        Radcheck::create([
+                        Radreply::create([
                             'username' => $user->username,
-                            'attribute' => 'Access-Period',
+                            'attribute' => 'Session-Timeout',
                             'op' => ':=',
                             'value' => (string)$seconds,
                         ]);
                     }
-                } elseif ($user->expires_at) {
-                    // Standard absolute expiration for other types
+                }
+
+                // Absolute Expiration (Works for all types if expires_at is set)
+                if ($user->expires_at) {
                     Radcheck::create([
                         'username' => $user->username,
                         'attribute' => 'Expiration',
                         'op' => ':=',
                         'value' => $user->expires_at->format('d M Y H:i:s'),
+                    ]);
+                }
+
+                // Group (Only for non-hotspot or if specifically needed)
+                if ($user->type !== 'hotspot') {
+                    Radusergroup::create([
+                        'username' => $user->username,
+                        'groupname' => $package->name ?? 'default',
+                        'priority' => 1,
                     ]);
                 }
             }
@@ -226,12 +239,13 @@ class NetworkUser extends Model
                     ['op' => ':=', 'value' => $rateValue]
                 );
 
-                Radusergroup::updateOrCreate(
-                    ['username' => $user->username],
-                    ['groupname' => $package->name ?? 'default', 'priority' => 1]
+                // Simultaneous Use
+                $deviceLimit = $package->device_limit ?? 1;
+                Radreply::updateOrCreate(
+                    ['username' => $user->username, 'attribute' => 'Simultaneous-Use'],
+                    ['op' => ':=', 'value' => (string)$deviceLimit]
                 );
 
-                // Update Expiry / Duration
                 if ($user->type === 'hotspot') {
                     $seconds = 0;
                     $val = $package->duration_value;
@@ -244,25 +258,35 @@ class NetworkUser extends Model
                     }
 
                     if ($seconds > 0) {
-                        Radcheck::updateOrCreate(
-                            ['username' => $user->username, 'attribute' => 'Access-Period'],
+                        Radreply::updateOrCreate(
+                            ['username' => $user->username, 'attribute' => 'Session-Timeout'],
                             ['op' => ':=', 'value' => (string)$seconds]
                         );
-                        // Ensure Expiration is removed if switched to hotspot
-                        Radcheck::where('username', $user->username)->where('attribute', 'Expiration')->delete();
                     }
-                } elseif ($user->expires_at) {
+                    
+                    // Remove group for hotspot
+                    Radusergroup::where('username', $user->username)->delete();
+                } else {
+                    Radusergroup::updateOrCreate(
+                        ['username' => $user->username],
+                        ['groupname' => $package->name ?? 'default', 'priority' => 1]
+                    );
+                    // Remove Session-Timeout
+                    Radreply::where('username', $user->username)->where('attribute', 'Session-Timeout')->delete();
+                }
+
+                // Update Expiration
+                if ($user->expires_at) {
                     Radcheck::updateOrCreate(
                         ['username' => $user->username, 'attribute' => 'Expiration'],
                         ['op' => ':=', 'value' => $user->expires_at->format('d M Y H:i:s')]
                     );
-                    // Ensure Access-Period is removed
-                    Radcheck::where('username', $user->username)->where('attribute', 'Access-Period')->delete();
                 } else {
-                    Radcheck::where('username', $user->username)
-                        ->whereIn('attribute', ['Expiration', 'Access-Period'])
-                        ->delete();
+                    Radcheck::where('username', $user->username)->where('attribute', 'Expiration')->delete();
                 }
+
+                // Cleanup old Access-Period if it exists
+                Radcheck::where('username', $user->username)->where('attribute', 'Access-Period')->delete();
             }
         });
 
