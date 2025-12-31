@@ -125,6 +125,7 @@ class TenantHotspotController extends Controller
             \Log::info('IntaSend API response', [
                 'status' => $response->status(),
                 'body' => $responseData,
+                'api_ref' => $api_ref,
             ]);
 
             if (!$response->successful()) {
@@ -134,14 +135,34 @@ class TenantHotspotController extends Controller
                 ]);
             }
 
-            // Queue job to check payment status (using invoice ID or api_ref as identifier)
-            $identifier = $responseData['id'] ?? $responseData['invoice'] ?? $api_ref;
-            CheckIntaSendPaymentStatusJob::dispatch($identifier)->delay(now()->addSeconds(30));
+            // Create payment record immediately with pending status
+            $payment = TenantPayment::create([
+                'phone' => $phone,
+                'hotspot_package_id' => $package->id,
+                'package_id' => null,
+                'amount' => $amount,
+                'receipt_number' => $api_ref,
+                'status' => 'pending',
+                'checked' => false,
+                'disbursement_type' => 'pending',
+                'intasend_reference' => $responseData['invoice']['id'] ?? $responseData['id'] ?? null,
+                'intasend_checkout_id' => $responseData['invoice']['checkout_id'] ?? $responseData['checkout_id'] ?? null,
+                'response' => $responseData,
+            ]);
+
+            \Log::info('Payment record created', [
+                'payment_id' => $payment->id,
+                'api_ref' => $api_ref,
+                'intasend_reference' => $payment->intasend_reference,
+            ]);
+
+            // Queue job to check payment status (using payment ID)
+            CheckIntaSendPaymentStatusJob::dispatch($payment)->delay(now()->addSeconds(30));
 
             return response()->json([
                 'success' => true,
                 'message' => 'STK Push sent. Complete payment on your phone.',
-                'payment_id' => $identifier, // Use identifier for polling
+                'payment_id' => $payment->id, // Use actual payment ID for polling
             ]);
         } catch (\Exception $e) {
             \Log::error('STK Push exception', [
