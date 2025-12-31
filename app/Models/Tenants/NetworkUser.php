@@ -220,9 +220,15 @@ class NetworkUser extends Model
     }
     public static function generateUsername(): string
     {
-        $tenant = app(Tenant::class);
-        $prefix = $tenant && !empty($tenant->business_name)
-            ? strtoupper(substr(preg_replace('/\s+/', '', $tenant->business_name), 0, 1))
+        try {
+            $tenant = app(Tenant::class);
+            $businessName = $tenant->business_name ?? null;
+        } catch (\Exception $e) {
+            $businessName = null;
+        }
+
+        $prefix = !empty($businessName)
+            ? strtoupper(substr(preg_replace('/\s+/', '', $businessName), 0, 1))
             : 'U';
 
         // Avoid confusing letters for prefix if possible, but strict requirement is first letter.
