@@ -188,7 +188,7 @@ function submit() {
                                 Phone: props.user.phone ?? '—',
                                 Location: props.user.location ?? '—',
                                 'User Type': props.user.type,
-                                'Package ID': props.user.package_id ?? '—',
+                                'Package Name': props.user.package ? props.user.package.name : '—',
                                 'Expires At': props.user.expires_at
                                     ? new Date(
                                           props.user.expires_at,
@@ -203,7 +203,7 @@ function submit() {
                                 >{{ label }}</span
                             >
                             <span
-                                class="mt-1 text-sm font-medium capitalize text-gray-900 dark:text-gray-100"
+                                class="mt-1 text-sm font-medium text-gray-900 dark:text-gray-100"
                             >
                                 {{ value }}
                             </span>

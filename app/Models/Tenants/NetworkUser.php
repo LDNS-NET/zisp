@@ -57,6 +57,30 @@ class NetworkUser extends Model
         return $this->belongsTo(TenantHotspot::class, 'hotspot_package_id');
     }
 
+    public static function generateHotspotUsername($tenantId)
+    {
+        $tenant = \App\Models\Tenant::find($tenantId);
+        $prefix = $tenant ? strtoupper(substr($tenant->name, 0, 1)) : 'H';
+        
+        // Find the last user for this tenant with a username starting with the prefix
+        $lastUser = self::withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->where('type', 'hotspot')
+            ->where('username', 'LIKE', $prefix . '%')
+            ->orderBy('id', 'desc')
+            ->first();
+
+        $nextNumber = 1;
+        if ($lastUser) {
+            // Extract the number from the last username (e.g., L001 -> 1)
+            $lastNumber = (int) substr($lastUser->username, 1);
+            $nextNumber = $lastNumber + 1;
+        }
+
+        // Format with leading zeros (e.g., L001)
+        return $prefix . str_pad((string)$nextNumber, 3, '0', STR_PAD_LEFT);
+    }
+
     protected static function booted()
     {
         /** Apply tenant scope */
