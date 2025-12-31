@@ -14,22 +14,23 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
-use Stancl\Tenancy\Concerns\TenantAwareJob;
 
 class CheckMpesaPaymentStatusJob implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels, TenantAwareJob;
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     protected $payment;
+    protected $tenantId;
     protected $maxAttempts = 10; // Check up to 10 times
     protected $retryDelay = 30; // 30 seconds between checks
 
     /**
      * Create a new job instance.
      */
-    public function __construct(TenantPayment $payment)
+    public function __construct(TenantPayment $payment, $tenantId)
     {
         $this->payment = $payment;
+        $this->tenantId = $tenantId;
     }
 
     /**
@@ -37,6 +38,11 @@ class CheckMpesaPaymentStatusJob implements ShouldQueue
      */
     public function handle(MpesaService $mpesaService): void
     {
+        // Manually initialize tenancy if not already initialized
+        if (!tenancy()->initialized && $this->tenantId) {
+            tenancy()->initialize($this->tenantId);
+        }
+
         try {
             // Skip if payment is already processed
             if ($this->payment->status === 'paid') {

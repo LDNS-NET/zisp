@@ -318,7 +318,7 @@ class TenantPaymentController extends Controller
             ]);
 
             // Dispatch job to check payment status (using payment model)
-            \App\Jobs\CheckMpesaPaymentStatusJob::dispatch($payment)
+            \App\Jobs\CheckMpesaPaymentStatusJob::dispatch($payment, tenant()->id)
                 ->delay(now()->addSeconds(30));
 
             return response()->json([

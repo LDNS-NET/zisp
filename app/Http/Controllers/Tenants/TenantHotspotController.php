@@ -166,8 +166,9 @@ class TenantHotspotController extends Controller
                 'checkout_request_id' => $payment->checkout_request_id,
             ]);
 
-            // Queue job to check payment status (using payment ID)
-            \App\Jobs\CheckMpesaPaymentStatusJob::dispatch($payment)->delay(now()->addSeconds(30));
+            // Dispatch job to check payment status (using payment model)
+            \App\Jobs\CheckMpesaPaymentStatusJob::dispatch($payment, $tenant->id)
+                ->delay(now()->addSeconds(30));
 
             return response()->json([
                 'success' => true,
