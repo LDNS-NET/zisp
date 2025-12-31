@@ -134,7 +134,10 @@ class CheckMpesaPaymentStatusJob implements ShouldQueue
     {
         try {
             if ($this->payment->hotspot_package_id) {
-                $package = TenantHotspot::find($this->payment->hotspot_package_id);
+                $package = TenantHotspot::withoutGlobalScopes()
+                    ->where('id', $this->payment->hotspot_package_id)
+                    ->where('tenant_id', $this->payment->tenant_id)
+                    ->first();
             } else {
                 $package = Package::find($this->payment->package_id);
             }
@@ -145,7 +148,9 @@ class CheckMpesaPaymentStatusJob implements ShouldQueue
             }
             
             // Check if user already exists
-            $existingUser = NetworkUser::where('phone', $this->payment->phone)
+            $existingUser = NetworkUser::withoutGlobalScopes()
+                ->where('tenant_id', $this->payment->tenant_id)
+                ->where('phone', $this->payment->phone)
                 ->where('type', 'hotspot')
                 ->first();
                 
@@ -231,7 +236,7 @@ class CheckMpesaPaymentStatusJob implements ShouldQueue
     {
         do {
             $accountNumber = 'NU' . mt_rand(1000000000, 9999999999);
-        } while (NetworkUser::where('account_number', $accountNumber)->exists());
+        } while (NetworkUser::withoutGlobalScopes()->where('account_number', $accountNumber)->exists());
         return $accountNumber;
     }
 }

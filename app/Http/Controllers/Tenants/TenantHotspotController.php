@@ -288,9 +288,12 @@ class TenantHotspotController extends Controller
                 return response()->json(['ResultCode' => 1, 'ResultDesc' => 'Missing CheckoutRequestID']);
             }
 
-            // Find payment by CheckoutRequestID
-            $payment = TenantPayment::where('checkout_request_id', $checkoutRequestId)
-                ->orWhere('intasend_reference', $checkoutRequestId) // Fallback for older records
+            // Find payment by CheckoutRequestID (bypass global scope for callback)
+            $payment = TenantPayment::withoutGlobalScopes()
+                ->where(function($q) use ($checkoutRequestId) {
+                    $q->where('checkout_request_id', $checkoutRequestId)
+                      ->orWhere('intasend_reference', $checkoutRequestId);
+                })
                 ->orderByDesc('id')
                 ->first();
 
@@ -319,7 +322,7 @@ class TenantHotspotController extends Controller
                 $payment->paid_at = now();
                 $payment->save();
 
-                $package = $this->findTenantPackage($payment->hotspot_package_id);
+                $package = $this->findTenantPackage($payment->hotspot_package_id, $payment->tenant_id);
                 $this->handleSuccessfulPayment($payment, $package);
 
                 return response()->json(['ResultCode' => 0, 'ResultDesc' => 'Success']);
@@ -355,8 +358,10 @@ class TenantHotspotController extends Controller
     private function handleSuccessfulPayment(TenantPayment $payment,  TenantHotspot $package)
     {
         try {
-            // Check if user already exists for this phone number
-            $existingUser = NetworkUser::where('phone', $payment->phone)
+            // Check if user already exists for this phone number (bypass global scope for callback)
+            $existingUser = NetworkUser::withoutGlobalScopes()
+                ->where('tenant_id', $payment->tenant_id)
+                ->where('phone', $payment->phone)
                 ->where('type', 'hotspot')
                 ->first();
 
@@ -449,7 +454,7 @@ class TenantHotspotController extends Controller
     {
         do {
             $accountNumber = 'NU' . mt_rand(1000000000, 9999999999);
-        } while (NetworkUser::where('account_number', $accountNumber)->exists());
+        } while (NetworkUser::withoutGlobalScopes()->where('account_number', $accountNumber)->exists());
 
         return $accountNumber;
     }
@@ -468,15 +473,17 @@ class TenantHotspotController extends Controller
         return null;
     }
 
-    private function findTenantPackage(int $id): TenantHotspot
+    private function findTenantPackage(int $id, $tenantId = null): TenantHotspot
     {
-        $host = request()->getHost();
-        $subdomain = explode('.', $host)[0];
-
-        $tenant = Tenant::where('subdomain', $subdomain)->firstOrFail();
+        if (!$tenantId) {
+            $host = request()->getHost();
+            $subdomain = explode('.', $host)[0];
+            $tenant = Tenant::where('subdomain', $subdomain)->firstOrFail();
+            $tenantId = $tenant->id;
+        }
 
         return TenantHotspot::where('id', $id)
-            ->where('tenant_id', $tenant->id)
+            ->where('tenant_id', $tenantId)
             ->firstOrFail();
     }
 

@@ -138,7 +138,10 @@ class CheckIntaSendPaymentStatusJob implements ShouldQueue
     {
         try {
             if ($this->payment->hotspot_package_id) {
-                $package = TenantHotspot::find($this->payment->hotspot_package_id);
+                $package = TenantHotspot::withoutGlobalScopes()
+                    ->where('id', $this->payment->hotspot_package_id)
+                    ->where('tenant_id', $this->payment->tenant_id)
+                    ->first();
             } else {
                 $package = Package::find($this->payment->package_id);
             }
@@ -149,7 +152,9 @@ class CheckIntaSendPaymentStatusJob implements ShouldQueue
             }
             
             // Check if user already exists
-            $existingUser = NetworkUser::where('phone', $this->payment->phone)
+            $existingUser = NetworkUser::withoutGlobalScopes()
+                ->where('tenant_id', $this->payment->tenant_id)
+                ->where('phone', $this->payment->phone)
                 ->where('type', 'hotspot')
                 ->first();
                 
@@ -183,13 +188,14 @@ class CheckIntaSendPaymentStatusJob implements ShouldQueue
             $user = NetworkUser::create([
                 'account_number' => $this->generateAccountNumber(),
                 'username' => $username,
-                'password' => bcrypt($plainPassword),
+                'password' => $plainPassword,
                 'phone' => $this->payment->phone,
                 'type' => 'hotspot',
                 'package_id' => $this->payment->package_id,
                 'hotspot_package_id' => $this->payment->hotspot_package_id,
                 'expires_at' => $this->calculateExpiry($package),
                 'registered_at' => now(),
+                'tenant_id' => $this->payment->tenant_id,
             ]);
             
             Log::info('Created new hotspot user after payment', [
@@ -234,7 +240,7 @@ class CheckIntaSendPaymentStatusJob implements ShouldQueue
     {
         do {
             $accountNumber = 'NU' . mt_rand(1000000000, 9999999999);
-        } while (NetworkUser::where('account_number', $accountNumber)->exists());
+        } while (NetworkUser::withoutGlobalScopes()->where('account_number', $accountNumber)->exists());
         return $accountNumber;
     }
 }
