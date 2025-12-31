@@ -110,8 +110,9 @@ class CheckIntaSendPaymentStatus implements ShouldQueue
 
             if (in_array($status, ['PAID', 'SUCCESS', 'COMPLETED', 'COMPLETE'])) {
                 $payment->status = 'paid';
+                $payment->checked = true;
                 $payment->paid_at = $payment->paid_at ?? now();
-                $payment->transaction_id = $resp['invoice']['mpesa_reference'] ?? $resp['data']['transaction_id'] ?? $payment->transaction_id;
+                $payment->transaction_id = $resp['invoice']['mpesa_reference'] ?? $resp['data']['transaction_id'] ?? $resp['id'] ?? $payment->transaction_id;
                 $payment->response = array_merge($payment->response ?? [], $resp);
                 $payment->save();
                 return;

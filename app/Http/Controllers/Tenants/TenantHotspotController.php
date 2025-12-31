@@ -210,6 +210,8 @@ class TenantHotspotController extends Controller
                  \Log::info('Payment confirmed via polling', ['payment_id' => $payment->id]);
                 
                  $payment->status = 'paid';
+                 $payment->checked = true;
+                 $payment->transaction_id = $statusData['id'] ?? $statusData['transaction_id'] ?? $payment->transaction_id;
                  $payment->response = array_merge($payment->response ?? [], $statusData);
                  $payment->paid_at = now();
                  $payment->save();
@@ -340,6 +342,8 @@ class TenantHotspotController extends Controller
                 ]);
 
                 $payment->status = 'paid';
+                $payment->checked = true;
+                $payment->transaction_id = $statusData['id'] ?? $statusData['transaction_id'] ?? $payment->transaction_id;
                 $payment->response = array_merge($payment->response ?? [], $statusData);
                 $payment->paid_at = now();
                 $payment->save();

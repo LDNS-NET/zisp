@@ -63,6 +63,8 @@ class CheckIntaSendPaymentStatusJob implements ShouldQueue
             if ($statusResponse->successful() && isset($statusData['status']) && ($statusData['status'] === 'PAID' || $statusData['status'] === 'COMPLETE')) {
                 // Mark payment as paid
                 $this->payment->status = 'paid';
+                $this->payment->checked = true;
+                $this->payment->transaction_id = $statusData['id'] ?? $statusData['transaction_id'] ?? $this->payment->transaction_id;
                 $this->payment->response = array_merge($this->payment->response ?? [], $statusData);
                 $this->payment->paid_at = now();
                 $this->payment->save();
