@@ -298,19 +298,23 @@ class TenantPaymentController extends Controller
                 'package_id' => $data['package_id'],
                 'hotspot_package_id' => null,
                 'amount' => $data['amount'],
+                'currency' => 'KES',
+                'payment_method' => 'mpesa',
                 'receipt_number' => $receiptNumber,
                 'status' => 'pending',
                 'checked' => false,
                 'disbursement_type' => 'pending',
-                'intasend_reference' => $mpesaResponse['checkout_request_id'] ?? null, // Reuse field for CheckoutRequestID
-                'intasend_checkout_id' => $mpesaResponse['merchant_request_id'] ?? null, // Reuse field for MerchantRequestID
+                'checkout_request_id' => $mpesaResponse['checkout_request_id'] ?? null,
+                'merchant_request_id' => $mpesaResponse['merchant_request_id'] ?? null,
+                'intasend_reference' => null, // Legacy field, keeping null
+                'intasend_checkout_id' => null, // Legacy field, keeping null
                 'response' => $mpesaResponse['response'] ?? [],
             ]);
 
             \Log::info('Payment record created', [
                 'payment_id' => $payment->id,
                 'receipt_number' => $receiptNumber,
-                'checkout_request_id' => $payment->intasend_reference,
+                'checkout_request_id' => $payment->checkout_request_id,
             ]);
 
             // Dispatch job to check payment status (using payment model)

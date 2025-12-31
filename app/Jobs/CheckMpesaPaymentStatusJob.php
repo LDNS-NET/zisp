@@ -44,8 +44,8 @@ class CheckMpesaPaymentStatusJob implements ShouldQueue
             }
 
             // Check payment status with M-Pesa
-            // We use the CheckoutRequestID which is stored in intasend_reference
-            $checkoutRequestId = $this->payment->intasend_reference;
+            // We use the CheckoutRequestID which is stored in checkout_request_id (or fallback to intasend_reference)
+            $checkoutRequestId = $this->payment->checkout_request_id ?? $this->payment->intasend_reference;
 
             if (!$checkoutRequestId) {
                 Log::warning('Payment missing CheckoutRequestID, cannot check status', ['payment_id' => $this->payment->id]);
@@ -68,6 +68,8 @@ class CheckMpesaPaymentStatusJob implements ShouldQueue
                 // Mark payment as paid
                 $this->payment->status = 'paid';
                 $this->payment->checked = true;
+                $this->payment->result_code = $response['result_code'];
+                $this->payment->result_desc = $response['result_desc'];
                 // Try to get receipt number from result desc or raw response if available
                 // Note: Query response might not always have the receipt number if it's just a status check
                 // But usually ResultDesc contains it or we get it from callback
@@ -85,6 +87,8 @@ class CheckMpesaPaymentStatusJob implements ShouldQueue
             } elseif ($response['success'] && in_array($response['status'], ['failed', 'cancelled'])) {
                 // Mark payment as failed
                 $this->payment->status = 'failed';
+                $this->payment->result_code = $response['result_code'];
+                $this->payment->result_desc = $response['result_desc'];
                 $this->payment->response = array_merge($this->payment->response ?? [], $response['response']);
                 $this->payment->save();
 

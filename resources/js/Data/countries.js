@@ -7,16 +7,17 @@ export const countries = [
     dial_code: "+254",
     pppoePricePerMonth: 18,
     hotspotPricePerMonth: "3%",
-  
+    payment_methods: ["mpesa", "airtel_money", "equitel"],
   },
-  {name: "Somalia",
+  {
+    name: "Somalia",
     code: "SO",
     currency: "SOS",
     currency_name: "Somali Shilling",
     dial_code: "+252",
     pppoePricePerMonth: 88,
     hotspotPricePerMonth: "3%",
-
+    payment_methods: ["hormuud_evc_plus", "zaad"],
   },
   {
     name: "South Sudan",
@@ -26,6 +27,7 @@ export const countries = [
     dial_code: "+211",
     pppoePricePerMonth: 680,
     hotspotPricePerMonth: "3%",
+    payment_methods: ["momo"], // MTN MoMo is common
   },
   {
     name: "Uganda",
@@ -35,6 +37,7 @@ export const countries = [
     dial_code: "+256",
     pppoePricePerMonth: 530,
     hotspotPricePerMonth: "3%",
+    payment_methods: ["momo", "airtel_money"],
   },
   {
     name: "Tanzania",
@@ -44,8 +47,9 @@ export const countries = [
     dial_code: "+255",
     pppoePricePerMonth: 350,
     hotspotPricePerMonth: "3%",
+    payment_methods: ["mpesa", "tigo_pesa", "airtel_money", "halopesa"],
   },
-  /*{
+  {
     name: "Nigeria",
     code: "NG",
     currency: "NGN",
@@ -53,6 +57,7 @@ export const countries = [
     dial_code: "+234",
     pppoePricePerMonth: 220,
     hotspotPricePerMonth: "3%",
+    payment_methods: ["paystack", "flutterwave"],
   },
   {
     name: "Ghana",
@@ -62,6 +67,7 @@ export const countries = [
     dial_code: "+233",
     pppoePricePerMonth: 2,
     hotspotPricePerMonth: "3%",
+    payment_methods: ["momo", "vodafone_cash"],
   },
   {
     name: "Rwanda",
@@ -71,6 +77,7 @@ export const countries = [
     dial_code: "+250",
     pppoePricePerMonth: 220,
     hotspotPricePerMonth: "3%",
+    payment_methods: ["momo", "orange_money"],
   },
   {
     name: "Ethiopia",
@@ -80,6 +87,7 @@ export const countries = [
     dial_code: "+251",
     pppoePricePerMonth: 23,
     hotspotPricePerMonth: "3%",
+    payment_methods: ["telebirr", "cbe_birr"],
   },
   {
     name: "Egypt",
@@ -89,6 +97,7 @@ export const countries = [
     dial_code: "+20",
     pppoePricePerMonth: 23,
     hotspotPricePerMonth: "3%",
+    payment_methods: ["vodafone_cash", "fawry"],
   },
   {
     name: "South Africa",
@@ -98,6 +107,56 @@ export const countries = [
     dial_code: "+27",
     pppoePricePerMonth: 120,
     hotspotPricePerMonth: "3%",
+    payment_methods: ["paystack", "flutterwave"],
   },
-  */
+  {
+    name: "Zimbabwe",
+    code: "ZW",
+    currency: "ZWL",
+    currency_name: "Zimbabwean Dollar",
+    dial_code: "+263",
+    pppoePricePerMonth: 15,
+    hotspotPricePerMonth: "3%",
+    payment_methods: ["ecocash"],
+  },
+  {
+    name: "Senegal",
+    code: "SN",
+    currency: "XOF",
+    currency_name: "West African CFA franc",
+    dial_code: "+221",
+    pppoePricePerMonth: 10,
+    hotspotPricePerMonth: "3%",
+    payment_methods: ["wave", "orange_money"],
+  },
+  {
+    name: "DRC Congo",
+    code: "CD",
+    currency: "CDF",
+    currency_name: "Congolese Franc",
+    dial_code: "+243",
+    pppoePricePerMonth: 20,
+    hotspotPricePerMonth: "3%",
+    payment_methods: ["airtel_money", "orange_money"],
+  },
+  {
+    name: "Cameroon",
+    code: "CM",
+    currency: "XAF",
+    currency_name: "Central African CFA franc",
+    dial_code: "+237",
+    pppoePricePerMonth: 12,
+    hotspotPricePerMonth: "3%",
+    payment_methods: ["momo", "orange_money"],
+  },
+  {
+    name: "Zambia",
+    code: "ZM",
+    currency: "ZMW",
+    currency_name: "Zambian Kwacha",
+    dial_code: "+260",
+    pppoePricePerMonth: 15,
+    hotspotPricePerMonth: "3%",
+    payment_methods: ["momo", "airtel_money"],
+  },
 ];

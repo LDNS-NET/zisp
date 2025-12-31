@@ -135,19 +135,23 @@ class TenantHotspotController extends Controller
                 'hotspot_package_id' => $package->id,
                 'package_id' => null,
                 'amount' => $amount,
+                'currency' => 'KES',
+                'payment_method' => 'mpesa',
                 'receipt_number' => $reference,
                 'status' => 'pending',
                 'checked' => false,
                 'disbursement_type' => 'pending',
-                'intasend_reference' => $mpesaResponse['checkout_request_id'] ?? null, // Reuse field for CheckoutRequestID
-                'intasend_checkout_id' => $mpesaResponse['merchant_request_id'] ?? null, // Reuse field for MerchantRequestID
+                'checkout_request_id' => $mpesaResponse['checkout_request_id'] ?? null,
+                'merchant_request_id' => $mpesaResponse['merchant_request_id'] ?? null,
+                'intasend_reference' => null, // Legacy field, keeping null
+                'intasend_checkout_id' => null, // Legacy field, keeping null
                 'response' => $mpesaResponse['response'] ?? [],
             ]);
 
             \Log::info('Payment record created', [
                 'payment_id' => $payment->id,
                 'reference' => $reference,
-                'checkout_request_id' => $payment->intasend_reference,
+                'checkout_request_id' => $payment->checkout_request_id,
             ]);
 
             // Queue job to check payment status (using payment ID)
@@ -181,6 +185,7 @@ class TenantHotspotController extends Controller
 
             // Find the payment record
             $payment = TenantPayment::where('id', $identifier)
+                ->orWhere('checkout_request_id', $identifier)
                 ->orWhere('intasend_reference', $identifier)
                 ->orWhere('receipt_number', $identifier)
                 ->orderByDesc('id')
@@ -273,8 +278,9 @@ class TenantHotspotController extends Controller
                 return response()->json(['ResultCode' => 1, 'ResultDesc' => 'Missing CheckoutRequestID']);
             }
 
-            // Find payment by CheckoutRequestID (stored in intasend_reference field)
-            $payment = TenantPayment::where('intasend_reference', $checkoutRequestId)
+            // Find payment by CheckoutRequestID
+            $payment = TenantPayment::where('checkout_request_id', $checkoutRequestId)
+                ->orWhere('intasend_reference', $checkoutRequestId) // Fallback for older records
                 ->orderByDesc('id')
                 ->first();
 
@@ -295,7 +301,10 @@ class TenantHotspotController extends Controller
 
                 $payment->status = 'paid';
                 $payment->checked = true;
-                $payment->transaction_id = $callbackData['mpesa_receipt_number'];
+                $payment->transaction_id = $callbackData['mpesa_receipt_number']; // Keep filling this for compatibility
+                $payment->mpesa_receipt_number = $callbackData['mpesa_receipt_number'];
+                $payment->result_code = $callbackData['result_code'];
+                $payment->result_desc = $callbackData['result_desc'];
                 $payment->response = array_merge($payment->response ?? [], $callbackData['raw_data']);
                 $payment->paid_at = now();
                 $payment->save();
@@ -309,6 +318,8 @@ class TenantHotspotController extends Controller
             // Handle failure/cancellation
             if (in_array($status, ['failed', 'cancelled'])) {
                 $payment->status = $status;
+                $payment->result_code = $callbackData['result_code'];
+                $payment->result_desc = $callbackData['result_desc'];
                 $payment->response = array_merge($payment->response ?? [], $callbackData['raw_data']);
                 $payment->save();
 
