@@ -130,8 +130,15 @@ class TenantHotspotController extends Controller
             }
 
             // Find tenant admin to assign as creator
-            // Assuming the first user is the admin/owner
-            $adminUser = \App\Models\User::first();
+            $adminId = 1; // Default fallback
+            try {
+                $adminUser = \App\Models\User::first();
+                if ($adminUser) {
+                    $adminId = $adminUser->id;
+                }
+            } catch (\Exception $e) {
+                \Log::warning('Could not find admin user for payment creation', ['error' => $e->getMessage()]);
+            }
 
             // Create payment record immediately with pending status
             $payment = TenantPayment::create([
@@ -145,7 +152,7 @@ class TenantHotspotController extends Controller
                 'status' => 'pending',
                 'checked' => false,
                 'disbursement_type' => 'pending',
-                'created_by' => $adminUser ? $adminUser->id : 1, // Default to 1 if no user found
+                'created_by' => $adminId,
                 'checkout_request_id' => $mpesaResponse['checkout_request_id'] ?? null,
                 'merchant_request_id' => $mpesaResponse['merchant_request_id'] ?? null,
                 'intasend_reference' => null, // Legacy field, keeping null
