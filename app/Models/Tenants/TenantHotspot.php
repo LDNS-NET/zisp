@@ -10,6 +10,7 @@ class TenantHotspot extends Model
 
     protected $fillable = [
         'tenant_id',
+        'package_id',
         'name',
         'duration_value',
         'duration_unit',
@@ -21,6 +22,11 @@ class TenantHotspot extends Model
         'created_by',
         //'domain',
     ];
+
+    public function package()
+    {
+        return $this->belongsTo(\App\Models\Package::class, 'package_id');
+    }
 
     protected $casts = [
         'duration_value' => 'integer',

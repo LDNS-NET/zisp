@@ -85,10 +85,40 @@ class PackageController extends Controller
     public function update(Request $request, Package $package)
     {
         $validated = $this->validatePackage($request, $package->id);
-        $package->update($validated);
 
-        return redirect()->route('packages.index')
-            ->with('success', 'Package updated successfully.');
+        try {
+            DB::transaction(function () use ($validated, $package) {
+                $oldType = $package->type;
+                $package->update($validated);
+
+                // Sync with TenantHotspot if type is hotspot or was hotspot
+                if ($package->type === 'hotspot') {
+                    TenantHotspot::updateOrCreate(
+                        ['package_id' => $package->id],
+                        [
+                            'tenant_id'       => $package->tenant_id,
+                            'name'            => $package->name,
+                            'duration_value'  => $package->duration_value,
+                            'duration_unit'   => $package->duration_unit,
+                            'price'           => $package->price,
+                            'device_limit'    => $package->device_limit,
+                            'upload_speed'    => $package->upload_speed,
+                            'download_speed'  => $package->download_speed,
+                            'burst_limit'     => $package->burst_limit,
+                        ]
+                    );
+                } elseif ($oldType === 'hotspot') {
+                    // Type changed from hotspot to something else, remove hotspot entry
+                    TenantHotspot::where('package_id', $package->id)->delete();
+                }
+            });
+
+            return redirect()->route('packages.index')
+                ->with('success', 'Package updated successfully.');
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error("Failed to update package: {$e->getMessage()}");
+            return redirect()->back()->with('error', 'Failed to update package. ' . $e->getMessage());
+        }
     }
 
     /**
@@ -96,10 +126,20 @@ class PackageController extends Controller
      */
     public function destroy(Package $package)
     {
-        $package->delete();
+        try {
+            DB::transaction(function () use ($package) {
+                // If hotspot, the foreign key onDelete('cascade') will handle TenantHotspot deletion,
+                // but let's be explicit if needed or let the DB handle it.
+                // Since I added onDelete('cascade') in the migration, it's covered.
+                $package->delete();
+            });
 
-        return redirect()->route('packages.index')
-            ->with('success', 'Package deleted successfully.');
+            return redirect()->route('packages.index')
+                ->with('success', 'Package deleted successfully.');
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error("Failed to delete package: {$e->getMessage()}");
+            return redirect()->back()->with('error', 'Failed to delete package.');
+        }
     }
 
     /**
@@ -112,9 +152,16 @@ class PackageController extends Controller
             'ids.*' => 'integer|exists:packages,id',
         ]);
 
-        Package::whereIn('id', $request->ids)->delete();
+        try {
+            DB::transaction(function () use ($request) {
+                Package::whereIn('id', $request->ids)->delete();
+            });
 
-        return back()->with('success', 'Selected packages deleted successfully.');
+            return back()->with('success', 'Selected packages deleted successfully.');
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error("Failed to bulk delete packages: {$e->getMessage()}");
+            return back()->with('error', 'Failed to delete selected packages.');
+        }
     }
 
     /**
