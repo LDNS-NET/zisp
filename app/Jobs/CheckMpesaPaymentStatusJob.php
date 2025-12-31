@@ -14,10 +14,11 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Stancl\Tenancy\Concerns\TenantAwareJob;
 
 class CheckMpesaPaymentStatusJob implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels, TenantAwareJob;
 
     protected $payment;
     protected $maxAttempts = 10; // Check up to 10 times
