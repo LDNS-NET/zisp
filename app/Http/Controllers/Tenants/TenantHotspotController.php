@@ -170,6 +170,65 @@ class TenantHotspotController extends Controller
         }
     }
 
+    /**
+     * Check payment status on demand.
+     */
+    public function checkPaymentStatus(TenantPayment $payment)
+    {
+        try {
+            if ($payment->status === 'paid') {
+                \Log::info('Payment already paid (on check)', ['payment_id' => $payment->id]);
+                 // If paid, we need to return the user info.
+                 // We can reuse logic or just return success if the frontend handles the rest (e.g. via a separate call or just showing success)
+                 // But better to return the user credentials if available.
+                 
+                 $user = NetworkUser::where('phone', $payment->phone)->where('type', 'hotspot')->first();
+                 if ($user) {
+                     return response()->json([
+                        'success' => true,
+                         'status' => 'paid',
+                         'user' => [
+                            'username' => $user->username,
+                            'expires_at' => $user->expires_at->toDateTimeString(),
+                         ]
+                     ]);
+                 }
+                return response()->json(['success' => true, 'status' => 'paid']);
+            }
+
+            // Check with IntaSend
+            $statusResponse = Http::withHeaders([
+                'Authorization' => 'Bearer ' . env('INTASEND_SECRET_KEY'),
+                'Content-Type' => 'application/json',
+            ])->get('https://payment.intasend.com/api/v1/payment/mpesa/transaction-status/', [
+                'invoice' => $payment->intasend_reference,
+            ]);
+
+            $statusData = $statusResponse->json();
+            
+            if ($statusResponse->successful() && isset($statusData['status']) && $statusData['status'] === 'PAID') {
+                 \Log::info('Payment confirmed via polling', ['payment_id' => $payment->id]);
+                
+                 $payment->status = 'paid';
+                 $payment->response = array_merge($payment->response ?? [], $statusData);
+                 $payment->paid_at = now();
+                 $payment->save();
+
+                 $package = $this->findTenantPackage($payment->hotspot_package_id);
+                 return $this->handleSuccessfulPayment($payment, $package);
+            }
+
+            return response()->json([
+                'success' => true, 
+                'status' => $payment->status
+            ]);
+
+        } catch (\Exception $e) {
+             \Log::error('Check status exception', ['error' => $e->getMessage()]);
+            return response()->json(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
 
 
     /**

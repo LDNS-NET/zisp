@@ -70,6 +70,7 @@ function closeModal() {
     userCredentials.value = null;
     isCheckingPayment.value = false;
     paymentAttempts.value = 0;
+    currentPaymentId.value = null;
 }
 
 async function authenticateMember() {
@@ -208,27 +209,36 @@ function showToast(message, type = 'info') {
 }
 
 // ... Payment Logic ...
+const currentPaymentId = ref(null);
+
 async function checkPaymentStatus() {
-    if (!selectedHotspot.value || !phoneNumber.value) return;
+    if (!currentPaymentId.value) return;
+    
     isCheckingPayment.value = true;
     try {
-        const response = await fetch('/hotspot/callback', {
-            method: 'POST',
+        const response = await fetch(`/hotspot/payment-status/${currentPaymentId.value}`, {
+            method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-            },
-            body: JSON.stringify({ phone: phoneNumber.value, hotspot_package_id: selectedHotspot.value.id })
+                // 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') // GET request doesn't need CSRF token usually, but good to keep if headers are standard
+            }
         });
         const data = await response.json();
-        if (data.success && data.user) {
+        
+        if (data.success && data.status === 'paid' && data.user) {
             userCredentials.value = data.user;
-            paymentMessage.value = data.message;
+            paymentMessage.value = 'Payment confirmed! Credentials generated.';
             paymentError.value = '';
+            showToast('Payment confirmed!', 'success');
             if (pollingInterval.value) { clearInterval(pollingInterval.value); pollingInterval.value = null; }
-            setTimeout(() => { closeModal(); }, 10000);
         } else {
-            paymentError.value = data.message || 'Payment not confirmed yet.';
+             if (data.status === 'paid' && !data.user) {
+                  // Paid but no user yet? Retry one more time or show meaningful error
+                   paymentMessage.value = 'Payment confirmed. Generating user...';
+             } else {
+                 // Still pending or failed
+                 paymentMessage.value = 'Payment not yet confirmed. Please wait...';
+             }
         }
     } catch (error) {
         paymentError.value = 'Failed to check payment status.';
@@ -240,31 +250,41 @@ async function checkPaymentStatus() {
 function startPaymentPolling() {
     paymentAttempts.value = 0;
     if (pollingInterval.value) clearInterval(pollingInterval.value);
+    
+    // Initial check immediately
+    // checkPaymentStatus(); // Optional: might be too soon
+
     pollingInterval.value = setInterval(async () => {
         paymentAttempts.value++;
         if (paymentAttempts.value >= maxPollingAttempts) {
             if (pollingInterval.value) clearInterval(pollingInterval.value);
-            paymentError.value = 'Timeout. Click "Check Payment Status" to try again.';
+            // Don't show error, just stop auto-polling. User can click "Check Status"
             return;
         }
+        
+        if (!currentPaymentId.value) return;
+
         try {
-            const response = await fetch('/hotspot/callback', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
-                body: JSON.stringify({ phone: phoneNumber.value, hotspot_package_id: selectedHotspot.value.id })
+            const response = await fetch(`/hotspot/payment-status/${currentPaymentId.value}`, {
+                 method: 'GET',
+                 headers: { 'Content-Type': 'application/json' }
             });
             const data = await response.json();
-            if (data.success && data.user) {
+            
+            if (data.success && data.status === 'paid' && data.user) {
                 userCredentials.value = data.user;
-                paymentMessage.value = data.message;
+                paymentMessage.value = 'Payment confirmed! Credentials generated.';
                 paymentError.value = '';
+                 showToast('Payment confirmed!', 'success');
                 if (pollingInterval.value) clearInterval(pollingInterval.value);
-                setTimeout(() => { closeModal(); }, 10000);
             } else {
-                if (!userCredentials.value) paymentMessage.value = `Checking payment... (${paymentAttempts.value}/${maxPollingAttempts})`;
+                 // Update status message optionally
+                 if (data.status === 'pending') {
+                     // paymentMessage.value = 'Waiting for payment confirmation...';
+                 }
             }
         } catch (error) {}
-    }, 30000);
+    }, 5000); // Poll every 5 seconds
 }
 
 async function processPayment() {
@@ -284,7 +304,10 @@ async function processPayment() {
             const data = await response.json();
             if (data.success) {
                 paymentMessage.value = data.message;
-                startPaymentPolling();
+                if (data.payment_id) {
+                    currentPaymentId.value = data.payment_id;
+                    startPaymentPolling();
+                }
                 showToast('STK Push sent!', 'success');
             } else {
                 paymentError.value = data.message;
