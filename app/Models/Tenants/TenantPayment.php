@@ -67,6 +67,7 @@ class TenantPayment extends Model
         "vodafone_cash_transaction_id",
         "fawry_reference",
         "fawry_transaction_id",
+        "tenant_id",
     ];
   protected $casts = [
         'checked' => 'boolean',
@@ -78,10 +79,18 @@ class TenantPayment extends Model
         return $this->belongsTo(NetworkUser::class, 'user_id');
     }
 
+    public function tenant()
+    {
+        return $this->belongsTo(\App\Models\Tenant::class, 'tenant_id');
+    }
+
 
     protected static function booted()
     {
-        // Global scope removed to fix hotspot payment visibility.
-        // Data separation is handled by multi-tenant databases.
+        static::addGlobalScope('tenant', function ($query) {
+            if (tenant()) {
+                $query->where('tenant_id', tenant()->id);
+            }
+        });
     }
 }

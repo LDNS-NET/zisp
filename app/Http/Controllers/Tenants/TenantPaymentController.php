@@ -134,6 +134,7 @@ class TenantPaymentController extends Controller
             $data['created_by'] = auth()->id();
         }
 
+        $data['tenant_id'] = tenant('id');
         $payment = TenantPayment::create($data);
 
         // 🔥 Load tenant router config from DB, not strings
@@ -309,6 +310,7 @@ class TenantPaymentController extends Controller
                 'intasend_reference' => null, // Legacy field, keeping null
                 'intasend_checkout_id' => null, // Legacy field, keeping null
                 'response' => $mpesaResponse['response'] ?? [],
+                'tenant_id' => $request->tenant_id ?? tenant('id'),
             ]);
 
             \Log::info('Payment record created', [

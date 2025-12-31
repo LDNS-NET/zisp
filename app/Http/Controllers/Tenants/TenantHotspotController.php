@@ -68,6 +68,7 @@ class TenantHotspotController extends Controller
             'phone' => $data['phone'],
             'package_id' => $package->id,
             'amount' => $package->price,
+            'tenant_id' => $package->tenant_id,
         ]);
 
         return $paymentController->processSTKPush($request);
@@ -146,6 +147,7 @@ class TenantHotspotController extends Controller
                 'intasend_reference' => null, // Legacy field, keeping null
                 'intasend_checkout_id' => null, // Legacy field, keeping null
                 'response' => $mpesaResponse['response'] ?? [],
+                'tenant_id' => $tenant->id,
             ]);
 
             \Log::info('Payment record created', [
