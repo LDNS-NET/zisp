@@ -326,7 +326,7 @@ class TenantPaymentController extends Controller
                 'message' => 'STK Push sent successfully. Please check your phone.',
                 'payment_id' => $payment->id,
                 'receipt_number' => $receiptNumber,
-                'response' => $resp,
+                'response' => $mpesaResponse,
             ]);
 
         } catch (\Exception $e) {
