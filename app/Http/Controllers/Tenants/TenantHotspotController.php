@@ -289,30 +289,26 @@ class TenantHotspotController extends Controller
             }
 
             if ($state === 'COMPLETE' || $state === 'SUCCESS' || $state === 'PAID') {
-                \Log::info('Payment confirmed via callback', ['api_ref' => $apiRef, 'state' => $state]);
+                \Log::info('Payment confirmed via callback', ['payment_id' => $payment?->id, 'api_ref' => $apiRef, 'state' => $state]);
 
-                if (!$payment) {
-                    $payment = $this->createPaymentFromApiRef($apiRef, $request->all());
-                } else {
+                if ($payment) {
                     $payment->status = 'paid';
                     $payment->checked = true;
                     $payment->transaction_id = $request->input('mpesa_reference') ?? $request->input('id') ?? $payment->transaction_id;
                     $payment->response = array_merge($payment->response ?? [], $request->all());
                     $payment->paid_at = now();
                     $payment->save();
-                }
 
-                if ($payment) {
                     $package = $this->findTenantPackage($payment->hotspot_package_id);
                     return $this->handleSuccessfulPayment($payment, $package);
+                } else {
+                    \Log::warning('Payment not found for callback', ['api_ref' => $apiRef, 'invoice_id' => $invoiceId]);
                 }
             }
 
             // Handle failure in callback
             if (in_array($state, ['FAILED', 'CANCELLED', 'REJECTED'])) {
-                if (!$payment) {
-                    $this->createPaymentFromApiRef($apiRef, $request->all(), 'failed');
-                } else {
+                if ($payment) {
                     $payment->status = 'failed';
                     $payment->response = array_merge($payment->response ?? [], $request->all());
                     $payment->save();
@@ -328,37 +324,6 @@ class TenantHotspotController extends Controller
             ]);
             return response()->json(['success' => false, 'message' => 'Error processing callback']);
         }
-    }
-
-    /**
-     * Create a payment record from encoded api_ref.
-     */
-    private function createPaymentFromApiRef($apiRef, $statusData, $status = 'paid')
-    {
-        // Format: HS|{package_id}|{phone}|{uniqid}
-        $parts = explode('|', $apiRef);
-        if (count($parts) >= 3 && $parts[0] === 'HS') {
-            $packageId = $parts[1];
-            $phone = $parts[2];
-            
-            return TenantPayment::create([
-                'phone' => $phone,
-                'hotspot_package_id' => $packageId,
-                'package_id' => null,
-                'amount' => $statusData['invoice']['amount'] ?? $statusData['amount'] ?? 0,
-                'receipt_number' => $apiRef,
-                'status' => $status,
-                'checked' => ($status === 'paid'),
-                'paid_at' => ($status === 'paid') ? now() : null,
-                'transaction_id' => $statusData['invoice']['mpesa_reference'] ?? $statusData['mpesa_reference'] ?? $statusData['id'] ?? null,
-                'intasend_reference' => $statusData['invoice']['id'] ?? $statusData['invoice_id'] ?? $statusData['id'] ?? null,
-                'intasend_checkout_id' => $statusData['invoice']['checkout_id'] ?? $statusData['checkout_id'] ?? null,
-                'response' => $statusData,
-                'created_by' => \App\Models\User::first()?->id,
-            ]);
-        }
-        
-        return null;
     }
 
     /**
