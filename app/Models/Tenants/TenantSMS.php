@@ -24,13 +24,6 @@ class TenantSMS extends Model
 
     protected static function booted()
     {
-        // Global scope to show only the current user's records
-        static::addGlobalScope('created_by', function ($query) {
-            if (Auth::check()) {
-                $query->where('created_by', Auth::id());
-            }
-        });
-
         // Automatically set created_by on create
         static::creating(function ($model) {
             if (Auth::check()) {

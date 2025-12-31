@@ -83,13 +83,6 @@ class NetworkUser extends Model
             }
         });
 
-        /** Apply created_by scope (legacy, keeping for compatibility if needed) */
-        static::addGlobalScope('created_by', function ($query) {
-            if (Auth::check()) {
-                $query->where('created_by', Auth::id());
-            }
-        });
-
         /** Fill tenant_id, created_by + generate account number */
         static::creating(function ($model) {
             if (empty($model->tenant_id)) {

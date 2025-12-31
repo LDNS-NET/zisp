@@ -31,11 +31,6 @@ class TenantActiveUsers extends Model
 
     protected static function booted()
     {
-        static::addGlobalScope('created_by', function ($query) {
-            if (auth()->check()) {
-                $query->where('created_by', Auth::id());
-            }
-        });
         static::creating(function ($model) {
             if (Auth::check() && empty($model->created_by)) {
                 $model->created_by = Auth::id();
