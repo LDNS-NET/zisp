@@ -41,7 +41,7 @@ const filterWeek = ref(0); // 0 means all weeks
 const allPayments = computed(() => props.payments.allData ?? []);
 
 // Daily
-const selectedDay = ref(today.toISOString().slice(0, 10));
+const selectedDay = ref(new Date(today.getTime() - today.getTimezoneOffset() * 60000).toISOString().slice(0, 10));
 const dailyIncome = computed(() => {
     return allPayments.value
         .filter((p) => {
