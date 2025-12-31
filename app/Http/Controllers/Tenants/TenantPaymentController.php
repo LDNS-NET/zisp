@@ -51,13 +51,13 @@ class TenantPaymentController extends Controller
             ->through(function ($payment) use ($businessName) {
                 $disb = $payment->disbursement_type ?? 'pending';
                 $checkedBool = (bool) $payment->checked;
-                $userDisplay = $payment->user_id === null ? 'Deleted User' : ($payment->user?->username ?? 'Unknown');
+                $userDisplay = $payment->user?->username ?? ($payment->user_id === null ? 'System/Manual' : 'Deleted User');
                 return [
                     'id' => $payment->id,
                     'user' => $userDisplay,
                     'user_id' => $payment->user_id,
                     'phone' => $payment->phone ?? ($payment->user?->phone ?? 'N/A'),
-                    'receipt_number' => $payment->receipt_number,
+                    'receipt_number' => $payment->mpesa_receipt_number ?: $payment->receipt_number,
                     'amount' => $payment->amount,
                     'checked' => $checkedBool,
                     'paid_at' => optional($payment->paid_at)->toDateTimeString(),
@@ -98,10 +98,10 @@ class TenantPaymentController extends Controller
                 $checkedBool = (bool) $payment->checked;
                 return [
                     'id' => $payment->id,
-                    'user' => $payment->user?->username ?? 'Unknown',
+                    'user' => $payment->user?->username ?? ($payment->user_id === null ? 'System/Manual' : 'Deleted User'),
                     'user_id' => $payment->user_id,
                     'phone' => $payment->phone ?? ($payment->user?->phone ?? 'N/A'),
-                    'receipt_number' => $payment->receipt_number,
+                    'receipt_number' => $payment->mpesa_receipt_number ?: $payment->receipt_number,
                     'amount' => $payment->amount,
                     'checked' => $checkedBool,
                     'paid_at' => optional($payment->paid_at)->toDateTimeString(),

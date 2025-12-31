@@ -753,7 +753,7 @@ function generatePaymentConfirmation() {
                             </td>
                             <td class="px-4 py-2 text-gray-900 dark:text-gray-100">{{ item.user }}</td>
                             <td class="px-4 py-2 text-gray-900 dark:text-gray-100">{{ item.phone }}</td>
-                            <td class="px-4 py-2 text-gray-900 dark:text-gray-100">{{ item.mpesa_receipt_number }}</td>
+                            <td class="px-4 py-2 text-gray-900 dark:text-gray-100">{{ item.receipt_number }}</td>
                             <td class="px-4 py-2 text-gray-900 dark:text-gray-100">{{ item.amount }}</td>
                             <td class="px-4 py-2 text-gray-900 dark:text-gray-100">{{ item.checked_label }}</td>
                             <td class="px-4 py-2 text-gray-900 dark:text-gray-100">{{ item.paid_at }}</td>

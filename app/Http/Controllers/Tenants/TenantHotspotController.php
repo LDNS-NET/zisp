@@ -378,6 +378,9 @@ class TenantHotspotController extends Controller
                 $existingUser->expires_at = $this->calculateExpiry($package, $baseDate);
                 $existingUser->save();
 
+                // Link user to payment
+                $payment->update(['user_id' => $existingUser->id]);
+
                 \Log::info('Updated existing hotspot user', [
                     'user_id' => $existingUser->id,
                     'username' => $existingUser->username,

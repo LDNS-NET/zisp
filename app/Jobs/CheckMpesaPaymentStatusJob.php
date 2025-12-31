@@ -173,6 +173,9 @@ class CheckMpesaPaymentStatusJob implements ShouldQueue
                 $existingUser->expires_at = $this->calculateExpiry($package, $baseDate);
                 $existingUser->save();
                 
+                // Link user to payment
+                $this->payment->update(['user_id' => $existingUser->id]);
+                
                 Log::info('Updated existing hotspot user after payment', [
                     'user_id' => $existingUser->id,
                     'username' => $existingUser->username,
