@@ -311,37 +311,43 @@ function formatPhoneNumber(event) {
 
 <template>
     <Head title="Hotspot" />
-    <div class="min-h-screen bg-gradient-to-br from-purple-600 via-blue-600 to-cyan-600 p-4 md:p-8">
-        <div class="max-w-7xl mx-auto h-full grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+    <div class="min-h-screen bg-slate-50 p-4 md:p-8 relative overflow-hidden">
+        <!-- Decorative Background Elements (CSS only, no weight) -->
+        <div class="absolute top-0 left-0 w-full h-full pointer-events-none opacity-40">
+            <div class="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-blue-100/30 rounded-full blur-[120px]"></div>
+            <div class="absolute top-[20%] -right-[10%] w-[30%] h-[30%] bg-indigo-100/20 rounded-full blur-[100px]"></div>
+        </div>
+
+        <div class="max-w-7xl mx-auto h-full grid grid-cols-1 lg:grid-cols-12 gap-8 items-start relative z-10">
             
             <!-- Left Column: Branding / Info (Desktop) -->
-            <div class="lg:col-span-4 lg:sticky lg:top-8 text-white space-y-6">
+            <div class="lg:col-span-4 lg:sticky lg:top-8 space-y-6">
                 <!-- Branding Card -->
-                <div class="bg-white/10 backdrop-blur-xl rounded-2xl p-8 border border-white/20 shadow-xl">
-                    <div class="inline-flex items-center justify-center w-20 h-20 bg-white/20 rounded-full mb-6 overflow-hidden ring-4 ring-white/10 relative">
+                <div class="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm">
+                    <div class="inline-flex items-center justify-center w-20 h-20 bg-slate-50 rounded-full mb-6 overflow-hidden ring-4 ring-slate-100 relative shadow-inner">
                         <!-- Lazy loaded logo -->
                         <img v-if="logoUrl" :src="logoUrl" alt="Logo" class="w-full h-full object-cover transition-opacity duration-700 opacity-100" />
                         
                         <!-- Fallback Placeholder -->
-                        <svg v-else class="w-10 h-10 text-white transition-opacity duration-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg v-else class="w-10 h-10 text-slate-400 transition-opacity duration-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"></path>
                         </svg>
                     </div>
-                    <h1 class="text-3xl font-bold mb-2">{{ $page.props.tenant?.name || 'Hotspot Access' }}</h1>
-                    <p class="text-white/80 leading-relaxed max-w-sm">
+                    <h1 class="text-3xl font-bold text-slate-900 mb-2">{{ $page.props.tenant?.name || 'Hotspot Access' }}</h1>
+                    <p class="text-slate-500 leading-relaxed max-w-sm">
                         Welcome to our high-speed network. Login or choose a package to connect instantly.
                     </p>
                     
                      <!-- Contact Info -->
-                    <div v-if="$page.props.tenant?.support_phone || $page.props.tenant?.support_email" class="mt-8 pt-6 border-t border-white/10 space-y-3">
-                        <div v-if="$page.props.tenant?.support_phone" class="flex items-center gap-3 text-white/90">
-                            <div class="p-2 bg-white/10 rounded-lg">
+                    <div v-if="$page.props.tenant?.support_phone || $page.props.tenant?.support_email" class="mt-8 pt-6 border-t border-slate-100 space-y-3">
+                        <div v-if="$page.props.tenant?.support_phone" class="flex items-center gap-3 text-slate-600">
+                            <div class="p-2 bg-slate-50 rounded-lg">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
                             </div>
                             <span class="font-medium">{{ $page.props.tenant.support_phone }}</span>
                         </div>
-                        <div v-if="$page.props.tenant?.support_email" class="flex items-center gap-3 text-white/90">
-                            <div class="p-2 bg-white/10 rounded-lg">
+                        <div v-if="$page.props.tenant?.support_email" class="flex items-center gap-3 text-slate-600">
+                            <div class="p-2 bg-slate-50 rounded-lg">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
                             </div>
                             <span class="font-medium">{{ $page.props.tenant.support_email }}</span>
@@ -350,7 +356,7 @@ function formatPhoneNumber(event) {
                 </div>
                 
                 <!-- Login Panel with Tabs -->
-                <div class="bg-white rounded-2xl p-6 shadow-xl">
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
                     <!-- Tab Switcher -->
                     <div class="flex p-1 bg-gray-100 rounded-xl mb-6">
                         <button 
@@ -393,7 +399,7 @@ function formatPhoneNumber(event) {
                             <button
                                 @click="authenticateVoucher"
                                 :disabled="isAuthenticatingVoucher || !voucherCode"
-                                class="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white font-bold py-3.5 px-4 rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed shadow-lg flex items-center justify-center gap-2"
+                                class="w-full bg-emerald-600 text-white font-bold py-3.5 px-4 rounded-xl hover:bg-emerald-700 transition-all duration-300 transform active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed shadow-sm flex items-center justify-center gap-2"
                             >
                                 <svg v-if="isAuthenticatingVoucher" class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -436,7 +442,7 @@ function formatPhoneNumber(event) {
                             <button
                                 @click="authenticateMember"
                                 :disabled="isAuthenticatingMember || !memberUsername || !memberPassword"
-                                class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold py-3.5 px-4 rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed shadow-lg flex items-center justify-center gap-2"
+                                class="w-full bg-blue-600 text-white font-bold py-3.5 px-4 rounded-xl hover:bg-blue-700 transition-all duration-300 transform active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed shadow-sm flex items-center justify-center gap-2"
                             >
                                 <svg v-if="isAuthenticatingMember" class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -466,10 +472,10 @@ function formatPhoneNumber(event) {
 
             <!-- Right Column: Packages (Desktop) -->
             <div class="lg:col-span-8">
-                <div class="bg-white/90 backdrop-blur-xl rounded-3xl p-6 md:p-8 shadow-2xl">
+                <div class="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-200">
                     <div class="flex items-center justify-between mb-6">
-                        <h2 class="text-2xl font-bold text-gray-900">Available Packages</h2>
-                        <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold uppercase tracking-wider">
+                        <h2 class="text-2xl font-bold text-slate-900">Available Packages</h2>
+                        <span class="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-xs font-bold uppercase tracking-wider">
                             {{ hotspots.length }} Plans
                         </span>
                     </div>
@@ -489,7 +495,7 @@ function formatPhoneNumber(event) {
                         <div 
                             v-for="hotspot in hotspots" 
                             :key="hotspot.id" 
-                            class="group bg-white/50 backdrop-blur-md rounded-2xl border border-white/40 p-5 hover:bg-white/80 transition-all duration-300 shadow-sm hover:shadow-lg"
+                            class="group bg-slate-50/50 rounded-2xl border border-slate-100 p-5 hover:bg-white hover:border-blue-200 transition-all duration-300 hover:shadow-md"
                         >
                             <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
                                 <!-- Group 1: Name & Speed -->
@@ -537,11 +543,11 @@ function formatPhoneNumber(event) {
 
         <!-- Checkout Modal -->
         <Modal :show="showModal" @close="closeModal">
-            <div class="bg-white rounded-2xl overflow-hidden max-w-md w-full mx-auto shadow-2xl">
-                <div class="bg-gradient-to-r from-purple-600 to-blue-600 p-6 text-white relative overflow-hidden">
-                    <div class="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white/10 rounded-full blur-xl"></div>
+            <div class="bg-white rounded-2xl overflow-hidden max-w-md w-full mx-auto shadow-2xl border border-slate-200">
+                <div class="bg-slate-900 p-6 text-white relative overflow-hidden">
+                    <div class="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white/5 rounded-full blur-xl"></div>
                     <div class="flex justify-between items-center mb-1 relative z-10">
-                        <h3 class="text-xl font-bold">Complete Purchase</h3>
+                        <h3 class="text-xl font-bold text-white">Complete Purchase</h3>
                         <button @click="closeModal" class="text-white/70 hover:text-white transition-colors p-1 hover:bg-white/10 rounded-lg">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -612,7 +618,7 @@ function formatPhoneNumber(event) {
                                 v-if="!paymentMessage" 
                                 @click="processPayment"
                                 :disabled="isProcessing || !phoneNumber.match(/^(01\d{8}|07\d{8}|254\d{9}|2547\d{8}|2541\d{8})$/)"
-                                class="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold py-4 px-6 rounded-xl hover:from-purple-700 hover:to-blue-700 transition-all shadow-lg transform active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
+                                class="w-full bg-slate-900 text-white font-bold py-4 px-6 rounded-xl hover:bg-blue-600 transition-all shadow-lg transform active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
                             >
                                 <span v-if="isProcessing">Processing...</span>
                                 <span v-else>Pay KES {{ selectedHotspot.price }}</span>
