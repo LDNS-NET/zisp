@@ -223,37 +223,29 @@ class TenantHotspotController extends Controller
             $status = $status ? strtoupper($status) : null;
 
             if ($statusResponse->successful() && ($status === 'PAID' || $status === 'COMPLETE' || $status === 'SUCCESS')) {
-                 \Log::info('Payment confirmed via polling', ['identifier' => $identifier, 'status' => $status]);
-                
-                 if (!$payment) {
-                     $apiRef = $statusData['invoice']['api_ref'] ?? $identifier;
-                     $payment = $this->createPaymentFromApiRef($apiRef, $statusData);
-                 } else {
+                 \Log::info('Payment confirmed via polling', ['payment_id' => $payment->id, 'status' => $status]);
+                 
+                 if ($payment) {
                      $payment->status = 'paid';
                      $payment->checked = true;
                      $payment->transaction_id = $statusData['invoice']['mpesa_reference'] ?? $statusData['id'] ?? $statusData['transaction_id'] ?? $payment->transaction_id;
                      $payment->response = array_merge($payment->response ?? [], $statusData);
                      $payment->paid_at = now();
                      $payment->save();
-                 }
 
-                 if ($payment) {
                      $package = $this->findTenantPackage($payment->hotspot_package_id);
                      return $this->handleSuccessfulPayment($payment, $package);
                  }
-            }
+             }
 
-            // Handle failure
-            if ($statusResponse->successful() && in_array($status, ['FAILED', 'CANCELLED', 'REJECTED'])) {
-                if (!$payment) {
-                    $apiRef = $statusData['invoice']['api_ref'] ?? $identifier;
-                    $payment = $this->createPaymentFromApiRef($apiRef, $statusData, 'failed');
-                } else {
-                    $payment->status = 'failed';
-                    $payment->response = array_merge($payment->response ?? [], $statusData);
-                    $payment->save();
-                }
-            }
+             // Handle failure
+             if ($statusResponse->successful() && in_array($status, ['FAILED', 'CANCELLED', 'REJECTED'])) {
+                 if ($payment) {
+                     $payment->status = 'failed';
+                     $payment->response = array_merge($payment->response ?? [], $statusData);
+                     $payment->save();
+                 }
+             }
 
             return response()->json([
                 'success' => true, 
