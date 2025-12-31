@@ -2,17 +2,15 @@
 
 namespace App\Models;
 
-use Stancl\Tenancy\Contracts\TenantWithDatabase;
-use Stancl\Tenancy\Database\Concerns\HasDatabase;
 use Stancl\Tenancy\Database\Concerns\HasDomains;
 use Stancl\Tenancy\Database\Models\Tenant as BaseTenant;
 use Illuminate\Support\Facades\Config;
 use IntaSend\IntaSendPHP\APIService;
 use IntaSend\IntaSendPHP\Wallet;
 
-class Tenant extends BaseTenant implements TenantWithDatabase
+class Tenant extends BaseTenant
 {
-    use HasDatabase, HasDomains;
+    use HasDomains;
 
     protected $fillable = [
         'id',
@@ -31,9 +29,7 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     public function configure()
     {
         // 🧠 Point the tenant connection to the correct SQLite file
-        Config::set('database.connections.tenant.driver', 'sqlite');
         Config::set('database.connections.tenant.database', $this->databasePath());
-        Config::set('database.connections.tenant.foreign_key_constraints', true);
     }
 
     protected function databasePath(): string

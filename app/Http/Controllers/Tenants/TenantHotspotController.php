@@ -129,42 +129,8 @@ class TenantHotspotController extends Controller
                 ]);
             }
 
-            // Find tenant admin to assign as creator
-            $adminId = 1; // Default fallback
-            try {
-                $adminUser = \App\Models\User::first();
-                if ($adminUser) {
-                    $adminId = $adminUser->id;
-                }
-            } catch (\Exception $e) {
-                \Log::warning('Could not find admin user for payment creation', ['error' => $e->getMessage()]);
-            }
-
-            // Initialize tenancy to ensure we can create users in tenant DB
-            if (!tenancy()->initialized) {
-                tenancy()->initialize($tenant);
-            }
-
-            // Generate user credentials
-            $username = NetworkUser::generateUsername();
-            $password = NetworkUser::generatePassword();
-            
-            // Create pending user
-            $user = NetworkUser::create([
-                'account_number' => 'NU' . mt_rand(1000000000, 9999999999), // Temporary fallback if model hook fails
-                'username' => $username,
-                'password' => $password,
-                'phone' => $phone,
-                'type' => 'hotspot',
-                'hotspot_package_id' => $package->id,
-                'status' => 'pending', // Pending payment
-                'registered_at' => now(),
-                'created_by' => $adminId,
-            ]);
-
             // Create payment record immediately with pending status
             $payment = TenantPayment::create([
-                'user_id' => $user->id, // Link to user
                 'phone' => $phone,
                 'hotspot_package_id' => $package->id,
                 'package_id' => null,
@@ -175,7 +141,6 @@ class TenantHotspotController extends Controller
                 'status' => 'pending',
                 'checked' => false,
                 'disbursement_type' => 'pending',
-                'created_by' => $adminId,
                 'checkout_request_id' => $mpesaResponse['checkout_request_id'] ?? null,
                 'merchant_request_id' => $mpesaResponse['merchant_request_id'] ?? null,
                 'intasend_reference' => null, // Legacy field, keeping null
@@ -187,13 +152,10 @@ class TenantHotspotController extends Controller
                 'payment_id' => $payment->id,
                 'reference' => $reference,
                 'checkout_request_id' => $payment->checkout_request_id,
-                'user_id' => $user->id,
-                'username' => $username
             ]);
 
-            // Dispatch job to check payment status (using payment model)
-            \App\Jobs\CheckMpesaPaymentStatusJob::dispatch($payment, $tenant->id)
-                ->delay(now()->addSeconds(30));
+            // Queue job to check payment status (using payment ID)
+            \App\Jobs\CheckMpesaPaymentStatusJob::dispatch($payment)->delay(now()->addSeconds(30));
 
             return response()->json([
                 'success' => true,
@@ -383,73 +345,88 @@ class TenantHotspotController extends Controller
     private function handleSuccessfulPayment(TenantPayment $payment,  TenantHotspot $package)
     {
         try {
-            // Check if user exists (linked to payment or by phone)
-            $user = null;
-            if ($payment->user_id) {
-                $user = NetworkUser::find($payment->user_id);
-            }
-            
-            if (!$user) {
-                $user = NetworkUser::where('phone', $payment->phone)
-                    ->where('type', 'hotspot')
-                    ->first();
-            }
+            // Check if user already exists for this phone number
+            $existingUser = NetworkUser::where('phone', $payment->phone)
+                ->where('type', 'hotspot')
+                ->first();
 
-            if ($user) {
-                // Update existing user (Activation or Renewal)
-                if ($payment->hotspot_package_id) {
-                    $user->hotspot_package_id = $package->id;
-                    $user->package_id = null;
-                } else {
-                    $user->package_id = $package->id;
-                    $user->hotspot_package_id = null;
-                }
+            if ($existingUser) {
+                // Update existing user's package and expiry
+                $existingUser->hotspot_package_id = $package->id;
+                $existingUser->package_id = null;
+                $existingUser->expires_at = $this->calculateExpiry($package);
+                $existingUser->save();
 
-                $user->expires_at = $this->calculateExpiry($package);
-                $user->status = 'active'; // Ensure status is active
-                $user->save();
-
-                \Log::info('Activated/Renewed hotspot user', [
-                    'user_id' => $user->id,
-                    'username' => $user->username,
-                    'payment_id' => $payment->id,
-                    'status' => 'active'
+                \Log::info('Updated existing hotspot user', [
+                    'user_id' => $existingUser->id,
+                    'username' => $existingUser->username,
+                    'phone' => $existingUser->phone,
+                    'new_expiry' => $existingUser->expires_at
                 ]);
-                return;
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Payment successful! Your existing account has been extended.',
+                    'user' => [
+                        'username' => $existingUser->username,
+                        'password' => 'Use your existing password',
+                        'expires_at' => $existingUser->expires_at->toDateTimeString(),
+                    ]
+                ]);
             }
 
-            // Fallback: Create new user if not found
-            $username = NetworkUser::generateUsername();
-            $password = NetworkUser::generatePassword();
+            // Generate new hotspot user credentials
+            $username = 'HS' . strtoupper(Str::random(6));
+            $plainPassword = Str::random(8);
 
+            // Create new network user
             $user = NetworkUser::create([
-                'account_number' => 'NU' . mt_rand(1000000000, 9999999999),
+                'account_number' => $this->generateAccountNumber(),
                 'username' => $username,
-                'password' => $password,
+                'password' => bcrypt($plainPassword),
                 'phone' => $payment->phone,
                 'type' => 'hotspot',
                 'hotspot_package_id' => $package->id,
-                'status' => 'active',
+                'package_id' => null,
                 'expires_at' => $this->calculateExpiry($package),
                 'registered_at' => now(),
-                'created_by' => $payment->created_by,
             ]);
-            
-            // Link user to payment
-            $payment->user_id = $user->id;
-            $payment->save();
 
-            \Log::info('Created new hotspot user (fallback)', [
+            // Link user to payment
+            $payment->update(['user_id' => $user->id]);
+
+            \Log::info('Created new hotspot user', [
                 'user_id' => $user->id,
                 'username' => $username,
-                'payment_id' => $payment->id
+                'phone' => $payment->phone,
+                'package' => $package->name,
+                'duration' => $package->duration_value . ' ' . $package->duration_unit,
+                'expires_at' => $user->expires_at
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Payment successful! Your hotspot account has been created.',
+                'user' => [
+                    'username' => $username,
+                    'password' => $plainPassword,
+                    'package_name' => $package->name,
+                    'duration' => $package->duration_value . ' ' . $package->duration_unit,
+                ]
             ]);
 
         } catch (\Exception $e) {
-            \Log::error('Failed to handle successful payment user creation', [
+            \Log::error('Failed to create hotspot user after payment', [
                 'payment_id' => $payment->id,
+                'phone' => $payment->phone,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Payment was successful but account creation failed. Please contact support.',
+                'payment_id' => $payment->id
             ]);
         }
     }
@@ -482,10 +459,13 @@ class TenantHotspotController extends Controller
 
     private function findTenantPackage(int $id): TenantHotspot
     {
-        // Bypass tenant scope as callback might come to a different domain
-        // or tenant resolution might not work as expected in this context
-        return TenantHotspot::withoutGlobalScopes()
-            ->where('id', $id)
+        $host = request()->getHost();
+        $subdomain = explode('.', $host)[0];
+
+        $tenant = Tenant::where('subdomain', $subdomain)->firstOrFail();
+
+        return TenantHotspot::where('id', $id)
+            ->where('tenant_id', $tenant->id)
             ->firstOrFail();
     }
 

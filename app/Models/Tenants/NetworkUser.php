@@ -89,11 +89,6 @@ class NetworkUser extends Model
          *  Sync with RADIUS after creation
          */
         static::created(function ($user) {
-            // Only sync if active
-            if ($user->status !== 'active') {
-                return;
-            }
-
             // Create radcheck entry (password)
             Radcheck::create([
                 'username' => $user->username,
@@ -158,13 +153,6 @@ class NetworkUser extends Model
          *  Update RADIUS entries when user is updated
          */
         static::updated(function ($user) {
-            // Only sync if active
-            if ($user->status !== 'active') {
-                // Optionally remove entries if status changed to inactive?
-                // For now, just don't create/update.
-                return;
-            }
-
             // Update password if changed
             Radcheck::updateOrCreate(
                 ['username' => $user->username, 'attribute' => 'Cleartext-Password'],
@@ -229,38 +217,5 @@ class NetworkUser extends Model
             Radreply::where('username', $user->username)->delete();
             Radusergroup::where('username', $user->username)->delete();
         });
-    }
-    public static function generateUsername(): string
-    {
-        try {
-            $tenant = app(Tenant::class);
-            $businessName = $tenant->business_name ?? null;
-        } catch (\Exception $e) {
-            $businessName = null;
-        }
-
-        // Extract first alphanumeric character
-        $char = $businessName ? substr(preg_replace('/[^A-Za-z0-9]/', '', $businessName), 0, 1) : null;
-        $prefix = !empty($char) ? strtoupper($char) : 'U';
-
-        // Find last username with this prefix and 3+ digits
-        $lastUser = self::where('username', 'REGEXP', "^{$prefix}[0-9]+$")
-            ->orderByRaw('LENGTH(username) DESC')
-            ->orderBy('username', 'desc')
-            ->first();
-
-        if ($lastUser) {
-            $number = intval(substr($lastUser->username, 1));
-            $nextNumber = $number + 1;
-        } else {
-            $nextNumber = 1;
-        }
-
-        return $prefix . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
-    }
-
-    public static function generatePassword(): string
-    {
-        return (string) mt_rand(100000, 999999);
     }
 }
