@@ -172,14 +172,14 @@ class CheckMpesaPaymentStatusJob implements ShouldQueue
             }
             
             // Generate new user credentials
-            $username = 'HS' . strtoupper(Str::random(6));
-            $plainPassword = Str::random(8);
+            $username = NetworkUser::generateUsername();
+            $plainPassword = NetworkUser::generatePassword();
             
             // Create new user
             $user = NetworkUser::create([
                 'account_number' => $this->generateAccountNumber(),
                 'username' => $username,
-                'password' => bcrypt($plainPassword),
+                'password' => $plainPassword, // Storing plain text for Cleartext-Password compatibility
                 'phone' => $this->payment->phone,
                 'type' => 'hotspot',
                 'package_id' => $this->payment->package_id,

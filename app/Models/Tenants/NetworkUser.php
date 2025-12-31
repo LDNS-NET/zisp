@@ -218,4 +218,34 @@ class NetworkUser extends Model
             Radusergroup::where('username', $user->username)->delete();
         });
     }
+    public static function generateUsername(): string
+    {
+        $tenant = app(Tenant::class);
+        $prefix = $tenant && !empty($tenant->business_name)
+            ? strtoupper(substr(preg_replace('/\s+/', '', $tenant->business_name), 0, 1))
+            : 'U';
+
+        // Avoid confusing letters for prefix if possible, but strict requirement is first letter.
+        // If we strictly follow "first letter", we use it.
+
+        // Find last username with this prefix and 3+ digits
+        $lastUser = self::where('username', 'REGEXP', "^{$prefix}[0-9]+$")
+            ->orderByRaw('LENGTH(username) DESC')
+            ->orderBy('username', 'desc')
+            ->first();
+
+        if ($lastUser) {
+            $number = intval(substr($lastUser->username, 1));
+            $nextNumber = $number + 1;
+        } else {
+            $nextNumber = 1;
+        }
+
+        return $prefix . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+    }
+
+    public static function generatePassword(): string
+    {
+        return (string) mt_rand(100000, 999999);
+    }
 }
