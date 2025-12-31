@@ -31,7 +31,9 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     public function configure()
     {
         // 🧠 Point the tenant connection to the correct SQLite file
+        Config::set('database.connections.tenant.driver', 'sqlite');
         Config::set('database.connections.tenant.database', $this->databasePath());
+        Config::set('database.connections.tenant.foreign_key_constraints', true);
     }
 
     protected function databasePath(): string
