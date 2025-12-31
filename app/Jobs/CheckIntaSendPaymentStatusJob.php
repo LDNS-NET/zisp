@@ -239,7 +239,7 @@ class CheckIntaSendPaymentStatusJob implements ShouldQueue
     private function generateAccountNumber(): string
     {
         do {
-            $accountNumber = 'NU' . mt_rand(1000000000, 9999999999);
+            $accountNumber = 'NU' . str_pad(mt_rand(0, 999999), 6, '0', STR_PAD_LEFT);
         } while (NetworkUser::withoutGlobalScopes()->where('account_number', $accountNumber)->exists());
         return $accountNumber;
     }
