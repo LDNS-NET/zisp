@@ -5,7 +5,7 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import TextInput from '@/Components/TextInput.vue';
 import { useToast } from 'vue-toastification';
-import { countries } from '@/data/countries';
+import { countries } from '@/Data/countries';
 import { computed } from 'vue';
 
 const toast = useToast();
