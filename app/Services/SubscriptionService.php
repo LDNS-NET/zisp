@@ -282,7 +282,7 @@ class SubscriptionService
             'hotspot_amount' => $hotspotAmount,
             'total_calculated' => $totalAmount,
             'minimum_pay' => $minimumPay,
-            'final_amount' => 1, // TEMPORARY FOR TESTING: Changed from $finalAmount
+            'final_amount' => $finalAmount,
             'currency' => $countryData['currency'],
         ];
     }
