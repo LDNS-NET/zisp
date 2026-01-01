@@ -34,6 +34,7 @@ class TenantPaymentGatewayController extends Controller
     {
         $tenantId = $this->resolveTenantId($request);
 
+        $tenant = Tenant::find($tenantId);
         $gateways = Cache::remember("tenant_payment_gateways_{$tenantId}", 60, function () use ($tenantId) {
             return TenantPaymentGateway::where('tenant_id', $tenantId)->get();
         });
@@ -41,6 +42,7 @@ class TenantPaymentGatewayController extends Controller
         return Inertia::render('Settings/Payment/Payment', [
             'gateways' => $gateways,
             'phone_number' => $request->user()?->phone ?? '',
+            'country' => $tenant?->country_code ?? 'KE',
         ]);
     }
 

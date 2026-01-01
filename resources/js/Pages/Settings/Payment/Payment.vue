@@ -11,6 +11,7 @@ const toast = useToast();
 const props = defineProps({
     gateways: { type: Array, default: () => [] },
     phone_number: { type: String, default: '' },
+    country: { type: String, default: 'KE' },
 });
 
 // Use the first gateway record if any
@@ -28,9 +29,9 @@ const getInitialCollectionMethod = (payoutMethod) => {
 };
 
 const form = useForm({
-    provider: existing.provider || 'mpesa',
-    payout_method: existing.payout_method || 'mpesa_phone',
-    collection_method: getInitialCollectionMethod(existing.payout_method),
+    provider: existing.provider || (props.country === 'KE' ? 'mpesa' : 'paystack'),
+    payout_method: existing.payout_method || (props.country === 'KE' ? 'mpesa_phone' : ''),
+    collection_method: existing.provider === 'paystack' ? 'paystack' : getInitialCollectionMethod(existing.payout_method),
     phone_number: existing.phone_number || props.phone_number || '',
     bank_name: existing.bank_name || '',
     bank_account: existing.bank_account || '',
@@ -43,6 +44,8 @@ const form = useForm({
     mpesa_shortcode: existing.mpesa_shortcode || '',
     mpesa_passkey: existing.mpesa_passkey || '',
     mpesa_env: existing.mpesa_env || 'sandbox',
+    paystack_public_key: existing.paystack_public_key || '',
+    paystack_secret_key: existing.paystack_secret_key || '',
     use_own_api: existing.use_own_api === 1 || existing.use_own_api === true || false,
 });
 
@@ -67,6 +70,10 @@ const save = () => {
         case 'mpesa_paybill':
             form.provider = 'mpesa';
             form.payout_method = 'paybill';
+            break;
+        case 'paystack':
+            form.provider = 'paystack';
+            form.payout_method = '';
             break;
         default:
             form.provider = 'custom';
@@ -103,7 +110,7 @@ const save = () => {
 
             <form @submit.prevent="save" class="mt-6 space-y-6">
                 <!-- Warning for Custom API -->
-                <div v-if="form.use_own_api" class="rounded-lg border border-yellow-400 bg-yellow-50 p-4 dark:bg-yellow-900/30">
+                <div v-if="form.use_own_api && country === 'KE'" class="rounded-lg border border-yellow-400 bg-yellow-50 p-4 dark:bg-yellow-900/30">
                     <div class="flex">
                         <div class="flex-shrink-0">
                             <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
@@ -129,10 +136,13 @@ const save = () => {
                         v-model="form.collection_method"
                         class="mt-1 block w-full rounded border-gray-300 dark:bg-gray-800"
                     >
-                        <option value="phone">M-Pesa Phone</option>
-                        <option value="bank">Bank</option>
-                        <option value="mpesa_till">M-Pesa Till</option>
-                        <option value="mpesa_paybill">M-Pesa Paybill</option>
+                        <template v-if="country === 'KE'">
+                            <option value="phone">M-Pesa Phone</option>
+                            <option value="bank">Bank</option>
+                            <option value="mpesa_till">M-Pesa Till</option>
+                            <option value="mpesa_paybill">M-Pesa Paybill</option>
+                        </template>
+                        <option value="paystack">Paystack</option>
                     </select>
                 </div>
 
@@ -194,8 +204,25 @@ const save = () => {
                     />
                 </div>
 
+                <!-- Paystack -->
+                <div v-if="form.collection_method === 'paystack'">
+                    <InputLabel value="Paystack Public Key" />
+                    <TextInput
+                        v-model="form.paystack_public_key"
+                        class="mt-1 block w-full"
+                        placeholder="pk_test_..."
+                    />
+                    <InputLabel class="mt-3" value="Paystack Secret Key" />
+                    <TextInput
+                        v-model="form.paystack_secret_key"
+                        class="mt-1 block w-full"
+                        type="password"
+                        placeholder="sk_test_..."
+                    />
+                </div>
+
                 <!-- Custom M-Pesa API Settings -->
-                <div class="border-t border-gray-300 pt-6 dark:border-gray-700">
+                <div v-if="country === 'KE'" class="border-t border-gray-300 pt-6 dark:border-gray-700">
                     <div class="flex items-center justify-between">
                         <div>
                             <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Custom M-Pesa API</h3>
