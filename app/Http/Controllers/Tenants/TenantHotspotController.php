@@ -470,7 +470,6 @@ class TenantHotspotController extends Controller
 
             // Create new network user
             $user = NetworkUser::create([
-                'account_number' => $this->generateAccountNumber(),
                 'full_name' => $package->name,
                 'username' => $username,
                 'password' => $plainPassword,
@@ -520,18 +519,6 @@ class TenantHotspotController extends Controller
                 'payment_id' => $payment->id
             ]);
         }
-    }
-
-    /**
-     * Generate a unique account number.
-     */
-    private function generateAccountNumber(): string
-    {
-        do {
-            $accountNumber = 'NU' . str_pad(mt_rand(0, 999999), 6, '0', STR_PAD_LEFT);
-        } while (NetworkUser::withoutGlobalScopes()->where('account_number', $accountNumber)->exists());
-
-        return $accountNumber;
     }
 
     /**

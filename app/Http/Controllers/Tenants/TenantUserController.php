@@ -110,23 +110,14 @@ class TenantUserController extends Controller
         }
 
 
-        // Generate a globally unique account number (NU + 6 digits)
-        do {
-            $randomNumber = str_pad(mt_rand(0, 999999), 6, '0', STR_PAD_LEFT);
-            $accountNumber = 'NU' . $randomNumber; // e.g., NU000123, NU456789
-
-            // Check if this account number already exists (very unlikely but safety check)
-            $exists = NetworkUser::where('account_number', $accountNumber)->exists();
-        } while ($exists);
 
         try {
             // Create the user in a database transaction
-            $user = \DB::transaction(function () use ($validated, $accountNumber) {
+            $user = \DB::transaction(function () use ($validated) {
                 return NetworkUser::create([
                     'full_name' => $validated['full_name'],
                     'username' => $validated['username'],
                     'password' => $validated['password'],
-                    'account_number' => $accountNumber,
                     'phone' => $validated['phone'],
                     //'email' => $validated['email'],
                     'location' => $validated['location'],

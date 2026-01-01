@@ -81,6 +81,48 @@ class NetworkUser extends Model
         return $prefix . str_pad((string)$nextNumber, 3, '0', STR_PAD_LEFT);
     }
 
+    public static function generateAccountNumber($tenantId)
+    {
+        $tenant = \App\Models\Tenant::find($tenantId);
+        $name = $tenant ? ($tenant->business_name ?: $tenant->name) : 'System';
+        
+        // Remove spaces and characters O, I (case-insensitive)
+        $cleanName = preg_replace('/[\sOIoi]/', '', $name);
+        
+        // Take first 2 letters
+        $prefix = strtoupper(substr($cleanName, 0, 2));
+        
+        // Fallbacks if prefix is too short or empty
+        if (strlen($prefix) < 2) {
+            // Try to get more letters from the original name if possible, but still avoid O/I
+            $prefix = str_pad($prefix, 2, 'X'); 
+        }
+        
+        if (empty($prefix) || $prefix === 'XX') {
+            $prefix = 'NU';
+        }
+
+        // Find the last account number for this prefix across ALL tenants (universally unique)
+        // We order by length first to handle transitions from e.g. LD999 to LD1000
+        $lastUser = self::withoutGlobalScopes()
+            ->where('account_number', 'LIKE', $prefix . '%')
+            ->orderByRaw('LENGTH(account_number) DESC')
+            ->orderBy('account_number', 'desc')
+            ->first();
+
+        $nextNumber = 1;
+        if ($lastUser) {
+            $lastAccountNumber = $lastUser->account_number;
+            $numberPart = substr($lastAccountNumber, strlen($prefix));
+            if (is_numeric($numberPart)) {
+                $nextNumber = (int)$numberPart + 1;
+            }
+        }
+
+        // Format with at least 3 digits (e.g. LD001)
+        return $prefix . str_pad((string)$nextNumber, 3, '0', STR_PAD_LEFT);
+    }
+
     protected static function booted()
     {
         /** Apply tenant scope */
@@ -130,16 +172,7 @@ class NetworkUser extends Model
             }
 
             if (empty($model->account_number)) {
-                $tenant = \App\Models\Tenant::find($model->tenant_id) ?: app(Tenant::class);
-                $prefix = $tenant && !empty($tenant->business_name)
-                    ? strtoupper(substr(preg_replace('/\s+/', '', $tenant->business_name), 0, 2))
-                    : 'NU';
-
-                do {
-                    $accountNumber = $prefix . str_pad(mt_rand(0, 999999), 6, '0', STR_PAD_LEFT);
-                } while (self::where('account_number', $accountNumber)->exists());
-
-                $model->account_number = $accountNumber;
+                $model->account_number = self::generateAccountNumber($model->tenant_id);
             }
         });
 

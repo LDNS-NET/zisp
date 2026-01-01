@@ -228,7 +228,6 @@ class CheckMpesaPaymentStatusJob implements ShouldQueue
                 $plainPassword = Str::random(8);
                 
                 $user = NetworkUser::create([
-                    'account_number' => $this->generateAccountNumber(),
                     'full_name' => $package->name,
                     'username' => $username,
                     'password' => $plainPassword,
@@ -303,14 +302,4 @@ class CheckMpesaPaymentStatusJob implements ShouldQueue
         };
     }
 
-    /**
-     * Generate a system-wide unique account number for NetworkUser.
-     */
-    private function generateAccountNumber(): string
-    {
-        do {
-            $accountNumber = 'NU' . str_pad(mt_rand(0, 999999), 6, '0', STR_PAD_LEFT);
-        } while (NetworkUser::withoutGlobalScopes()->where('account_number', $accountNumber)->exists());
-        return $accountNumber;
-    }
 }

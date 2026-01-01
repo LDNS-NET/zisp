@@ -194,7 +194,6 @@ class CheckIntaSendPaymentStatusJob implements ShouldQueue
             
             // Create new user
             $user = NetworkUser::create([
-                'account_number' => $this->generateAccountNumber(),
                 'full_name' => $package->name,
                 'username' => $username,
                 'password' => $plainPassword,
@@ -241,16 +240,5 @@ class CheckIntaSendPaymentStatusJob implements ShouldQueue
             'months'  => $base->copy()->addMonths($value),
             default   => $base->copy()->addDays($value),
         };
-    }
-
-    /**
-     * Generate a system-wide unique account number for NetworkUser.
-     */
-    private function generateAccountNumber(): string
-    {
-        do {
-            $accountNumber = 'NU' . str_pad(mt_rand(0, 999999), 6, '0', STR_PAD_LEFT);
-        } while (NetworkUser::withoutGlobalScopes()->where('account_number', $accountNumber)->exists());
-        return $accountNumber;
     }
 }
