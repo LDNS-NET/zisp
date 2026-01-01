@@ -10,6 +10,16 @@ export const countries = [
     payment_methods: ["mpesa", "airtel_money", "equitel"],
   },
   {
+    name: "Tanzania",
+    code: "TZ",
+    currency: "TZS",
+    currency_name: "Tanzanian Shilling",
+    dial_code: "+255",
+    pppoePricePerMonth: 350,
+    hotspotPricePerMonth: "3%",
+    payment_methods: ["mpesa", "tigo_pesa", "airtel_money", "halopesa"],
+  },
+  {
     name: "Somalia",
     code: "SO",
     currency: "SOS",
@@ -29,6 +39,7 @@ export const countries = [
     hotspotPricePerMonth: "3%",
     payment_methods: ["momo"], // MTN MoMo is common
   },
+  /*
   {
     name: "Uganda",
     code: "UG",
@@ -38,16 +49,6 @@ export const countries = [
     pppoePricePerMonth: 530,
     hotspotPricePerMonth: "3%",
     payment_methods: ["momo", "airtel_money"],
-  },
-  {
-    name: "Tanzania",
-    code: "TZ",
-    currency: "TZS",
-    currency_name: "Tanzanian Shilling",
-    dial_code: "+255",
-    pppoePricePerMonth: 350,
-    hotspotPricePerMonth: "3%",
-    payment_methods: ["mpesa", "tigo_pesa", "airtel_money", "halopesa"],
   },
   {
     name: "Nigeria",
@@ -158,5 +159,5 @@ export const countries = [
     pppoePricePerMonth: 15,
     hotspotPricePerMonth: "3%",
     payment_methods: ["momo", "airtel_money"],
-  },
+  },*/
 ];
