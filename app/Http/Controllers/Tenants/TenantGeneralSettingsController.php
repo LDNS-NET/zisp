@@ -125,7 +125,7 @@ class TenantGeneralSettingsController extends Controller
             'language'       => 'required|string|max:10',
 
             // Branding
-            'logo'           => 'nullable|file|image|max:2048',
+            'logo'           => $request->hasFile('logo') ? 'nullable|file|image|max:2048' : 'nullable|string',
             'theme'          => 'nullable|in:light,dark,system',
             'remove_logo'    => 'nullable|boolean',
         ]);
@@ -144,6 +144,9 @@ class TenantGeneralSettingsController extends Controller
             $data['logo'] = $path; // Store relative path, not full URL
         } elseif (!empty($data['remove_logo'])) {
             $data['logo'] = null;
+        } else {
+            // If it's just a string (the existing URL), don't update the logo field
+            unset($data['logo']);
         }
 
         // Save settings
