@@ -16,10 +16,21 @@ const props = defineProps({
 // Use the first gateway record if any
 const existing = props.gateways[0] || {};
 
+// Helper to map payout_method to collection_method
+const getInitialCollectionMethod = (payoutMethod) => {
+    switch (payoutMethod) {
+        case 'mpesa_phone': return 'phone';
+        case 'bank': return 'bank';
+        case 'till': return 'mpesa_till';
+        case 'paybill': return 'mpesa_paybill';
+        default: return 'phone';
+    }
+};
+
 const form = useForm({
     provider: existing.provider || 'mpesa',
     payout_method: existing.payout_method || 'mpesa_phone',
-    collection_method: existing.collection_method || 'phone',
+    collection_method: getInitialCollectionMethod(existing.payout_method),
     phone_number: existing.phone_number || props.phone_number || '',
     bank_name: existing.bank_name || '',
     bank_account: existing.bank_account || '',

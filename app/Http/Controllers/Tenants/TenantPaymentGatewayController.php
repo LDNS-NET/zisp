@@ -71,12 +71,10 @@ class TenantPaymentGatewayController extends Controller
             'is_active' => 'nullable|boolean',
         ]);
 
-        // ✅ Ensure one record per tenant + provider + payout method
+        // ✅ Ensure only one record per tenant
         TenantPaymentGateway::updateOrCreate(
             [
                 'tenant_id' => $tenantId,
-                'provider' => $validated['provider'],
-                'payout_method' => $validated['payout_method'],
             ],
             array_merge($validated, [
                 'created_by' => auth()->id(),
