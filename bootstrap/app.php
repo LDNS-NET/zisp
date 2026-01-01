@@ -23,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'mikrotiks/*/register-wireguard',
             'hotspot/callback',
             'mpesa/callback',
+            'api/mpesa/c2b/*',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

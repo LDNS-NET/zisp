@@ -14,9 +14,14 @@ use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
 |--------------------------------------------------------------------------
 */
 
+use App\Http\Controllers\Tenants\MpesaC2BController;
+
+// M-Pesa C2B (Global endpoints to handle callbacks from any Paybill)
+Route::post('/mpesa/c2b/validation', [MpesaC2BController::class, 'validation']);
+Route::post('/mpesa/c2b/confirmation', [MpesaC2BController::class, 'confirmation']);
+
 Route::middleware([InitializeTenancyByDomain::class, PreventAccessFromCentralDomains::class])->group(function () {
     // Tenant info
-
 });
 
 

@@ -401,6 +401,32 @@ class MpesaService
     }
 
     /**
+     * Parse and validate M-Pesa C2B callback data
+     *
+     * @param array $data The callback data from M-Pesa
+     * @return array Parsed C2B data
+     */
+    public function parseC2B(array $data): array
+    {
+        return [
+            'transaction_type' => $data['TransactionType'] ?? null,
+            'trans_id' => $data['TransID'] ?? null,
+            'trans_time' => $data['TransTime'] ?? null,
+            'trans_amount' => $data['TransAmount'] ?? 0,
+            'business_shortcode' => $data['BusinessShortCode'] ?? null,
+            'bill_ref_number' => trim($data['BillRefNumber'] ?? ''),
+            'invoice_number' => $data['InvoiceNumber'] ?? null,
+            'org_account_balance' => $data['OrgAccountBalance'] ?? null,
+            'third_party_trans_id' => $data['ThirdPartyTransID'] ?? null,
+            'msisdn' => $data['MSISDN'] ?? null,
+            'first_name' => $data['FirstName'] ?? null,
+            'middle_name' => $data['MiddleName'] ?? null,
+            'last_name' => $data['LastName'] ?? null,
+            'raw_data' => $data
+        ];
+    }
+
+    /**
      * Parse and validate M-Pesa callback data
      *
      * @param array $callbackData The callback data from M-Pesa
