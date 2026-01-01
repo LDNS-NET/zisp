@@ -197,6 +197,11 @@ function toggleSidebar() {
                     >
                         <Menu class="w-6 h-6" />
                     </button>
+                    <span 
+                        :class="['font-bold text-xl text-gray-900 dark:text-white transition-opacity duration-300', collapsed ? 'lg:opacity-0 lg:hidden' : 'opacity-100']"
+                    >
+                        {{ user.name }}
+                    </span>
                 </div>
 
                 
