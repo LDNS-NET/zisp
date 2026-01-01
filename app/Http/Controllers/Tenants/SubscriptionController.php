@@ -26,7 +26,12 @@ class SubscriptionController extends Controller
      */
     public function showRenewal()
     {
-        $tenant = tenant();
+        $tenant = tenant() ?: auth()->user()->tenant;
+        
+        if (!$tenant) {
+            return redirect()->route('dashboard')->with('error', 'Tenant context not found.');
+        }
+
         $bill = $this->subscriptionService->calculateMonthlyBill($tenant);
         $subscription = $tenant->subscription;
 
@@ -42,7 +47,15 @@ class SubscriptionController extends Controller
      */
     public function initializePayment(Request $request)
     {
-        $tenant = tenant();
+        $tenant = tenant() ?: auth()->user()->tenant;
+
+        if (!$tenant) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tenant context not found.',
+            ], 400);
+        }
+
         $bill = $this->subscriptionService->calculateMonthlyBill($tenant);
         
         // Get Paystack keys for this tenant or use system defaults
