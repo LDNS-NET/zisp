@@ -7,6 +7,7 @@ export const countries = [
     dial_code: "+254",
     pppoePricePerMonth: 18,
     hotspotPricePerMonth: "3%",
+    minimum_pay: 500,
     payment_methods: ["mpesa", "airtel_money", "equitel"],
   },
   {
@@ -17,6 +18,7 @@ export const countries = [
     dial_code: "+255",
     pppoePricePerMonth: 350,
     hotspotPricePerMonth: "3%",
+    minimum_pay: 10000, // Equivalent to ~500 KES
     payment_methods: ["mpesa", "tigo_pesa", "airtel_money", "halopesa"],
   },
   {
@@ -27,6 +29,7 @@ export const countries = [
     dial_code: "+252",
     pppoePricePerMonth: 88,
     hotspotPricePerMonth: "3%",
+    minimum_pay: 2500, // Equivalent to ~500 KES
     payment_methods: ["hormuud_evc_plus", "zaad"],
   },
   {
@@ -37,6 +40,7 @@ export const countries = [
     dial_code: "+211",
     pppoePricePerMonth: 680,
     hotspotPricePerMonth: "3%",
+    minimum_pay: 5000, // Equivalent to ~500 KES
     payment_methods: ["momo"], // MTN MoMo is common
   },
   /*
@@ -48,6 +52,7 @@ export const countries = [
     dial_code: "+256",
     pppoePricePerMonth: 530,
     hotspotPricePerMonth: "3%",
+    minimum_pay: 15000,
     payment_methods: ["momo", "airtel_money"],
   },
   {
@@ -58,6 +63,7 @@ export const countries = [
     dial_code: "+234",
     pppoePricePerMonth: 220,
     hotspotPricePerMonth: "3%",
+    minimum_pay: 5000,
     payment_methods: ["paystack", "flutterwave"],
   },
   {
@@ -68,6 +74,7 @@ export const countries = [
     dial_code: "+233",
     pppoePricePerMonth: 2,
     hotspotPricePerMonth: "3%",
+    minimum_pay: 50,
     payment_methods: ["momo", "vodafone_cash"],
   },
   {
@@ -78,6 +85,7 @@ export const countries = [
     dial_code: "+250",
     pppoePricePerMonth: 220,
     hotspotPricePerMonth: "3%",
+    minimum_pay: 4500,
     payment_methods: ["momo", "orange_money"],
   },
   {
@@ -88,6 +96,7 @@ export const countries = [
     dial_code: "+251",
     pppoePricePerMonth: 23,
     hotspotPricePerMonth: "3%",
+    minimum_pay: 250,
     payment_methods: ["telebirr", "cbe_birr"],
   },
   {
@@ -98,6 +107,7 @@ export const countries = [
     dial_code: "+20",
     pppoePricePerMonth: 23,
     hotspotPricePerMonth: "3%",
+    minimum_pay: 150,
     payment_methods: ["vodafone_cash", "fawry"],
   },
   {
@@ -108,6 +118,7 @@ export const countries = [
     dial_code: "+27",
     pppoePricePerMonth: 120,
     hotspotPricePerMonth: "3%",
+    minimum_pay: 70,
     payment_methods: ["paystack", "flutterwave"],
   },
   {
@@ -118,6 +129,7 @@ export const countries = [
     dial_code: "+263",
     pppoePricePerMonth: 15,
     hotspotPricePerMonth: "3%",
+    minimum_pay: 1500,
     payment_methods: ["ecocash"],
   },
   {
@@ -128,6 +140,7 @@ export const countries = [
     dial_code: "+221",
     pppoePricePerMonth: 10,
     hotspotPricePerMonth: "3%",
+    minimum_pay: 2500,
     payment_methods: ["wave", "orange_money"],
   },
   {
@@ -138,6 +151,7 @@ export const countries = [
     dial_code: "+243",
     pppoePricePerMonth: 20,
     hotspotPricePerMonth: "3%",
+    minimum_pay: 10000,
     payment_methods: ["airtel_money", "orange_money"],
   },
   {
@@ -148,6 +162,7 @@ export const countries = [
     dial_code: "+237",
     pppoePricePerMonth: 12,
     hotspotPricePerMonth: "3%",
+    minimum_pay: 2500,
     payment_methods: ["momo", "orange_money"],
   },
   {
@@ -158,6 +173,7 @@ export const countries = [
     dial_code: "+260",
     pppoePricePerMonth: 15,
     hotspotPricePerMonth: "3%",
+    minimum_pay: 100,
     payment_methods: ["momo", "airtel_money"],
   },*/
 ];

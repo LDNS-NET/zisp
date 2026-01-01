@@ -52,7 +52,7 @@ class TenantPaymentGatewayController extends Controller
         $tenantId = $this->resolveTenantId($request);
 
         $validated = $request->validate([
-            'provider' => 'required|in:intasend,mpesa,bank,custom',
+            'provider' => 'required|in:intasend,mpesa,paystack,bank,custom',
             'payout_method' => 'required|in:bank,mpesa_phone,till,paybill',
             'bank_name' => 'nullable|string|max:100',
             'bank_account' => 'nullable|string|max:50',
@@ -66,6 +66,8 @@ class TenantPaymentGatewayController extends Controller
             'mpesa_shortcode' => 'nullable|string|max:20',
             'mpesa_passkey' => 'nullable|string',
             'mpesa_env' => 'nullable|in:sandbox,production',
+            'paystack_public_key' => 'nullable|string',
+            'paystack_secret_key' => 'nullable|string',
             'use_own_api' => 'nullable|boolean',
             'label' => 'nullable|string|max:50',
             'is_active' => 'nullable|boolean',

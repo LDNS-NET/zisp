@@ -31,9 +31,13 @@ class CheckSubscription
         }
 
         // Redirect suspended users to payment if not just paid
-        /*if ($user->is_suspended) {
-            return redirect()->away('https://payment.intasend.com/pay/8d7f60c4-f2c2-4642-a2b6-0654a3cc24e3/');
-        }*/
+        if ($user->is_suspended || ($user->subscription_expires_at && now()->greaterThan($user->subscription_expires_at))) {
+            // If it's an Inertia request, we should return a redirect that Inertia handles
+            if ($request->header('X-Inertia')) {
+                return inertia()->location(route('subscription.renew'));
+            }
+            return redirect()->route('subscription.renew');
+        }
 
         return $next($request);
     }

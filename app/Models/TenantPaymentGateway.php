@@ -28,6 +28,8 @@ class TenantPaymentGateway extends Model
         'mpesa_passkey',
         'mpesa_env',
         'use_own_api',
+        'paystack_public_key',
+        'paystack_secret_key',
         'label',
         'is_active',
         'created_by',
@@ -55,6 +57,16 @@ class TenantPaymentGateway extends Model
         return $value ? Crypt::decryptString($value) : null;
     }
 
+    public function getPaystackPublicKeyAttribute($value)
+    {
+        return $value ? Crypt::decryptString($value) : null;
+    }
+
+    public function getPaystackSecretKeyAttribute($value)
+    {
+        return $value ? Crypt::decryptString($value) : null;
+    }
+
     // Mutators to encrypt sensitive fields
     public function setBankAccountAttribute($value)
     {
@@ -74,5 +86,15 @@ class TenantPaymentGateway extends Model
     public function setMpesaPasskeyAttribute($value)
     {
         $this->attributes['mpesa_passkey'] = $value ? Crypt::encryptString($value) : null;
+    }
+
+    public function setPaystackPublicKeyAttribute($value)
+    {
+        $this->attributes['paystack_public_key'] = $value ? Crypt::encryptString($value) : null;
+    }
+
+    public function setPaystackSecretKeyAttribute($value)
+    {
+        $this->attributes['paystack_secret_key'] = $value ? Crypt::encryptString($value) : null;
     }
 }

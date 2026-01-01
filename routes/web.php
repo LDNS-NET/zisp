@@ -35,6 +35,7 @@ use App\Http\Controllers\Tenants\VoucherController;
 use App\Http\Controllers\MikrotikController;
 use App\Http\Controllers\Tenants\TenantHotspotController;
 use App\Http\Controllers\Tenants\MikrotikDetailsController;
+use App\Http\Controllers\Tenants\SubscriptionController;
 
 // SuperAdmin controllers
 use App\Http\Controllers\SuperAdmin\SuperAdminController;
@@ -124,8 +125,14 @@ Route::get('mikrotiks/{mikrotik}/download-script', [TenantMikrotikController::cl
 |--------------------------------------------------------------------------
 */
 
-Route::middleware(['auth', 'verified', 'check.subscription', 'tenant.domain'])
+Route::middleware(['auth', 'verified', 'tenant.domain'])
     ->group(function () {
+        // Subscription & Renewal (Accessible even if expired)
+        Route::get('/subscription/renew', [SubscriptionController::class, 'showRenewal'])->name('subscription.renew');
+        Route::post('/subscription/initialize-payment', [SubscriptionController::class, 'initializePayment'])->name('subscription.initialize-payment');
+        Route::get('/subscription/callback', [SubscriptionController::class, 'handleCallback'])->name('subscription.callback');
+
+        Route::middleware(['check.subscription'])->group(function () {
 
 
         // Dashboard
@@ -234,13 +241,12 @@ Route::middleware(['auth', 'verified', 'check.subscription', 'tenant.domain'])
 
         //captive portal
     
-
-
         // Tenant settings routes
     
 
 
     });
+});
 
 
 

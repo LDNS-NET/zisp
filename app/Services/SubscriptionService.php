@@ -4,6 +4,9 @@ namespace App\Services;
 
 use App\Models\Tenant;
 use App\Models\TenantSubscription;
+use App\Models\Tenants\NetworkUser;
+use App\Models\Tenants\TenantPayment;
+use App\Services\CountryService;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
@@ -219,6 +222,52 @@ class SubscriptionService
             'expired' => $expiredSubscriptions,
             'trial' => $trialSubscriptions,
             'active_percentage' => $totalSubscriptions > 0 ? round(($activeSubscriptions / $totalSubscriptions) * 100, 2) : 0,
+        ];
+    }
+
+    /**
+     * Calculate the monthly bill for a tenant.
+     */
+    public function calculateMonthlyBill(Tenant $tenant): array
+    {
+        $countryCode = $tenant->country_code ?: 'KE';
+        $countryData = CountryService::getCountryData($countryCode);
+
+        // Count active PPPoE users
+        $pppoeUserCount = NetworkUser::withoutGlobalScopes()
+            ->where('tenant_id', $tenant->id)
+            ->where('type', 'pppoe')
+            ->where('status', 'active')
+            ->count();
+
+        $pppoeAmount = $pppoeUserCount * $countryData['pppoe_rate'];
+
+        // Calculate 3% of hotspot income for the last 30 days
+        $hotspotIncome = TenantPayment::withoutGlobalScopes()
+            ->where('tenant_id', $tenant->id)
+            ->whereNotNull('hotspot_package_id')
+            ->where('status', 'paid')
+            ->where('paid_at', '>=', now()->subDays(30))
+            ->sum('amount');
+
+        $hotspotAmount = $hotspotIncome * $countryData['hotspot_rate'];
+
+        $totalAmount = $pppoeAmount + $hotspotAmount;
+        $minimumPay = $countryData['minimum_pay'];
+
+        $finalAmount = max($totalAmount, $minimumPay);
+
+        return [
+            'pppoe_users' => $pppoeUserCount,
+            'pppoe_rate' => $countryData['pppoe_rate'],
+            'pppoe_amount' => $pppoeAmount,
+            'hotspot_income' => $hotspotIncome,
+            'hotspot_rate' => $countryData['hotspot_rate'],
+            'hotspot_amount' => $hotspotAmount,
+            'total_calculated' => $totalAmount,
+            'minimum_pay' => $minimumPay,
+            'final_amount' => $finalAmount,
+            'currency' => $countryData['currency'],
         ];
     }
 }
