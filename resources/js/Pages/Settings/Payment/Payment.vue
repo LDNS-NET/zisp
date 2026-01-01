@@ -111,86 +111,80 @@ const save = () => {
                     </div>
                 </div>
 
-                <!-- Collection Method Section -->
-                <fieldset class="space-y-6">
-                    <legend class="sr-only">Collection Method Settings</legend>
-                    
-                    <div>
-                        <InputLabel value="Collection Method" />
-                        <select
-                            v-model="form.collection_method"
-                            class="mt-1 block w-full rounded border-gray-300 dark:bg-gray-800"
-                        >
-                            <option value="phone">M-Pesa Phone</option>
-                            <option value="bank">Bank</option>
-                            <option value="mpesa_till">M-Pesa Till</option>
-                            <option value="mpesa_paybill">M-Pesa Paybill</option>
-                        </select>
-                    </div>
+                <!-- Collection Method -->
+                <div>
+                    <InputLabel value="Collection Method" />
+                    <select
+                        v-model="form.collection_method"
+                        class="mt-1 block w-full rounded border-gray-300 dark:bg-gray-800"
+                    >
+                        <option value="phone">M-Pesa Phone</option>
+                        <option value="bank">Bank</option>
+                        <option value="mpesa_till">M-Pesa Till</option>
+                        <option value="mpesa_paybill">M-Pesa Paybill</option>
+                    </select>
+                </div>
 
-                    <!-- Phone Collection -->
-                    <div v-if="form.collection_method === 'phone'">
-                        <InputLabel value="Phone Number" />
-                        <TextInput
-                            v-model="form.phone_number"
-                            class="mt-1 block w-full"
-                            placeholder="e.g., 2547XXXXXXXX"
-                        />
-                    </div>
+                <!-- Phone Collection -->
+                <div v-if="form.collection_method === 'phone'">
+                    <InputLabel value="Phone Number" />
+                    <TextInput
+                        v-model="form.phone_number"
+                        class="mt-1 block w-full"
+                        placeholder="e.g., 2547XXXXXXXX"
+                    />
+                </div>
 
-                    <!-- Bank Collection -->
-                    <div v-if="form.collection_method === 'bank'">
-                        <InputLabel value="Bank Name" />
-                        <TextInput
-                            v-model="form.bank_name"
-                            class="mt-1 block w-full"
-                            placeholder="Enter bank name"
-                        />
-                        <InputLabel class="mt-3" value="Bank Account Number" />
-                        <TextInput
-                            v-model="form.bank_account"
-                            class="mt-1 block w-full"
-                            placeholder="Enter account number"
-                        />
-                        <InputLabel class="mt-3" value="Bank Paybill / Business Number" />
-                        <TextInput
-                            v-model="form.bank_paybill"
-                            class="mt-1 block w-full"
-                            placeholder="e.g., 400200 for Co-op, 247247 for Equity"
-                        />
-                    </div>
+                <!-- Bank Collection -->
+                <div v-if="form.collection_method === 'bank'">
+                    <InputLabel value="Bank Name" />
+                    <TextInput
+                        v-model="form.bank_name"
+                        class="mt-1 block w-full"
+                        placeholder="Enter bank name"
+                    />
+                    <InputLabel class="mt-3" value="Bank Account Number" />
+                    <TextInput
+                        v-model="form.bank_account"
+                        class="mt-1 block w-full"
+                        placeholder="Enter account number"
+                    />
+                    <InputLabel class="mt-3" value="Bank Paybill / Business Number" />
+                    <TextInput
+                        v-model="form.bank_paybill"
+                        class="mt-1 block w-full"
+                        placeholder="e.g., 400200 for Co-op, 247247 for Equity"
+                    />
+                </div>
 
-                    <!-- M-Pesa Till -->
-                    <div v-if="form.collection_method === 'mpesa_till'">
-                        <InputLabel value="M-Pesa Till Number" />
-                        <TextInput
-                            v-model="form.till_number"
-                            class="mt-1 block w-full"
-                            placeholder="Enter till number"
-                        />
-                    </div>
+                <!-- M-Pesa Till -->
+                <div v-if="form.collection_method === 'mpesa_till'">
+                    <InputLabel value="M-Pesa Till Number" />
+                    <TextInput
+                        v-model="form.till_number"
+                        class="mt-1 block w-full"
+                        placeholder="Enter till number"
+                    />
+                </div>
 
-                    <!-- M-Pesa Paybill -->
-                    <div v-if="form.collection_method === 'mpesa_paybill'">
-                        <InputLabel value="Paybill Business Number" />
-                        <TextInput
-                            v-model="form.paybill_business_number"
-                            class="mt-1 block w-full"
-                            placeholder="Enter business number"
-                        />
-                        <InputLabel class="mt-3" value="Paybill Account Number" />
-                        <TextInput
-                            v-model="form.paybill_account_number"
-                            class="mt-1 block w-full"
-                            placeholder="Enter account number"
-                        />
-                    </div>
-                </fieldset>
+                <!-- M-Pesa Paybill -->
+                <div v-if="form.collection_method === 'mpesa_paybill'">
+                    <InputLabel value="Paybill Business Number" />
+                    <TextInput
+                        v-model="form.paybill_business_number"
+                        class="mt-1 block w-full"
+                        placeholder="Enter business number"
+                    />
+                    <InputLabel class="mt-3" value="Paybill Account Number" />
+                    <TextInput
+                        v-model="form.paybill_account_number"
+                        class="mt-1 block w-full"
+                        placeholder="Enter account number"
+                    />
+                </div>
 
-                <!-- Custom M-Pesa API Settings Section -->
-                <fieldset class="border-t border-gray-300 pt-6 dark:border-gray-700">
-                    <legend class="sr-only">Custom M-Pesa API Settings</legend>
-                    
+                <!-- Custom M-Pesa API Settings -->
+                <div class="border-t border-gray-300 pt-6 dark:border-gray-700">
                     <div class="flex items-center justify-between">
                         <div>
                             <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Custom M-Pesa API</h3>
@@ -201,11 +195,10 @@ const save = () => {
                         <div class="flex items-center">
                             <input
                                 type="checkbox"
-                                id="use_own_api"
                                 v-model="form.use_own_api"
                                 class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                             />
-                            <label for="use_own_api" class="ml-2 text-sm text-gray-600 dark:text-gray-400">Enable Custom API</label>
+                            <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">Enable Custom API</span>
                         </div>
                     </div>
 
@@ -255,7 +248,7 @@ const save = () => {
                             </select>
                         </div>
                     </div>
-                </fieldset>
+                </div>
 
                 <!-- Footer -->
                 <div class="flex items-center justify-between pt-4">
