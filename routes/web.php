@@ -95,6 +95,8 @@ Route::middleware(['check.subscription'])->group(function () {
         return view('hotspot.success');
     })->name('hotspot.success');
 
+    Route::get('/hotspot/suspended', [TenantHotspotController::class, 'suspended'])->name('hotspot.suspended');
+    
     Route::resource('hotspot', TenantHotspotController::class)->except(['show']);
     Route::post('/hotspot/purchase-stk-push', [TenantHotspotController::class, 'purchaseSTKPush'])->name('hotspot.purchase-stk-push');
     Route::post('/hotspot/checkout', [TenantHotspotController::class, 'checkout'])->name('hotspot.checkout');

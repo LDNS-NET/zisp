@@ -52,6 +52,30 @@ class TenantHotspotController extends Controller
     }
 
     /**
+     * Display the suspension page for hotspot users.
+     */
+    public function suspended()
+    {
+        $host = request()->getHost();
+        $subdomain = explode('.', $host)[0];
+        $tenant = Tenant::where('subdomain', $subdomain)->firstOrFail();
+
+        $settings = TenantGeneralSetting::where('tenant_id', $tenant->id)->first();
+        
+        $tenantData = $tenant->toArray();
+        if ($settings) {
+            $tenantData['name'] = $settings->business_name ?: ($tenantData['name'] ?: $tenantData['id']);
+            $tenantData['logo'] = $settings->logo ? '/storage/' . $settings->logo : null;
+            $tenantData['support_phone'] = $settings->support_phone ?: $settings->primary_phone;
+            $tenantData['support_email'] = $settings->support_email ?: $settings->primary_email;
+        }
+
+        return inertia('Hotspot/Suspended', [
+            'tenant' => $tenantData,
+        ]);
+    }
+
+    /**
      * Process hotspot package purchase via STK Push.
      */
     public function purchaseSTKPush(Request $request)
