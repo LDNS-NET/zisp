@@ -68,10 +68,10 @@ class SubscriptionService
             $subscription = TenantSubscription::where('tenant_id', $tenant->id)->first();
             
             if (!$subscription) {
-                Log::error('No subscription found for tenant during renewal', [
+                Log::info('Creating missing subscription record during renewal', [
                     'tenant_id' => $tenant->id,
                 ]);
-                return false;
+                $subscription = $this->createSubscription($tenant);
             }
 
             // Start new billing period
