@@ -152,11 +152,23 @@ class TenantSubscription extends Model
         $now = now();
         $oldStatus = $this->status;
         
+        // Determine base date for adding 30 days
+        // If current period or trial is still active, add 30 days to that end date
+        $baseDate = $now;
+        
+        if ($this->current_period_ends_at && $this->current_period_ends_at->isFuture()) {
+            $baseDate = $this->current_period_ends_at;
+        } elseif ($this->status === 'trial' && $this->trial_ends_at && $this->trial_ends_at->isFuture()) {
+            $baseDate = $this->trial_ends_at;
+        }
+
+        $newEndDate = $baseDate->copy()->addDays(30);
+
         $this->update([
             'status' => 'active',
             'current_period_starts_at' => $now,
-            'current_period_ends_at' => $now->copy()->addDays(30),
-            'next_billing_date' => $now->copy()->addDays(30),
+            'current_period_ends_at' => $newEndDate,
+            'next_billing_date' => $newEndDate,
             'last_payment_at' => $now,
             'failed_payment_count' => 0,
         ]);
