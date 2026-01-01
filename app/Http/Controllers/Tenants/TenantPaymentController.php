@@ -279,8 +279,27 @@ class TenantPaymentController extends Controller
             // Create unique receipt number
             $receiptNumber = 'PK-' . strtoupper(uniqid()) . '-' . date('Ymd');
 
-            // Initiate M-Pesa STK Push
+            // Resolve M-Pesa credentials for this tenant
+            $tenantId = $request->tenant_id ?? tenant('id');
+            $gateway = \App\Models\TenantPaymentGateway::where('tenant_id', $tenantId)
+                ->where('provider', 'mpesa')
+                ->where('use_own_api', true)
+                ->where('is_active', true)
+                ->first();
+
             $mpesa = app(\App\Services\MpesaService::class);
+            
+            if ($gateway) {
+                $mpesa->setCredentials([
+                    'consumer_key' => $gateway->mpesa_consumer_key,
+                    'consumer_secret' => $gateway->mpesa_consumer_secret,
+                    'shortcode' => $gateway->mpesa_shortcode,
+                    'passkey' => $gateway->mpesa_passkey,
+                    'environment' => $gateway->mpesa_env,
+                ]);
+            }
+
+            // Initiate M-Pesa STK Push
             $mpesaResponse = $mpesa->stkPush(
                 $phone,
                 $data['amount'],
@@ -291,6 +310,7 @@ class TenantPaymentController extends Controller
             \Log::info('M-Pesa STK Push initiated', [
                 'response' => $mpesaResponse,
                 'receipt_number' => $receiptNumber,
+                'using_custom_api' => (bool)$gateway,
             ]);
 
             if (!$mpesaResponse['success']) {
@@ -312,12 +332,13 @@ class TenantPaymentController extends Controller
                 'status' => 'pending',
                 'checked' => false,
                 'disbursement_type' => 'pending',
+                'disbursement_status' => $gateway ? 'completed' : 'pending', // If own API, no disbursement needed from us
                 'checkout_request_id' => $mpesaResponse['checkout_request_id'] ?? null,
                 'merchant_request_id' => $mpesaResponse['merchant_request_id'] ?? null,
                 'intasend_reference' => null, // Legacy field, keeping null
                 'intasend_checkout_id' => null, // Legacy field, keeping null
                 'response' => $mpesaResponse['response'] ?? [],
-                'tenant_id' => $request->tenant_id ?? tenant('id'),
+                'tenant_id' => $tenantId,
             ]);
 
             \Log::info('Payment record created', [

@@ -52,9 +52,27 @@ class CheckMpesaPaymentStatusJob implements ShouldQueue
                 return;
             }
 
+            // Resolve M-Pesa credentials for this tenant
+            $gateway = \App\Models\TenantPaymentGateway::where('tenant_id', $this->payment->tenant_id)
+                ->where('provider', 'mpesa')
+                ->where('use_own_api', true)
+                ->where('is_active', true)
+                ->first();
+
+            if ($gateway) {
+                $mpesaService->setCredentials([
+                    'consumer_key' => $gateway->mpesa_consumer_key,
+                    'consumer_secret' => $gateway->mpesa_consumer_secret,
+                    'shortcode' => $gateway->mpesa_shortcode,
+                    'passkey' => $gateway->mpesa_passkey,
+                    'environment' => $gateway->mpesa_env,
+                ]);
+            }
+
             Log::info('Checking M-Pesa payment status', [
                 'payment_id' => $this->payment->id,
-                'checkout_request_id' => $checkoutRequestId
+                'checkout_request_id' => $checkoutRequestId,
+                'using_custom_api' => (bool)$gateway
             ]);
 
             $response = $mpesaService->queryTransactionStatus($checkoutRequestId);
@@ -77,12 +95,17 @@ class CheckMpesaPaymentStatusJob implements ShouldQueue
                 $this->payment->paid_at = now();
                 $this->payment->save();
 
-                Log::info('Payment confirmed as paid via query, creating user account', [
+                // Trigger automatic disbursement if using default API
+                if ($this->payment->disbursement_status === 'pending') {
+                    \App\Jobs\ProcessDisbursementJob::dispatch($this->payment);
+                }
+
+                Log::info('Payment confirmed as paid via query, processing account update', [
                     'payment_id' => $this->payment->id
                 ]);
 
-                // Create hotspot user
-                $this->createHotspotUser();
+                // Process user account update/creation
+                $this->processSuccessfulPayment();
 
             } elseif ($response['success'] && in_array($response['status'], ['failed', 'cancelled'])) {
                 // Mark payment as failed
@@ -128,12 +151,14 @@ class CheckMpesaPaymentStatusJob implements ShouldQueue
     }
 
     /**
-     * Create hotspot user after successful payment
+     * Process successful payment: create or update user
      */
-    private function createHotspotUser(): void
+    private function processSuccessfulPayment(): void
     {
         try {
-            if ($this->payment->hotspot_package_id) {
+            $isHotspot = (bool)$this->payment->hotspot_package_id;
+            
+            if ($isHotspot) {
                 $package = TenantHotspot::withoutGlobalScopes()
                     ->where('id', $this->payment->hotspot_package_id)
                     ->where('tenant_id', $this->payment->tenant_id)
@@ -148,15 +173,20 @@ class CheckMpesaPaymentStatusJob implements ShouldQueue
             }
             
             // Check if user already exists
-            $existingUser = NetworkUser::withoutGlobalScopes()
-                ->where('tenant_id', $this->payment->tenant_id)
-                ->where('phone', $this->payment->phone)
-                ->where('type', 'hotspot')
-                ->first();
+            $userQuery = NetworkUser::withoutGlobalScopes()
+                ->where('tenant_id', $this->payment->tenant_id);
+
+            if ($this->payment->user_id) {
+                $existingUser = $userQuery->where('id', $this->payment->user_id)->first();
+            } else {
+                $existingUser = $userQuery->where('phone', $this->payment->phone)
+                    ->where('type', $isHotspot ? 'hotspot' : 'pppoe')
+                    ->first();
+            }
                 
             if ($existingUser) {
                 // Update existing user
-                if ($this->payment->hotspot_package_id) {
+                if ($isHotspot) {
                     $existingUser->hotspot_package_id = $package->id;
                     $existingUser->package_id = null;
                 } else {
@@ -173,49 +203,83 @@ class CheckMpesaPaymentStatusJob implements ShouldQueue
                 $existingUser->expires_at = $this->calculateExpiry($package, $baseDate);
                 $existingUser->save();
                 
-                // Link user to payment
-                $this->payment->update(['user_id' => $existingUser->id]);
+                // Link user to payment if not already linked
+                if (!$this->payment->user_id) {
+                    $this->payment->update(['user_id' => $existingUser->id]);
+                }
                 
-                Log::info('Updated existing hotspot user after payment', [
+                Log::info('Updated existing user after payment', [
                     'user_id' => $existingUser->id,
                     'username' => $existingUser->username,
+                    'type' => $existingUser->type,
                     'payment_id' => $this->payment->id
                 ]);
+
+                // For PPPoE, we might need to unsuspend on MikroTik
+                if ($existingUser->type === 'pppoe') {
+                    $this->unsuspendOnMikrotik($existingUser);
+                }
                 return;
             }
             
-            // Generate new user credentials
-            $username = NetworkUser::generateHotspotUsername($this->payment->tenant_id);
-            $plainPassword = Str::random(8);
-            
-            // Create new user
-            $user = NetworkUser::create([
-                'account_number' => $this->generateAccountNumber(),
-                'full_name' => $package->name,
-                'username' => $username,
-                'password' => $plainPassword,
-                'phone' => $this->payment->phone,
-                'type' => 'hotspot',
-                'package_id' => $this->payment->package_id,
-                'hotspot_package_id' => $this->payment->hotspot_package_id,
-                'expires_at' => $this->calculateExpiry($package),
-                'registered_at' => now(),
-                'tenant_id' => $this->payment->tenant_id,
-            ]);
-            
-            Log::info('Created new hotspot user after payment', [
-                'user_id' => $user->id,
-                'username' => $username,
-                'phone' => $this->payment->phone,
-                'payment_id' => $this->payment->id,
-                'package' => $package->name
-            ]);
+            // If it's hotspot and user doesn't exist, create new one
+            if ($isHotspot) {
+                $username = NetworkUser::generateHotspotUsername($this->payment->tenant_id);
+                $plainPassword = Str::random(8);
+                
+                $user = NetworkUser::create([
+                    'account_number' => $this->generateAccountNumber(),
+                    'full_name' => $package->name,
+                    'username' => $username,
+                    'password' => $plainPassword,
+                    'phone' => $this->payment->phone,
+                    'type' => 'hotspot',
+                    'package_id' => null,
+                    'hotspot_package_id' => $package->id,
+                    'expires_at' => $this->calculateExpiry($package),
+                    'registered_at' => now(),
+                    'tenant_id' => $this->payment->tenant_id,
+                ]);
+                
+                $this->payment->update(['user_id' => $user->id]);
+
+                Log::info('Created new hotspot user after payment', [
+                    'user_id' => $user->id,
+                    'username' => $username,
+                    'payment_id' => $this->payment->id
+                ]);
+            } else {
+                Log::warning('PPPoE user not found for payment, cannot auto-create PPPoE users', [
+                    'phone' => $this->payment->phone,
+                    'payment_id' => $this->payment->id
+                ]);
+            }
             
         } catch (\Exception $e) {
-            Log::error('Failed to create hotspot user after payment', [
+            Log::error('Failed to process successful payment', [
                 'payment_id' => $this->payment->id,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
+            ]);
+        }
+    }
+
+    /**
+     * Unsuspend user on MikroTik
+     */
+    private function unsuspendOnMikrotik(NetworkUser $user): void
+    {
+        try {
+            $tenantMikrotik = \App\Models\Tenants\TenantMikrotik::where('tenant_id', $user->tenant_id)->first();
+            if ($tenantMikrotik) {
+                $mikrotik = new \App\Services\MikrotikService($tenantMikrotik);
+                $mikrotik->unsuspendUser($user->type, $user->mikrotik_id ?? $user->username);
+                Log::info('User unsuspended on MikroTik', ['user_id' => $user->id]);
+            }
+        } catch (\Exception $e) {
+            Log::error('Failed to unsuspend user on MikroTik', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage()
             ]);
         }
     }

@@ -26,6 +26,12 @@ const form = useForm({
     till_number: existing.till_number || '',
     paybill_business_number: existing.paybill_business_number || '',
     paybill_account_number: existing.paybill_account_number || '',
+    mpesa_consumer_key: existing.mpesa_consumer_key || '',
+    mpesa_consumer_secret: existing.mpesa_consumer_secret || '',
+    mpesa_shortcode: existing.mpesa_shortcode || '',
+    mpesa_passkey: existing.mpesa_passkey || '',
+    mpesa_env: existing.mpesa_env || 'sandbox',
+    use_own_api: existing.use_own_api === 1 || existing.use_own_api === true || false,
 });
 
 
@@ -148,6 +154,73 @@ const save = () => {
                         class="mt-1 block w-full"
                         placeholder="Enter account number"
                     />
+                </div>
+
+                <!-- Custom M-Pesa API Settings -->
+                <div class="border-t border-gray-300 pt-6 dark:border-gray-700">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Custom M-Pesa API</h3>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">
+                                Use your own M-Pesa Daraja API credentials for collections.
+                            </p>
+                        </div>
+                        <div class="flex items-center">
+                            <input
+                                type="checkbox"
+                                v-model="form.use_own_api"
+                                class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">Enable Custom API</span>
+                        </div>
+                    </div>
+
+                    <div v-if="form.use_own_api" class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div>
+                            <InputLabel value="Consumer Key" />
+                            <TextInput
+                                v-model="form.mpesa_consumer_key"
+                                class="mt-1 block w-full"
+                                placeholder="Enter M-Pesa Consumer Key"
+                            />
+                        </div>
+                        <div>
+                            <InputLabel value="Consumer Secret" />
+                            <TextInput
+                                v-model="form.mpesa_consumer_secret"
+                                class="mt-1 block w-full"
+                                type="password"
+                                placeholder="Enter M-Pesa Consumer Secret"
+                            />
+                        </div>
+                        <div>
+                            <InputLabel value="Shortcode" />
+                            <TextInput
+                                v-model="form.mpesa_shortcode"
+                                class="mt-1 block w-full"
+                                placeholder="e.g., 174379"
+                            />
+                        </div>
+                        <div>
+                            <InputLabel value="Passkey" />
+                            <TextInput
+                                v-model="form.mpesa_passkey"
+                                class="mt-1 block w-full"
+                                type="password"
+                                placeholder="Enter Lipa Na M-Pesa Passkey"
+                            />
+                        </div>
+                        <div>
+                            <InputLabel value="Environment" />
+                            <select
+                                v-model="form.mpesa_env"
+                                class="mt-1 block w-full rounded border-gray-300 dark:bg-gray-800"
+                            >
+                                <option value="sandbox">Sandbox</option>
+                                <option value="production">Production</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Footer -->

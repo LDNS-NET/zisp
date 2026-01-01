@@ -21,21 +21,57 @@ class TenantPaymentGateway extends Model
         'till_number',
         'paybill_business_number',
         'paybill_account_number',
+        'mpesa_consumer_key',
+        'mpesa_consumer_secret',
+        'mpesa_shortcode',
+        'mpesa_passkey',
+        'mpesa_env',
+        'use_own_api',
         'label',
         'is_active',
         'created_by',
         'last_updated_by',
     ];
 
-    // Accessor to decrypt sensitive fields
+    // Accessors to decrypt sensitive fields
     public function getBankAccountAttribute($value)
     {
         return $value ? Crypt::decryptString($value) : null;
     }
 
-    // Mutator to encrypt sensitive fields
+    public function getMpesaConsumerKeyAttribute($value)
+    {
+        return $value ? Crypt::decryptString($value) : null;
+    }
+
+    public function getMpesaConsumerSecretAttribute($value)
+    {
+        return $value ? Crypt::decryptString($value) : null;
+    }
+
+    public function getMpesaPasskeyAttribute($value)
+    {
+        return $value ? Crypt::decryptString($value) : null;
+    }
+
+    // Mutators to encrypt sensitive fields
     public function setBankAccountAttribute($value)
     {
         $this->attributes['bank_account'] = $value ? Crypt::encryptString($value) : null;
+    }
+
+    public function setMpesaConsumerKeyAttribute($value)
+    {
+        $this->attributes['mpesa_consumer_key'] = $value ? Crypt::encryptString($value) : null;
+    }
+
+    public function setMpesaConsumerSecretAttribute($value)
+    {
+        $this->attributes['mpesa_consumer_secret'] = $value ? Crypt::encryptString($value) : null;
+    }
+
+    public function setMpesaPasskeyAttribute($value)
+    {
+        $this->attributes['mpesa_passkey'] = $value ? Crypt::encryptString($value) : null;
     }
 }

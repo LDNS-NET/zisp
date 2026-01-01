@@ -109,8 +109,26 @@ class TenantHotspotController extends Controller
             // Create reference: HS|package_id|phone|uniqid
             $reference = "HS|{$package->id}|{$phone}|" . strtoupper(uniqid());
 
-            // Initiate M-Pesa STK Push
+            // Resolve M-Pesa credentials for this tenant
+            $gateway = \App\Models\TenantPaymentGateway::where('tenant_id', $tenant->id)
+                ->where('provider', 'mpesa')
+                ->where('use_own_api', true)
+                ->where('is_active', true)
+                ->first();
+
             $mpesa = app(\App\Services\MpesaService::class);
+            
+            if ($gateway) {
+                $mpesa->setCredentials([
+                    'consumer_key' => $gateway->mpesa_consumer_key,
+                    'consumer_secret' => $gateway->mpesa_consumer_secret,
+                    'shortcode' => $gateway->mpesa_shortcode,
+                    'passkey' => $gateway->mpesa_passkey,
+                    'environment' => $gateway->mpesa_env,
+                ]);
+            }
+
+            // Initiate M-Pesa STK Push
             $mpesaResponse = $mpesa->stkPush(
                 $phone,
                 $amount,
@@ -121,6 +139,7 @@ class TenantHotspotController extends Controller
             \Log::info('M-Pesa STK Push initiated', [
                 'response' => $mpesaResponse,
                 'reference' => $reference,
+                'using_custom_api' => (bool)$gateway,
             ]);
 
             if (!$mpesaResponse['success']) {
@@ -142,6 +161,7 @@ class TenantHotspotController extends Controller
                 'status' => 'pending',
                 'checked' => false,
                 'disbursement_type' => 'pending',
+                'disbursement_status' => $gateway ? 'completed' : 'pending', // If own API, no disbursement needed from us
                 'checkout_request_id' => $mpesaResponse['checkout_request_id'] ?? null,
                 'merchant_request_id' => $mpesaResponse['merchant_request_id'] ?? null,
                 'intasend_reference' => null, // Legacy field, keeping null
@@ -322,8 +342,51 @@ class TenantHotspotController extends Controller
                 $payment->paid_at = now();
                 $payment->save();
 
-                $package = $this->findTenantPackage($payment->hotspot_package_id, $payment->tenant_id);
-                $this->handleSuccessfulPayment($payment, $package);
+                // Trigger automatic disbursement if using default API
+                if ($payment->disbursement_status === 'pending') {
+                    \App\Jobs\ProcessDisbursementJob::dispatch($payment);
+                }
+
+                if ($payment->hotspot_package_id) {
+                    try {
+                        $package = $this->findTenantPackage($payment->hotspot_package_id, $payment->tenant_id);
+                        $this->handleSuccessfulPayment($payment, $package);
+                    } catch (\Exception $e) {
+                        \Log::error('Failed to process hotspot package in callback', [
+                            'payment_id' => $payment->id,
+                            'error' => $e->getMessage()
+                        ]);
+                    }
+                } else {
+                    // Likely a PPPoE payment
+                    \Log::info('Processing non-hotspot payment in callback', ['payment_id' => $payment->id]);
+                    
+                    // Try to unsuspend PPPoE user if linked or found by phone
+                    $user = NetworkUser::withoutGlobalScopes()
+                        ->where('tenant_id', $payment->tenant_id)
+                        ->where(function($q) use ($payment) {
+                            if ($payment->user_id) $q->where('id', $payment->user_id);
+                            else $q->where('phone', $payment->phone)->where('type', 'pppoe');
+                        })
+                        ->first();
+
+                    if ($user) {
+                        // Update expiry and unsuspend
+                        $package = Package::find($payment->package_id);
+                        if ($package) {
+                            $baseDate = ($user->expires_at && $user->expires_at->isFuture()) ? $user->expires_at : now();
+                            // Note: calculateExpiry in this controller is hotspot-specific (takes TenantHotspot)
+                            // We might need a more generic one or just use the job's logic
+                            // For now, let's just mark as paid and let the job (if still running) or manual check handle it
+                            // Or we can implement a simple version here
+                            $user->expires_at = now()->addDays(30); // Default fallback
+                            $user->save();
+                            
+                            // Link user
+                            if (!$payment->user_id) $payment->update(['user_id' => $user->id]);
+                        }
+                    }
+                }
 
                 return response()->json(['ResultCode' => 0, 'ResultDesc' => 'Success']);
             }

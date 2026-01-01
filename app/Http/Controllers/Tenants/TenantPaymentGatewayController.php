@@ -60,6 +60,12 @@ class TenantPaymentGatewayController extends Controller
             'till_number' => 'nullable|string|max:20',
             'paybill_business_number' => 'nullable|string|max:20',
             'paybill_account_number' => 'nullable|string|max:20',
+            'mpesa_consumer_key' => 'nullable|string',
+            'mpesa_consumer_secret' => 'nullable|string',
+            'mpesa_shortcode' => 'nullable|string|max:20',
+            'mpesa_passkey' => 'nullable|string',
+            'mpesa_env' => 'nullable|in:sandbox,production',
+            'use_own_api' => 'nullable|boolean',
             'label' => 'nullable|string|max:50',
             'is_active' => 'nullable|boolean',
         ]);

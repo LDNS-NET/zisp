@@ -15,15 +15,31 @@ class MpesaService
     protected $passkey;
     protected $baseUrl;
     protected $callbackUrl;
+    protected $environment;
 
-    public function __construct()
+    public function __construct(array $credentials = [])
     {
-        $this->consumerKey = config('mpesa.consumer_key');
-        $this->consumerSecret = config('mpesa.consumer_secret');
-        $this->shortcode = config('mpesa.shortcode');
-        $this->passkey = config('mpesa.passkey');
-        $this->baseUrl = config('mpesa.base_url');
-        $this->callbackUrl = config('mpesa.callback_url');
+        $this->setCredentials($credentials);
+    }
+
+    /**
+     * Set or override M-Pesa credentials
+     */
+    public function setCredentials(array $credentials = []): self
+    {
+        $this->consumerKey = $credentials['consumer_key'] ?? config('mpesa.consumer_key');
+        $this->consumerSecret = $credentials['consumer_secret'] ?? config('mpesa.consumer_secret');
+        $this->shortcode = $credentials['shortcode'] ?? config('mpesa.shortcode');
+        $this->passkey = $credentials['passkey'] ?? config('mpesa.passkey');
+        $this->environment = $credentials['environment'] ?? config('mpesa.environment', 'sandbox');
+        
+        $this->baseUrl = $this->environment === 'production' 
+            ? 'https://api.safaricom.co.ke' 
+            : 'https://sandbox.safaricom.co.ke';
+            
+        $this->callbackUrl = $credentials['callback_url'] ?? config('mpesa.callback_url');
+
+        return $this;
     }
 
     /**
@@ -32,7 +48,9 @@ class MpesaService
      */
     public function getAccessToken(): ?string
     {
-        return Cache::remember('mpesa_access_token', 55 * 60, function () {
+        $cacheKey = 'mpesa_access_token_' . md5($this->consumerKey . $this->consumerSecret);
+
+        return Cache::remember($cacheKey, 55 * 60, function () {
             try {
                 $url = $this->baseUrl . '/oauth/v1/generate?grant_type=client_credentials';
                 
@@ -107,7 +125,8 @@ class MpesaService
             Log::info('M-Pesa: Initiating STK Push', [
                 'phone' => $phone,
                 'amount' => $amount,
-                'reference' => $reference
+                'reference' => $reference,
+                'shortcode' => $this->shortcode
             ]);
 
             $response = Http::withToken($token)
@@ -140,6 +159,87 @@ class MpesaService
             Log::error('M-Pesa: STK Push exception', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'An error occurred: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Initiate B2C Payment (Disbursement)
+     *
+     * @param string $phone Phone number in format 2547XXXXXXXX
+     * @param float $amount Amount to send
+     * @param string $remarks Remarks for the transaction
+     * @param string $occasion Occasion for the transaction
+     * @return array Response with success status and data
+     */
+    public function b2cPayment(string $phone, float $amount, string $remarks = 'Disbursement', string $occasion = 'Payment'): array
+    {
+        try {
+            $token = $this->getAccessToken();
+            
+            if (!$token) {
+                return [
+                    'success' => false,
+                    'message' => 'Failed to obtain access token'
+                ];
+            }
+
+            $phone = $this->normalizePhoneNumber($phone);
+            $url = $this->baseUrl . '/mpesa/b2c/v1/paymentrequest';
+
+            $payload = [
+                'InitiatorName' => config('mpesa.initiator_name'),
+                'SecurityCredential' => config('mpesa.security_credential'),
+                'CommandID' => 'BusinessPayment',
+                'Amount' => round($amount),
+                'PartyA' => $this->shortcode,
+                'PartyB' => $phone,
+                'Remarks' => $remarks,
+                'QueueTimeOutURL' => config('mpesa.timeout_url'),
+                'ResultURL' => config('mpesa.result_url'),
+                'Occasion' => $occasion
+            ];
+
+            Log::info('M-Pesa: Initiating B2C Payment', [
+                'phone' => $phone,
+                'amount' => $amount,
+                'shortcode' => $this->shortcode
+            ]);
+
+            $response = Http::withToken($token)
+                ->post($url, $payload);
+
+            $data = $response->json();
+
+            Log::info('M-Pesa: B2C response', [
+                'status_code' => $response->status(),
+                'response' => $data
+            ]);
+
+            if ($response->successful() && isset($data['ResponseCode']) && $data['ResponseCode'] == '0') {
+                return [
+                    'success' => true,
+                    'message' => $data['ResponseDescription'] ?? 'B2C request accepted',
+                    'conversation_id' => $data['ConversationID'] ?? null,
+                    'originator_conversation_id' => $data['OriginatorConversationID'] ?? null,
+                    'response' => $data
+                ];
+            }
+
+            return [
+                'success' => false,
+                'message' => $data['errorMessage'] ?? $data['ResponseDescription'] ?? 'B2C failed',
+                'response' => $data
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('M-Pesa: B2C exception', [
+                'error' => $e->getMessage()
             ]);
 
             return [
