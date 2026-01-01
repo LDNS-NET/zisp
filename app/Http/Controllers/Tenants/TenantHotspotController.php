@@ -161,7 +161,9 @@ class TenantHotspotController extends Controller
                 'status' => 'pending',
                 'checked' => false,
                 'disbursement_type' => 'pending',
-                'disbursement_status' => $gateway ? 'completed' : 'pending', // If own API, no disbursement needed from us
+                'disbursement_status' => $gateway 
+                    ? ($gateway->mpesa_env === 'sandbox' ? 'testing' : 'completed') 
+                    : (config('mpesa.environment') === 'sandbox' ? 'testing' : 'pending'),
                 'checkout_request_id' => $mpesaResponse['checkout_request_id'] ?? null,
                 'merchant_request_id' => $mpesaResponse['merchant_request_id'] ?? null,
                 'intasend_reference' => null, // Legacy field, keeping null

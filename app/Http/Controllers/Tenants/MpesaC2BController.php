@@ -174,10 +174,15 @@ class MpesaC2BController extends Controller
 
         if ($gateway) {
             // Tenant uses their own API, no disbursement needed
-            $payment->update(['disbursement_status' => 'completed']);
+            $status = ($gateway->mpesa_env === 'sandbox') ? 'testing' : 'completed';
+            $payment->update(['disbursement_status' => $status]);
         } else {
-            // Use default API, queue disbursement
-            ProcessDisbursementJob::dispatch($payment);
+            // Use default API, check if sandbox
+            if (config('mpesa.environment') === 'sandbox') {
+                $payment->update(['disbursement_status' => 'testing']);
+            } else {
+                ProcessDisbursementJob::dispatch($payment);
+            }
         }
     }
 }

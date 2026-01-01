@@ -291,6 +291,7 @@ const DISBURSEMENT_OPTIONS = [
     { value: 'processing', label: 'Processing' },
     { value: 'completed', label: 'Completed' },
     { value: 'failed', label: 'Failed' },
+    { value: 'testing', label: 'Testing Mode' },
 ];
 
 const getStatusColor = (status) => {
@@ -301,6 +302,8 @@ const getStatusColor = (status) => {
             return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
         case 'failed':
             return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
+        case 'testing':
+            return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400';
         default:
             return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
     }

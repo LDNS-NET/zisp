@@ -42,7 +42,17 @@ class ProcessDisbursementJob implements ShouldQueue
 
         // If tenant uses their own API, we don't disburse (they already received the money)
         if ($gateway->use_own_api) {
-            $this->payment->update(['disbursement_status' => 'completed']);
+            $status = ($gateway->mpesa_env === 'sandbox') ? 'testing' : 'completed';
+            $this->payment->update(['disbursement_status' => $status]);
+            return;
+        }
+
+        // Check if system M-Pesa is in sandbox mode
+        if (config('mpesa.environment') === 'sandbox') {
+            $this->payment->update([
+                'disbursement_status' => 'testing',
+                'disbursement_response' => ['message' => 'Disbursement skipped: System is in Sandbox/Testing mode.']
+            ]);
             return;
         }
 
