@@ -5,6 +5,8 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import TextInput from '@/Components/TextInput.vue';
 import { useToast } from 'vue-toastification';
+import { countries } from '@/data/countries';
+import { computed } from 'vue';
 
 const toast = useToast();
 
@@ -13,6 +15,9 @@ const props = defineProps({
     phone_number: { type: String, default: '' },
     country: { type: String, default: 'KE' },
 });
+
+const currentCountry = computed(() => countries.find(c => c.code === props.country) || countries[0]);
+const supportedMethods = computed(() => currentCountry.value.payment_methods || []);
 
 // Use the first gateway record if any
 const existing = props.gateways[0] || {};
@@ -31,7 +36,7 @@ const getInitialCollectionMethod = (payoutMethod) => {
 const form = useForm({
     provider: existing.provider || (props.country === 'KE' ? 'mpesa' : 'paystack'),
     payout_method: existing.payout_method || (props.country === 'KE' ? 'mpesa_phone' : ''),
-    collection_method: existing.provider === 'paystack' ? 'paystack' : getInitialCollectionMethod(existing.payout_method),
+    collection_method: existing.provider || getInitialCollectionMethod(existing.payout_method),
     phone_number: existing.phone_number || props.phone_number || '',
     bank_name: existing.bank_name || '',
     bank_account: existing.bank_account || '',
@@ -46,6 +51,15 @@ const form = useForm({
     mpesa_env: existing.mpesa_env || 'sandbox',
     paystack_public_key: existing.paystack_public_key || '',
     paystack_secret_key: existing.paystack_secret_key || '',
+    flutterwave_public_key: existing.flutterwave_public_key || '',
+    flutterwave_secret_key: existing.flutterwave_secret_key || '',
+    momo_api_user: existing.momo_api_user || '',
+    momo_api_key: existing.momo_api_key || '',
+    momo_subscription_key: existing.momo_subscription_key || '',
+    momo_env: existing.momo_env || 'sandbox',
+    airtel_client_id: existing.airtel_client_id || '',
+    airtel_client_secret: existing.airtel_client_secret || '',
+    airtel_env: existing.airtel_env || 'sandbox',
     use_own_api: existing.use_own_api === 1 || existing.use_own_api === true || false,
 });
 
@@ -73,6 +87,18 @@ const save = () => {
             break;
         case 'paystack':
             form.provider = 'paystack';
+            form.payout_method = '';
+            break;
+        case 'flutterwave':
+            form.provider = 'flutterwave';
+            form.payout_method = '';
+            break;
+        case 'momo':
+            form.provider = 'momo';
+            form.payout_method = '';
+            break;
+        case 'airtel_money':
+            form.provider = 'airtel_money';
             form.payout_method = '';
             break;
         default:
@@ -142,7 +168,10 @@ const save = () => {
                             <option value="mpesa_till">M-Pesa Till</option>
                             <option value="mpesa_paybill">M-Pesa Paybill</option>
                         </template>
+                        <option v-if="supportedMethods.includes('momo')" value="momo">MTN MoMo</option>
+                        <option v-if="supportedMethods.includes('airtel_money')" value="airtel_money">Airtel Money</option>
                         <option value="paystack">Paystack</option>
+                        <option value="flutterwave">Flutterwave</option>
                     </select>
                 </div>
 
@@ -219,6 +248,80 @@ const save = () => {
                         type="password"
                         placeholder="sk_test_..."
                     />
+                </div>
+
+                <!-- Flutterwave -->
+                <div v-if="form.collection_method === 'flutterwave'">
+                    <InputLabel value="Flutterwave Public Key" />
+                    <TextInput
+                        v-model="form.flutterwave_public_key"
+                        class="mt-1 block w-full"
+                        placeholder="FLWPUBK_TEST-..."
+                    />
+                    <InputLabel class="mt-3" value="Flutterwave Secret Key" />
+                    <TextInput
+                        v-model="form.flutterwave_secret_key"
+                        class="mt-1 block w-full"
+                        type="password"
+                        placeholder="FLWSECK_TEST-..."
+                    />
+                </div>
+
+                <!-- MoMo -->
+                <div v-if="form.collection_method === 'momo'">
+                    <InputLabel value="MoMo API User" />
+                    <TextInput
+                        v-model="form.momo_api_user"
+                        class="mt-1 block w-full"
+                        placeholder="Enter MoMo API User"
+                    />
+                    <InputLabel class="mt-3" value="MoMo API Key" />
+                    <TextInput
+                        v-model="form.momo_api_key"
+                        class="mt-1 block w-full"
+                        type="password"
+                        placeholder="Enter MoMo API Key"
+                    />
+                    <InputLabel class="mt-3" value="MoMo Subscription Key" />
+                    <TextInput
+                        v-model="form.momo_subscription_key"
+                        class="mt-1 block w-full"
+                        type="password"
+                        placeholder="Enter MoMo Subscription Key"
+                    />
+                    <InputLabel class="mt-3" value="Environment" />
+                    <select
+                        v-model="form.momo_env"
+                        class="mt-1 block w-full rounded border-gray-300 dark:bg-gray-800"
+                    >
+                        <option value="sandbox">Sandbox</option>
+                        <option value="production">Production</option>
+                    </select>
+                </div>
+
+                <!-- Airtel Money -->
+                <div v-if="form.collection_method === 'airtel_money'">
+                    <InputLabel value="Airtel Client ID" />
+                    <TextInput
+                        v-model="form.airtel_client_id"
+                        class="mt-1 block w-full"
+                        placeholder="Enter Airtel Client ID"
+                    />
+                    <InputLabel class="mt-3" value="Airtel Client Secret" />
+                    <TextInput
+                        v-model="form.airtel_client_secret"
+                        class="mt-1 block w-full"
+                        type="password"
+                        placeholder="Enter Airtel Client Secret"
+                    />
+                    <InputLabel class="mt-3" value="Environment" />
+                    <select
+                        v-model="form.airtel_env"
+                        class="mt-1 block w-full rounded border-gray-300 dark:bg-gray-800"
+                    >
+                        <option value="sandbox">Sandbox</option>
+                        <option value="production">Production</option>
+                    </select>
                 </div>
 
                 <!-- Custom M-Pesa API Settings -->
