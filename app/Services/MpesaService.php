@@ -250,6 +250,83 @@ class MpesaService
     }
 
     /**
+     * Initiate B2B Payment (Business to Business)
+     * Used for paying to Paybills/Shortcodes (e.g., Bank Paybills)
+     */
+    public function b2bPayment(string $destinationShortcode, float $amount, string $accountReference, string $remarks = 'Business Payment'): array
+    {
+        try {
+            $token = $this->getAccessToken();
+            
+            if (!$token) {
+                return [
+                    'success' => false,
+                    'message' => 'Failed to obtain access token'
+                ];
+            }
+
+            $url = $this->baseUrl . '/mpesa/b2b/v1/paymentrequest';
+
+            $payload = [
+                'Initiator' => config('mpesa.initiator_name'),
+                'SecurityCredential' => config('mpesa.security_credential'),
+                'CommandID' => 'BusinessPayBill',
+                'SenderIdentifierType' => '4', // Shortcode
+                'RecieverIdentifierType' => '4', // Shortcode
+                'Amount' => round($amount),
+                'PartyA' => $this->shortcode,
+                'PartyB' => $destinationShortcode,
+                'AccountReference' => $accountReference,
+                'Remarks' => $remarks,
+                'QueueTimeOutURL' => config('mpesa.timeout_url'),
+                'ResultURL' => config('mpesa.result_url'),
+            ];
+
+            Log::info('M-Pesa: Initiating B2B Payment', [
+                'destination' => $destinationShortcode,
+                'account' => $accountReference,
+                'amount' => $amount
+            ]);
+
+            $response = Http::withToken($token)
+                ->post($url, $payload);
+
+            $data = $response->json();
+
+            Log::info('M-Pesa: B2B response', [
+                'status_code' => $response->status(),
+                'response' => $data
+            ]);
+
+            if ($response->successful() && isset($data['ResponseCode']) && $data['ResponseCode'] == '0') {
+                return [
+                    'success' => true,
+                    'message' => $data['ResponseDescription'] ?? 'B2B request accepted',
+                    'conversation_id' => $data['ConversationID'] ?? null,
+                    'originator_conversation_id' => $data['OriginatorConversationID'] ?? null,
+                    'response' => $data
+                ];
+            }
+
+            return [
+                'success' => false,
+                'message' => $data['errorMessage'] ?? $data['ResponseDescription'] ?? 'B2B failed',
+                'response' => $data
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('M-Pesa: B2B exception', [
+                'error' => $e->getMessage()
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'An error occurred: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
      * Query STK Push transaction status
      *
      * @param string $checkoutRequestId The CheckoutRequestID from STK Push response

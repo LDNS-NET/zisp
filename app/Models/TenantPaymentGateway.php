@@ -17,6 +17,7 @@ class TenantPaymentGateway extends Model
         'payout_method',
         'bank_name',
         'bank_account',
+        'bank_paybill',
         'phone_number',
         'till_number',
         'paybill_business_number',

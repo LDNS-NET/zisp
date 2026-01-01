@@ -23,6 +23,7 @@ const form = useForm({
     phone_number: existing.phone_number || props.phone_number || '',
     bank_name: existing.bank_name || '',
     bank_account: existing.bank_account || '',
+    bank_paybill: existing.bank_paybill || '',
     till_number: existing.till_number || '',
     paybill_business_number: existing.paybill_business_number || '',
     paybill_account_number: existing.paybill_account_number || '',
@@ -90,6 +91,26 @@ const save = () => {
             </header>
 
             <form @submit.prevent="save" class="mt-6 space-y-6">
+                <!-- Warning for Custom API -->
+                <div v-if="form.use_own_api" class="rounded-lg border border-yellow-400 bg-yellow-50 p-4 dark:bg-yellow-900/30">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-yellow-800 dark:text-yellow-200">Custom API Enabled</h3>
+                            <div class="mt-2 text-sm text-yellow-700 dark:text-yellow-300">
+                                <p>
+                                    When using your own M-Pesa API, payments are collected directly into your shortcode. 
+                                    <strong>Automatic settlements and disbursements from the system are bypassed.</strong>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Collection Method -->
                 <div>
                     <InputLabel value="Collection Method" />
@@ -122,11 +143,17 @@ const save = () => {
                         class="mt-1 block w-full"
                         placeholder="Enter bank name"
                     />
-                    <InputLabel class="mt-3" value="Bank Account" />
+                    <InputLabel class="mt-3" value="Bank Account Number" />
                     <TextInput
                         v-model="form.bank_account"
                         class="mt-1 block w-full"
                         placeholder="Enter account number"
+                    />
+                    <InputLabel class="mt-3" value="Bank Paybill / Business Number" />
+                    <TextInput
+                        v-model="form.bank_paybill"
+                        class="mt-1 block w-full"
+                        placeholder="e.g., 400200 for Co-op, 247247 for Equity"
                     />
                 </div>
 

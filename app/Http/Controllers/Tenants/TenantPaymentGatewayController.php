@@ -56,6 +56,7 @@ class TenantPaymentGatewayController extends Controller
             'payout_method' => 'required|in:bank,mpesa_phone,till,paybill',
             'bank_name' => 'nullable|string|max:100',
             'bank_account' => 'nullable|string|max:50',
+            'bank_paybill' => 'nullable|string|max:20',
             'phone_number' => 'nullable|string|max:20',
             'till_number' => 'nullable|string|max:20',
             'paybill_business_number' => 'nullable|string|max:20',

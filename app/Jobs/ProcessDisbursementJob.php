@@ -67,9 +67,10 @@ class ProcessDisbursementJob implements ShouldQueue
                 $remarks .= " (Acc: {$gateway->paybill_account_number})";
                 break;
             case 'bank':
-                // Bank disbursement might need a different API or B2B
-                $destination = $gateway->bank_account;
-                $remarks .= " (Bank: {$gateway->bank_name})";
+                // For bank, destination is the bank's paybill/business number
+                // and account is the tenant's bank account number
+                $destination = $gateway->bank_paybill;
+                $remarks .= " (Bank: {$gateway->bank_name}, Acc: {$gateway->bank_account})";
                 break;
         }
 
@@ -81,9 +82,12 @@ class ProcessDisbursementJob implements ShouldQueue
             return;
         }
 
-        // For now, we use B2C for all disbursements as per user request "our api supports all b2c,b2b etc"
-        // In a real scenario, we might switch between B2C and B2B/Paybill depending on the destination
-        $response = $mpesa->b2cPayment($destination, $this->payment->amount, $remarks);
+        // For bank, we use B2B. For others, we use B2C.
+        if ($payoutMethod === 'bank') {
+            $response = $mpesa->b2bPayment($destination, $this->payment->amount, $gateway->bank_account, $remarks);
+        } else {
+            $response = $mpesa->b2cPayment($destination, $this->payment->amount, $remarks);
+        }
 
         if ($response['success']) {
             $this->payment->update([
