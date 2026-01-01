@@ -288,9 +288,23 @@ const toggleSelectAll = () => {
 // Allowed disbursement values
 const DISBURSEMENT_OPTIONS = [
     { value: 'pending', label: 'Pending' },
-    { value: 'disbursed', label: 'Disbursed' },
-    { value: 'withheld', label: 'Withheld' },
+    { value: 'processing', label: 'Processing' },
+    { value: 'completed', label: 'Completed' },
+    { value: 'failed', label: 'Failed' },
 ];
+
+const getStatusColor = (status) => {
+    switch (status) {
+        case 'completed':
+            return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
+        case 'processing':
+            return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
+        case 'failed':
+            return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
+        default:
+            return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
+    }
+};
 
 const form = useForm({
     user_id: '',
@@ -298,7 +312,7 @@ const form = useForm({
     amount: '',
     checked: false, // boolean in DB
     paid_at: '',
-    disbursement_type: 'pending', // default option
+    disbursement_status: 'pending', // default option
     phone: '', // auto-filled, readonly
 });
 
@@ -338,7 +352,7 @@ function openEditModal(payment) {
     form.checked =
         payment.checked === true || payment.checked === 'true' ? true : false;
     form.paid_at = normalizeToDatetimeLocal(payment.paid_at);
-    form.disbursement_type = payment.disbursement_type ?? 'pending';
+    form.disbursement_status = payment.disbursement_status ?? 'pending';
     form.phone = payment.phone ?? '';
     editing.value = payment.id;
     showModal.value = true;
@@ -757,14 +771,18 @@ function generatePaymentConfirmation() {
                             <td class="px-4 py-2 text-gray-900 dark:text-gray-100">{{ item.amount }}</td>
                             <td class="px-4 py-2 text-gray-900 dark:text-gray-100">{{ item.checked_label }}</td>
                             <td class="px-4 py-2 text-gray-900 dark:text-gray-100">{{ item.paid_at }}</td>
-                            <td class="px-4 py-2 text-gray-900 dark:text-gray-100">{{ item.disbursement_label }}</td>
+                            <td class="px-4 py-2 text-gray-900 dark:text-gray-100">
+                                <span :class="['inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', getStatusColor(item.disbursement_status)]">
+                                    {{ item.disbursement_label }}
+                                </span>
+                            </td>
                             <td class="space-x-2 px-4 py-2">
-                                <!--<button @click="openEditModal(item)" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
+                                <button v-if="item.editable" @click="openEditModal(item)" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
                                     <Edit class="h-4 w-4" />
                                 </button>
-                                <button @click="confirmPaymentDeletion(item.id)" class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300">
+                                <button v-if="item.editable" @click="confirmPaymentDeletion(item.id)" class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300">
                                     <Trash2 class="h-4 w-4" />
-                                </button>-->
+                                </button>
                                 <button @click="showPaymentDetails(item)" class="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300">
                                     <Eye class="h-4 w-4" />
                                 </button>
@@ -909,9 +927,9 @@ function generatePaymentConfirmation() {
 
                     <!-- Disbursement select -->
                     <div>
-                        <InputLabel for="disbursement_type" value="Disbursement" />
+                        <InputLabel for="disbursement_status" value="Disbursement Status" />
 
-                        <select v-model="form.disbursement_type" id="disbursement_type" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm
+                        <select v-model="form.disbursement_status" id="disbursement_status" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm
            focus:border-blue-500 focus:ring-blue-500
            dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400
            transition-colors duration-200 ease-in-out">
@@ -921,7 +939,7 @@ function generatePaymentConfirmation() {
                             </option>
                         </select>
 
-                        <InputError :message="form.errors.disbursement_type" class="mt-2" />
+                        <InputError :message="form.errors.disbursement_status" class="mt-2" />
                     </div>
 
                 </div>

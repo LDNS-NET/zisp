@@ -50,8 +50,13 @@ class TenantPaymentController extends Controller
             ->paginate(10)
             ->through(function ($payment) use ($businessName) {
                 $disb = $payment->disbursement_type ?? 'pending';
+                $status = $payment->disbursement_status ?? 'pending';
                 $checkedBool = (bool) $payment->checked;
                 $userDisplay = $payment->user?->username ?? ($payment->user_id === null ? 'System/Manual' : 'Deleted User');
+                
+                // Manual payments are those created by a user and not via automated methods
+                $isManual = ($payment->payment_method === 'manual' || ($payment->created_by && !$payment->payment_method));
+                
                 return [
                     'id' => $payment->id,
                     'user' => $userDisplay,
@@ -62,8 +67,11 @@ class TenantPaymentController extends Controller
                     'checked' => $checkedBool,
                     'paid_at' => optional($payment->paid_at)->toDateTimeString(),
                     'disbursement_type' => $disb,
+                    'disbursement_status' => $status,
+                    'is_manual' => $isManual,
+                    'editable' => $isManual,
                     'checked_label' => $checkedBool ? 'Yes' : 'No',
-                    'disbursement_label' => ucfirst($disb),
+                    'disbursement_label' => ucfirst($status),
                     'business_name' => $businessName,
                 ];
             });
@@ -95,7 +103,11 @@ class TenantPaymentController extends Controller
             })
             ->get()->map(function ($payment) use ($businessName) {
                 $disb = $payment->disbursement_type ?? 'pending';
+                $status = $payment->disbursement_status ?? 'pending';
                 $checkedBool = (bool) $payment->checked;
+                
+                $isManual = ($payment->payment_method === 'manual' || ($payment->created_by && !$payment->payment_method));
+                
                 return [
                     'id' => $payment->id,
                     'user' => $payment->user?->username ?? ($payment->user_id === null ? 'System/Manual' : 'Deleted User'),
@@ -106,8 +118,11 @@ class TenantPaymentController extends Controller
                     'checked' => $checkedBool,
                     'paid_at' => optional($payment->paid_at)->toDateTimeString(),
                     'disbursement_type' => $disb,
+                    'disbursement_status' => $status,
+                    'is_manual' => $isManual,
+                    'editable' => $isManual,
                     'checked_label' => $checkedBool ? 'Yes' : 'No',
-                    'disbursement_label' => ucfirst($disb),
+                    'disbursement_label' => ucfirst($status),
                     'business_name' => $businessName,
                 ];
             });
@@ -128,7 +143,7 @@ class TenantPaymentController extends Controller
             'amount' => 'required|numeric|min:0',
             'checked' => 'required|boolean',
             'paid_at' => 'required|date',
-            'disbursement_type' => 'required|string|in:pending,disbursed,withheld',
+            'disbursement_status' => 'required|string|in:pending,processing,completed,failed',
         ]);
 
         $user = NetworkUser::findOrFail($data['user_id']);
@@ -142,6 +157,8 @@ class TenantPaymentController extends Controller
         }
 
         $data['tenant_id'] = tenant('id');
+        $data['payment_method'] = 'manual';
+        $data['disbursement_status'] = 'completed';
         $payment = TenantPayment::create($data);
 
         // 🔥 Load tenant router config from DB, not strings
@@ -151,9 +168,9 @@ class TenantPaymentController extends Controller
             $mikrotik = new \App\Services\MikrotikService($tenantMikrotik);
 
             // Suspend/unsuspend based on disbursement status
-            if (in_array($data['disbursement_type'], ['pending', 'withheld'])) {
+            if (in_array($data['disbursement_status'], ['pending', 'failed'])) {
                 $mikrotik->suspendUser($user->type, $user->mikrotik_id ?? '');
-            } elseif ($data['disbursement_type'] === 'disbursed') {
+            } elseif ($data['disbursement_status'] === 'completed') {
                 $mikrotik->unsuspendUser($user->type, $user->mikrotik_id ?? '');
             }
         }
@@ -168,13 +185,17 @@ class TenantPaymentController extends Controller
     {
         $tenantPayment = TenantPayment::findOrFail($id);
 
+        // Security check: Only manual payments can be edited
+        $isManual = ($tenantPayment->payment_method === 'manual' || ($tenantPayment->created_by && !$tenantPayment->payment_method));
+        abort_unless($isManual, 403, 'System payments cannot be edited.');
+
         $data = $request->validate([
             'user_id' => 'sometimes|exists:network_users,id',
             'receipt_number' => 'required|string|max:255|unique:tenant_payments,receipt_number,' . $id,
             'amount' => 'required|numeric|min:0',
             'checked' => 'required|boolean',
             'paid_at' => 'required|date',
-            'disbursement_type' => 'required|string|in:pending,disbursed,withheld',
+            'disbursement_status' => 'required|string|in:pending,processing,completed,failed',
         ]);
 
         if (isset($data['user_id'])) {
@@ -195,9 +216,9 @@ class TenantPaymentController extends Controller
         if ($tenantMikrotik) {
             $mikrotik = new \App\Services\MikrotikService($tenantMikrotik);
 
-            if (in_array($data['disbursement_type'], ['pending', 'withheld'])) {
+            if (in_array($data['disbursement_status'], ['pending', 'failed'])) {
                 $mikrotik->suspendUser($user->type, $user->mikrotik_id ?? '');
-            } elseif ($data['disbursement_type'] === 'disbursed') {
+            } elseif ($data['disbursement_status'] === 'completed') {
                 $mikrotik->unsuspendUser($user->type, $user->mikrotik_id ?? '');
             }
         }
@@ -208,6 +229,11 @@ class TenantPaymentController extends Controller
     public function destroy($id)
     {
         $tenantPayment = TenantPayment::findOrFail($id);
+
+        // Security check: Only manual payments can be deleted
+        $isManual = ($tenantPayment->payment_method === 'manual' || ($tenantPayment->created_by && !$tenantPayment->payment_method));
+        abort_unless($isManual, 403, 'System payments cannot be deleted.');
+
         $tenantPayment->delete();
 
         return back()->with('success', 'Payment deleted.');
@@ -219,8 +245,19 @@ class TenantPaymentController extends Controller
         if (!is_array($ids) || empty($ids)) {
             return back()->with('error', 'No payments selected for deletion.');
         }
-        TenantPayment::whereIn('id', $ids)->delete();
-        return back()->with('success', 'Selected payments deleted successfully.');
+        
+        // Only delete manual payments
+        TenantPayment::whereIn('id', $ids)
+            ->where(function($q) {
+                $q->where('payment_method', 'manual')
+                  ->orWhere(function($q2) {
+                      $q2->whereNotNull('created_by')
+                         ->whereNull('payment_method');
+                  });
+            })
+            ->delete();
+
+        return back()->with('success', 'Selected manual payments deleted successfully.');
     }
 
     public function export(Request $request)

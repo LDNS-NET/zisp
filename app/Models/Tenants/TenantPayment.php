@@ -68,6 +68,9 @@ class TenantPayment extends Model
         "fawry_reference",
         "fawry_transaction_id",
         "tenant_id",
+        "disbursement_status",
+        "disbursement_transaction_id",
+        "disbursement_response",
     ];
   protected $casts = [
         'checked' => 'boolean',
