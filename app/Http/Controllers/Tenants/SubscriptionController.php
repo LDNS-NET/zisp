@@ -65,6 +65,14 @@ class SubscriptionController extends Controller
             ->first();
 
         $paystackSecret = $gateway ? $gateway->paystack_secret_key : config('services.paystack.secret_key');
+
+        if (!$paystackSecret) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Paystack is not configured. Please contact support or check your payment settings.',
+            ], 400);
+        }
+
         $paystack = new PaystackService($paystackSecret);
 
         $reference = 'REN-' . strtoupper(uniqid()) . '-' . $tenant->id;
@@ -133,6 +141,11 @@ class SubscriptionController extends Controller
             ->first();
 
         $paystackSecret = $gateway ? $gateway->paystack_secret_key : config('services.paystack.secret_key');
+
+        if (!$paystackSecret) {
+            return redirect()->route('subscription.renew')->with('error', 'Paystack configuration missing.');
+        }
+
         $paystack = new PaystackService($paystackSecret);
 
         $response = $paystack->verifyTransaction($reference);

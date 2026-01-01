@@ -20,6 +20,11 @@ class PaystackService
      */
     public function initializeTransaction(array $data)
     {
+        if (!$this->secretKey) {
+            Log::error('Paystack: Secret key is missing');
+            return null;
+        }
+
         try {
             $response = Http::withToken($this->secretKey)
                 ->post("{$this->baseUrl}/transaction/initialize", $data);
