@@ -77,6 +77,12 @@ class SubscriptionService
             // Start new billing period
             $subscription->startNewPeriod();
 
+            // Sync with User model for all tenant users
+            \App\Models\User::where('tenant_id', $tenant->id)->update([
+                'subscription_expires_at' => $subscription->current_period_ends_at,
+                'is_suspended' => false,
+            ]);
+
             Log::info('Subscription renewed successfully', [
                 'tenant_id' => $tenant->id,
                 'amount' => $amount,
@@ -106,6 +112,11 @@ class SubscriptionService
             if ($subscription) {
                 $subscription->markAsExpired();
                 
+                // Sync with User model for all tenant users
+                \App\Models\User::where('tenant_id', $tenant->id)->update([
+                    'is_suspended' => true,
+                ]);
+
                 Log::info('Subscription marked as expired', [
                     'tenant_id' => $tenant->id,
                 ]);
@@ -200,6 +211,11 @@ class SubscriptionService
         foreach ($expiredSubscriptions as $subscription) {
             $subscription->markAsExpired();
             
+            // Sync with User model for all tenant users
+            \App\Models\User::where('tenant_id', $subscription->tenant_id)->update([
+                'is_suspended' => true,
+            ]);
+
             Log::info('Processed expired subscription', [
                 'tenant_id' => $subscription->tenant_id,
             ]);

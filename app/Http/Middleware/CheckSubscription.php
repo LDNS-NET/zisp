@@ -18,21 +18,12 @@ class CheckSubscription
         }
 
         // Suspend user if subscription expired
-        if ($user->subscription_expires_at && now()->greaterThan($user->subscription_expires_at)) {
+        if ($user->subscription_expires_at && now()->greaterThan($user->subscription_expires_at) && !$user->is_suspended) {
             $user->update(['is_suspended' => true]);
         }
 
-        // Restore subscription if user comes from IntaSend payment redirect
-        if ($user->is_suspended && $request->query('payment') === 'success') {
-            $user->update([
-                'subscription_expires_at' => now()->addDays(30),
-                'is_suspended' => false,
-            ]);
-        }
-
-        // Redirect suspended users to payment if not just paid
-        if ($user->is_suspended || ($user->subscription_expires_at && now()->greaterThan($user->subscription_expires_at))) {
-            // If it's an Inertia request, we should return a redirect that Inertia handles
+        // Redirect suspended users to renewal page
+        if ($user->is_suspended) {
             if ($request->header('X-Inertia')) {
                 return inertia()->location(route('subscription.renew'));
             }
