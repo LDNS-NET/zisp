@@ -36,9 +36,11 @@ class TenantHotspotController extends Controller
         if ($settings) {
             // Apply overrides from General Settings
             $tenantData['name'] = $settings->business_name ?: ($tenantData['name'] ?: $tenantData['id']); // Prefer business name, then tenant name, then ID
-            $tenantData['logo'] = $settings->logo ? '/storage/' . $settings->logo : null; // Assume storage link
-            $tenantData['support_phone'] = $settings->support_phone ?: $settings->primary_phone;
+            $tenantData['logo'] = $settings->logo ? '/storage/' . $settings->logo : null;
+            $tenantData['support_phone'] = $settings->support_phone ?: ($settings->primary_phone ?: $tenant->phone);
             $tenantData['support_email'] = $settings->support_email ?: $settings->primary_email;
+        } else {
+            $tenantData['support_phone'] = $tenant->phone;
         }
 
         // Get packages belonging to this tenant
@@ -66,8 +68,10 @@ class TenantHotspotController extends Controller
         if ($settings) {
             $tenantData['name'] = $settings->business_name ?: ($tenantData['name'] ?: $tenantData['id']);
             $tenantData['logo'] = $settings->logo ? '/storage/' . $settings->logo : null;
-            $tenantData['support_phone'] = $settings->support_phone ?: $settings->primary_phone;
+            $tenantData['support_phone'] = $settings->support_phone ?: ($settings->primary_phone ?: $tenant->phone);
             $tenantData['support_email'] = $settings->support_email ?: $settings->primary_email;
+        } else {
+            $tenantData['support_phone'] = $tenant->phone;
         }
 
         return inertia('Hotspot/Suspended', [
