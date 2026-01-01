@@ -85,7 +85,12 @@ function loginToNetwork(username, password) {
         targetUrl.searchParams.append('password', password);
         
         // Force redirect to system success page to clear Captive Portal reliably
-        targetUrl.searchParams.append('dst', 'https://' + window.location.host + '/hotspot/success');
+        // Pass credentials as query parameters for user reference on the success page
+        const successUrl = new URL('https://' + window.location.host + '/hotspot/success');
+        successUrl.searchParams.append('u', username);
+        successUrl.searchParams.append('p', password);
+        
+        targetUrl.searchParams.append('dst', successUrl.toString());
         
         window.location.href = targetUrl.toString();
         return true;

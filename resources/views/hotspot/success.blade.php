@@ -68,6 +68,21 @@
         <span class="icon">🚀</span>
         <h1>Connected!</h1>
         <p>You are now connected to high-speed internet. Enjoy your browsing!</p>
+        
+        @if(request()->has('u') && request()->has('p'))
+        <div style="margin-top: 25px; padding: 15px; background: rgba(255,255,255,0.15); border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); text-align: left;">
+            <h2 style="margin: 0 0 10px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.8;">Your Credentials</h2>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span style="font-size: 12px; opacity: 0.7;">Username:</span>
+                <span style="font-family: monospace; font-weight: 700; font-size: 16px;">{{ request()->get('u') }}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+                <span style="font-size: 12px; opacity: 0.7;">Password:</span>
+                <span style="font-family: monospace; font-weight: 700; font-size: 16px;">{{ request()->get('p') }}</span>
+            </div>
+        </div>
+        @endif
+
         <a href="https://www.google.com" class="btn">Start Browsing</a>
     </div>
 </body>
