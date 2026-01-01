@@ -80,6 +80,7 @@ class HandleInertiaRequests extends Middleware
             if (!empty($routerIps)) {
                 $counts['online_users'] = \App\Models\Radius\Radacct::whereNull('acctstoptime')
                     ->whereIn('nasipaddress', $routerIps)
+                    ->where('acctupdatetime', '>', now()->subMinutes(10)) // Ignore stale sessions
                     ->count();
             }
         }

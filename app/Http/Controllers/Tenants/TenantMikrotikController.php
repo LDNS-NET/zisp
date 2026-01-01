@@ -75,6 +75,7 @@ class TenantMikrotikController extends Controller
         // Build realtime defaults from DB
         $activeRows = Radacct::whereNull('acctstoptime')
             ->where('nasipaddress', $router->wireguard_address)
+            ->where('acctupdatetime', '>', now()->subMinutes(10)) // Ignore stale sessions
             ->get();
         $hotspotActiveDb = $activeRows->filter(fn($row) => str_contains(strtolower($row->callingstationid ?? ''), ':'))->count();
         $pppoeActiveDb = $activeRows->count() - $hotspotActiveDb;

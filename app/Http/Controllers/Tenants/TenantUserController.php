@@ -25,8 +25,14 @@ class TenantUserController extends Controller
 
         $users = $query->paginate(10);
 
-        // Determine currently online usernames from RADIUS accounting and persist to DB
+        // Get current tenant's router IPs (VPN IPs)
+        $nasIps = \App\Models\Tenants\TenantMikrotik::pluck('wireguard_address')->filter()->toArray();
+
+        // Determine currently online usernames from RADIUS accounting for THIS tenant's routers
+        // We also check acctupdatetime to ignore stale sessions (> 10 mins)
         $onlineUsernames = Radacct::whereNull('acctstoptime')
+            ->whereIn('nasipaddress', $nasIps)
+            ->where('acctupdatetime', '>', now()->subMinutes(10))
             ->pluck('username')
             ->map(fn($u) => strtolower(trim($u)))
             ->unique()

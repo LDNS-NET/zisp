@@ -32,6 +32,7 @@ class TenantActiveUsersController extends Controller
         // Fetch active sessions from RADIUS radacct where acctstoptime IS NULL AND belongs to tenant routers
         $radRows = Radacct::whereNull('acctstoptime')
             ->whereIn('nasipaddress', $routerIps)
+            ->where('acctupdatetime', '>', now()->subMinutes(10)) // Ignore stale sessions
             ->limit($maxUsers * 2)
             ->get();
 

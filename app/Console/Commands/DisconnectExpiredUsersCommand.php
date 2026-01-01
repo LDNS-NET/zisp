@@ -20,7 +20,9 @@ class DisconnectExpiredUsersCommand extends Command
         $this->info('Checking for expired active users...');
 
         // Get all active sessions from RADIUS (acctstoptime is NULL)
-        $activeSessions = Radacct::whereNull('acctstoptime')->get();
+        $activeSessions = Radacct::whereNull('acctstoptime')
+            ->where('acctupdatetime', '>', now()->subMinutes(10)) // Ignore stale sessions
+            ->get();
 
         if ($activeSessions->isEmpty()) {
             $this->info('No active sessions found.');
