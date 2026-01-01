@@ -90,6 +90,7 @@ const save = () => {
                 </p>
             </header>
 
+            <!-- Form 1: Collection Method -->
             <form @submit.prevent="save" class="mt-6 space-y-6">
                 <!-- Warning for Custom API -->
                 <div v-if="form.use_own_api" class="rounded-lg border border-yellow-400 bg-yellow-50 p-4 dark:bg-yellow-900/30">
@@ -111,9 +112,8 @@ const save = () => {
                     </div>
                 </div>
 
-                <!-- Collection Method Section -->
                 <fieldset class="space-y-6">
-                    <legend class="sr-only">Collection Method Settings</legend>
+                    <legend class="text-lg font-medium text-gray-900 dark:text-gray-100">Collection Settings</legend>
                     
                     <div>
                         <InputLabel value="Collection Method" />
@@ -187,13 +187,18 @@ const save = () => {
                     </div>
                 </fieldset>
 
-                <!-- Custom M-Pesa API Settings Section -->
-                <fieldset class="border-t border-gray-300 pt-6 dark:border-gray-700">
-                    <legend class="sr-only">Custom M-Pesa API Settings</legend>
+                <div class="flex items-center justify-end">
+                    <PrimaryButton :disabled="form.processing">Save Collection Settings</PrimaryButton>
+                </div>
+            </form>
+
+            <!-- Form 2: Custom M-Pesa API -->
+            <form @submit.prevent="save" class="mt-12 space-y-6 border-t border-gray-300 pt-12 dark:border-gray-700">
+                <fieldset class="space-y-6">
+                    <legend class="text-lg font-medium text-gray-900 dark:text-gray-100">Custom M-Pesa API Settings</legend>
                     
                     <div class="flex items-center justify-between">
                         <div>
-                            <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Custom M-Pesa API</h3>
                             <p class="text-sm text-gray-600 dark:text-gray-400">
                                 Use your own M-Pesa Daraja API credentials for collections.
                             </p>
@@ -257,25 +262,8 @@ const save = () => {
                     </div>
                 </fieldset>
 
-                <!-- Footer -->
-                <div class="flex items-center justify-between pt-4">
-                    <Transition
-                        enter-active-class="transition ease-in-out"
-                        enter-from-class="opacity-0"
-                        leave-active-class="transition ease-in-out"
-                        leave-to-class="opacity-0"
-                    >
-                        <p
-                            v-if="form.recentlySuccessful"
-                            class="text-sm text-green-600 dark:text-green-400"
-                        >
-                            Saved successfully.
-                        </p>
-                    </Transition>
-
-                    <PrimaryButton :disabled="form.processing"
-                        >Save</PrimaryButton
-                    >
+                <div class="flex items-center justify-end">
+                    <PrimaryButton :disabled="form.processing">Save API Credentials</PrimaryButton>
                 </div>
             </form>
         </section>
