@@ -91,9 +91,9 @@ class SubscriptionController extends Controller
         $response = $paystack->initializeTransaction($data);
 
         if ($response && $response['status']) {
-            // Create a pending payment record
             TenantPayment::create([
                 'tenant_id' => $tenant->id,
+                'phone' => $tenant->phone ?: '0000000000',
                 'amount' => $bill['final_amount'],
                 'currency' => $bill['currency'],
                 'payment_method' => 'paystack',
