@@ -364,7 +364,10 @@ async function processPayment() {
             if (data.success) {
                 paymentMessage.value = data.message;
                 if (data.payment_id || data.reference_id) {
-                    currentPaymentId.value = data.payment_id || data.reference_id;
+                    // For MoMo, use reference_id (UUID). For M-Pesa, use payment_id.
+                    currentPaymentId.value = paymentMethod.value === 'momo' 
+                        ? (data.reference_id || data.payment_id) 
+                        : (data.payment_id || data.reference_id);
                     startPaymentPolling();
                 }
                 showToast('Payment initiated!', 'success');
