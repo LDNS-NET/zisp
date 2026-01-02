@@ -1,16 +1,27 @@
 <script setup>
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
 import axios from 'axios';
+import { countries } from '@/Data/countries';
 
 const props = defineProps({
     user: Object,
     package: Object,
+    gateways: Array,
+});
+
+const page = usePage();
+const tenantCountryCode = computed(() => page.props.tenant?.country_code || 'KE');
+const currentCountry = computed(() => countries.find(c => c.code === tenantCountryCode.value) || countries.find(c => c.code === 'KE'));
+
+const availableMethods = computed(() => {
+    return props.gateways ? props.gateways.map(g => g.provider) : [];
 });
 
 const form = useForm({
     phone: props.user.phone || '',
     months: 1,
+    provider: availableMethods.value.length > 0 ? availableMethods.value[0] : '',
 });
 
 const isProcessing = ref(false);
@@ -28,7 +39,9 @@ const submit = async () => {
     paymentError.value = '';
 
     try {
-        const response = await axios.post(route('customer.renew.momo'), form);
+        // Use generic initiate endpoint
+        const response = await axios.post(route('customer.renew.pay'), form);
+        
         if (response.data.success) {
             paymentMessage.value = response.data.message;
             startPolling(response.data.reference_id);
@@ -75,7 +88,6 @@ const startPolling = (referenceId) => {
     <Head title="Renew Subscription" />
 
     <div class="min-h-screen bg-gray-100">
-        <!-- Navigation (Simplified) -->
         <nav class="bg-white border-b border-gray-100">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex justify-between h-16">
@@ -130,9 +142,30 @@ const startPolling = (referenceId) => {
                                     </select>
                                 </div>
 
+                                <div v-if="availableMethods.length > 1">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Payment Method</label>
+                                    <div class="flex space-x-4">
+                                        <label v-for="method in availableMethods" :key="method" class="inline-flex items-center cursor-pointer">
+                                            <input type="radio" v-model="form.provider" :value="method" class="form-radio text-indigo-600 h-4 w-4">
+                                            <span class="ml-2 capitalize text-gray-700">{{ method === 'momo' ? 'MTN MoMo' : (method === 'mpesa' ? 'M-Pesa' : method) }}</span>
+                                        </label>
+                                    </div>
+                                </div>
+
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700">Phone Number (MoMo)</label>
-                                    <input type="text" v-model="form.phone" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g. 07..." required>
+                                    <label class="block text-sm font-medium text-gray-700">Phone Number</label>
+                                    <div class="mt-1 relative rounded-md shadow-sm">
+                                        <div class="absolute inset-y-0 left-0 flex items-center">
+                                            <span class="h-full px-3 py-2 border-r border-gray-300 bg-gray-50 text-gray-500 sm:text-sm rounded-l-md flex items-center">
+                                                +{{ currentCountry.dial_code }}
+                                            </span>
+                                        </div>
+                                        <input type="text" v-model="form.phone" 
+                                            class="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-16 sm:text-sm border-gray-300 rounded-md" 
+                                            :placeholder="currentCountry.code === 'GH' ? '2XXXXXXXX' : '7XXXXXXXX'" 
+                                            required>
+                                    </div>
+                                    <p class="mt-1 text-xs text-gray-500">Enter phone number without country code.</p>
                                 </div>
 
                                 <div class="bg-gray-50 p-4 rounded-lg">
@@ -147,7 +180,7 @@ const startPolling = (referenceId) => {
 
                                 <button type="submit" :disabled="isProcessing" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50">
                                     <span v-if="isProcessing">Processing...</span>
-                                    <span v-else>Pay with MoMo</span>
+                                    <span v-else>Pay with {{ form.provider === 'momo' ? 'MoMo' : (form.provider === 'mpesa' ? 'M-Pesa' : 'Mobile Money') }}</span>
                                 </button>
                             </form>
                         </div>

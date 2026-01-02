@@ -14,10 +14,12 @@ use Illuminate\Support\Facades\DB;
 class RenewalController extends Controller
 {
     protected $momoService;
+    protected $mpesaService;
 
-    public function __construct(MomoService $momoService)
+    public function __construct(MomoService $momoService, \App\Services\MpesaService $mpesaService)
     {
         $this->momoService = $momoService;
+        $this->mpesaService = $mpesaService;
     }
 
     public function index()
@@ -25,19 +27,42 @@ class RenewalController extends Controller
         $user = Auth::guard('customer')->user();
         $user->load(['package', 'hotspotPackage']);
         
+        $gateways = \App\Models\TenantPaymentGateway::where('tenant_id', $user->tenant_id)
+            ->where('is_active', true)
+            ->get(['provider', 'label', 'is_active']);
+        
         return Inertia::render('Customer/Renew', [
             'user' => $user,
             'package' => $user->type === 'hotspot' ? $user->hotspotPackage : $user->package,
+            'gateways' => $gateways,
         ]);
     }
 
-    public function initiateMomoPayment(Request $request)
+    public function initiatePayment(Request $request)
     {
         $request->validate([
             'phone' => 'required|string',
             'months' => 'required|integer|min:1',
+            'provider' => 'required|string|in:momo,mpesa',
         ]);
 
+        if ($request->provider === 'momo') {
+            return $this->initiateMomoPayment($request);
+        } elseif ($request->provider === 'mpesa') {
+            return $this->initiateMpesaPayment($request);
+        }
+
+        return response()->json(['success' => false, 'message' => 'Invalid provider.'], 400);
+    }
+
+    protected function initiateMomoPayment(Request $request)
+    {
+        // ... (existing logic, just ensure it uses $request->phone and $request->months)
+        // I'll copy the existing logic here but wrapped in this method
+        // Since I'm replacing the whole file content or large chunk, I should be careful.
+        // Actually, I'll use the existing logic but I need to make sure I don't duplicate code.
+        // The previous initiateMomoPayment was public. I'll make it protected and called by initiatePayment.
+        
         $user = Auth::guard('customer')->user();
         $package = $user->type === 'hotspot' ? $user->hotspotPackage : $user->package;
         
@@ -65,8 +90,6 @@ class RenewalController extends Controller
         ]);
 
         $reference = "REN|MOMO|{$user->id}|{$request->phone}|" . strtoupper(uniqid());
-        
-        // Basic normalization
         $phone = preg_replace('/[^0-9]/', '', $request->phone);
 
         $response = $this->momoService->requestToPay(
@@ -89,9 +112,6 @@ class RenewalController extends Controller
                 'receipt_number' => $reference,
                 'status' => 'pending',
                 'checkout_request_id' => $response['reference_id'],
-                'response' => $response,
-                // Store metadata in response or separate column if available. 
-                // Using response array to store metadata for now as we don't have metadata column
                 'response' => array_merge($response, [
                     'metadata' => [
                         'type' => 'renewal',
@@ -105,6 +125,79 @@ class RenewalController extends Controller
                 'success' => true,
                 'message' => 'Payment initiated. Please check your phone.',
                 'reference_id' => $response['reference_id'],
+                'payment_id' => $payment->id
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => $response['message'] ?? 'Payment initiation failed.'
+        ], 500);
+    }
+
+    protected function initiateMpesaPayment(Request $request)
+    {
+        $user = Auth::guard('customer')->user();
+        $package = $user->type === 'hotspot' ? $user->hotspotPackage : $user->package;
+        
+        if (!$package) {
+            return response()->json(['success' => false, 'message' => 'No active package found.'], 400);
+        }
+
+        $amount = $package->price * $request->months;
+        $currency = tenant()->currency ?? 'KES'; 
+        
+        $gateway = \App\Models\TenantPaymentGateway::where('tenant_id', $user->tenant_id)
+            ->where('provider', 'mpesa')
+            ->where('is_active', true)
+            ->first();
+
+        if (!$gateway) {
+            return response()->json(['success' => false, 'message' => 'M-Pesa payment not configured.'], 400);
+        }
+
+        $this->mpesaService->setCredentials([
+            'consumer_key' => $gateway->mpesa_consumer_key,
+            'consumer_secret' => $gateway->mpesa_consumer_secret,
+            'passkey' => $gateway->mpesa_passkey,
+            'shortcode' => $gateway->mpesa_shortcode,
+            'environment' => $gateway->mpesa_env,
+        ]);
+
+        $reference = "REN|MPESA|{$user->id}|" . strtoupper(uniqid());
+        $phone = $request->phone; // MpesaService normalizes it
+
+        $response = $this->mpesaService->stkPush(
+            $phone,
+            $amount,
+            $reference, // AccountReference
+            "Renewal" // TransactionDesc
+        );
+
+        if ($response['success']) {
+            $payment = TenantPayment::create([
+                'tenant_id' => $user->tenant_id,
+                'user_id' => $user->id,
+                'phone' => $phone,
+                'amount' => $amount,
+                'currency' => $currency,
+                'payment_method' => 'mpesa',
+                'receipt_number' => $reference,
+                'status' => 'pending',
+                'checkout_request_id' => $response['checkout_request_id'],
+                'response' => array_merge($response, [
+                    'metadata' => [
+                        'type' => 'renewal',
+                        'months' => $request->months,
+                        'package_id' => $package->id
+                    ]
+                ])
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'STK Push sent. Please check your phone.',
+                'reference_id' => $response['checkout_request_id'],
                 'payment_id' => $payment->id
             ]);
         }
@@ -134,46 +227,87 @@ class RenewalController extends Controller
             ]);
         }
 
-        // Check with MTN if pending
+        // Check with Provider if pending
         if ($payment->status === 'pending') {
-            $gateway = \App\Models\TenantPaymentGateway::where('tenant_id', $payment->tenant_id)
-                ->where('provider', 'momo')
-                ->first();
+            if ($payment->payment_method === 'momo') {
+                $gateway = \App\Models\TenantPaymentGateway::where('tenant_id', $payment->tenant_id)
+                    ->where('provider', 'momo')
+                    ->first();
 
-            if ($gateway) {
-                $this->momoService->setCredentials([
-                    'api_user' => $gateway->momo_api_user,
-                    'api_key' => $gateway->momo_api_key,
-                    'subscription_key' => $gateway->momo_subscription_key,
-                    'environment' => $gateway->momo_env,
-                ]);
+                if ($gateway) {
+                    $this->momoService->setCredentials([
+                        'api_user' => $gateway->momo_api_user,
+                        'api_key' => $gateway->momo_api_key,
+                        'subscription_key' => $gateway->momo_subscription_key,
+                        'environment' => $gateway->momo_env,
+                    ]);
 
-                $status = $this->momoService->getTransactionStatus($referenceId);
+                    $status = $this->momoService->getTransactionStatus($referenceId);
 
-                if ($status && isset($status['status'])) {
-                    if ($status['status'] === 'SUCCESSFUL') {
-                        // Mark as paid
-                        DB::table('tenant_payments')
-                            ->where('id', $payment->id)
-                            ->update([
-                                'status' => 'paid', 
-                                'paid_at' => now(),
-                                'response' => json_encode($status) // Update response with latest status
+                    if ($status && isset($status['status'])) {
+                        if ($status['status'] === 'SUCCESSFUL') {
+                            DB::table('tenant_payments')
+                                ->where('id', $payment->id)
+                                ->update([
+                                    'status' => 'paid', 
+                                    'paid_at' => now(),
+                                    'response' => json_encode($status)
+                                ]);
+                            
+                            $this->processRenewal($payment);
+
+                            return response()->json([
+                                'success' => true,
+                                'status' => 'paid',
+                                'message' => 'Payment successful!',
+                                'user' => Auth::guard('customer')->user()->fresh()
                             ]);
-                        
-                        // Process Renewal
-                        $this->processRenewal($payment);
+                        } elseif ($status['status'] === 'FAILED') {
+                            DB::table('tenant_payments')
+                                ->where('id', $payment->id)
+                                ->update(['status' => 'failed']);
+                        }
+                    }
+                }
+            } elseif ($payment->payment_method === 'mpesa') {
+                $gateway = \App\Models\TenantPaymentGateway::where('tenant_id', $payment->tenant_id)
+                    ->where('provider', 'mpesa')
+                    ->first();
 
-                        return response()->json([
-                            'success' => true,
-                            'status' => 'paid',
-                            'message' => 'Payment successful!',
-                            'user' => Auth::guard('customer')->user()->fresh()
-                        ]);
-                    } elseif ($status['status'] === 'FAILED') {
-                        DB::table('tenant_payments')
-                            ->where('id', $payment->id)
-                            ->update(['status' => 'failed']);
+                if ($gateway) {
+                    $this->mpesaService->setCredentials([
+                        'consumer_key' => $gateway->mpesa_consumer_key,
+                        'consumer_secret' => $gateway->mpesa_consumer_secret,
+                        'passkey' => $gateway->mpesa_passkey,
+                        'shortcode' => $gateway->mpesa_shortcode,
+                        'environment' => $gateway->mpesa_env,
+                    ]);
+
+                    $status = $this->mpesaService->queryTransactionStatus($referenceId);
+
+                    if ($status['success']) {
+                        if ($status['status'] === 'paid') {
+                            DB::table('tenant_payments')
+                                ->where('id', $payment->id)
+                                ->update([
+                                    'status' => 'paid', 
+                                    'paid_at' => now(),
+                                    'response' => json_encode($status)
+                                ]);
+                            
+                            $this->processRenewal($payment);
+
+                            return response()->json([
+                                'success' => true,
+                                'status' => 'paid',
+                                'message' => 'Payment successful!',
+                                'user' => Auth::guard('customer')->user()->fresh()
+                            ]);
+                        } elseif ($status['status'] === 'failed' || $status['status'] === 'cancelled') {
+                            DB::table('tenant_payments')
+                                ->where('id', $payment->id)
+                                ->update(['status' => 'failed']);
+                        }
                     }
                 }
             }

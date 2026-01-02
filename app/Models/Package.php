@@ -31,6 +31,11 @@ class Package extends Model
         static::addGlobalScope('tenant', function ($query) {
             if (tenant()) {
                 $query->where('tenant_id', tenant()->id);
+            } elseif (auth()->guard('customer')->check()) {
+                $user = auth()->guard('customer')->user();
+                if ($user->tenant_id) {
+                    $query->where('tenant_id', $user->tenant_id);
+                }
             } elseif (auth()->check()) {
                 $user = auth()->user();
                 if ($user->tenant_id) {
