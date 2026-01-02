@@ -137,13 +137,36 @@ const startPolling = (referenceId) => {
                                     </select>
                                 </div>
 
-                                <div v-if="availableMethods.length > 1">
+                                <div v-if="gateways.length > 0">
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Payment Method</label>
-                                    <div class="flex space-x-4">
-                                        <label v-for="method in availableMethods" :key="method" class="inline-flex items-center cursor-pointer">
-                                            <input type="radio" v-model="form.provider" :value="method" class="form-radio text-indigo-600 h-4 w-4">
-                                            <span class="ml-2 capitalize text-gray-700">{{ method === 'momo' ? 'MTN MoMo' : (method === 'mpesa' ? 'M-Pesa' : method) }}</span>
-                                        </label>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div v-for="gateway in gateways" :key="gateway.provider" 
+                                            class="relative flex items-center p-4 border rounded-lg cursor-pointer hover:bg-gray-50 focus:outline-none"
+                                            :class="{'border-indigo-500 ring-2 ring-indigo-200': form.provider === gateway.provider, 'border-gray-300': form.provider !== gateway.provider}"
+                                            @click="form.provider = gateway.provider">
+                                            <div class="flex items-center h-5">
+                                                <input type="radio" v-model="form.provider" :value="gateway.provider" class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300">
+                                            </div>
+                                            <div class="ml-3 text-sm">
+                                                <span class="font-medium text-gray-900">
+                                                    {{ gateway.label || (gateway.provider === 'momo' ? 'MTN MoMo' : (gateway.provider === 'mpesa' ? 'M-Pesa' : gateway.provider)) }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div v-else class="p-4 bg-yellow-50 border-l-4 border-yellow-400">
+                                    <div class="flex">
+                                        <div class="flex-shrink-0">
+                                            <svg class="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                            </svg>
+                                        </div>
+                                        <div class="ml-3">
+                                            <p class="text-sm text-yellow-700">
+                                                No payment methods available. Please contact support.
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -173,9 +196,9 @@ const startPolling = (referenceId) => {
                                 <div v-if="paymentError" class="text-red-600 text-sm">{{ paymentError }}</div>
                                 <div v-if="paymentMessage" class="text-blue-600 text-sm">{{ paymentMessage }}</div>
 
-                                <button type="submit" :disabled="isProcessing" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50">
+                                <button type="submit" :disabled="isProcessing || gateways.length === 0" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed">
                                     <span v-if="isProcessing">Processing...</span>
-                                    <span v-else>Pay with {{ form.provider === 'momo' ? 'MoMo' : (form.provider === 'mpesa' ? 'M-Pesa' : 'Mobile Money') }}</span>
+                                    <span v-else>Pay Now</span>
                                 </button>
                             </form>
                         </div>
