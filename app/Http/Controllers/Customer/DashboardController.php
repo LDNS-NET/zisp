@@ -24,7 +24,11 @@ class DashboardController extends Controller
             $gateways[] = 'mpesa';
         }
 
-        $package = $user->type === 'hotspot' ? $user->hotspotPackage : $user->package;
+        if ($user->type === 'hotspot') {
+            $package = \App\Models\Tenants\TenantHotspot::withoutGlobalScopes()->find($user->hotspot_package_id);
+        } else {
+            $package = \App\Models\Package::withoutGlobalScopes()->find($user->package_id);
+        }
         
         $daysRemaining = null;
         if ($user->expires_at) {

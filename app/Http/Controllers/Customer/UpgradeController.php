@@ -23,11 +23,26 @@ class UpgradeController extends Controller
         $user = Auth::guard('customer')->user();
         $user->load(['package', 'hotspotPackage', 'tenant']);
         
-        $currentPackageId = $user->package_id ?? $user->hotspot_package_id;
-        
-        $packages = \App\Models\Package::where('id', '!=', $currentPackageId)
-            ->where('type', $user->type)
-            ->get();
+        if ($user->type === 'hotspot') {
+            $currentPackage = \App\Models\Tenants\TenantHotspot::withoutGlobalScopes()->find($user->hotspot_package_id);
+        } else {
+            $currentPackage = \App\Models\Package::withoutGlobalScopes()->find($user->package_id);
+        }
+
+        $tenantId = $currentPackage->tenant_id ?? $user->tenant_id;
+
+        if ($user->type === 'hotspot') {
+            $packages = \App\Models\Tenants\TenantHotspot::withoutGlobalScopes()
+                ->where('tenant_id', $tenantId)
+                ->where('id', '!=', $user->hotspot_package_id)
+                ->get();
+        } else {
+            $packages = \App\Models\Package::withoutGlobalScopes()
+                ->where('tenant_id', $tenantId)
+                ->where('type', $user->type)
+                ->where('id', '!=', $user->package_id)
+                ->get();
+        }
 
         $gateways = \App\Models\TenantPaymentGateway::where('tenant_id', $user->tenant_id)
             ->where('is_active', true)
@@ -40,7 +55,7 @@ class UpgradeController extends Controller
 
         return Inertia::render('Customer/Upgrade', [
             'user' => $user,
-            'currentPackage' => $user->type === 'hotspot' ? $user->hotspotPackage : $user->package,
+            'currentPackage' => $currentPackage,
             'packages' => $packages,
             'paymentMethods' => array_values(array_unique($gateways)),
             'country' => $user->tenant->country_code ?? 'KE',
@@ -50,14 +65,21 @@ class UpgradeController extends Controller
 
     public function initiatePayment(Request $request)
     {
+        $user = Auth::guard('customer')->user();
+
         $request->validate([
             'phone' => 'required|string',
-            'package_id' => 'required|exists:packages,id',
+            'package_id' => 'required',
             'payment_method' => 'required|string|in:momo,mpesa',
         ]);
 
-        $user = Auth::guard('customer')->user();
-        $newPackage = \App\Models\Package::findOrFail($request->package_id);
+        if ($user->type === 'hotspot') {
+            $newPackage = \App\Models\Tenants\TenantHotspot::withoutGlobalScopes()->findOrFail($request->package_id);
+            $metadata = ['type' => 'upgrade', 'hotspot_package_id' => $newPackage->id];
+        } else {
+            $newPackage = \App\Models\Package::withoutGlobalScopes()->findOrFail($request->package_id);
+            $metadata = ['type' => 'upgrade', 'package_id' => $newPackage->id];
+        }
         
         $amount = $newPackage->price;
         
@@ -66,7 +88,7 @@ class UpgradeController extends Controller
             $amount,
             $request->phone,
             'upgrade',
-            ['type' => 'upgrade', 'package_id' => $newPackage->id],
+            $metadata,
             $request->payment_method
         );
 

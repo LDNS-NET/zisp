@@ -32,9 +32,15 @@ class RenewalController extends Controller
             $gateways[] = 'mpesa';
         }
         
+        if ($user->type === 'hotspot') {
+            $package = \App\Models\Tenants\TenantHotspot::withoutGlobalScopes()->find($user->hotspot_package_id);
+        } else {
+            $package = \App\Models\Package::withoutGlobalScopes()->find($user->package_id);
+        }
+
         return Inertia::render('Customer/Renew', [
             'user' => $user,
-            'package' => $user->type === 'hotspot' ? $user->hotspotPackage : $user->package,
+            'package' => $package,
             'paymentMethods' => array_values(array_unique($gateways)),
             'country' => $user->tenant->country_code ?? 'KE',
             'currency' => $user->tenant->currency ?? 'KES',
@@ -50,7 +56,11 @@ class RenewalController extends Controller
         ]);
 
         $user = Auth::guard('customer')->user();
-        $package = $user->type === 'hotspot' ? $user->hotspotPackage : $user->package;
+        if ($user->type === 'hotspot') {
+            $package = \App\Models\Tenants\TenantHotspot::withoutGlobalScopes()->find($user->hotspot_package_id);
+        } else {
+            $package = \App\Models\Package::withoutGlobalScopes()->find($user->package_id);
+        }
         
         if (!$package) {
             return response()->json(['success' => false, 'message' => 'No active package found.'], 400);
@@ -58,16 +68,23 @@ class RenewalController extends Controller
 
         $amount = $package->price * $request->months;
         
+        $metadata = [
+            'type' => 'renewal',
+            'months' => $request->months,
+        ];
+
+        if ($user->type === 'hotspot') {
+            $metadata['hotspot_package_id'] = $package->id;
+        } else {
+            $metadata['package_id'] = $package->id;
+        }
+
         $result = $this->paymentService->initiatePayment(
             $user,
             $amount,
             $request->phone,
             'renewal',
-            [
-                'type' => 'renewal',
-                'months' => $request->months,
-                'package_id' => $package->id
-            ],
+            $metadata,
             $request->payment_method
         );
 
