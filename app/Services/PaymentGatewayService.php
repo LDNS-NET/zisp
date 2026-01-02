@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use App\Models\TenantPaymentGateway;
-use App\Models\TenantPayment;
+use App\Models\Tenants\TenantPayment;
 use App\Services\MomoService;
 use App\Services\MpesaService;
 use App\Services\CountryService;
