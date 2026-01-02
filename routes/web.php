@@ -349,11 +349,11 @@ Route::prefix('customer')->name('customer.')->group(function () {
     Route::middleware(['auth:customer', 'customer'])->group(function () {
         Route::get('dashboard', [App\Http\Controllers\Customer\DashboardController::class, 'index'])->name('dashboard');
         Route::get('renew', [App\Http\Controllers\Customer\RenewalController::class, 'index'])->name('renew');
-        Route::post('renew/pay', [App\Http\Controllers\Customer\RenewalController::class, 'initiatePayment'])->name('renew.pay');
+        Route::post('renew/momo', [App\Http\Controllers\Customer\RenewalController::class, 'initiateMomoPayment'])->name('renew.momo');
         Route::get('renew/status/{referenceId}', [App\Http\Controllers\Customer\RenewalController::class, 'checkPaymentStatus'])->name('renew.status');
         
         Route::get('upgrade', [App\Http\Controllers\Customer\UpgradeController::class, 'index'])->name('upgrade');
-        Route::post('upgrade/pay', [App\Http\Controllers\Customer\UpgradeController::class, 'initiatePayment'])->name('upgrade.pay');
+        Route::post('upgrade/momo', [App\Http\Controllers\Customer\UpgradeController::class, 'initiateMomoPayment'])->name('upgrade.momo');
         Route::get('upgrade/status/{referenceId}', [App\Http\Controllers\Customer\UpgradeController::class, 'checkPaymentStatus'])->name('upgrade.status');
 
         Route::post('logout', [App\Http\Controllers\Customer\AuthController::class, 'logout'])->name('logout');

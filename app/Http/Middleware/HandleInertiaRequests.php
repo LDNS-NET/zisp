@@ -95,7 +95,6 @@ class HandleInertiaRequests extends Middleware
                 'name' => $settings?->business_name ?? $tenant->name,
                 'logo' => $logoUrl,
                 'currency' => $tenant->currency,
-                'country_code' => $tenant->country_code,
                 'support_phone' => $settings?->support_phone,
                 'support_email' => $settings?->support_email,
             ] : null,
