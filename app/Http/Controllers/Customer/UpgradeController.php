@@ -24,7 +24,20 @@ class UpgradeController extends Controller
     public function index()
     {
         $user = Auth::guard('customer')->user();
-        $user->load(['package', 'hotspotPackage']);
+        
+        // Ensure we have the latest user data
+        $user = $user->fresh();
+        
+        $currentPackage = null;
+        if ($user->type === 'hotspot') {
+            $currentPackage = $user->hotspotPackage;
+        } else {
+            $currentPackage = $user->package;
+            // Fallback: if relationship fails but ID exists, try finding it
+            if (!$currentPackage && $user->package_id) {
+                $currentPackage = \App\Models\Package::find($user->package_id);
+            }
+        }
         
         $currentPackageId = $user->package_id ?? $user->hotspot_package_id;
         
@@ -38,7 +51,7 @@ class UpgradeController extends Controller
 
         return Inertia::render('Customer/Upgrade', [
             'user' => $user,
-            'currentPackage' => $user->type === 'hotspot' ? $user->hotspotPackage : $user->package,
+            'currentPackage' => $currentPackage,
             'packages' => $packages,
             'gateways' => $gateways,
         ]);

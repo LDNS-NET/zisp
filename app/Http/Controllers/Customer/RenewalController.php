@@ -25,7 +25,20 @@ class RenewalController extends Controller
     public function index()
     {
         $user = Auth::guard('customer')->user();
-        $user->load(['package', 'hotspotPackage']);
+        
+        // Ensure we have the latest user data
+        $user = $user->fresh();
+        
+        $package = null;
+        if ($user->type === 'hotspot') {
+            $package = $user->hotspotPackage;
+        } else {
+            $package = $user->package;
+            // Fallback: if relationship fails but ID exists, try finding it
+            if (!$package && $user->package_id) {
+                $package = \App\Models\Package::find($user->package_id);
+            }
+        }
         
         $gateways = \App\Models\TenantPaymentGateway::where('tenant_id', $user->tenant_id)
             ->where('is_active', true)
@@ -33,7 +46,8 @@ class RenewalController extends Controller
         
         return Inertia::render('Customer/Renew', [
             'user' => $user,
-            'package' => $user->type === 'hotspot' ? $user->hotspotPackage : $user->package,
+            'package' => $package,
+            'subscription_amount' => $package ? $package->price : 0,
             'gateways' => $gateways,
         ]);
     }
@@ -57,14 +71,16 @@ class RenewalController extends Controller
 
     protected function initiateMomoPayment(Request $request)
     {
-        // ... (existing logic, just ensure it uses $request->phone and $request->months)
-        // I'll copy the existing logic here but wrapped in this method
-        // Since I'm replacing the whole file content or large chunk, I should be careful.
-        // Actually, I'll use the existing logic but I need to make sure I don't duplicate code.
-        // The previous initiateMomoPayment was public. I'll make it protected and called by initiatePayment.
-        
         $user = Auth::guard('customer')->user();
-        $package = $user->type === 'hotspot' ? $user->hotspotPackage : $user->package;
+        $package = null;
+        if ($user->type === 'hotspot') {
+            $package = $user->hotspotPackage;
+        } else {
+            $package = $user->package;
+            if (!$package && $user->package_id) {
+                $package = \App\Models\Package::find($user->package_id);
+            }
+        }
         
         if (!$package) {
             return response()->json(['success' => false, 'message' => 'No active package found.'], 400);
@@ -138,7 +154,15 @@ class RenewalController extends Controller
     protected function initiateMpesaPayment(Request $request)
     {
         $user = Auth::guard('customer')->user();
-        $package = $user->type === 'hotspot' ? $user->hotspotPackage : $user->package;
+        $package = null;
+        if ($user->type === 'hotspot') {
+            $package = $user->hotspotPackage;
+        } else {
+            $package = $user->package;
+            if (!$package && $user->package_id) {
+                $package = \App\Models\Package::find($user->package_id);
+            }
+        }
         
         if (!$package) {
             return response()->json(['success' => false, 'message' => 'No active package found.'], 400);

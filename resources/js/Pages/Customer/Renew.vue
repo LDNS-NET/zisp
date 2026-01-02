@@ -9,6 +9,7 @@ const props = defineProps({
     user: Object,
     package: Object,
     gateways: Array,
+    subscription_amount: Number,
 });
 
 const page = usePage();
@@ -31,7 +32,8 @@ const paymentError = ref('');
 const showSuccess = ref(false);
 
 const totalPrice = computed(() => {
-    return (props.package?.price || 0) * form.months;
+    const price = props.subscription_amount || props.package?.price || 0;
+    return price * form.months;
 });
 
 const submit = async () => {
@@ -120,7 +122,7 @@ const startPolling = (referenceId) => {
                                     Renewing: <strong>{{ package?.name }}</strong>
                                 </p>
                                 <p class="text-sm text-blue-700">
-                                    Price: <strong>{{ package?.price }} {{ $page.props.tenant?.currency }}</strong> / month
+                                    Price: <strong>{{ subscription_amount || package?.price }} {{ $page.props.tenant?.currency }}</strong> / month
                                 </p>
                             </div>
 
