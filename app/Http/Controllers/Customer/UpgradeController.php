@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Services\PaymentGatewayService;
 use Illuminate\Support\Facades\DB;
 
-class RenewalController extends Controller
+class UpgradeController extends Controller
 {
     protected $paymentService;
 
@@ -23,6 +23,12 @@ class RenewalController extends Controller
         $user = Auth::guard('customer')->user();
         $user->load(['package', 'hotspotPackage']);
         
+        $currentPackageId = $user->package_id ?? $user->hotspot_package_id;
+        
+        $packages = \App\Models\Package::where('id', '!=', $currentPackageId)
+            ->where('type', $user->type)
+            ->get();
+
         $gateways = \App\Models\TenantPaymentGateway::where('tenant_id', $user->tenant_id)
             ->where('is_active', true)
             ->pluck('provider')
@@ -31,10 +37,11 @@ class RenewalController extends Controller
         if (($user->tenant->country_code ?? 'KE') === 'KE' && !in_array('mpesa', $gateways)) {
             $gateways[] = 'mpesa';
         }
-        
-        return Inertia::render('Customer/Renew', [
+
+        return Inertia::render('Customer/Upgrade', [
             'user' => $user,
-            'package' => $user->type === 'hotspot' ? $user->hotspotPackage : $user->package,
+            'currentPackage' => $user->type === 'hotspot' ? $user->hotspotPackage : $user->package,
+            'packages' => $packages,
             'paymentMethods' => array_values(array_unique($gateways)),
             'country' => $user->tenant->country_code ?? 'KE',
             'currency' => $user->tenant->currency ?? 'KES',
@@ -45,29 +52,21 @@ class RenewalController extends Controller
     {
         $request->validate([
             'phone' => 'required|string',
-            'months' => 'required|integer|min:1',
+            'package_id' => 'required|exists:packages,id',
             'payment_method' => 'required|string|in:momo,mpesa',
         ]);
 
         $user = Auth::guard('customer')->user();
-        $package = $user->type === 'hotspot' ? $user->hotspotPackage : $user->package;
+        $newPackage = \App\Models\Package::findOrFail($request->package_id);
         
-        if (!$package) {
-            return response()->json(['success' => false, 'message' => 'No active package found.'], 400);
-        }
-
-        $amount = $package->price * $request->months;
+        $amount = $newPackage->price;
         
         $result = $this->paymentService->initiatePayment(
             $user,
             $amount,
             $request->phone,
-            'renewal',
-            [
-                'type' => 'renewal',
-                'months' => $request->months,
-                'package_id' => $package->id
-            ],
+            'upgrade',
+            ['type' => 'upgrade', 'new_package_id' => $newPackage->id],
             $request->payment_method
         );
 
@@ -97,11 +96,6 @@ class RenewalController extends Controller
                 'user' => Auth::guard('customer')->user()->fresh()
             ]);
         }
-        
-        // If pending, maybe check upstream?
-        // For now, rely on callback or job.
-        // But if we want real-time check for MoMo, we can add logic here.
-        // PaymentGatewayService could have checkStatus method.
         
         return response()->json([
             'success' => true,
