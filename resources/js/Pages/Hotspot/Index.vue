@@ -31,6 +31,15 @@ const supportedMethods = computed(() => {
 
 const paymentMethod = ref(props.country === 'KE' ? 'mpesa' : (supportedMethods.value.includes('momo') ? 'momo' : 'mpesa'));
 
+const isValidPhoneNumber = computed(() => {
+    if (!phoneNumber.value) return false;
+    if (currentCountry.value.code === 'KE') {
+        return phoneNumber.value.match(/^(01\d{8}|07\d{8}|254\d{9}|2547\d{8}|2541\d{8})$/);
+    }
+    // Generic validation for other countries: 9 to 15 digits
+    return phoneNumber.value.length >= 9 && phoneNumber.value.length <= 15;
+});
+
 // Voucher authentication
 const voucherCode = ref('');
 const isAuthenticatingVoucher = ref(false);
@@ -709,11 +718,11 @@ function formatPhoneNumber(event) {
                              <button
                                 v-if="!paymentMessage" 
                                 @click="processPayment"
-                                :disabled="isProcessing || !phoneNumber.match(/^(01\d{8}|07\d{8}|254\d{9}|2547\d{8}|2541\d{8})$/)"
+                                :disabled="isProcessing || !isValidPhoneNumber"
                                 class="w-full bg-slate-900 text-white font-bold py-4 px-6 rounded-xl hover:bg-blue-600 transition-all shadow-lg transform active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
                             >
                                 <span v-if="isProcessing">Processing...</span>
-                                <span v-else>Pay KES {{ selectedHotspot.price }}</span>
+                                <span v-else>Pay {{ currentCountry.currency }} {{ selectedHotspot.price }}</span>
                             </button>
 
                             <button 
