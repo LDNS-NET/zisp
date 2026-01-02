@@ -140,9 +140,19 @@ class NetworkUser extends Authenticatable
                 $tenantId = tenant()->id;
             } else {
                 foreach (['customer', 'web'] as $guard) {
-                    if (auth()->guard($guard)->check()) {
+                    if (auth()->guard($guard)->hasUser()) {
                         $user = auth()->guard($guard)->user();
                         if ($guard === 'web' && ($user->is_super_admin ?? false)) {
+                            return;
+                        }
+                        $tenantId = $user->tenant_id;
+                        break;
+                    }
+
+                    // Only call check() for 'web' guard to avoid recursion on NetworkUser
+                    if ($guard === 'web' && auth()->guard('web')->check()) {
+                        $user = auth()->guard('web')->user();
+                        if ($user->is_super_admin ?? false) {
                             return;
                         }
                         $tenantId = $user->tenant_id;

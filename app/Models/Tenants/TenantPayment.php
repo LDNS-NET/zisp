@@ -93,12 +93,27 @@ class TenantPayment extends Model
         static::addGlobalScope('tenant', function ($query) {
             if (tenant()) {
                 $query->where('tenant_id', tenant()->id);
-            } elseif (auth()->check()) {
-                $user = auth()->user();
-                if (!$user->is_super_admin && $user->tenant_id) {
-                    $query->where('tenant_id', $user->tenant_id);
-                }
             } else {
+                foreach (['customer', 'web'] as $guard) {
+                    if (auth()->guard($guard)->hasUser()) {
+                        $user = auth()->guard($guard)->user();
+                        if ($guard === 'web' && ($user->is_super_admin ?? false)) {
+                            return;
+                        }
+                        $query->where('tenant_id', $user->tenant_id);
+                        return;
+                    }
+
+                    if ($guard === 'web' && auth()->guard('web')->check()) {
+                        $user = auth()->guard('web')->user();
+                        if ($user->is_super_admin ?? false) {
+                            return;
+                        }
+                        $query->where('tenant_id', $user->tenant_id);
+                        return;
+                    }
+                }
+
                 // Fallback for public routes (hotspot page)
                 $host = request()->getHost();
                 $subdomain = explode('.', $host)[0];

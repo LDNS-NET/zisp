@@ -34,8 +34,13 @@ class Package extends Model
                 $tenantId = tenant()->id;
             } else {
                 foreach (['customer', 'web'] as $guard) {
-                    if (auth()->guard($guard)->check()) {
+                    if (auth()->guard($guard)->hasUser()) {
                         $tenantId = auth()->guard($guard)->user()->tenant_id;
+                        break;
+                    }
+
+                    if ($guard === 'web' && auth()->guard('web')->check()) {
+                        $tenantId = auth()->guard('web')->user()->tenant_id;
                         break;
                     }
                 }
