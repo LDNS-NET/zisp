@@ -11,6 +11,7 @@ use App\Services\MomoService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use App\Services\CountryService;
 
 class MomoController extends Controller
 {
@@ -60,12 +61,27 @@ class MomoController extends Controller
                 'environment' => $gateway->momo_env,
             ]);
 
+            // Resolve country data
+            $countryData = CountryService::getCountryData($tenant->country_code);
+            $currency = $countryData['currency'] ?? 'UGX';
+            $dialCode = $countryData['dial_code'] ?? '256';
+
+            // Normalize phone
+            $phone = $this->formatPhoneNumber($request->phone, $dialCode);
+            if (!$phone) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Invalid phone number format for {$countryData['name']}."
+                ], 400);
+            }
+
             $reference = "HS|MOMO|{$package->id}|{$request->phone}|" . strtoupper(uniqid());
 
             $response = $this->momoService->requestToPay(
-                $request->phone,
+                $phone,
                 $package->price,
                 $reference,
+                $currency,
                 "Payment for {$package->name}",
                 "Hotspot Access"
             );
@@ -74,10 +90,10 @@ class MomoController extends Controller
                 // Create payment record
                 $payment = TenantPayment::create([
                     'tenant_id' => $tenant->id,
-                    'phone' => $request->phone,
+                    'phone' => $phone,
                     'hotspot_package_id' => $package->id,
                     'amount' => $package->price,
-                    'currency' => $gateway->momo_env === 'production' ? 'UGX' : 'EUR',
+                    'currency' => $currency,
                     'payment_method' => 'momo',
                     'receipt_number' => $reference,
                     'status' => 'pending',
@@ -219,5 +235,27 @@ class MomoController extends Controller
             'months'  => $base->copy()->addMonths($package->duration_value),
             default   => $base->copy()->addDays(1),
         };
+    }
+
+    /**
+     * Normalize phone number based on country dial code.
+     */
+    private function formatPhoneNumber(string $phone, string $dialCode): ?string
+    {
+        $phone = preg_replace('/\D/', '', $phone);
+
+        if (substr($phone, 0, 1) === '0') {
+            return $dialCode . substr($phone, 1);
+        }
+
+        if (str_starts_with($phone, $dialCode)) {
+            return $phone;
+        }
+
+        if (strlen($phone) === 9) {
+            return $dialCode . $phone;
+        }
+
+        return null;
     }
 }

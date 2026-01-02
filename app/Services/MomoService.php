@@ -95,7 +95,7 @@ class MomoService
      * @param string $payeeNote Note for the payee
      * @return array Response status and reference ID
      */
-    public function requestToPay(string $phone, float $amount, string $externalId, string $payerMessage = 'Payment', string $payeeNote = 'Hotspot Access'): array
+    public function requestToPay(string $phone, float $amount, string $externalId, string $currency = null, string $payerMessage = 'Payment', string $payeeNote = 'Hotspot Access'): array
     {
         try {
             $token = $this->getAccessToken();
@@ -106,9 +106,12 @@ class MomoService
             $referenceId = (string) Str::uuid();
             $url = $this->baseUrl . '/collection/v1_0/requesttopay';
 
+            // Resolve currency: Use provided, or fallback to environment-based (EUR for sandbox, UGX for production)
+            $resolvedCurrency = $currency ?: ($this->environment === 'production' ? 'UGX' : 'EUR');
+
             $payload = [
                 'amount' => (string) round($amount, 2),
-                'currency' => $this->environment === 'production' ? 'UGX' : 'EUR', // Sandbox uses EUR
+                'currency' => $resolvedCurrency,
                 'externalId' => $externalId,
                 'payer' => [
                     'partyIdType' => 'MSISDN',

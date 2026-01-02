@@ -26,7 +26,7 @@ const currentCountry = computed(() => {
 });
 
 const supportedMethods = computed(() => {
-    return currentCountry.value?.supported_methods || ['mpesa'];
+    return currentCountry.value?.payment_methods || ['mpesa'];
 });
 
 const paymentMethod = ref(props.country === 'KE' ? 'mpesa' : (supportedMethods.value.includes('momo') ? 'momo' : 'mpesa'));
@@ -587,7 +587,7 @@ function formatPhoneNumber(event) {
                                     <div class="flex items-center md:justify-center gap-1.5 mb-1">
                                         <span class="text-gray-400 font-black italic text-sm">@</span>
                                         <div class="text-2xl font-black text-gray-900 leading-none">
-                                            <span class="text-[10px] font-bold uppercase align-top mr-0.5 mt-1 inline-block">KES</span>
+                                            <span class="text-[10px] font-bold uppercase align-top mr-0.5 mt-1 inline-block">{{ currentCountry.currency }}</span>
                                             {{ hotspot.price }}
                                         </div>
                                     </div>
@@ -656,11 +656,11 @@ function formatPhoneNumber(event) {
                                 <h4 class="font-bold text-gray-900">{{ selectedHotspot.name }}</h4>
                                 <div class="text-xs text-gray-500">{{ selectedHotspot.duration_value }} {{ selectedHotspot.duration_unit }} • {{ selectedHotspot.device_limit }} Devices</div>
                             </div>
-                            <div class="text-xl font-bold text-blue-600">KES {{ selectedHotspot.price }}</div>
+                            <div class="text-xl font-bold text-blue-600">{{ currentCountry.currency }} {{ selectedHotspot.price }}</div>
                         </div>
 
                         <div>
-                            <label class="block text-sm font-bold text-gray-700 mb-2">{{ paymentMethod === 'momo' ? 'MoMo' : 'M-Pesa' }} Phone Number</label>
+                            <label class="block text-sm font-bold text-gray-700 mb-2">{{ paymentMethod === 'momo' ? 'MoMo' : 'M-Pesa' }} Phone Number ({{ currentCountry.dial_code }})</label>
                             <div class="relative">
                                 <input
                                     v-model="phoneNumber"
@@ -671,14 +671,14 @@ function formatPhoneNumber(event) {
                                     :disabled="isProcessing"
                                 />
                             </div>
-                            <p class="text-xs text-gray-500 mt-2">Format: {{ paymentMethod === 'momo' ? 'e.g. 2567XXXXXXXX' : '07XXXXXXXX or 01XXXXXXXX' }}</p>
+                            <p class="text-xs text-gray-500 mt-2">Format: {{ currentCountry.code === 'KE' ? '07XXXXXXXX or 01XXXXXXXX' : 'e.g. ' + currentCountry.dial_code + 'XXXXXXXX' }}</p>
                         </div>
 
                         <div v-if="paymentMessage" class="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-xl flex items-start gap-3">
                             <svg class="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
                             <div class="flex-1 text-sm">
                                 <p class="font-semibold">{{ paymentMessage }}</p>
-                                <p v-if="!userCredentials" class="mt-1 text-green-700">Check your phone for the M-Pesa prompt.</p>
+                                <p v-if="!userCredentials" class="mt-1 text-green-700">Check your phone for the payment prompt.</p>
                             </div>
                         </div>
 

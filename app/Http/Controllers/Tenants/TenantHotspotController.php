@@ -12,6 +12,7 @@ use App\Models\Tenant;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use App\Jobs\CheckIntaSendPaymentStatusJob;
+use App\Services\CountryService;
 
 use App\Models\Tenants\TenantGeneralSetting;
 
@@ -125,13 +126,18 @@ class TenantHotspotController extends Controller
             $package = $this->findTenantPackage($request->hotspot_package_id);
             $amount = $package->price;
 
+            // Resolve country data
+            $countryData = CountryService::getCountryData($tenant->country_code);
+            $currency = $countryData['currency'] ?? 'KES';
+            $dialCode = $countryData['dial_code'] ?? '254';
+
             // Normalize phone
-            $phone = $this->formatPhoneNumber($request->phone);
+            $phone = $this->formatPhoneNumber($request->phone, $dialCode);
             if (!$phone) {
-                \Log::warning('Invalid phone number format', ['phone' => $request->phone]);
+                \Log::warning('Invalid phone number format', ['phone' => $request->phone, 'country' => $tenant->country_code]);
                 return response()->json([
                     'success' => false,
-                    'message' => 'Invalid phone number format. Use 07xxxxxxxx, 01xxxxxxxx, or 2547xxxxxxxx format.'
+                    'message' => "Invalid phone number format for {$countryData['name']}."
                 ]);
             }
 
@@ -184,7 +190,7 @@ class TenantHotspotController extends Controller
                 'hotspot_package_id' => $package->id,
                 'package_id' => null,
                 'amount' => $amount,
-                'currency' => 'KES',
+                'currency' => $currency,
                 'payment_method' => 'mpesa',
                 'receipt_number' => $reference,
                 'status' => 'pending',
@@ -551,16 +557,28 @@ class TenantHotspotController extends Controller
     }
 
     /**
-     * Normalize phone number to 254xxxxxxxx format.
+     * Normalize phone number based on country dial code.
      */
-    private function formatPhoneNumber(string $phone): ?string
+    private function formatPhoneNumber(string $phone, string $dialCode = '254'): ?string
     {
-        if (preg_match('/^(07|01)\d{8}$/', $phone)) {
-            return '254' . substr($phone, 1);
+        // Remove any non-numeric characters
+        $phone = preg_replace('/\D/', '', $phone);
+
+        // If it starts with 0, replace with dial code
+        if (substr($phone, 0, 1) === '0') {
+            return $dialCode . substr($phone, 1);
         }
-        if (preg_match('/^254(7|1)\d{8}$/', $phone)) {
+
+        // If it already starts with dial code, return as is
+        if (str_starts_with($phone, $dialCode)) {
             return $phone;
         }
+
+        // If it's a short number (e.g. 7xxxxxxxx), add dial code
+        if (strlen($phone) === 9) {
+            return $dialCode . $phone;
+        }
+
         return null;
     }
 
