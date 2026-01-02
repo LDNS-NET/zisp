@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
 use IntaSend\IntaSendPHP\Collection;
 use App\Jobs\CheckIntaSendPaymentStatus;
+use App\Services\CountryService;
 
 class TenantPaymentController extends Controller
 {
@@ -290,24 +291,25 @@ class TenantPaymentController extends Controller
     public function processSTKPush(Request $request)
     {
         $data = $request->validate([
-            'phone' => 'required|string|regex:/^(01\d{8}|07\d{8}|254\d{9}|2547\d{8})$/',
+            'phone' => 'required|string',
             'package_id' => 'required|exists:packages,id',
             'amount' => 'required|numeric|min:1',
         ]);
 
-        // Normalize phone number to 2547 format
-        $phone = $data['phone'];
-        if (str_starts_with($phone, '01')) {
-            $phone = '2547' . substr($phone, 2);
-        } elseif (str_starts_with($phone, '07')) {
-            $phone = '2547' . substr($phone, 2);
-        } elseif (str_starts_with($phone, '254')) {
-            if (strlen($phone) === 12 && $phone[3] === '7') {
-                // Already 2547XXXXXXXX format - no transformation needed
-            } elseif (strlen($phone) === 12) {
-                // 254XXXXXXXX format, convert to 2547XXXXXXXX
-                $phone = '2547' . substr($phone, 3);
-            }
+        // Resolve tenant and country data
+        $tenantId = $request->tenant_id ?? tenant('id');
+        $tenant = \App\Models\Tenant::find($tenantId);
+        $countryData = CountryService::getCountryData($tenant->country_code);
+        $dialCode = $countryData['dial_code'] ?? '254';
+        $currency = $countryData['currency'] ?? 'KES';
+
+        // Normalize phone number
+        $phone = $this->formatPhoneNumber($data['phone'], $dialCode);
+        if (!$phone) {
+            return response()->json([
+                'success' => false,
+                'message' => "Invalid phone number format for {$countryData['name']}."
+            ], 400);
         }
 
         $package = \App\Models\Package::findOrFail($data['package_id']);
@@ -334,6 +336,12 @@ class TenantPaymentController extends Controller
                     'passkey' => $gateway->mpesa_passkey,
                     'environment' => $gateway->mpesa_env,
                 ]);
+            } elseif ($tenant->country_code !== 'KE') {
+                // Enforce custom API for non-Kenyan tenants
+                return response()->json([
+                    'success' => false,
+                    'message' => 'M-Pesa is not configured for this provider. Please contact support.'
+                ], 400);
             }
 
             // Initiate M-Pesa STK Push
@@ -363,7 +371,7 @@ class TenantPaymentController extends Controller
                 'package_id' => $data['package_id'],
                 'hotspot_package_id' => null,
                 'amount' => $data['amount'],
-                'currency' => 'KES',
+                'currency' => $currency,
                 'payment_method' => 'mpesa',
                 'receipt_number' => $receiptNumber,
                 'status' => 'pending',
@@ -438,5 +446,27 @@ class TenantPaymentController extends Controller
         }
 
         return $payment->update($updateData);
+    }
+
+    /**
+     * Normalize phone number based on country dial code.
+     */
+    private function formatPhoneNumber(string $phone, string $dialCode): ?string
+    {
+        $phone = preg_replace('/\D/', '', $phone);
+
+        if (substr($phone, 0, 1) === '0') {
+            return $dialCode . substr($phone, 1);
+        }
+
+        if (str_starts_with($phone, $dialCode)) {
+            return $phone;
+        }
+
+        if (strlen($phone) === 9) {
+            return $dialCode . $phone;
+        }
+
+        return null;
     }
 }

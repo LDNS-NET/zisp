@@ -161,6 +161,12 @@ class TenantHotspotController extends Controller
                     'passkey' => $gateway->mpesa_passkey,
                     'environment' => $gateway->mpesa_env,
                 ]);
+            } elseif ($tenant->country_code !== 'KE') {
+                // Enforce custom API for non-Kenyan tenants
+                return response()->json([
+                    'success' => false,
+                    'message' => 'M-Pesa is not configured for this provider. Please contact support.'
+                ], 400);
             }
 
             // Initiate M-Pesa STK Push
