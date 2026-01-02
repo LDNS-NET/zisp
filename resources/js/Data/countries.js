@@ -43,7 +43,7 @@ export const countries = [
     minimum_pay: 5000, // Equivalent to ~500 KES
     payment_methods: ["momo"], // MTN MoMo is common
   },
-  /*
+
   {
     name: "Uganda",
     code: "UG",
@@ -77,6 +77,7 @@ export const countries = [
     minimum_pay: 50,
     payment_methods: ["momo", "vodafone_cash"],
   },
+  /*
   {
     name: "Rwanda",
     code: "RW",
