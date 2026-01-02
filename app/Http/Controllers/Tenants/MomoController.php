@@ -75,7 +75,15 @@ class MomoController extends Controller
                 ], 400);
             }
 
+
             $reference = "HS|MOMO|{$package->id}|{$request->phone}|" . strtoupper(uniqid());
+
+            Log::info('MoMo Request Initiated', [
+                'original_phone' => $request->phone,
+                'normalized_phone' => $phone,
+                'environment' => $gateway->momo_env,
+                'currency' => $currency
+            ]);
 
             $response = $this->momoService->requestToPay(
                 $phone,
