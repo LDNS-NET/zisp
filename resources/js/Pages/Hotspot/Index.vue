@@ -18,6 +18,19 @@ const pollingInterval = ref(null);
 const paymentAttempts = ref(0);
 const maxPollingAttempts = 30; // 30 * 3s = 90 seconds
 
+import { countries } from '@/Data/countries';
+const props = defineProps(['tenant', 'packages', 'country']);
+
+const currentCountry = computed(() => {
+    return countries.find(c => c.code === props.country) || countries.find(c => c.code === 'KE');
+});
+
+const supportedMethods = computed(() => {
+    return currentCountry.value?.supported_methods || ['mpesa'];
+});
+
+const paymentMethod = ref(props.country === 'KE' ? 'mpesa' : (supportedMethods.value.includes('momo') ? 'momo' : 'mpesa'));
+
 // Voucher authentication
 const voucherCode = ref('');
 const isAuthenticatingVoucher = ref(false);
@@ -272,7 +285,11 @@ function startPaymentPolling() {
         }
 
         try {
-            const response = await fetch(`/hotspot/payment-status/${currentPaymentId.value}`, {
+            const url = paymentMethod.value === 'momo' 
+                ? `/hotspot/momo/status/${currentPaymentId.value}` 
+                : `/hotspot/payment-status/${currentPaymentId.value}`;
+                
+            const response = await fetch(url, {
                  method: 'GET',
                  headers: { 'Content-Type': 'application/json' }
             });
@@ -310,27 +327,38 @@ function startPaymentPolling() {
 }
 
 async function processPayment() {
-    if (!phoneNumber.value.match(/^(01\d{8}|07\d{8}|254\d{9}|2547\d{8}|2541\d{8})$/)) {
+    if (paymentMethod.value === 'mpesa' && !phoneNumber.value.match(/^(01\d{8}|07\d{8}|254\d{9}|2547\d{8}|2541\d{8})$/)) {
         paymentError.value = 'Invalid phone number';
         return;
     }
+    
     isProcessing.value = true;
     paymentError.value = '';
+    
     try {
-        const response = await fetch('/hotspot/checkout', {
+        const url = paymentMethod.value === 'momo' ? '/hotspot/momo/checkout' : '/hotspot/checkout';
+        const response = await fetch(url, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
-            body: JSON.stringify({ hotspot_package_id: selectedHotspot.value.id, phone: phoneNumber.value, email: 'customer@example.com' })
+            headers: { 
+                'Content-Type': 'application/json', 
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') 
+            },
+            body: JSON.stringify({ 
+                hotspot_package_id: selectedHotspot.value.id, 
+                phone: phoneNumber.value, 
+                email: 'customer@example.com' 
+            })
         });
+        
         if (response.ok) {
             const data = await response.json();
             if (data.success) {
                 paymentMessage.value = data.message;
-                if (data.payment_id) {
-                    currentPaymentId.value = data.payment_id;
+                if (data.payment_id || data.reference_id) {
+                    currentPaymentId.value = data.payment_id || data.reference_id;
                     startPaymentPolling();
                 }
-                showToast('STK Push sent!', 'success');
+                showToast('Payment initiated!', 'success');
             } else {
                 paymentError.value = data.message;
                 showToast(data.message, 'error');
@@ -599,11 +627,30 @@ function formatPhoneNumber(event) {
                             </svg>
                         </button>
                     </div>
-                    <p class="text-white/80 text-sm relative z-10">Secure payment via M-Pesa</p>
+                    <p class="text-white/80 text-sm relative z-10">Secure payment via {{ paymentMethod === 'momo' ? 'MTN MoMo' : 'M-Pesa' }}</p>
                 </div>
 
                 <div class="p-6">
                     <div v-if="selectedHotspot" class="space-y-6">
+                        <!-- Payment Method Selection -->
+                        <div v-if="supportedMethods.length > 1" class="flex p-1 bg-gray-100 rounded-xl">
+                            <button 
+                                v-if="supportedMethods.includes('mpesa')"
+                                @click="paymentMethod = 'mpesa'"
+                                class="flex-1 py-2 text-sm font-bold rounded-lg transition-all duration-200"
+                                :class="paymentMethod === 'mpesa' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'"
+                            >
+                                M-Pesa
+                            </button>
+                            <button 
+                                v-if="supportedMethods.includes('momo')"
+                                @click="paymentMethod = 'momo'"
+                                class="flex-1 py-2 text-sm font-bold rounded-lg transition-all duration-200"
+                                :class="paymentMethod === 'momo' ? 'bg-white text-yellow-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'"
+                            >
+                                MTN MoMo
+                            </button>
+                        </div>
                         <div class="bg-gray-50 rounded-xl p-4 border border-gray-100 flex justify-between items-center">
                             <div>
                                 <h4 class="font-bold text-gray-900">{{ selectedHotspot.name }}</h4>
@@ -613,18 +660,18 @@ function formatPhoneNumber(event) {
                         </div>
 
                         <div>
-                            <label class="block text-sm font-bold text-gray-700 mb-2">M-Pesa Phone Number</label>
+                            <label class="block text-sm font-bold text-gray-700 mb-2">{{ paymentMethod === 'momo' ? 'MoMo' : 'M-Pesa' }} Phone Number</label>
                             <div class="relative">
                                 <input
                                     v-model="phoneNumber"
                                     @input="formatPhoneNumber"
                                     type="tel"
-                                    placeholder="07XX XXX XXX"
+                                    placeholder="Enter phone number"
                                     class="w-full pl-4 pr-4 py-3.5 bg-gray-50 border-2 border-gray-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-0 text-lg transition-colors font-mono"
                                     :disabled="isProcessing"
                                 />
                             </div>
-                            <p class="text-xs text-gray-500 mt-2">Format: 07XXXXXXXX or 01XXXXXXXX</p>
+                            <p class="text-xs text-gray-500 mt-2">Format: {{ paymentMethod === 'momo' ? 'e.g. 2567XXXXXXXX' : '07XXXXXXXX or 01XXXXXXXX' }}</p>
                         </div>
 
                         <div v-if="paymentMessage" class="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-xl flex items-start gap-3">

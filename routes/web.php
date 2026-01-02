@@ -36,6 +36,7 @@ use App\Http\Controllers\MikrotikController;
 use App\Http\Controllers\Tenants\TenantHotspotController;
 use App\Http\Controllers\Tenants\MikrotikDetailsController;
 use App\Http\Controllers\Tenants\SubscriptionController;
+use App\Http\Controllers\Tenants\MomoController;
 
 // SuperAdmin controllers
 use App\Http\Controllers\SuperAdmin\SuperAdminController;
@@ -103,6 +104,11 @@ Route::middleware(['check.subscription'])->group(function () {
     Route::post('/hotspot/callback', [TenantHotspotController::class, 'callback'])->name('hotspot.callback');
     Route::get('/hotspot/payment-status/{identifier}', [TenantHotspotController::class, 'checkPaymentStatus'])->name('hotspot.check-status');
     Route::post('/hotspot/voucher-auth', [VoucherController::class, 'authenticate'])->name('voucher.authenticate');
+
+    // MoMo Routes
+    Route::post('/hotspot/momo/checkout', [MomoController::class, 'checkout'])->name('hotspot.momo.checkout');
+    Route::post('/hotspot/momo/callback', [MomoController::class, 'callback'])->name('hotspot.momo.callback');
+    Route::get('/hotspot/momo/status/{referenceId}', [MomoController::class, 'checkStatus'])->name('hotspot.momo.status');
 });
 
 

@@ -50,6 +50,7 @@ class TenantHotspotController extends Controller
         return inertia('Hotspot/Index', [
             'tenant' => $tenantData,
             'packages' => $packages,
+            'country' => $tenant->country_code ?? 'KE',
         ]);
     }
 
