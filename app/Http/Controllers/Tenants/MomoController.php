@@ -101,6 +101,12 @@ class MomoController extends Controller
                     'response' => $response,
                 ]);
 
+                Log::info('MoMo Payment Record Created', [
+                    'id' => $payment->id,
+                    'checkout_request_id' => $payment->checkout_request_id,
+                    'tenant_id' => $payment->tenant_id
+                ]);
+
                 return response()->json([
                     'success' => true,
                     'message' => 'Payment initiated. Please check your phone for the prompt.',
@@ -138,9 +144,36 @@ class MomoController extends Controller
     public function checkStatus($referenceId)
     {
         try {
-            $payment = TenantPayment::withoutGlobalScopes()
+            Log::info('MoMo Status Check Attempt', [
+                'referenceId' => $referenceId,
+                'request_all' => request()->all()
+            ]);
+            
+            // Use DB facade to bypass any potential model/scope issues
+            $payment = \Illuminate\Support\Facades\DB::table('tenant_payments')
                 ->where('checkout_request_id', $referenceId)
-                ->firstOrFail();
+                ->first();
+
+            if (!$payment) {
+                // Log all recent MoMo payments to see what's in the DB
+                $recent = \Illuminate\Support\Facades\DB::table('tenant_payments')
+                    ->where('payment_method', 'momo')
+                    ->orderBy('created_at', 'desc')
+                    ->limit(5)
+                    ->get();
+                
+                Log::error('MoMo Payment Record Not Found', [
+                    'searched_reference' => $referenceId,
+                    'recent_momo_payments' => $recent
+                ]);
+                
+                return response()->json([
+                    'success' => false, 
+                    'message' => 'Payment record not found.'
+                ], 404);
+            }
+            
+            Log::info('MoMo Payment Record Found', ['id' => $payment->id]);
 
             $tenant = Tenant::find($payment->tenant_id);
             $gateway = \App\Models\TenantPaymentGateway::where('tenant_id', $tenant->id)
@@ -160,22 +193,25 @@ class MomoController extends Controller
                 $status = $statusResponse['status']; // successful, failed, pending
 
                 if ($status === 'successful' && $payment->status !== 'paid') {
-                    $payment->update([
-                        'status' => 'paid',
-                        'paid_at' => now(),
-                        'checked' => true,
-                    ]);
+                    \Illuminate\Support\Facades\DB::table('tenant_payments')
+                        ->where('id', $payment->id)
+                        ->update([
+                            'status' => 'paid',
+                            'paid_at' => now(),
+                            'checked' => true,
+                        ]);
 
                     // Handle successful payment (create user, etc.)
-                    // We can reuse the logic from TenantHotspotController or move it to a service
                     $this->handleSuccessfulPayment($payment);
                 } elseif ($status === 'failed') {
-                    $payment->update(['status' => 'failed']);
+                    \Illuminate\Support\Facades\DB::table('tenant_payments')
+                        ->where('id', $payment->id)
+                        ->update(['status' => 'failed']);
                 }
 
                 return response()->json([
                     'success' => true,
-                    'status' => $payment->status,
+                    'status' => $status === 'successful' ? 'paid' : ($status === 'failed' ? 'failed' : 'pending'),
                 ]);
             }
 
@@ -203,7 +239,10 @@ class MomoController extends Controller
             $baseDate = ($existingUser->expires_at && $existingUser->expires_at->isFuture()) ? $existingUser->expires_at : now();
             $existingUser->expires_at = $this->calculateExpiry($package, $baseDate);
             $existingUser->save();
-            $payment->update(['user_id' => $existingUser->id]);
+            
+            \Illuminate\Support\Facades\DB::table('tenant_payments')
+                ->where('id', $payment->id)
+                ->update(['user_id' => $existingUser->id]);
             return;
         }
 
@@ -221,7 +260,9 @@ class MomoController extends Controller
             'registered_at' => now(),
         ]);
 
-        $payment->update(['user_id' => $user->id]);
+        \Illuminate\Support\Facades\DB::table('tenant_payments')
+            ->where('id', $payment->id)
+            ->update(['user_id' => $user->id]);
     }
 
     private function calculateExpiry($package, $baseDate = null)
