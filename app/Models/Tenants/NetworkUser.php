@@ -2,7 +2,7 @@
 
 namespace App\Models\Tenants;
 
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Support\Facades\Auth;
@@ -13,7 +13,7 @@ use App\Models\Package;
 use App\Models\Tenant;
 use App\Models\Tenants\TenantHotspot;
 
-class NetworkUser extends Model
+class NetworkUser extends Authenticatable
 {
     use HasFactory;
 
@@ -24,6 +24,7 @@ class NetworkUser extends Model
         'full_name',
         'username',
         'password',
+        'web_password',
         'phone',
         //'email',
         'location',
@@ -43,6 +44,11 @@ class NetworkUser extends Model
         'expires_at' => 'datetime',
         'online' => 'boolean',
     ];
+
+    public function getAuthPassword()
+    {
+        return $this->web_password;
+    }
 
     public function package(): BelongsTo
     {
@@ -146,6 +152,13 @@ class NetworkUser extends Model
                         $query->where('tenant_id', $tenant->id);
                     }
                 }
+            }
+        });
+
+        /** Sync web_password when password changes */
+        static::saving(function ($user) {
+            if ($user->isDirty('password')) {
+                $user->web_password = \Illuminate\Support\Facades\Hash::make($user->password);
             }
         });
 

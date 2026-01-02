@@ -25,6 +25,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'mpesa/callback',
             'api/mpesa/c2b/*',
         ]);
+
+        $middleware->alias([
+            'customer' => \App\Http\Middleware\CustomerMiddleware::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->renderable(function (\Stancl\Tenancy\Contracts\TenantCouldNotBeIdentifiedException $e, \Illuminate\Http\Request $request) {

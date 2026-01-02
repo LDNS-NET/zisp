@@ -28,14 +28,34 @@ class Package extends Model
     }
     protected static function booted()
     {
+        static::addGlobalScope('tenant', function ($query) {
+            if (tenant()) {
+                $query->where('tenant_id', tenant()->id);
+            } elseif (auth()->check()) {
+                $user = auth()->user();
+                if ($user->tenant_id) {
+                    $query->where('tenant_id', $user->tenant_id);
+                }
+            }
+        });
+
         static::addGlobalScope('created_by', function ($query) {
-            if (auth()->check()) {
+            if (auth()->guard('web')->check()) {
                 $query->where('created_by', auth()->id());
             }
         });
+
         static::creating(function ($model) {
-            if (auth()->check() && empty($model->created_by)) {
+            if (auth()->guard('web')->check() && empty($model->created_by)) {
                 $model->created_by = auth()->id();
+            }
+            
+            if (empty($model->tenant_id)) {
+                if (tenant()) {
+                    $model->tenant_id = tenant()->id;
+                } elseif (auth()->check() && auth()->user()->tenant_id) {
+                    $model->tenant_id = auth()->user()->tenant_id;
+                }
             }
         });
     }
