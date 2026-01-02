@@ -28,8 +28,12 @@ class RenewalController extends Controller
             ->pluck('provider')
             ->toArray();
 
-        if (($user->tenant->country_code ?? 'KE') === 'KE' && !in_array('mpesa', $gateways)) {
-            $gateways[] = 'mpesa';
+        if (($user->tenant->country_code ?? 'KE') === 'KE') {
+            if (!in_array('mpesa', $gateways)) {
+                $gateways[] = 'mpesa';
+            }
+            // Filter out bank for KE as it's not configured
+            $gateways = array_filter($gateways, fn($g) => $g !== 'bank');
         }
         
         if ($user->type === 'hotspot') {
