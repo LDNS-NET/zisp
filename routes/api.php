@@ -15,10 +15,14 @@ use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
 */
 
 use App\Http\Controllers\Tenants\MpesaC2BController;
+use App\Http\Controllers\Tenants\MomoC2BController;
 
 // M-Pesa C2B (Global endpoints to handle callbacks from any Paybill)
 Route::post('/mpesa/c2b/validation', [MpesaC2BController::class, 'validation']);
 Route::post('/mpesa/c2b/confirmation', [MpesaC2BController::class, 'confirmation']);
+
+// MoMo C2B (Direct Payment Callback)
+Route::post('/momo/c2b/callback', [MomoC2BController::class, 'callback']);
 
 Route::middleware([InitializeTenancyByDomain::class, PreventAccessFromCentralDomains::class])->group(function () {
     // Tenant info

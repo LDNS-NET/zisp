@@ -128,7 +128,7 @@ class MpesaC2BController extends Controller
         if ($user->hotspot_package_id) {
             $package = TenantHotspot::withoutGlobalScopes()->find($user->hotspot_package_id);
         } else {
-            $package = Package::find($user->package_id);
+            $package = Package::withoutGlobalScopes()->find($user->package_id);
         }
 
         if (!$package) return;
@@ -147,6 +147,7 @@ class MpesaC2BController extends Controller
             default   => $baseDate->copy()->addDays($value),
         };
 
+        $user->status = 'active';
         $user->save();
 
         // Unsuspend on MikroTik
