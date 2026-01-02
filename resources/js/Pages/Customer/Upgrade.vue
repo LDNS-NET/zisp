@@ -3,6 +3,7 @@ import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
 import axios from 'axios';
 import { countries } from '@/Data/countries';
+import CustomerLayout from '@/Layouts/CustomerLayout.vue';
 
 const props = defineProps({
     user: Object,
@@ -94,20 +95,12 @@ const startPolling = (referenceId) => {
 <template>
     <Head title="Upgrade Plan" />
 
-    <div class="min-h-screen bg-gray-100">
-        <nav class="bg-white border-b border-gray-100">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="flex justify-between h-16">
-                    <div class="flex items-center">
-                        <Link :href="route('customer.dashboard')" class="font-bold text-xl text-indigo-600">
-                            &larr; Back to Dashboard
-                        </Link>
-                    </div>
-                </div>
-            </div>
-        </nav>
+    <CustomerLayout>
+        <template #header>
+            <h2 class="font-semibold text-xl text-gray-800 leading-tight">Upgrade Plan</h2>
+        </template>
 
-        <main class="py-12">
+        <div class="py-12">
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6 text-gray-900">
@@ -193,6 +186,6 @@ const startPolling = (referenceId) => {
                     </div>
                 </div>
             </div>
-        </main>
-    </div>
+        </div>
+    </CustomerLayout>
 </template>
