@@ -290,7 +290,8 @@ function startPaymentPolling() {
 
         // Visual feedback
         if (!userCredentials.value && !paymentMessage.value.includes('confirmed')) {
-             paymentMessage.value = `Waiting for M-Pesa... (Attempt ${paymentAttempts.value})`;
+             const methodName = paymentMethod.value === 'momo' ? 'MoMo' : 'M-Pesa';
+             paymentMessage.value = `Waiting for ${methodName}... (Attempt ${paymentAttempts.value})`;
         }
 
         try {
