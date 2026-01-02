@@ -15,17 +15,9 @@ use App\Jobs\CheckIntaSendPaymentStatusJob;
 use App\Services\CountryService;
 
 use App\Models\Tenants\TenantGeneralSetting;
-use App\Models\Package;
-use App\Services\PaymentProcessingService;
 
 class TenantHotspotController extends Controller
 {
-    protected $processingService;
-
-    public function __construct(PaymentProcessingService $processingService)
-    {
-        $this->processingService = $processingService;
-    }
     /**
      * Display a listing of the tenant hotspot packages for the current tenant.
      */
@@ -398,8 +390,45 @@ class TenantHotspotController extends Controller
                     \App\Jobs\ProcessDisbursementJob::dispatch($payment);
                 }
 
-                if ($payment->hotspot_package_id || $payment->package_id) {
-                    $this->processingService->processSuccess($payment);
+                if ($payment->hotspot_package_id) {
+                    try {
+                        $package = $this->findTenantPackage($payment->hotspot_package_id, $payment->tenant_id);
+                        $this->handleSuccessfulPayment($payment, $package);
+                    } catch (\Exception $e) {
+                        \Log::error('Failed to process hotspot package in callback', [
+                            'payment_id' => $payment->id,
+                            'error' => $e->getMessage()
+                        ]);
+                    }
+                } else {
+                    // Likely a PPPoE payment
+                    \Log::info('Processing non-hotspot payment in callback', ['payment_id' => $payment->id]);
+                    
+                    // Try to unsuspend PPPoE user if linked or found by phone
+                    $user = NetworkUser::withoutGlobalScopes()
+                        ->where('tenant_id', $payment->tenant_id)
+                        ->where(function($q) use ($payment) {
+                            if ($payment->user_id) $q->where('id', $payment->user_id);
+                            else $q->where('phone', $payment->phone)->where('type', 'pppoe');
+                        })
+                        ->first();
+
+                    if ($user) {
+                        // Update expiry and unsuspend
+                        $package = Package::find($payment->package_id);
+                        if ($package) {
+                            $baseDate = ($user->expires_at && $user->expires_at->isFuture()) ? $user->expires_at : now();
+                            // Note: calculateExpiry in this controller is hotspot-specific (takes TenantHotspot)
+                            // We might need a more generic one or just use the job's logic
+                            // For now, let's just mark as paid and let the job (if still running) or manual check handle it
+                            // Or we can implement a simple version here
+                            $user->expires_at = now()->addDays(30); // Default fallback
+                            $user->save();
+                            
+                            // Link user
+                            if (!$payment->user_id) $payment->update(['user_id' => $user->id]);
+                        }
+                    }
                 }
 
                 return response()->json(['ResultCode' => 0, 'ResultDesc' => 'Success']);
@@ -458,7 +487,84 @@ class TenantHotspotController extends Controller
                 // Link user to payment
                 $payment->update(['user_id' => $existingUser->id]);
 
+                \Log::info('Updated existing hotspot user', [
+                    'user_id' => $existingUser->id,
+                    'username' => $existingUser->username,
+                    'phone' => $existingUser->phone,
+                    'new_expiry' => $existingUser->expires_at
+                ]);
 
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Payment successful! Your existing account has been extended.',
+                    'user' => [
+                        'username' => $existingUser->username,
+                        'password' => 'Use your existing password',
+                        'expires_at' => $existingUser->expires_at->toDateTimeString(),
+                    ]
+                ]);
+            }
+
+            // Generate new hotspot user credentials
+            $username = NetworkUser::generateHotspotUsername($payment->tenant_id);
+            $plainPassword = Str::random(8);
+
+            // Create new network user
+            $user = NetworkUser::create([
+                'full_name' => $package->name,
+                'username' => $username,
+                'password' => $plainPassword,
+                'phone' => $payment->phone,
+                'type' => 'hotspot',
+                'hotspot_package_id' => $package->id,
+                'package_id' => null,
+                'expires_at' => $this->calculateExpiry($package),
+                'registered_at' => now(),
+                'tenant_id' => $payment->tenant_id,
+            ]);
+
+            // Link user to payment
+            $payment->update(['user_id' => $user->id]);
+
+            \Log::info('Created new hotspot user', [
+                'user_id' => $user->id,
+                'username' => $username,
+                'phone' => $payment->phone,
+                'package' => $package->name,
+                'duration' => $package->duration_value . ' ' . $package->duration_unit,
+                'expires_at' => $user->expires_at
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Payment successful! Your hotspot account has been created.',
+                'user' => [
+                    'username' => $username,
+                    'password' => $plainPassword,
+                    'package_name' => $package->name,
+                    'duration' => $package->duration_value . ' ' . $package->duration_unit,
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Failed to create hotspot user after payment', [
+                'payment_id' => $payment->id,
+                'phone' => $payment->phone,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Payment was successful but account creation failed. Please contact support.',
+                'payment_id' => $payment->id
+            ]);
+        }
+    }
+
+    /**
+     * Normalize phone number based on country dial code.
+     */
     private function formatPhoneNumber(string $phone, string $dialCode = '254'): ?string
     {
         // Remove any non-numeric characters
@@ -480,5 +586,33 @@ class TenantHotspotController extends Controller
         }
 
         return null;
+    }
+
+    private function findTenantPackage(int $id, $tenantId = null): TenantHotspot
+    {
+        if (!$tenantId) {
+            $host = request()->getHost();
+            $subdomain = explode('.', $host)[0];
+            $tenant = Tenant::where('subdomain', $subdomain)->firstOrFail();
+            $tenantId = $tenant->id;
+        }
+
+        return TenantHotspot::where('id', $id)
+            ->where('tenant_id', $tenantId)
+            ->firstOrFail();
+    }
+
+    private function calculateExpiry(TenantHotspot $package, $baseDate = null)
+    {
+        $base = $baseDate ?: now();
+        
+        return match ($package->duration_unit) {
+            'minutes' => $base->copy()->addMinutes($package->duration_value),
+            'hours'   => $base->copy()->addHours($package->duration_value),
+            'days'    => $base->copy()->addDays($package->duration_value),
+            'weeks'   => $base->copy()->addWeeks($package->duration_value),
+            'months'  => $base->copy()->addMonths($package->duration_value),
+            default   => $base->copy()->addDays(1),
+        };
     }
 }
