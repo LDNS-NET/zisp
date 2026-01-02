@@ -29,19 +29,23 @@ class Package extends Model
     protected static function booted()
     {
         static::addGlobalScope('tenant', function ($query) {
+            $tenantId = null;
             if (tenant()) {
-                $query->where(function($q) {
-                    $q->where('tenant_id', tenant()->id)
+                $tenantId = tenant()->id;
+            } else {
+                foreach (['customer', 'web'] as $guard) {
+                    if (auth()->guard($guard)->check()) {
+                        $tenantId = auth()->guard($guard)->user()->tenant_id;
+                        break;
+                    }
+                }
+            }
+
+            if ($tenantId) {
+                $query->where(function($q) use ($tenantId) {
+                    $q->where('tenant_id', $tenantId)
                       ->orWhereNull('tenant_id');
                 });
-            } elseif (auth()->check()) {
-                $user = auth()->user();
-                if ($user->tenant_id) {
-                    $query->where(function($q) use ($user) {
-                        $q->where('tenant_id', $user->tenant_id)
-                          ->orWhereNull('tenant_id');
-                    });
-                }
             }
         });
 

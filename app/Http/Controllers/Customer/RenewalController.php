@@ -21,7 +21,7 @@ class RenewalController extends Controller
     public function index()
     {
         $user = Auth::guard('customer')->user();
-        $user->load(['package', 'hotspotPackage']);
+        $user->load(['package', 'hotspotPackage', 'tenant']);
         
         $gateways = \App\Models\TenantPaymentGateway::where('tenant_id', $user->tenant_id)
             ->where('is_active', true)
@@ -97,11 +97,6 @@ class RenewalController extends Controller
                 'user' => Auth::guard('customer')->user()->fresh()
             ]);
         }
-        
-        // If pending, maybe check upstream?
-        // For now, rely on callback or job.
-        // But if we want real-time check for MoMo, we can add logic here.
-        // PaymentGatewayService could have checkStatus method.
         
         return response()->json([
             'success' => true,

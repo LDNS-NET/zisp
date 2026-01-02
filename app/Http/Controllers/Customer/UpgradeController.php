@@ -21,7 +21,7 @@ class UpgradeController extends Controller
     public function index()
     {
         $user = Auth::guard('customer')->user();
-        $user->load(['package', 'hotspotPackage']);
+        $user->load(['package', 'hotspotPackage', 'tenant']);
         
         $currentPackageId = $user->package_id ?? $user->hotspot_package_id;
         
@@ -66,7 +66,7 @@ class UpgradeController extends Controller
             $amount,
             $request->phone,
             'upgrade',
-            ['type' => 'upgrade', 'new_package_id' => $newPackage->id],
+            ['type' => 'upgrade', 'package_id' => $newPackage->id],
             $request->payment_method
         );
 

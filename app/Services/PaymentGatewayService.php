@@ -84,6 +84,8 @@ class PaymentGatewayService
                 'receipt_number' => $reference,
                 'status' => 'pending',
                 'checkout_request_id' => $response['reference_id'],
+                'package_id' => $metadata['package_id'] ?? ($metadata['new_package_id'] ?? null),
+                'hotspot_package_id' => $metadata['hotspot_package_id'] ?? null,
                 'response' => array_merge($response, ['metadata' => $metadata]),
             ]);
 
@@ -140,6 +142,8 @@ class PaymentGatewayService
                     'status' => 'pending',
                     'checkout_request_id' => $response['checkout_request_id'] ?? null,
                     'merchant_request_id' => $response['merchant_request_id'] ?? null,
+                    'package_id' => $metadata['package_id'] ?? ($metadata['new_package_id'] ?? null),
+                    'hotspot_package_id' => $metadata['hotspot_package_id'] ?? null,
                     'response' => array_merge($response, ['metadata' => $metadata]),
                     'disbursement_status' => $gateway 
                         ? ($gateway->mpesa_env === 'sandbox' ? 'testing' : 'completed') 

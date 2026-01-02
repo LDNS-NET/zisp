@@ -52,15 +52,17 @@ class NetworkUser extends Authenticatable
 
     public function package(): BelongsTo
     {
-        if ($this->type === 'hotspot') {
-            return $this->belongsTo(TenantHotspot::class, 'hotspot_package_id');
-        }
         return $this->belongsTo(Package::class, 'package_id');
     }
 
     public function hotspotPackage(): BelongsTo
     {
         return $this->belongsTo(TenantHotspot::class, 'hotspot_package_id');
+    }
+
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Tenant::class, 'tenant_id');
     }
 
     public static function generateHotspotUsername($tenantId)
@@ -133,13 +135,24 @@ class NetworkUser extends Authenticatable
     {
         /** Apply tenant scope */
         static::addGlobalScope('tenant', function ($query) {
+            $tenantId = null;
             if (tenant()) {
-                $query->where('tenant_id', tenant()->id);
-            } elseif (auth()->check()) {
-                $user = auth()->user();
-                if (!$user->is_super_admin && $user->tenant_id) {
-                    $query->where('tenant_id', $user->tenant_id);
+                $tenantId = tenant()->id;
+            } else {
+                foreach (['customer', 'web'] as $guard) {
+                    if (auth()->guard($guard)->check()) {
+                        $user = auth()->guard($guard)->user();
+                        if ($guard === 'web' && ($user->is_super_admin ?? false)) {
+                            return;
+                        }
+                        $tenantId = $user->tenant_id;
+                        break;
+                    }
                 }
+            }
+
+            if ($tenantId) {
+                $query->where('tenant_id', $tenantId);
             } else {
                 // Fallback for public routes (hotspot page)
                 $host = request()->getHost();

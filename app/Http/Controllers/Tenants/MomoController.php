@@ -8,6 +8,7 @@ use App\Models\Tenants\TenantHotspot;
 use App\Models\Tenants\TenantPayment;
 use App\Models\Tenants\NetworkUser;
 use App\Services\MomoService;
+use App\Services\PaymentProcessingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -16,10 +17,12 @@ use App\Services\CountryService;
 class MomoController extends Controller
 {
     protected $momoService;
+    protected $processingService;
 
-    public function __construct(MomoService $momoService)
+    public function __construct(MomoService $momoService, PaymentProcessingService $processingService)
     {
         $this->momoService = $momoService;
+        $this->processingService = $processingService;
     }
 
     /**
@@ -139,9 +142,6 @@ class MomoController extends Controller
      */
     public function callback(Request $request)
     {
-        // MTN MoMo callbacks are usually sent to the URL provided in the developer portal
-        // or can be polled. For simplicity and reliability, we'll implement polling first,
-        // but this method can handle the POST if configured.
         Log::info('MoMo Callback received', ['data' => $request->all()]);
         return response()->json(['status' => 'ok']);
     }
@@ -154,27 +154,13 @@ class MomoController extends Controller
         try {
             Log::info('MoMo Status Check Attempt', [
                 'referenceId' => $referenceId,
-                'request_all' => request()->all()
             ]);
             
-            // Use DB facade to bypass any potential model/scope issues
             $payment = \Illuminate\Support\Facades\DB::table('tenant_payments')
                 ->where('checkout_request_id', $referenceId)
                 ->first();
 
             if (!$payment) {
-                // Log all recent MoMo payments to see what's in the DB
-                $recent = \Illuminate\Support\Facades\DB::table('tenant_payments')
-                    ->where('payment_method', 'momo')
-                    ->orderBy('created_at', 'desc')
-                    ->limit(5)
-                    ->get();
-                
-                Log::error('MoMo Payment Record Not Found', [
-                    'searched_reference' => $referenceId,
-                    'recent_momo_payments' => $recent
-                ]);
-                
                 return response()->json([
                     'success' => false, 
                     'message' => 'Payment record not found.'
@@ -209,8 +195,8 @@ class MomoController extends Controller
                             'checked' => true,
                         ]);
 
-                    // Handle successful payment (create user, etc.)
-                    $this->handleSuccessfulPayment($payment);
+                    // Handle successful payment via processing service
+                    $this->processingService->processSuccess(TenantPayment::find($payment->id));
                 } elseif ($status === 'failed') {
                     \Illuminate\Support\Facades\DB::table('tenant_payments')
                         ->where('id', $payment->id)
@@ -231,61 +217,6 @@ class MomoController extends Controller
         }
     }
 
-    protected function handleSuccessfulPayment($payment)
-    {
-        // This is a simplified version of TenantHotspotController@handleSuccessfulPayment
-        // Ideally, this should be in a PaymentService to avoid duplication.
-        $package = TenantHotspot::find($payment->hotspot_package_id);
-        
-        $existingUser = NetworkUser::withoutGlobalScopes()
-            ->where('tenant_id', $payment->tenant_id)
-            ->where('phone', $payment->phone)
-            ->where('type', 'hotspot')
-            ->first();
-
-        if ($existingUser) {
-            $baseDate = ($existingUser->expires_at && $existingUser->expires_at->isFuture()) ? $existingUser->expires_at : now();
-            $existingUser->expires_at = $this->calculateExpiry($package, $baseDate);
-            $existingUser->save();
-            
-            \Illuminate\Support\Facades\DB::table('tenant_payments')
-                ->where('id', $payment->id)
-                ->update(['user_id' => $existingUser->id]);
-            return;
-        }
-
-        $username = NetworkUser::generateHotspotUsername($payment->tenant_id);
-        $password = Str::random(8);
-
-        $user = NetworkUser::create([
-            'tenant_id' => $payment->tenant_id,
-            'username' => $username,
-            'password' => $password,
-            'phone' => $payment->phone,
-            'type' => 'hotspot',
-            'hotspot_package_id' => $package->id,
-            'expires_at' => $this->calculateExpiry($package),
-            'registered_at' => now(),
-        ]);
-
-        \Illuminate\Support\Facades\DB::table('tenant_payments')
-            ->where('id', $payment->id)
-            ->update(['user_id' => $user->id]);
-    }
-
-    private function calculateExpiry($package, $baseDate = null)
-    {
-        $base = $baseDate ?: now();
-        return match ($package->duration_unit) {
-            'minutes' => $base->copy()->addMinutes($package->duration_value),
-            'hours'   => $base->copy()->addHours($package->duration_value),
-            'days'    => $base->copy()->addDays($package->duration_value),
-            'weeks'   => $base->copy()->addWeeks($package->duration_value),
-            'months'  => $base->copy()->addMonths($package->duration_value),
-            default   => $base->copy()->addDays(1),
-        };
-    }
-
     /**
      * Normalize phone number based on country dial code.
      */
@@ -293,7 +224,6 @@ class MomoController extends Controller
     {
         $phone = preg_replace('/\D/', '', $phone);
 
-        // In sandbox, allow common test numbers (starting with 46) as-is
         if ($isSandbox && str_starts_with($phone, '46')) {
             return $phone;
         }

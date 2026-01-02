@@ -34,7 +34,7 @@ class CheckMpesaPaymentStatusJob implements ShouldQueue
     /**
      * Execute the job.
      */
-    public function handle(MpesaService $mpesaService): void
+    public function handle(MpesaService $mpesaService, \App\Services\PaymentProcessingService $processingService): void
     {
         try {
             // Skip if payment is already processed
@@ -105,7 +105,7 @@ class CheckMpesaPaymentStatusJob implements ShouldQueue
                 ]);
 
                 // Process user account update/creation
-                $this->processSuccessfulPayment();
+                $processingService->processSuccess($this->payment);
 
             } elseif ($response['success'] && in_array($response['status'], ['failed', 'cancelled'])) {
                 // Mark payment as failed

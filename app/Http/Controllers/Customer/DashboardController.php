@@ -12,7 +12,7 @@ class DashboardController extends Controller
     public function index()
     {
         $user = Auth::guard('customer')->user();
-        $user->load(['package', 'hotspotPackage']);
+        $user->load(['package', 'hotspotPackage', 'tenant']);
         
         $gateways = \App\Models\TenantPaymentGateway::where('tenant_id', $user->tenant_id)
             ->where('is_active', true)
@@ -24,9 +24,17 @@ class DashboardController extends Controller
             $gateways[] = 'mpesa';
         }
 
+        $package = $user->type === 'hotspot' ? $user->hotspotPackage : $user->package;
+        
+        $daysRemaining = null;
+        if ($user->expires_at) {
+            $daysRemaining = now()->diffInDays($user->expires_at, false);
+        }
+
         return Inertia::render('Customer/Dashboard', [
             'user' => $user,
-            'package' => $user->type === 'hotspot' ? $user->hotspotPackage : $user->package,
+            'package' => $package,
+            'daysRemaining' => $daysRemaining,
             'paymentMethods' => array_values(array_unique($gateways)),
             'country' => $user->tenant->country_code ?? 'KE',
             'currency' => $user->tenant->currency ?? 'KES',
