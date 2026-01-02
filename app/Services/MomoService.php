@@ -109,6 +109,13 @@ class MomoService
             // Resolve currency: In sandbox, it MUST be EUR. In production, use provided or fallback to UGX.
             $resolvedCurrency = $this->environment === 'production' ? ($currency ?: 'UGX') : 'EUR';
 
+            Log::info('MoMo Currency Resolution', [
+                'input_currency' => $currency,
+                'environment' => $this->environment,
+                'resolved_currency' => $resolvedCurrency,
+                'phone' => $phone
+            ]);
+
             $payload = [
                 'amount' => (string) round($amount, 2),
                 'currency' => $resolvedCurrency,
