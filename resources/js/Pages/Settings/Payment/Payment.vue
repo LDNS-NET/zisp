@@ -23,44 +23,111 @@ const supportedMethods = computed(() => currentCountry.value.payment_methods || 
 const existing = props.gateways[0] || {};
 
 // Helper to map payout_method to collection_method
-const getInitialCollectionMethod = (payoutMethod) => {
-    switch (payoutMethod) {
-        case 'mpesa_phone': return 'phone';
-        case 'bank': return 'bank';
-        case 'till': return 'mpesa_till';
-        case 'paybill': return 'mpesa_paybill';
-        default: return 'phone';
+const getInitialCollectionMethod = (gateway) => {
+    if (!gateway) return props.country === 'KE' ? 'phone' : 'paystack';
+    
+    if (gateway.provider === 'momo') return 'momo';
+    if (gateway.provider === 'airtel_money') return 'airtel_money';
+    if (gateway.provider === 'paystack') return 'paystack';
+    if (gateway.provider === 'flutterwave') return 'flutterwave';
+    if (gateway.provider === 'bank') return 'bank';
+    
+    if (gateway.provider === 'mpesa') {
+        switch (gateway.payout_method) {
+            case 'mpesa_phone': return 'phone';
+            case 'till': return 'mpesa_till';
+            case 'paybill': return 'mpesa_paybill';
+            default: return 'phone';
+        }
     }
+    return 'phone';
 };
 
+// Find the first active or relevant gateway to show initially
+const initialGateway = props.gateways.find(g => g.is_active) || props.gateways[0] || {};
+
 const form = useForm({
-    provider: existing.provider || (props.country === 'KE' ? 'mpesa' : 'paystack'),
-    payout_method: existing.payout_method || (props.country === 'KE' ? 'mpesa_phone' : ''),
-    collection_method: existing.provider || getInitialCollectionMethod(existing.payout_method),
-    phone_number: existing.phone_number || props.phone_number || '',
-    bank_name: existing.bank_name || '',
-    bank_account: existing.bank_account || '',
-    bank_paybill: existing.bank_paybill || '',
-    till_number: existing.till_number || '',
-    paybill_business_number: existing.paybill_business_number || '',
-    paybill_account_number: existing.paybill_account_number || '',
-    mpesa_consumer_key: existing.mpesa_consumer_key || '',
-    mpesa_consumer_secret: existing.mpesa_consumer_secret || '',
-    mpesa_shortcode: existing.mpesa_shortcode || '',
-    mpesa_passkey: existing.mpesa_passkey || '',
-    mpesa_env: existing.mpesa_env || 'sandbox',
-    paystack_public_key: existing.paystack_public_key || '',
-    paystack_secret_key: existing.paystack_secret_key || '',
-    flutterwave_public_key: existing.flutterwave_public_key || '',
-    flutterwave_secret_key: existing.flutterwave_secret_key || '',
-    momo_api_user: existing.momo_api_user || '',
-    momo_api_key: existing.momo_api_key || '',
-    momo_subscription_key: existing.momo_subscription_key || '',
-    momo_env: existing.momo_env || 'sandbox',
-    airtel_client_id: existing.airtel_client_id || '',
-    airtel_client_secret: existing.airtel_client_secret || '',
-    airtel_env: existing.airtel_env || 'sandbox',
-    use_own_api: existing.use_own_api === 1 || existing.use_own_api === true || false,
+    provider: initialGateway.provider || (props.country === 'KE' ? 'mpesa' : 'paystack'),
+    payout_method: initialGateway.payout_method || (props.country === 'KE' ? 'mpesa_phone' : ''),
+    collection_method: getInitialCollectionMethod(initialGateway),
+    phone_number: initialGateway.phone_number || props.phone_number || '',
+    bank_name: initialGateway.bank_name || '',
+    bank_account: initialGateway.bank_account || '',
+    bank_paybill: initialGateway.bank_paybill || '',
+    till_number: initialGateway.till_number || '',
+    paybill_business_number: initialGateway.paybill_business_number || '',
+    paybill_account_number: initialGateway.paybill_account_number || '',
+    mpesa_consumer_key: initialGateway.mpesa_consumer_key || '',
+    mpesa_consumer_secret: initialGateway.mpesa_consumer_secret || '',
+    mpesa_shortcode: initialGateway.mpesa_shortcode || '',
+    mpesa_passkey: initialGateway.mpesa_passkey || '',
+    mpesa_env: initialGateway.mpesa_env || 'sandbox',
+    paystack_public_key: initialGateway.paystack_public_key || '',
+    paystack_secret_key: initialGateway.paystack_secret_key || '',
+    flutterwave_public_key: initialGateway.flutterwave_public_key || '',
+    flutterwave_secret_key: initialGateway.flutterwave_secret_key || '',
+    momo_api_user: initialGateway.momo_api_user || '',
+    momo_api_key: initialGateway.momo_api_key || '',
+    momo_subscription_key: initialGateway.momo_subscription_key || '',
+    momo_env: initialGateway.momo_env || 'sandbox',
+    airtel_client_id: initialGateway.airtel_client_id || '',
+    airtel_client_secret: initialGateway.airtel_client_secret || '',
+    airtel_env: initialGateway.airtel_env || 'sandbox',
+    use_own_api: initialGateway.use_own_api === 1 || initialGateway.use_own_api === true || false,
+    is_active: initialGateway.is_active ?? true,
+});
+
+// Watch for collection method changes to load existing data for that provider
+import { watch } from 'vue';
+watch(() => form.collection_method, (newMethod) => {
+    let targetProvider = 'mpesa';
+    let targetPayoutMethod = '';
+
+    if (newMethod === 'momo') targetProvider = 'momo';
+    else if (newMethod === 'airtel_money') targetProvider = 'airtel_money';
+    else if (newMethod === 'paystack') targetProvider = 'paystack';
+    else if (newMethod === 'flutterwave') targetProvider = 'flutterwave';
+    else if (newMethod === 'bank') targetProvider = 'bank';
+    else if (newMethod === 'phone') { targetProvider = 'mpesa'; targetPayoutMethod = 'mpesa_phone'; }
+    else if (newMethod === 'mpesa_till') { targetProvider = 'mpesa'; targetPayoutMethod = 'till'; }
+    else if (newMethod === 'mpesa_paybill') { targetProvider = 'mpesa'; targetPayoutMethod = 'paybill'; }
+
+    const existing = props.gateways.find(g => 
+        g.provider === targetProvider && 
+        (targetProvider !== 'mpesa' || g.payout_method === targetPayoutMethod)
+    );
+
+    if (existing) {
+        form.phone_number = existing.phone_number || '';
+        form.bank_name = existing.bank_name || '';
+        form.bank_account = existing.bank_account || '';
+        form.bank_paybill = existing.bank_paybill || '';
+        form.till_number = existing.till_number || '';
+        form.paybill_business_number = existing.paybill_business_number || '';
+        form.paybill_account_number = existing.paybill_account_number || '';
+        form.mpesa_consumer_key = existing.mpesa_consumer_key || '';
+        form.mpesa_consumer_secret = existing.mpesa_consumer_secret || '';
+        form.mpesa_shortcode = existing.mpesa_shortcode || '';
+        form.mpesa_passkey = existing.mpesa_passkey || '';
+        form.mpesa_env = existing.mpesa_env || 'sandbox';
+        form.paystack_public_key = existing.paystack_public_key || '';
+        form.paystack_secret_key = existing.paystack_secret_key || '';
+        form.flutterwave_public_key = existing.flutterwave_public_key || '';
+        form.flutterwave_secret_key = existing.flutterwave_secret_key || '';
+        form.momo_api_user = existing.momo_api_user || '';
+        form.momo_api_key = existing.momo_api_key || '';
+        form.momo_subscription_key = existing.momo_subscription_key || '';
+        form.momo_env = existing.momo_env || 'sandbox';
+        form.airtel_client_id = existing.airtel_client_id || '';
+        form.airtel_client_secret = existing.airtel_client_secret || '';
+        form.airtel_env = existing.airtel_env || 'sandbox';
+        form.use_own_api = existing.use_own_api === 1 || existing.use_own_api === true || false;
+        form.is_active = existing.is_active ?? true;
+    } else {
+        // Reset fields if no existing config
+        form.use_own_api = false;
+        // Keep common fields like phone number if it's a phone-based method
+    }
 });
 
 
@@ -95,15 +162,15 @@ const save = () => {
             break;
         case 'momo':
             form.provider = 'momo';
-            form.payout_method = '';
+            form.payout_method = null;
             break;
         case 'airtel_money':
             form.provider = 'airtel_money';
-            form.payout_method = '';
+            form.payout_method = null;
             break;
         default:
-            form.provider = 'custom';
-            form.payout_method = '';
+            form.provider = form.collection_method;
+            form.payout_method = null;
     }
 
     form.post(route('settings.payment.update'), {
