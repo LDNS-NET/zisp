@@ -67,7 +67,7 @@ class MomoController extends Controller
             $dialCode = $countryData['dial_code'] ?? '256';
 
             // Normalize phone
-            $phone = $this->formatPhoneNumber($request->phone, $dialCode);
+            $phone = $this->formatPhoneNumber($request->phone, $dialCode, $gateway->momo_env === 'sandbox');
             if (!$phone) {
                 return response()->json([
                     'success' => false,
@@ -240,9 +240,14 @@ class MomoController extends Controller
     /**
      * Normalize phone number based on country dial code.
      */
-    private function formatPhoneNumber(string $phone, string $dialCode): ?string
+    private function formatPhoneNumber(string $phone, string $dialCode, bool $isSandbox = false): ?string
     {
         $phone = preg_replace('/\D/', '', $phone);
+
+        // In sandbox, allow common test numbers (starting with 46) as-is
+        if ($isSandbox && str_starts_with($phone, '46')) {
+            return $phone;
+        }
 
         if (substr($phone, 0, 1) === '0') {
             return $dialCode . substr($phone, 1);

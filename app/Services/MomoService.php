@@ -106,8 +106,8 @@ class MomoService
             $referenceId = (string) Str::uuid();
             $url = $this->baseUrl . '/collection/v1_0/requesttopay';
 
-            // Resolve currency: Use provided, or fallback to environment-based (EUR for sandbox, UGX for production)
-            $resolvedCurrency = $currency ?: ($this->environment === 'production' ? 'UGX' : 'EUR');
+            // Resolve currency: In sandbox, it MUST be EUR. In production, use provided or fallback to UGX.
+            $resolvedCurrency = $this->environment === 'production' ? ($currency ?: 'UGX') : 'EUR';
 
             $payload = [
                 'amount' => (string) round($amount, 2),
@@ -129,7 +129,7 @@ class MomoService
                 'Content-Type' => 'application/json',
             ])->post($url, $payload);
 
-            if ($response->status() === 202) {
+            if (in_array($response->status(), [200, 201, 202])) {
                 return [
                     'success' => true,
                     'message' => 'Request to pay initiated',
