@@ -356,6 +356,23 @@ Route::prefix('customer')->name('customer.')->group(function () {
         Route::post('upgrade/pay', [App\Http\Controllers\Customer\UpgradeController::class, 'initiatePayment'])->name('upgrade.pay');
         Route::get('upgrade/status/{referenceId}', [App\Http\Controllers\Customer\UpgradeController::class, 'checkPaymentStatus'])->name('upgrade.status');
 
+        Route::get('debug', function() {
+            $user = Auth::guard('customer')->user();
+            if (!$user) return 'Not logged in';
+            
+            $user->load(['package', 'hotspotPackage']);
+            
+            return [
+                'user' => $user,
+                'tenant_id' => $user->tenant_id,
+                'package_id' => $user->package_id,
+                'package_relation' => $user->package,
+                'all_packages_visible' => \App\Models\Package::all(),
+                'gateways' => \App\Models\TenantPaymentGateway::where('tenant_id', $user->tenant_id)->get(),
+                'country_code' => $user->tenant->country_code ?? 'N/A',
+            ];
+        });
+
         Route::post('logout', [App\Http\Controllers\Customer\AuthController::class, 'logout'])->name('logout');
     });
 });
