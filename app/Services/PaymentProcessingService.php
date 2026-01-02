@@ -75,23 +75,54 @@ class PaymentProcessingService
 
     protected function updateExistingUser($user, $package, $payment, $isHotspot)
     {
-        if ($isHotspot) {
-            $user->hotspot_package_id = $package->id;
-            $user->package_id = null;
+        $upgradeType = $payment->response['metadata']['upgrade_type'] ?? null;
+        $isUpgrade = ($payment->response['metadata']['type'] ?? '') === 'upgrade';
+
+        if ($isUpgrade && $upgradeType === 'immediate') {
+            // Immediate upgrade: Switch package, keep expiry
+            if ($isHotspot) {
+                $user->hotspot_package_id = $package->id;
+                $user->package_id = null;
+            } else {
+                $user->package_id = $package->id;
+                $user->hotspot_package_id = null;
+            }
+            // No change to expires_at (they only paid the difference for the remainder)
+        } elseif ($isUpgrade && $upgradeType === 'after_expiry') {
+            // After expiry upgrade: Store pending, extend expiry
+            $originalExpiry = ($user->expires_at && $user->expires_at->isFuture()) ? $user->expires_at : now();
+            
+            if ($isHotspot) {
+                $user->pending_hotspot_package_id = $package->id;
+                $user->pending_package_id = null;
+            } else {
+                $user->pending_package_id = $package->id;
+                $user->pending_hotspot_package_id = null;
+            }
+            
+            $user->pending_package_activation_at = $originalExpiry;
+            $user->expires_at = $this->calculateExpiry($package, $originalExpiry);
         } else {
-            $user->package_id = $package->id;
-            $user->hotspot_package_id = null;
+            // Regular renewal
+            if ($isHotspot) {
+                $user->hotspot_package_id = $package->id;
+                $user->package_id = null;
+            } else {
+                $user->package_id = $package->id;
+                $user->hotspot_package_id = null;
+            }
+
+            $baseDate = ($user->expires_at && $user->expires_at->isFuture()) ? $user->expires_at : now();
+            
+            // Handle multi-month renewals for PPPoE
+            $months = 1;
+            if (!$isHotspot && isset($payment->response['metadata']['months'])) {
+                $months = (int)$payment->response['metadata']['months'];
+            }
+
+            $user->expires_at = $this->calculateExpiry($package, $baseDate, $months);
         }
 
-        $baseDate = ($user->expires_at && $user->expires_at->isFuture()) ? $user->expires_at : now();
-        
-        // Handle multi-month renewals for PPPoE
-        $months = 1;
-        if (!$isHotspot && isset($payment->response['metadata']['months'])) {
-            $months = (int)$payment->response['metadata']['months'];
-        }
-
-        $user->expires_at = $this->calculateExpiry($package, $baseDate, $months);
         $user->status = 'active';
         $user->save();
 

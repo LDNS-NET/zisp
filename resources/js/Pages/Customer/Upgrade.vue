@@ -16,6 +16,7 @@ const form = useForm({
     phone: props.user.phone || '',
     package_id: null,
     payment_method: props.paymentMethods.length > 0 ? props.paymentMethods[0] : '',
+    upgrade_type: 'immediate',
 });
 
 const isProcessing = ref(false);
@@ -194,6 +195,33 @@ const startPolling = (referenceId) => {
                         </div>
                         <div class="p-8">
                             <form @submit.prevent="submit" class="space-y-8">
+                                <!-- Upgrade Type Selection -->
+                                <div>
+                                    <label class="block text-sm font-black text-slate-900 uppercase tracking-widest mb-4">When to Upgrade?</label>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <label class="relative flex flex-col p-4 rounded-2xl border-2 cursor-pointer transition-all"
+                                            :class="form.upgrade_type === 'immediate' ? 'border-indigo-600 bg-indigo-50' : 'border-slate-100 hover:border-slate-200'"
+                                        >
+                                            <input type="radio" v-model="form.upgrade_type" value="immediate" class="sr-only">
+                                            <span class="font-black text-slate-900">Upgrade Now</span>
+                                            <span class="text-xs text-slate-500 mt-1">Pay the difference and switch immediately.</span>
+                                            <div v-if="form.upgrade_type === 'immediate'" class="absolute -top-2 -right-2 bg-indigo-600 text-white rounded-full p-1 shadow-lg">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-width="3"/></svg>
+                                            </div>
+                                        </label>
+                                        <label class="relative flex flex-col p-4 rounded-2xl border-2 cursor-pointer transition-all"
+                                            :class="form.upgrade_type === 'after_expiry' ? 'border-indigo-600 bg-indigo-50' : 'border-slate-100 hover:border-slate-200'"
+                                        >
+                                            <input type="radio" v-model="form.upgrade_type" value="after_expiry" class="sr-only">
+                                            <span class="font-black text-slate-900">After Expiry</span>
+                                            <span class="text-xs text-slate-500 mt-1">Pay full price and switch after current plan ends.</span>
+                                            <div v-if="form.upgrade_type === 'after_expiry'" class="absolute -top-2 -right-2 bg-indigo-600 text-white rounded-full p-1 shadow-lg">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-width="3"/></svg>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+
                                 <!-- Payment Method Selection -->
                                 <div v-if="paymentMethods.length > 1">
                                     <label class="block text-sm font-black text-slate-900 uppercase tracking-widest mb-4">Select Payment Method</label>
@@ -224,7 +252,9 @@ const startPolling = (referenceId) => {
                                 <div class="bg-slate-900 rounded-2xl p-6 text-white flex justify-between items-center">
                                     <div>
                                         <p class="text-slate-400 text-xs font-bold uppercase tracking-widest">Total Amount</p>
-                                        <p class="text-2xl font-black">{{ selectedPackage.price }} {{ currency }}</p>
+                                        <p class="text-2xl font-black">
+                                            {{ form.upgrade_type === 'immediate' ? selectedPackage.price_difference : selectedPackage.price }} {{ currency }}
+                                        </p>
                                     </div>
                                     <div class="text-right">
                                         <p class="text-slate-400 text-xs font-bold uppercase tracking-widest">New Speed</p>

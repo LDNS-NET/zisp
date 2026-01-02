@@ -35,14 +35,21 @@ class UpgradeController extends Controller
             $packages = \App\Models\Tenants\TenantHotspot::withoutGlobalScopes()
                 ->where('tenant_id', $tenantId)
                 ->where('id', '!=', $user->hotspot_package_id)
+                ->where('price', '>', $currentPackage->price ?? 0)
                 ->get();
         } else {
             $packages = \App\Models\Package::withoutGlobalScopes()
                 ->where('tenant_id', $tenantId)
                 ->where('type', $user->type)
                 ->where('id', '!=', $user->package_id)
+                ->where('price', '>', $currentPackage->price ?? 0)
                 ->get();
         }
+
+        // Calculate price difference for each package
+        $packages->each(function($pkg) use ($currentPackage) {
+            $pkg->price_difference = max(0, $pkg->price - ($currentPackage->price ?? 0));
+        });
 
         $gateways = \App\Models\TenantPaymentGateway::where('tenant_id', $user->tenant_id)
             ->where('is_active', true)
@@ -71,17 +78,32 @@ class UpgradeController extends Controller
             'phone' => 'required|string',
             'package_id' => 'required',
             'payment_method' => 'required|string|in:momo,mpesa',
+            'upgrade_type' => 'required|string|in:immediate,after_expiry',
         ]);
 
         if ($user->type === 'hotspot') {
             $newPackage = \App\Models\Tenants\TenantHotspot::withoutGlobalScopes()->findOrFail($request->package_id);
-            $metadata = ['type' => 'upgrade', 'hotspot_package_id' => $newPackage->id];
+            $currentPackage = \App\Models\Tenants\TenantHotspot::withoutGlobalScopes()->find($user->hotspot_package_id);
+            $metadata = [
+                'type' => 'upgrade', 
+                'upgrade_type' => $request->upgrade_type,
+                'hotspot_package_id' => $newPackage->id
+            ];
         } else {
             $newPackage = \App\Models\Package::withoutGlobalScopes()->findOrFail($request->package_id);
-            $metadata = ['type' => 'upgrade', 'package_id' => $newPackage->id];
+            $currentPackage = \App\Models\Package::withoutGlobalScopes()->find($user->package_id);
+            $metadata = [
+                'type' => 'upgrade', 
+                'upgrade_type' => $request->upgrade_type,
+                'package_id' => $newPackage->id
+            ];
         }
         
-        $amount = $newPackage->price;
+        if ($request->upgrade_type === 'immediate') {
+            $amount = max(0, $newPackage->price - ($currentPackage->price ?? 0));
+        } else {
+            $amount = $newPackage->price;
+        }
         
         $result = $this->paymentService->initiatePayment(
             $user,

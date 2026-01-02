@@ -31,6 +31,9 @@ class NetworkUser extends Authenticatable
         'type',
         'package_id',
         'hotspot_package_id',
+        'pending_package_id',
+        'pending_hotspot_package_id',
+        'pending_package_activation_at',
         'status',
         'registered_at',
         'expires_at',
@@ -42,6 +45,7 @@ class NetworkUser extends Authenticatable
     protected $casts = [
         'registered_at' => 'datetime',
         'expires_at' => 'datetime',
+        'pending_package_activation_at' => 'datetime',
         'online' => 'boolean',
     ];
 
