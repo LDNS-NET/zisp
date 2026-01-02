@@ -1,6 +1,6 @@
 <?php
 // Replace with your Primary Subscription Key from the portal
-$subscriptionKey = 'YOUR_PRIMARY_SUBSCRIPTION_KEY'; 
+$subscriptionKey = '5552521ca61549fb858741e546b46aa9'; 
 // 1. Generate API User (UUID v4)
 $apiUserId = sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
     mt_rand(0, 0xffff), mt_rand(0, 0xffff),
