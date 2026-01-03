@@ -292,6 +292,8 @@ class SubscriptionService
 
         $hotspotAmount = $hotspotIncome * $hotspotRate;
 
+        $totalAmount = $pppoeAmount + $hotspotAmount;
+
         $finalAmount = max($totalAmount, $minimumPay);
 
         // Calculate KES equivalent using KE base rates
