@@ -33,7 +33,7 @@ const supportedMethods = computed(() => {
     return props.paymentMethods || ['mpesa'];
 });
 
-const paymentMethod = ref(supportedMethods.value.includes('paystack') ? 'paystack' : (supportedMethods.value.includes('mpesa') ? 'mpesa' : supportedMethods.value[0]));
+const paymentMethod = ref(supportedMethods.value.includes('paystack') ? 'paystack' : (supportedMethods.value.includes('flutterwave') ? 'flutterwave' : (supportedMethods.value.includes('mpesa') ? 'mpesa' : supportedMethods.value[0])));
 
 const isValidPhoneNumber = computed(() => {
     if (!phoneNumber.value) return false;
@@ -346,9 +346,15 @@ async function processPayment() {
         return;
     }
     
-    // Handle Paystack separately with inline popup
+    // Handle Paystack separately with inline popup (now redirect)
     if (paymentMethod.value === 'paystack') {
         await processPaystackPayment();
+        return;
+    }
+
+    // Handle Flutterwave separately
+    if (paymentMethod.value === 'flutterwave') {
+        await processFlutterwavePayment();
         return;
     }
     
@@ -437,6 +443,50 @@ async function processPaystackPayment() {
         }
     } catch (error) {
         console.error('Paystack initialization error:', error);
+        paymentError.value = 'Payment initialization failed: ' + error.message;
+        showToast('Payment failed.', 'error');
+        isProcessing.value = false;
+    }
+}
+
+async function processFlutterwavePayment() {
+    isProcessing.value = true;
+    paymentError.value = '';
+    
+    try {
+        // Initialize payment with backend
+        const response = await fetch('/hotspot/checkout', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json', 
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') 
+            },
+            body: JSON.stringify({ 
+                hotspot_package_id: selectedHotspot.value.id, 
+                phone: phoneNumber.value, 
+                email: props.tenant.email || 'billing@' + props.tenant.subdomain + '.com',
+                payment_method: 'flutterwave'
+            })
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.authorization_url) {
+                // Redirect to Flutterwave hosted page
+                window.location.href = data.authorization_url;
+            } else {
+                paymentError.value = data.message || 'Failed to initialize Flutterwave payment';
+                showToast(data.message, 'error');
+                isProcessing.value = false;
+            }
+        } else {
+            const errorData = await response.json();
+            paymentError.value = errorData.message || 'Payment failed';
+            showToast(errorData.message, 'error');
+            isProcessing.value = false;
+        }
+    } catch (error) {
+        console.error('Flutterwave initialization error:', error);
         paymentError.value = 'Payment initialization failed: ' + error.message;
         showToast('Payment failed.', 'error');
         isProcessing.value = false;
@@ -758,7 +808,7 @@ function formatPhoneNumber(event) {
                             </svg>
                         </button>
                     </div>
-                    <p class="text-white/80 text-sm relative z-10">Secure payment via {{ paymentMethod === 'paystack' ? 'Paystack' : (paymentMethod === 'momo' ? 'MTN MoMo' : 'M-Pesa') }}</p>
+                    <p class="text-white/80 text-sm relative z-10">Secure payment via {{ paymentMethod === 'paystack' ? 'Paystack' : (paymentMethod === 'flutterwave' ? 'Flutterwave' : (paymentMethod === 'momo' ? 'MTN MoMo' : 'M-Pesa')) }}</p>
                 </div>
 
                 <div class="p-6">
@@ -788,6 +838,14 @@ function formatPhoneNumber(event) {
                                 :class="paymentMethod === 'paystack' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'"
                             >
                                 Paystack
+                            </button>
+                            <button 
+                                v-if="supportedMethods.includes('flutterwave')"
+                                @click="paymentMethod = 'flutterwave'"
+                                class="flex-1 py-2 text-sm font-bold rounded-lg transition-all duration-200"
+                                :class="paymentMethod === 'flutterwave' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'"
+                            >
+                                Flutterwave
                             </button>
                         </div>
                         <div class="bg-gray-50 rounded-xl p-4 border border-gray-100 flex justify-between items-center">

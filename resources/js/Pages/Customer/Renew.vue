@@ -41,6 +41,8 @@ const totalPrice = computed(() => {
 const submit = async () => {
     if (form.payment_method === 'paystack') {
         await initiatePaystackPayment();
+    } else if (form.payment_method === 'flutterwave') {
+        await initiateFlutterwavePayment();
     } else {
         await initiateStandardPayment();
     }
@@ -75,6 +77,26 @@ const initiatePaystackPayment = async () => {
         const response = await axios.post(route('customer.renew.pay'), form);
         if (response.data.success && response.data.authorization_url) {
             // Redirect to Paystack hosted page (similar to system renewal)
+            window.location.href = response.data.authorization_url;
+        } else {
+            paymentError.value = response.data.message;
+            isProcessing.value = false;
+        }
+    } catch (error) {
+        paymentError.value = error.response?.data?.message || 'Payment initiation failed.';
+        isProcessing.value = false;
+    }
+};
+
+const initiateFlutterwavePayment = async () => {
+    isProcessing.value = true;
+    paymentMessage.value = '';
+    paymentError.value = '';
+
+    try {
+        const response = await axios.post(route('customer.renew.pay'), form);
+        if (response.data.success && response.data.authorization_url) {
+            // Redirect to Flutterwave hosted page
             window.location.href = response.data.authorization_url;
         } else {
             paymentError.value = response.data.message;
@@ -221,11 +243,12 @@ const startPolling = (referenceId) => {
                                             <img v-if="method === 'mpesa'" src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/M-PESA_LOGO-01.svg/1200px-M-PESA_LOGO-01.svg.png" class="h-4" alt="M-Pesa">
                                             <img v-else-if="method === 'momo'" src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/93/MTN_Logo.svg/1200px-MTN_Logo.svg.png" class="h-7" alt="MoMo">
                                             <img v-else-if="method === 'paystack'" src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/0b/Paystack_Logo.png/320px-Paystack_Logo.png" class="h-5" alt="Paystack">
+                                            <img v-else-if="method === 'flutterwave'" src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/34/Flutterwave_Logo.png/800px-Flutterwave_Logo.png" class="h-5" alt="Flutterwave">
                                             <span v-else class="text-xs font-black uppercase">{{ method }}</span>
                                         </div>
                                         <div>
-                                            <span class="font-black text-slate-900 capitalize block">{{ method === 'mpesa' ? 'M-Pesa' : (method === 'momo' ? 'MTN MoMo' : (method === 'paystack' ? 'Paystack' : method)) }}</span>
-                                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">{{ method === 'paystack' ? 'Card, Bank, USSD' : 'Instant STK Push' }}</span>
+                                            <span class="font-black text-slate-900 capitalize block">{{ method === 'mpesa' ? 'M-Pesa' : (method === 'momo' ? 'MTN MoMo' : (method === 'paystack' ? 'Paystack' : (method === 'flutterwave' ? 'Flutterwave' : method))) }}</span>
+                                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">{{ method === 'paystack' || method === 'flutterwave' ? 'Card, Bank, USSD' : 'Instant STK Push' }}</span>
                                         </div>
                                         <div v-if="form.payment_method === method" class="absolute -top-2 -right-2 bg-indigo-600 text-white rounded-full p-1 shadow-lg border-2 border-white">
                                             <CheckCircle2 class="w-3 h-3" />

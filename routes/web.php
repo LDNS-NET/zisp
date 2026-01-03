@@ -112,6 +112,11 @@ Route::middleware(['check.subscription'])->group(function () {
     // Paystack routes
     Route::post('/paystack/webhook', [App\Http\Controllers\Tenants\PaystackController::class, 'webhook'])->name('paystack.webhook');
     Route::get('/paystack/callback', [App\Http\Controllers\Tenants\PaystackController::class, 'handleCallback'])->name('paystack.callback');
+    
+    // Flutterwave routes
+    Route::post('/flutterwave/webhook', [App\Http\Controllers\Tenants\FlutterwaveController::class, 'webhook'])->name('flutterwave.webhook');
+    Route::get('/flutterwave/callback', [App\Http\Controllers\Tenants\FlutterwaveController::class, 'handleCallback'])->name('flutterwave.callback');
+
     Route::get('/hotspot/momo/status/{referenceId}', [MomoController::class, 'checkStatus'])->name('hotspot.momo.status');
 });
 
@@ -362,6 +367,9 @@ Route::prefix('customer')->name('customer.')->group(function () {
 
         // Paystack verification (for customer portal)
         Route::get('paystack/verify/{reference}', [App\Http\Controllers\Tenants\PaystackController::class, 'verify'])->name('paystack.verify');
+        
+        // Flutterwave verification (for customer portal)
+        Route::get('flutterwave/verify/{reference}', [App\Http\Controllers\Tenants\FlutterwaveController::class, 'verify'])->name('flutterwave.verify');
 
         Route::post('logout', [App\Http\Controllers\Customer\AuthController::class, 'logout'])->name('logout');
     });

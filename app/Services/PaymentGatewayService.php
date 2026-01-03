@@ -7,6 +7,7 @@ use App\Models\Tenants\TenantPayment;
 use App\Services\MomoService;
 use App\Services\MpesaService;
 use App\Services\PaystackService;
+use App\Services\FlutterwaveService;
 use App\Services\CountryService;
 use Illuminate\Support\Facades\Log;
 
@@ -15,12 +16,14 @@ class PaymentGatewayService
     protected $momoService;
     protected $mpesaService;
     protected $paystackService;
+    protected $flutterwaveService;
 
-    public function __construct(MomoService $momoService, MpesaService $mpesaService, PaystackService $paystackService)
+    public function __construct(MomoService $momoService, MpesaService $mpesaService, PaystackService $paystackService, FlutterwaveService $flutterwaveService)
     {
         $this->momoService = $momoService;
         $this->mpesaService = $mpesaService;
         $this->paystackService = $paystackService;
+        $this->flutterwaveService = $flutterwaveService;
     }
 
     public function initiatePayment($user, $amount, $phone, $type, $metadata, $method)
@@ -44,6 +47,8 @@ class PaymentGatewayService
             return $this->initiateMpesa($user, $amount, $phone, $currency, $type, $metadata);
         } elseif ($method === 'paystack') {
             return $this->initiatePaystack($user, $amount, $phone, $currency, $type, $metadata);
+        } elseif ($method === 'flutterwave') {
+            return $this->initiateFlutterwave($user, $amount, $phone, $currency, $type, $metadata);
         }
 
         return ['success' => false, 'message' => 'Unsupported payment method.'];
@@ -260,5 +265,74 @@ class PaymentGatewayService
     protected function getCallbackUrl($type, $reference)
     {
         return route('paystack.callback', ['reference' => $reference]);
+    }
+
+    protected function initiateFlutterwave($user, $amount, $phone, $currency, $type, $metadata)
+    {
+        $gateway = TenantPaymentGateway::where('tenant_id', $user->tenant_id)
+            ->where('provider', 'flutterwave')
+            ->where('is_active', true)
+            ->first();
+
+        if (!$gateway || !$gateway->flutterwave_secret_key) {
+            return ['success' => false, 'message' => 'Flutterwave payment not configured.'];
+        }
+
+        $this->flutterwaveService->setCredentials([
+            'secret_key' => $gateway->flutterwave_secret_key,
+            'public_key' => $gateway->flutterwave_public_key,
+            'encryption_key' => $gateway->flutterwave_encryption_key ?? null,
+        ]);
+
+        $tenant = $user->tenant;
+        $email = $user->email ?: ($tenant->email ?: 'billing@' . $tenant->subdomain . '.com');
+        $reference = $this->flutterwaveService->generateReference(strtoupper($type));
+        
+        $response = $this->flutterwaveService->initializeTransaction(
+            $email,
+            $amount,
+            $reference,
+            $currency,
+            array_merge($metadata, [
+                'user_id' => $user->id,
+                'username' => $user->username,
+                'phone' => $phone,
+                'callback_url' => route('flutterwave.callback'),
+                'site_name' => $tenant->name ?? 'Internet Service',
+                'logo' => $tenant->logo ? asset('storage/' . $tenant->logo) : null,
+            ]),
+            [
+                'phone_number' => $phone,
+                'name' => $user->name ?? $user->username,
+            ]
+        );
+
+        if ($response['success']) {
+            $payment = TenantPayment::create([
+                'tenant_id' => $user->tenant_id,
+                'user_id' => $user->id,
+                'phone' => $phone,
+                'amount' => $amount,
+                'currency' => $currency,
+                'payment_method' => 'flutterwave',
+                'receipt_number' => $reference,
+                'status' => 'pending',
+                'checkout_request_id' => $reference, // Use reference as checkout ID
+                'package_id' => $metadata['package_id'] ?? ($metadata['new_package_id'] ?? null),
+                'hotspot_package_id' => $metadata['hotspot_package_id'] ?? null,
+                'response' => array_merge($response, ['metadata' => $metadata]),
+            ]);
+
+            return [
+                'success' => true,
+                'message' => 'Payment initiated.',
+                'reference_id' => $reference,
+                'authorization_url' => $response['link'],
+                'public_key' => $gateway->flutterwave_public_key,
+                'payment_id' => $payment->id
+            ];
+        }
+
+        return ['success' => false, 'message' => $response['message'] ?? 'Payment initiation failed.'];
     }
 }
