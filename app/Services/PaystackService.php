@@ -33,10 +33,11 @@ class PaystackService
      * @param string $email Customer email
      * @param float $amount Amount in major currency unit (e.g., NGN, not kobo)
      * @param string $reference Unique transaction reference
+     * @param string $currency Currency code (e.g., KES, NGN, GHS)
      * @param array $metadata Additional metadata
      * @return array|null Response with access_code and reference
      */
-    public function initializeTransaction(string $email, float $amount, string $reference, array $metadata = []): ?array
+    public function initializeTransaction(string $email, float $amount, string $reference, string $currency = 'KES', array $metadata = []): ?array
     {
         if (!$this->secretKey) {
             Log::error('Paystack: Secret key is missing');
@@ -51,6 +52,7 @@ class PaystackService
                 'email' => $email,
                 'amount' => $amountInKobo,
                 'reference' => $reference,
+                'currency' => strtoupper($currency),
                 'metadata' => $metadata,
                 'channels' => ['card', 'bank', 'ussd', 'qr', 'mobile_money', 'bank_transfer'],
             ];

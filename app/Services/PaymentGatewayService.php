@@ -219,6 +219,7 @@ class PaymentGatewayService
             $email,
             $amount,
             $reference,
+            $currency,
             array_merge($metadata, [
                 'user_id' => $user->id,
                 'username' => $user->username,

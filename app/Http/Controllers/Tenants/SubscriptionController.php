@@ -84,6 +84,7 @@ class SubscriptionController extends Controller
             $tenant->email ?: 'billing@' . $tenant->subdomain . '.com',
             $bill['final_amount'],
             $reference,
+            $bill['currency'] ?? 'KES',
             [
                 'tenant_id' => $tenant->id,
                 'type' => 'renewal',
