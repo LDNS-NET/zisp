@@ -135,7 +135,7 @@ class TenantHotspotController extends Controller
                 'hotspot_package_id' => 'required|exists:tenant_hotspot_packages,id',
                 'phone' => 'required|string',
                 'email' => 'nullable|email',
-                'payment_method' => 'nullable|string|in:mpesa,momo,paystack',
+                'payment_method' => 'nullable|string|in:mpesa,momo,paystack,flutterwave',
             ]);
 
 
