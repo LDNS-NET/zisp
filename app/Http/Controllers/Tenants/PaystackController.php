@@ -137,6 +137,86 @@ class PaystackController extends Controller
     }
 
     /**
+     * Handle Paystack callback (redirect from hosted page)
+     */
+    public function handleCallback(Request $request)
+    {
+        $reference = $request->query('reference');
+        
+        if (!$reference) {
+            return redirect()->route('dashboard')->with('error', 'No reference provided.');
+        }
+
+        // Find payment by reference
+        $payment = TenantPayment::where('receipt_number', $reference)
+            ->orWhere('checkout_request_id', $reference)
+            ->first();
+
+        if (!$payment) {
+            return redirect()->route('dashboard')->with('error', 'Payment record not found.');
+        }
+
+        // If already paid, handle redirect
+        if ($payment->status === 'paid') {
+            return $this->handleRedirect($payment);
+        }
+
+        // Get tenant's Paystack credentials
+        $gateway = TenantPaymentGateway::where('tenant_id', $payment->tenant_id)
+            ->where('provider', 'paystack')
+            ->where('is_active', true)
+            ->first();
+
+        if (!$gateway) {
+            return redirect()->route('dashboard')->with('error', 'Paystack not configured');
+        }
+
+        // Set credentials and verify
+        $this->paystackService->setCredentials([
+            'secret_key' => $gateway->paystack_secret_key,
+            'public_key' => $gateway->paystack_public_key,
+        ]);
+
+        $result = $this->paystackService->verifyTransaction($reference);
+
+        if ($result && $result['success'] && $result['status'] === 'success') {
+            // Update payment status
+            $payment->status = 'paid';
+            $payment->paid_at = now();
+            $payment->response = array_merge($payment->response ?? [], $result);
+            $payment->save();
+
+            // Process payment (create/extend user)
+            if ($payment->hotspot_package_id || $payment->package_id) {
+                $this->paymentProcessingService->processSuccess($payment);
+            }
+
+            return $this->handleRedirect($payment);
+        }
+
+        return redirect()->route('dashboard')->with('error', 'Payment verification failed.');
+    }
+
+    protected function handleRedirect($payment)
+    {
+        if ($payment->hotspot_package_id) {
+            $user = \App\Models\Tenants\NetworkUser::where('phone', $payment->phone)
+                ->where('type', 'hotspot')
+                ->first();
+
+            if ($user) {
+                return redirect()->route('hotspot.success', [
+                    'u' => $user->username,
+                    'p' => $user->password
+                ]);
+            }
+            return redirect()->route('hotspot.success');
+        }
+
+        return redirect()->route('dashboard')->with('success', 'Payment successful');
+    }
+
+    /**
      * Handle Paystack webhook
      */
     public function webhook(Request $request)

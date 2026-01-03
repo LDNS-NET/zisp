@@ -222,6 +222,7 @@ class PaymentGatewayService
                 'user_id' => $user->id,
                 'username' => $user->username,
                 'phone' => $phone,
+                'callback_url' => $this->getCallbackUrl($type, $reference),
             ])
         );
 
@@ -243,14 +244,20 @@ class PaymentGatewayService
 
             return [
                 'success' => true,
-                'message' => 'Payment initialized. Complete payment in the popup.',
+                'message' => 'Payment initiated.',
                 'reference_id' => $reference,
                 'access_code' => $response['access_code'],
+                'authorization_url' => $response['authorization_url'],
                 'public_key' => $gateway->paystack_public_key,
                 'payment_id' => $payment->id
             ];
         }
 
         return ['success' => false, 'message' => $response['message'] ?? 'Payment initiation failed.'];
+    }
+
+    protected function getCallbackUrl($type, $reference)
+    {
+        return route('paystack.callback', ['reference' => $reference]);
     }
 }

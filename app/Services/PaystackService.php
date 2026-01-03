@@ -54,8 +54,12 @@ class PaystackService
                 'reference' => $reference,
                 'currency' => strtoupper($currency),
                 'metadata' => $metadata,
-                'channels' => ['card', 'bank', 'ussd', 'qr', 'mobile_money', 'bank_transfer'],
             ];
+
+            // Add callback_url if present in metadata or passed separately
+            if (isset($metadata['callback_url'])) {
+                $payload['callback_url'] = $metadata['callback_url'];
+            }
 
             Log::info('Paystack: Initializing transaction', ['payload' => $payload]);
 

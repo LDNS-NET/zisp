@@ -109,8 +109,9 @@ Route::middleware(['check.subscription'])->group(function () {
     Route::post('/hotspot/momo/checkout', [MomoController::class, 'checkout'])->name('hotspot.momo.checkout');
     Route::post('/hotspot/momo/callback', [MomoController::class, 'callback'])->name('hotspot.momo.callback');
 
-    // Paystack webhook (must be accessible without auth)
+    // Paystack routes
     Route::post('/paystack/webhook', [App\Http\Controllers\Tenants\PaystackController::class, 'webhook'])->name('paystack.webhook');
+    Route::get('/paystack/callback', [App\Http\Controllers\Tenants\PaystackController::class, 'handleCallback'])->name('paystack.callback');
     Route::get('/hotspot/momo/status/{referenceId}', [MomoController::class, 'checkStatus'])->name('hotspot.momo.status');
 });
 

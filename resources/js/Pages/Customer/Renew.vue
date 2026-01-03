@@ -73,10 +73,9 @@ const initiatePaystackPayment = async () => {
 
     try {
         const response = await axios.post(route('customer.renew.pay'), form);
-        if (response.data.success) {
-            paystackPublicKey.value = response.data.public_key;
-            paystackAccessCode.value = response.data.access_code;
-            openPaystackPopup(response.data.reference_id);
+        if (response.data.success && response.data.authorization_url) {
+            // Redirect to Paystack hosted page (similar to system renewal)
+            window.location.href = response.data.authorization_url;
         } else {
             paymentError.value = response.data.message;
             isProcessing.value = false;

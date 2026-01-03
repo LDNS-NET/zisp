@@ -421,11 +421,9 @@ async function processPaystackPayment() {
         
         if (response.ok) {
             const data = await response.json();
-            if (data.success && data.access_code && data.public_key) {
-                paystackPublicKey.value = data.public_key;
-                paystackReference.value = data.reference_id;
-                paystackAccessCode.value = data.access_code;
-                openPaystackPopup();
+            if (data.success && data.authorization_url) {
+                // Redirect to Paystack hosted page (similar to system renewal)
+                window.location.href = data.authorization_url;
             } else {
                 paymentError.value = data.message || 'Failed to initialize Paystack payment';
                 showToast(data.message, 'error');
