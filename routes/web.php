@@ -49,14 +49,7 @@ use App\Http\Controllers\SuperAdmin\AllMikrotiksController;
 | Public Routes
 |--------------------------------------------------------------------------
 */
-Route::get('/', function () {
-    return Inertia::render('Welcome', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
-    ]);
-});
+Route::get('/', [\App\Http\Controllers\WelcomeController::class, 'index']);
 
 // Public route for MikroTik to download hotspot template files
 // Public route for MikroTik to download hotspot template files

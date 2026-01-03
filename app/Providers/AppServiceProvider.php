@@ -49,5 +49,24 @@ class AppServiceProvider extends ServiceProvider
         // Register model observers
         \App\Models\Tenants\TenantMikrotik::observe(\App\Observers\TenantMikrotikObserver::class);
 
+        // Load System Settings
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasTable('system_settings')) {
+                $settings = \App\Models\SystemSetting::all()->pluck('value', 'key');
+
+                if ($settings->has('app_name')) {
+                    config(['app.name' => $settings['app_name']]);
+                }
+                
+                if ($settings->has('support_email')) {
+                    config(['mail.from.address' => $settings['support_email']]);
+                }
+
+                // Share settings globally via config for easy access
+                config(['settings' => $settings->toArray()]);
+            }
+        } catch (\Exception $e) {
+            // Ignore errors during migration or initial setup
+        }
     }
 }

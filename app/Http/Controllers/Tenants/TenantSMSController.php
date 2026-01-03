@@ -57,6 +57,42 @@ class TenantSMSController extends Controller
             return redirect()->back()->withErrors(['recipients' => 'No valid renters selected.']);
         }
 
+        $tenant = \App\Models\Tenant::find(Auth::user()->tenant_id);
+        $countryCode = $tenant->country_code ?? 'KE';
+
+        // 1. Get Tenant Gateway Settings
+        $gatewaySettings = \App\Models\TenantSmsGateway::where('tenant_id', $tenant->id)
+            ->where('is_active', true)
+            ->first();
+
+        // Default to TalkSasa if no gateway configured (Legacy/System Fallback)
+        $provider = $gatewaySettings ? $gatewaySettings->provider : 'talksasa';
+
+        // 2. Check SuperAdmin Restrictions (CountrySmsSetting)
+        // We assume enabled by default unless explicitly disabled
+        $countrySetting = \App\Models\CountrySmsSetting::where('country_code', $countryCode)
+            ->where('gateway', $provider)
+            ->first();
+
+        if ($countrySetting && !$countrySetting->is_active) {
+             return redirect()->back()->withErrors(['message' => "The SMS gateway ($provider) is currently disabled for your country."]);
+        }
+
+        // 3. Determine Credentials
+        if ($gatewaySettings) {
+            $apiKey = $gatewaySettings->api_key;
+            $senderId = $gatewaySettings->sender_id;
+            // Add other credentials if needed based on provider
+        } else {
+            // Fallback to system env credentials for TalkSasa
+            $apiKey = env('TALKSASA_API_KEY');
+            $senderId = env('TALKSASA_SENDER_ID');
+        }
+
+        if (!$apiKey || !$senderId) {
+             return redirect()->back()->withErrors(['message' => 'SMS Gateway not configured properly.']);
+        }
+
         $supportNumber = Auth::user()->phone ?? '';
         foreach ($renters as $renter) {
             $personalizedMessage = $validated['message'];
@@ -82,13 +118,14 @@ class TenantSMSController extends Controller
                 'phone_number' => $renter->phone ?? $renter->phone_number ?? null,
                 'message' => $personalizedMessage,
                 'status' => 'pending',
+                'tenant_id' => $tenant->id, // Ensure tenant_id is set
             ]);
+            
             $rawPhone = $renter->phone ?? $renter->phone_number ?? '';
-            $phoneNumber = preg_replace('/^0/', '254', trim($rawPhone));
-            // Send SMS immediately for each recipient
-            $apiKey = env('TALKSASA_API_KEY');
-            $senderId = env('TALKSASA_SENDER_ID');
-            if ($apiKey && $senderId && $phoneNumber) {
+            $phoneNumber = preg_replace('/^0/', '254', trim($rawPhone)); // Basic formatting, should use CountryService or lib
+
+            // Send SMS based on provider
+            if ($provider === 'talksasa') {
                 $response = \Illuminate\Support\Facades\Http::withHeaders([
                     'Authorization' => 'Bearer ' . $apiKey,
                     'Accept' => 'application/json',
@@ -99,6 +136,7 @@ class TenantSMSController extends Controller
                             'type' => 'plain',
                             'message' => $personalizedMessage,
                         ]);
+                
                 $data = $response->json();
                 if ($response->successful() && isset($data['status']) && $data['status'] === 'success') {
                     $smsLog->update([
@@ -112,15 +150,16 @@ class TenantSMSController extends Controller
                     ]);
                 }
             } else {
+                // Placeholder for other providers
                 $smsLog->update([
                     'status' => 'failed',
-                    'error_message' => 'Missing TalkSasa API credentials or phone number',
+                    'error_message' => "Provider $provider not yet implemented in this controller.",
                 ]);
             }
         }
 
         return redirect()->route('sms.index')
-            ->with('success', 'SMS batch is being processed.');
+            ->with('success', 'SMS batch processed.');
     }
 
     public function bulkDelete(Request $request)

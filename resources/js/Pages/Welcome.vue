@@ -3,13 +3,16 @@ import { Head, Link } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
 import WelcomeLayout from '@/Layouts/WelcomeLayout.vue';
 import Modal from '@/Components/Modal.vue';
-import { countries } from '@/Data/countries';
 
-defineProps({
+const props = defineProps({
     canLogin: Boolean,
     canRegister: Boolean,
     laravelVersion: String,
     phpVersion: String,
+    countries: {
+        type: Array,
+        default: () => [],
+    },
 });
 
 defineOptions({
@@ -21,7 +24,7 @@ const selectedCountryCode = ref('KE'); // Default to Kenya
 
 const selectedCountry = computed(() => {
     return (
-        countries.find(c => c.code === selectedCountryCode.value) || {
+        props.countries.find(c => c.code === selectedCountryCode.value) || {
             name: 'Default',
             pppoePricePerMonth: 500,
             hotspotPricePerMonth: '3%',
