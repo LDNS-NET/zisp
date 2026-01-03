@@ -8,7 +8,7 @@ export const countries = [
     pppoePricePerMonth: 18,
     hotspotPricePerMonth: "3%",
     minimum_pay: 500,
-    payment_methods: ["mpesa", "airtel_money", "paystack", "flutterwave", "equitel"],
+    payment_methods: ["mpesa", "mpesa_paybill", "mpesa_till", "bank", "airtel_money", "paystack", "flutterwave", "equitel"],
   },
   {
     name: "South Sudan",

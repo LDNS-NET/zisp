@@ -39,10 +39,19 @@ class TenantPaymentGatewayController extends Controller
             return TenantPaymentGateway::where('tenant_id', $tenantId)->get();
         });
 
+        $countryCode = $tenant?->country_code ?? 'KE';
+
+        // Get enabled gateways for this country from SuperAdmin settings
+        $enabledGateways = \App\Models\CountryGatewaySetting::where('country_code', $countryCode)
+            ->where('is_active', true)
+            ->pluck('gateway')
+            ->toArray();
+        
         return Inertia::render('Settings/Payment/Payment', [
             'gateways' => $gateways,
             'phone_number' => $request->user()?->phone ?? '',
-            'country' => $tenant?->country_code ?? 'KE',
+            'country' => $countryCode,
+            'allowed_gateways' => $enabledGateways,
         ]);
     }
 

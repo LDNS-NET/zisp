@@ -14,10 +14,29 @@ const props = defineProps({
     gateways: { type: Array, default: () => [] },
     phone_number: { type: String, default: '' },
     country: { type: String, default: 'KE' },
+    allowed_gateways: { type: Array, default: () => [] },
 });
 
 const currentCountry = computed(() => countries.find(c => c.code === props.country) || countries[0]);
-const supportedMethods = computed(() => currentCountry.value.payment_methods || []);
+const supportedMethods = computed(() => {
+    const methods = currentCountry.value.payment_methods || [];
+    // If allowed_gateways is empty (e.g. not configured yet), maybe show all? 
+    // Or if it's passed, strictly filter.
+    // Let's assume strict filtering if the prop is present and not empty.
+    // If the prop is empty, it might mean "nothing enabled" OR "legacy/not set".
+    // Given the requirement "make sure that all activated gateways or deactivated should not appear",
+    // we should strictly filter.
+    
+    if (props.allowed_gateways && props.allowed_gateways.length > 0) {
+        return methods.filter(method => props.allowed_gateways.includes(method));
+    }
+    
+    // Fallback: if allowed_gateways is empty array, it might mean NOTHING is enabled.
+    // But for backward compatibility during migration, we might want to show all?
+    // User said "activated gateways or deactivated should not appear".
+    // So if the list is empty, we show nothing.
+    return props.allowed_gateways ? [] : methods; 
+});
 
 // Use the first gateway record if any
 const existing = props.gateways[0] || {};
@@ -230,15 +249,15 @@ const save = () => {
                         class="mt-1 block w-full rounded border-gray-300 dark:bg-gray-800"
                     >
                         <template v-if="country === 'KE'">
-                            <option value="phone">M-Pesa Phone</option>
-                            <option value="bank">Bank</option>
-                            <option value="mpesa_till">M-Pesa Till</option>
-                            <option value="mpesa_paybill">M-Pesa Paybill</option>
+                            <option v-if="supportedMethods.includes('phone') || supportedMethods.includes('mpesa')" value="phone">M-Pesa Phone</option>
+                            <option v-if="supportedMethods.includes('bank')" value="bank">Bank</option>
+                            <option v-if="supportedMethods.includes('mpesa_till')" value="mpesa_till">M-Pesa Till</option>
+                            <option v-if="supportedMethods.includes('mpesa_paybill')" value="mpesa_paybill">M-Pesa Paybill</option>
                         </template>
                         <option v-if="supportedMethods.includes('momo')" value="momo">MTN MoMo</option>
                         <option v-if="supportedMethods.includes('airtel_money')" value="airtel_money">Airtel Money</option>
-                        <option value="paystack">Paystack</option>
-                        <option value="flutterwave">Flutterwave</option>
+                        <option v-if="supportedMethods.includes('paystack')" value="paystack">Paystack</option>
+                        <option v-if="supportedMethods.includes('flutterwave')" value="flutterwave">Flutterwave</option>
                     </select>
                 </div>
 
