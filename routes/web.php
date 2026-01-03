@@ -350,7 +350,7 @@ Route::middleware(['auth', 'superadmin'])
         Route::resource('payments', PaymentsController::class)->only(['index', 'show', 'destroy']);
 
         // all mikrotiks in the system
-        Route::resource('allmikrotiks', AllMikrotiksController::class)->only(['index', 'show']);
+        Route::resource('allmikrotiks', AllMikrotiksController::class)->only(['index', 'show', 'destroy']);
     });
 
 /*

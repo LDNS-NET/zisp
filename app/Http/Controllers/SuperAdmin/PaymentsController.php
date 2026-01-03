@@ -44,4 +44,20 @@ class PaymentsController extends Controller
             'filters' => $request->only(['search', 'status', 'method']),
         ]);
     }
+
+    public function show($id) {
+        $payment = TenantPayment::withoutGlobalScopes()->with('tenant')->findOrFail($id);
+
+        return Inertia::render('SuperAdmin/Payments/Show', [
+            'payment' => $payment,
+        ]);
+    }
+
+    public function destroy($id)
+    {
+        $payment = TenantPayment::withoutGlobalScopes()->findOrFail($id);
+        $payment->delete();
+
+        return redirect()->route('superadmin.payments.index')->with('success', 'Payment deleted successfully.');
+    }
 }

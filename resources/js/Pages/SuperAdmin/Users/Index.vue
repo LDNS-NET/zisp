@@ -2,7 +2,8 @@
 import { ref, watch } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import SuperAdminLayout from '@/Layouts/SuperAdminLayout.vue';
-import { Search, Filter, MoreVertical, Trash2, Eye, Ban, CheckCircle, AlertCircle } from 'lucide-vue-next';
+import Modal from '@/Components/Modal.vue';
+import { Search, Filter, MoreVertical, Trash2, Eye, Ban, CheckCircle, AlertCircle, AlertTriangle } from 'lucide-vue-next';
 import { Menu, MenuButton, MenuItems, MenuItem } from '@headlessui/vue';
 import debounce from 'lodash/debounce';
 
@@ -15,6 +16,11 @@ const props = defineProps({
 const search = ref(props.filters.search || '');
 const status = ref(props.filters.status || '');
 const country = ref(props.filters.country || '');
+
+// Modal State
+const showDeleteModal = ref(false);
+const showSuspendModal = ref(false);
+const selectedUser = ref(null);
 
 // Debounced search
 const updateSearch = debounce((value) => {
@@ -34,20 +40,37 @@ watch([status, country], () => {
     );
 });
 
-const confirmDelete = (userId) => {
-    if (confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
-        router.delete(route('superadmin.users.destroy', userId));
+// Action Handlers
+const openDeleteModal = (user) => {
+    selectedUser.value = user;
+    showDeleteModal.value = true;
+};
+
+const openSuspendModal = (user) => {
+    selectedUser.value = user;
+    showSuspendModal.value = true;
+};
+
+const closeModal = () => {
+    showDeleteModal.value = false;
+    showSuspendModal.value = false;
+    selectedUser.value = null;
+};
+
+const confirmDelete = () => {
+    if (selectedUser.value) {
+        router.delete(route('superadmin.users.destroy', selectedUser.value.id), {
+            onFinish: () => closeModal(),
+        });
     }
 };
 
-const toggleSuspension = (user) => {
-    const action = user.is_suspended ? 'unsuspend' : 'suspend';
-    const message = user.is_suspended 
-        ? 'Are you sure you want to activate this user?' 
-        : 'Are you sure you want to suspend this user? They will lose access to the system.';
-    
-    if (confirm(message)) {
-        router.post(route(`superadmin.users.${action}`, user.id));
+const confirmSuspend = () => {
+    if (selectedUser.value) {
+        const action = selectedUser.value.is_suspended ? 'unsuspend' : 'suspend';
+        router.post(route(`superadmin.users.${action}`, selectedUser.value.id), {}, {
+            onFinish: () => closeModal(),
+        });
     }
 };
 </script>
@@ -185,7 +208,7 @@ const toggleSuspension = (user) => {
                                                 </MenuItem>
                                                 <MenuItem v-slot="{ active }">
                                                     <button
-                                                        @click="toggleSuspension(user)"
+                                                        @click="openSuspendModal(user)"
                                                         :class="[active ? 'bg-gray-100 dark:bg-gray-700' : '', 'flex w-full items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200']"
                                                     >
                                                         <component :is="user.is_suspended ? CheckCircle : Ban" class="mr-3 h-4 w-4 text-gray-400" />
@@ -194,7 +217,7 @@ const toggleSuspension = (user) => {
                                                 </MenuItem>
                                                 <MenuItem v-slot="{ active }">
                                                     <button
-                                                        @click="confirmDelete(user.id)"
+                                                        @click="openDeleteModal(user)"
                                                         :class="[active ? 'bg-gray-100 dark:bg-gray-700' : '', 'flex w-full items-center px-4 py-2 text-sm text-red-600 dark:text-red-400']"
                                                     >
                                                         <Trash2 class="mr-3 h-4 w-4" />
@@ -254,5 +277,73 @@ const toggleSuspension = (user) => {
                 </div>
             </div>
         </div>
+
+        <!-- Delete Confirmation Modal -->
+        <Modal :show="showDeleteModal" @close="closeModal">
+            <div class="p-6">
+                <div class="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full dark:bg-red-900/30">
+                    <AlertTriangle class="w-6 h-6 text-red-600 dark:text-red-400" />
+                </div>
+                <div class="mt-4 text-center">
+                    <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white">Delete Tenant?</h3>
+                    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                        Are you sure you want to delete <b>{{ selectedUser?.name }}</b>? This action cannot be undone and will remove all associated data.
+                    </p>
+                </div>
+                <div class="mt-6 flex justify-end gap-3">
+                    <button
+                        type="button"
+                        class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700"
+                        @click="closeModal"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        type="button"
+                        class="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                        @click="confirmDelete"
+                    >
+                        Delete Tenant
+                    </button>
+                </div>
+            </div>
+        </Modal>
+
+        <!-- Suspend Confirmation Modal -->
+        <Modal :show="showSuspendModal" @close="closeModal">
+            <div class="p-6">
+                <div class="flex items-center justify-center w-12 h-12 mx-auto" :class="selectedUser?.is_suspended ? 'bg-green-100 dark:bg-green-900/30' : 'bg-yellow-100 dark:bg-yellow-900/30'">
+                    <component :is="selectedUser?.is_suspended ? CheckCircle : Ban" class="w-6 h-6" :class="selectedUser?.is_suspended ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400'" />
+                </div>
+                <div class="mt-4 text-center">
+                    <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white">
+                        {{ selectedUser?.is_suspended ? 'Activate Tenant?' : 'Suspend Tenant?' }}
+                    </h3>
+                    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                        {{ selectedUser?.is_suspended 
+                            ? `Are you sure you want to reactivate ${selectedUser?.name}? They will regain access to the system.` 
+                            : `Are you sure you want to suspend ${selectedUser?.name}? They will lose access to the system immediately.` 
+                        }}
+                    </p>
+                </div>
+                <div class="mt-6 flex justify-end gap-3">
+                    <button
+                        type="button"
+                        class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700"
+                        @click="closeModal"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        type="button"
+                        class="px-4 py-2 text-sm font-medium text-white border border-transparent rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2"
+                        :class="selectedUser?.is_suspended ? 'bg-green-600 hover:bg-green-700 focus:ring-green-500' : 'bg-yellow-600 hover:bg-yellow-700 focus:ring-yellow-500'"
+                        @click="confirmSuspend"
+                    >
+                        {{ selectedUser?.is_suspended ? 'Activate' : 'Suspend' }}
+                    </button>
+                </div>
+            </div>
+        </Modal>
     </SuperAdminLayout>
 </template>

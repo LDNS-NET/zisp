@@ -39,10 +39,18 @@ class AllMikrotiksController extends Controller
 
     //This is the Show function
     public function show($id) {
-        $allmikrotiks = TenantMikroTik::where('tenant_id', $id)->first();
+        $mikrotik = TenantMikroTik::withoutGlobalScopes()->with('tenant')->findOrFail($id);
 
         return Inertia::render('SuperAdmin/Allmikrotiks/Show', [
-            'allmikrotiks' => $allmikrotiks,
+            'mikrotik' => $mikrotik,
         ]);
+    }
+
+    public function destroy($id)
+    {
+        $mikrotik = TenantMikroTik::withoutGlobalScopes()->findOrFail($id);
+        $mikrotik->delete();
+
+        return redirect()->route('superadmin.allmikrotiks.index')->with('success', 'Router deleted successfully.');
     }
 }
