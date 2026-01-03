@@ -3,6 +3,7 @@ import { Head, Link, useForm } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
 import WelcomeLayout from '@/Layouts/WelcomeLayout.vue';
 import Modal from '@/Components/Modal.vue';
+import { CheckCircle2, X } from 'lucide-vue-next';
 
 const props = defineProps({
     canLogin: Boolean,
@@ -112,6 +113,7 @@ const howItWorksSteps = [
 
 const showDemoModal = ref(false)
 const showOnboardingModal = ref(false)
+const showSuccessToast = ref(false)
 
 const goToDemo = () => {
     window.open('https://demo.zyraaf.cloud/login', '_blank')
@@ -130,6 +132,10 @@ const submitOnboarding = () => {
         onSuccess: () => {
             showOnboardingModal.value = false;
             onboardingForm.reset();
+            showSuccessToast.value = true;
+            setTimeout(() => {
+                showSuccessToast.value = false;
+            }, 5000);
         },
     });
 };
@@ -138,6 +144,29 @@ const submitOnboarding = () => {
 
 <template>
     <Head title="Zyraaf Cloud | ISP Manager" />
+
+    <!-- Success Toast -->
+    <Transition
+        enter-active-class="transform ease-out duration-300 transition"
+        enter-from-class="translate-y-2 opacity-0 sm:translate-y-0 sm:translate-x-2"
+        enter-to-class="translate-y-0 opacity-100 sm:translate-x-0"
+        leave-active-class="transition ease-in duration-100"
+        leave-from-class="opacity-100"
+        leave-to-class="opacity-0"
+    >
+        <div v-if="showSuccessToast" class="fixed top-5 right-5 z-[100] max-w-sm w-full bg-emerald-500/90 backdrop-blur-xl border border-emerald-400/50 rounded-2xl shadow-2xl p-4 flex items-center gap-4 text-white">
+            <div class="flex-shrink-0 w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+                <CheckCircle2 class="w-6 h-6" />
+            </div>
+            <div>
+                <p class="font-bold">Request Sent!</p>
+                <p class="text-sm text-emerald-50/90">We've received your request and will contact you soon.</p>
+            </div>
+            <button @click="showSuccessToast = false" class="ml-auto text-emerald-100 hover:text-white">
+                <X class="w-5 h-5" />
+            </button>
+        </div>
+    </Transition>
 
     <div class="min-h-screen relative overflow-hidden">
         <!-- Hero Section -->

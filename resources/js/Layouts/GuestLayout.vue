@@ -27,7 +27,7 @@ const tenantLogo = page.props.tenantLogo;
         </div>
 
         <div
-            class="w-full overflow-hidden rounded-2xl border border-white/20 bg-white/30 px-8 py-8 shadow-2xl backdrop-blur-xl sm:max-w-md dark:border-gray-700/50 dark:bg-gray-800/40"
+            class="w-full overflow-hidden rounded-2xl border border-white/20 bg-white/30 px-8 py-8 shadow-2xl backdrop-blur-xl sm:max-w-2xl dark:border-gray-700/50 dark:bg-gray-800/40"
         >
             <slot />
         </div>
