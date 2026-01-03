@@ -351,6 +351,10 @@ Route::middleware(['auth', 'superadmin'])
 
         // all mikrotiks in the system
         Route::resource('allmikrotiks', AllMikrotiksController::class)->only(['index', 'show', 'destroy']);
+
+        // Payment Gateways Management
+        Route::get('payment-gateways', [App\Http\Controllers\SuperAdmin\PaymentGatewayController::class, 'index'])->name('payment-gateways.index');
+        Route::post('payment-gateways/toggle', [App\Http\Controllers\SuperAdmin\PaymentGatewayController::class, 'toggle'])->name('payment-gateways.toggle');
     });
 
 /*
