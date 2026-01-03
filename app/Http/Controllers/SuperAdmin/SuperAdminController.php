@@ -9,6 +9,7 @@ use App\Models\Tenants\NetworkUser;
 use App\Models\User;
 use App\Models\Tenants\TenantPayment;
 use App\Models\Tenants\TenantSMSTemplate;
+use App\Models\Radius\Radacct;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -26,7 +27,13 @@ class SuperAdminController extends Controller
 
         // 2. End User Metrics
         $totalEndUsers = NetworkUser::count();
-        $onlineUsers = NetworkUser::where('online', true)->count(); // Assuming 'online' column exists/synced
+        // Real-time online users from Radacct (Active sessions with recent updates)
+        $onlineUsers = Radacct::whereNull('acctstoptime')
+            ->where(function ($query) {
+                $query->where('acctupdatetime', '>=', now()->subMinutes(10))
+                      ->orWhere('acctstarttime', '>=', now()->subMinutes(10));
+            })
+            ->count();
         
         // 3. Financial Metrics
         $totalRevenue = TenantPayment::where('status', 'paid')->sum('amount');
