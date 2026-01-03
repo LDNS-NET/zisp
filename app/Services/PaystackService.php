@@ -80,7 +80,11 @@ class PaystackService
                 'response' => $response->json(),
             ]);
 
-            return ['success' => false, 'message' => 'Failed to initialize payment'];
+            $errorData = $response->json();
+            return [
+                'success' => false, 
+                'message' => $errorData['message'] ?? 'Failed to initialize payment'
+            ];
         } catch (\Exception $e) {
             Log::error('Paystack: Initialization exception', [
                 'error' => $e->getMessage(),
