@@ -1,13 +1,5 @@
 <?php
 
-namespace App\Http\Controllers\SuperAdmin;
-
-use App\Http\Controllers\Controller;
-use App\Models\Tenants\TenantSMS;
-use App\Models\Tenants\NetworkUser;
-use App\Models\User;
-use App\Models\Tenants\TenantPayment;
-<?php
 
 namespace App\Http\Controllers\SuperAdmin;
 
