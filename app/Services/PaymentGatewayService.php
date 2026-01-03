@@ -209,10 +209,8 @@ class PaymentGatewayService
             'public_key' => $gateway->paystack_public_key,
         ]);
 
-        // Use phone as email if no email provided (Paystack requires valid email format)
-        // Remove any non-numeric characters from phone for email
-        $cleanPhone = preg_replace('/[^0-9]/', '', $phone);
-        $email = $user->email ?: 'test@gmail.com';
+        // Use tenant billing email if no user email provided (matches system renewal logic)
+        $email = $user->email ?: ($tenant->email ?: 'billing@' . $tenant->subdomain . '.com');
         $reference = $this->paystackService->generateReference(strtoupper($type));
         
         $response = $this->paystackService->initializeTransaction(
