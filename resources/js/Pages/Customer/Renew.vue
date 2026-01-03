@@ -90,9 +90,7 @@ const initiatePaystackPayment = async () => {
 const openPaystackPopup = (reference) => {
     const handler = window.PaystackPop.setup({
         key: paystackPublicKey.value,
-        email: props.user.email || form.phone.replace(/[^0-9]/g, '') + '@example.com',
-        amount: totalPrice.value * 100, // Convert to kobo
-        ref: reference,
+        access_code: paystackAccessCode.value,
         onClose: function() {
             isProcessing.value = false;
             paymentError.value = 'Payment cancelled';

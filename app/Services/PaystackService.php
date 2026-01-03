@@ -57,6 +57,8 @@ class PaystackService
                 'channels' => ['card', 'bank', 'ussd', 'qr', 'mobile_money', 'bank_transfer'],
             ];
 
+            Log::info('Paystack: Initializing transaction', ['payload' => $payload]);
+
             $response = Http::withToken($this->secretKey)
                 ->post("{$this->baseUrl}/transaction/initialize", $payload);
 

@@ -19,6 +19,7 @@ const paymentAttempts = ref(0);
 const maxPollingAttempts = 30; // 30 * 3s = 90 seconds
 const paystackPublicKey = ref(null);
 const paystackReference = ref(null);
+const paystackAccessCode = ref(null);
 
 import { countries } from '@/Data/countries';
 const props = defineProps(['tenant', 'packages', 'country', 'paymentMethods']);
@@ -423,6 +424,7 @@ async function processPaystackPayment() {
             if (data.success && data.access_code && data.public_key) {
                 paystackPublicKey.value = data.public_key;
                 paystackReference.value = data.reference_id;
+                paystackAccessCode.value = data.access_code;
                 openPaystackPopup();
             } else {
                 paymentError.value = data.message || 'Failed to initialize Paystack payment';
@@ -454,9 +456,7 @@ function openPaystackPopup() {
     try {
         const handler = window.PaystackPop.setup({
             key: paystackPublicKey.value,
-            email: phoneNumber.value.replace(/[^0-9]/g, '') + '@example.com',
-            amount: selectedHotspot.value.price * 100, // Convert to kobo
-            ref: paystackReference.value,
+            access_code: paystackAccessCode.value,
             onClose: function() {
                 isProcessing.value = false;
                 paymentError.value = 'Payment cancelled';
