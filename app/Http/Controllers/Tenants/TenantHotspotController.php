@@ -54,11 +54,26 @@ class TenantHotspotController extends Controller
         // Get packages belonging to this tenant
         $packages = TenantHotspot::where('tenant_id', $tenant->id)->get();
 
+        // Get configured payment gateways for this tenant
+        $gateways = \App\Models\TenantPaymentGateway::where('tenant_id', $tenant->id)
+            ->where('is_active', true)
+            ->pluck('provider')
+            ->toArray();
+
+        // Always include mpesa for Kenyan tenants if not already present
+        if ($tenant->country_code === 'KE' && !in_array('mpesa', $gateways)) {
+            $gateways[] = 'mpesa';
+        }
+
+        // Filter out bank as it's not configured
+        $gateways = array_filter($gateways, fn($g) => $g !== 'bank');
+
         // Return to Inertia
         return inertia('Hotspot/Index', [
             'tenant' => $tenantData,
             'packages' => $packages,
             'country' => $tenant->country_code ?? 'KE',
+            'paymentMethods' => array_values($gateways), // Re-index array
         ]);
     }
 

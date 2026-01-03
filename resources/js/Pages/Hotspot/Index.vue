@@ -17,19 +17,22 @@ const isCheckingPayment = ref(false);
 const pollingInterval = ref(null);
 const paymentAttempts = ref(0);
 const maxPollingAttempts = 30; // 30 * 3s = 90 seconds
+const paystackPublicKey = ref(null);
+const paystackReference = ref(null);
 
 import { countries } from '@/Data/countries';
-const props = defineProps(['tenant', 'packages', 'country']);
+const props = defineProps(['tenant', 'packages', 'country', 'paymentMethods']);
 
 const currentCountry = computed(() => {
     return countries.find(c => c.code === props.country) || countries.find(c => c.code === 'KE');
 });
 
+// Use payment methods from backend (configured gateways)
 const supportedMethods = computed(() => {
-    return currentCountry.value?.payment_methods || ['mpesa'];
+    return props.paymentMethods || ['mpesa'];
 });
 
-const paymentMethod = ref(props.country === 'KE' ? 'mpesa' : (supportedMethods.value.includes('momo') ? 'momo' : 'mpesa'));
+const paymentMethod = ref(supportedMethods.value.includes('paystack') ? 'paystack' : (supportedMethods.value.includes('mpesa') ? 'mpesa' : supportedMethods.value[0]));
 
 const isValidPhoneNumber = computed(() => {
     if (!phoneNumber.value) return false;
@@ -337,8 +340,14 @@ function startPaymentPolling() {
 }
 
 async function processPayment() {
-    if (paymentMethod.value === 'mpesa' && !phoneNumber.value.match(/^(01\d{8}|07\d{8}|254\d{9}|2547\d{8}|2541\d{8})$/)) {
+    if (!isValidPhoneNumber.value) {
         paymentError.value = 'Invalid phone number';
+        return;
+    }
+    
+    // Handle Paystack separately with inline popup
+    if (paymentMethod.value === 'paystack') {
+        await processPaystackPayment();
         return;
     }
     
@@ -389,6 +398,100 @@ async function processPayment() {
     }
 }
 
+async function processPaystackPayment() {
+    isProcessing.value = true;
+    paymentError.value = '';
+    
+    try {
+        // Initialize payment with backend
+        const response = await fetch('/hotspot/checkout', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json', 
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') 
+            },
+            body: JSON.stringify({ 
+                hotspot_package_id: selectedHotspot.value.id, 
+                phone: phoneNumber.value, 
+                email: phoneNumber.value + '@customer.local',
+                payment_method: 'paystack'
+            })
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.access_code && data.public_key) {
+                paystackPublicKey.value = data.public_key;
+                paystackReference.value = data.reference_id;
+                openPaystackPopup();
+            } else {
+                paymentError.value = data.message || 'Failed to initialize Paystack payment';
+                showToast(data.message, 'error');
+                isProcessing.value = false;
+            }
+        } else {
+            const errorData = await response.json();
+            paymentError.value = errorData.message || 'Payment failed';
+            showToast(errorData.message, 'error');
+            isProcessing.value = false;
+        }
+    } catch (error) {
+        paymentError.value = 'Payment failed.';
+        showToast('Payment failed.', 'error');
+        isProcessing.value = false;
+    }
+}
+
+function openPaystackPopup() {
+    const handler = window.PaystackPop.setup({
+        key: paystackPublicKey.value,
+        email: phoneNumber.value + '@customer.local',
+        amount: selectedHotspot.value.price * 100, // Convert to kobo
+        ref: paystackReference.value,
+        onClose: function() {
+            isProcessing.value = false;
+            paymentError.value = 'Payment cancelled';
+            showToast('Payment cancelled', 'error');
+        },
+        callback: function(response) {
+            verifyPaystackPayment(response.reference);
+        }
+    });
+    handler.openIframe();
+}
+
+async function verifyPaystackPayment(reference) {
+    try {
+        const response = await fetch(`/customer/paystack/verify/${reference}`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success && data.status === 'paid' && data.user) {
+            userCredentials.value = data.user;
+            paymentMessage.value = 'Payment received! Connecting you now...';
+            paymentError.value = '';
+            isProcessing.value = false;
+            showToast('Payment successful!', 'success');
+            
+            // Automatic login
+            setTimeout(() => {
+                loginToNetwork(data.user.username, data.user.password);
+            }, 1000);
+        } else {
+            paymentError.value = 'Payment verification failed.';
+            showToast('Payment verification failed', 'error');
+            isProcessing.value = false;
+        }
+    } catch (error) {
+        paymentError.value = 'Payment verification error.';
+        showToast('Verification error', 'error');
+        isProcessing.value = false;
+    }
+}
+
 function formatPhoneNumber(event) {
     let value = event.target.value.replace(/\D/g, '');
     phoneNumber.value = value;
@@ -396,7 +499,9 @@ function formatPhoneNumber(event) {
 </script>
 
 <template>
-    <Head title="Hotspot" />
+    <Head title="Hotspot">
+        <script src="https://js.paystack.co/v1/inline.js"></script>
+    </Head>
     <div class="min-h-screen bg-slate-50 p-4 md:p-8 relative overflow-hidden">
         <!-- Decorative Background Elements (CSS only, no weight) -->
         <div class="absolute top-0 left-0 w-full h-full pointer-events-none opacity-40">
@@ -663,6 +768,14 @@ function formatPhoneNumber(event) {
                             >
                                 MTN MoMo
                             </button>
+                            <button 
+                                v-if="supportedMethods.includes('paystack')"
+                                @click="paymentMethod = 'paystack'"
+                                class="flex-1 py-2 text-sm font-bold rounded-lg transition-all duration-200"
+                                :class="paymentMethod === 'paystack' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'"
+                            >
+                                Paystack
+                            </button>
                         </div>
                         <div class="bg-gray-50 rounded-xl p-4 border border-gray-100 flex justify-between items-center">
                             <div>
@@ -673,7 +786,10 @@ function formatPhoneNumber(event) {
                         </div>
 
                         <div>
-                            <label class="block text-sm font-bold text-gray-700 mb-2">{{ paymentMethod === 'momo' ? 'MoMo' : 'M-Pesa' }} Phone Number ({{ currentCountry.dial_code }})</label>
+                            <label class="block text-sm font-bold text-gray-700 mb-2">
+                                {{ paymentMethod === 'paystack' ? 'Phone Number' : (paymentMethod === 'momo' ? 'MoMo Phone Number' : 'M-Pesa Phone Number') }} 
+                                ({{ currentCountry.dial_code }})
+                            </label>
                             <div class="relative">
                                 <input
                                     v-model="phoneNumber"
