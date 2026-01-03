@@ -58,33 +58,29 @@ class SubscriptionController extends Controller
 
         $bill = $this->subscriptionService->calculateMonthlyBill($tenant);
         
-        // Get Paystack keys for this tenant or use system defaults
-        $gateway = \App\Models\TenantPaymentGateway::where('tenant_id', $tenant->id)
-            ->where('provider', 'paystack')
-            ->where('is_active', true)
-            ->first();
-
-        $paystackSecret = $gateway ? $gateway->paystack_secret_key : config('services.paystack.secret_key');
+        // ALWAYS use system-wide Paystack credentials for system renewals
+        $paystackSecret = config('services.paystack.secret_key');
+        $paystackPublic = config('services.paystack.public_key');
 
         if (!$paystackSecret) {
             return response()->json([
                 'success' => false,
-                'message' => 'Paystack is not configured. Please contact support or check your payment settings.',
+                'message' => 'System Paystack is not configured. Please contact support.',
             ], 400);
         }
 
         $paystack = new PaystackService([
             'secret_key' => $paystackSecret,
-            'public_key' => $gateway?->paystack_public_key ?? config('services.paystack.public_key'),
+            'public_key' => $paystackPublic,
         ]);
 
         $reference = 'REN-' . strtoupper(uniqid()) . '-' . $tenant->id;
 
         $response = $paystack->initializeTransaction(
             $tenant->email ?: 'billing@' . $tenant->subdomain . '.com',
-            $bill['final_amount'],
+            $bill['final_amount_kes'],
             $reference,
-            $bill['currency'] ?? 'KES',
+            'KES', // Force KES for system renewals to handle international payments correctly via Paystack conversion
             [
                 'tenant_id' => $tenant->id,
                 'type' => 'renewal',
@@ -96,8 +92,8 @@ class SubscriptionController extends Controller
             TenantPayment::create([
                 'tenant_id' => $tenant->id,
                 'phone' => $tenant->phone ?: '0000000000',
-                'amount' => $bill['final_amount'],
-                'currency' => $bill['currency'],
+                'amount' => $bill['final_amount_kes'],
+                'currency' => 'KES', // Consistent with Paystack initialization
                 'payment_method' => 'paystack',
                 'receipt_number' => $reference,
                 'status' => 'pending',
@@ -137,20 +133,17 @@ class SubscriptionController extends Controller
 
         $tenant = Tenant::find($payment->tenant_id);
         
-        $gateway = \App\Models\TenantPaymentGateway::where('tenant_id', $tenant->id)
-            ->where('provider', 'paystack')
-            ->where('is_active', true)
-            ->first();
-
-        $paystackSecret = $gateway ? $gateway->paystack_secret_key : config('services.paystack.secret_key');
+        // ALWAYS use system-wide Paystack credentials for system renewals
+        $paystackSecret = config('services.paystack.secret_key');
+        $paystackPublic = config('services.paystack.public_key');
 
         if (!$paystackSecret) {
-            return redirect()->route('subscription.renew')->with('error', 'Paystack configuration missing.');
+            return redirect()->route('subscription.renew')->with('error', 'System Paystack configuration missing.');
         }
 
         $paystack = new PaystackService([
             'secret_key' => $paystackSecret,
-            'public_key' => $gateway?->paystack_public_key ?? config('services.paystack.public_key'),
+            'public_key' => $paystackPublic,
         ]);
 
         $response = $paystack->verifyTransaction($reference);

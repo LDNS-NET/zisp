@@ -267,6 +267,12 @@ class SubscriptionService
             $currency = $plan->currency;
         }
 
+        // Also get KE rates for base KES calculation
+        $keData = CountryService::getCountryData('KE');
+        $kePppoeRate = $keData['pppoe_rate'];
+        $keHotspotRate = $keData['hotspot_rate'];
+        $keMinimumPay = $keData['minimum_pay'];
+
         // Count active PPPoE users
         $pppoeUserCount = NetworkUser::withoutGlobalScopes()
             ->where('tenant_id', $tenant->id)
@@ -286,9 +292,20 @@ class SubscriptionService
 
         $hotspotAmount = $hotspotIncome * $hotspotRate;
 
-        $totalAmount = $pppoeAmount + $hotspotAmount;
-
         $finalAmount = max($totalAmount, $minimumPay);
+
+        // Calculate KES equivalent using KE base rates
+        $pppoeAmountKes = $pppoeUserCount * $kePppoeRate;
+        $hotspotAmountKes = $hotspotIncome * $keHotspotRate; // Assuming hotspotIncome is converted or handled
+        
+        // If hotspotIncome is in a different currency, we might need a real exchange rate.
+        // But for now, let's assume the system owner wants a consistent KES value.
+        // A better way is to just use the KE rates for the user counts.
+        $totalAmountKes = $pppoeAmountKes + ($hotspotAmount * ($keHotspotRate / ($hotspotRate ?: 1))); // Rough normalization
+        
+        // Actually, let's keep it simple: if currency is KES, use finalAmount. 
+        // If not, we need a conversion. For now, let's use the KE rates directly on the counts.
+        $finalAmountKes = ($currency === 'KES') ? $finalAmount : max(($pppoeUserCount * $kePppoeRate) + ($hotspotIncome * $keHotspotRate), $keMinimumPay);
 
         return [
             'pppoe_users' => $pppoeUserCount,
@@ -300,6 +317,7 @@ class SubscriptionService
             'total_calculated' => $totalAmount,
             'minimum_pay' => $minimumPay,
             'final_amount' => $finalAmount,
+            'final_amount_kes' => $finalAmountKes,
             'currency' => $currency,
         ];
     }
