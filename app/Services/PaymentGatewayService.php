@@ -209,6 +209,7 @@ class PaymentGatewayService
             'public_key' => $gateway->paystack_public_key,
         ]);
 
+        $tenant = $user->tenant;
         // Use tenant billing email if no user email provided (matches system renewal logic)
         $email = $user->email ?: ($tenant->email ?: 'billing@' . $tenant->subdomain . '.com');
         $reference = $this->paystackService->generateReference(strtoupper($type));
