@@ -3,8 +3,7 @@ import { ref, watch } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import SuperAdminLayout from '@/Layouts/SuperAdminLayout.vue';
 import Modal from '@/Components/Modal.vue';
-import { Search, Filter, MoreVertical, Trash2, Eye, Ban, CheckCircle, AlertCircle, AlertTriangle } from 'lucide-vue-next';
-import { Menu, MenuButton, MenuItems, MenuItem } from '@headlessui/vue';
+import { Search, Filter, MoreVertical, Trash2, Eye, Ban, CheckCircle, AlertCircle, AlertTriangle, X } from 'lucide-vue-next';
 import debounce from 'lodash/debounce';
 
 const props = defineProps({
@@ -20,6 +19,7 @@ const country = ref(props.filters.country || '');
 // Modal State
 const showDeleteModal = ref(false);
 const showSuspendModal = ref(false);
+const showActionsModal = ref(false);
 const selectedUser = ref(null);
 
 // Debounced search
@@ -41,19 +41,27 @@ watch([status, country], () => {
 });
 
 // Action Handlers
+const openActions = (user) => {
+    selectedUser.value = user;
+    showActionsModal.value = true;
+};
+
 const openDeleteModal = (user) => {
     selectedUser.value = user;
     showDeleteModal.value = true;
+    showActionsModal.value = false;
 };
 
 const openSuspendModal = (user) => {
     selectedUser.value = user;
     showSuspendModal.value = true;
+    showActionsModal.value = false;
 };
 
 const closeModal = () => {
     showDeleteModal.value = false;
     showSuspendModal.value = false;
+    showActionsModal.value = false;
     selectedUser.value = null;
 };
 
