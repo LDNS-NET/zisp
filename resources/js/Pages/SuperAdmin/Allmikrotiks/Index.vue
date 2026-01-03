@@ -138,7 +138,7 @@ const confirmDelete = () => {
                                     </div>
                                 </td>
                                 <td class="whitespace-nowrap px-6 py-4">
-                                    <div class="text-sm text-gray-900 dark:text-white font-mono">{{ mikrotik.wireguard_address || mikrotik.ip_address }}</div>
+                                    <div class="text-sm text-gray-900 dark:text-white font-mono">{{ mikrotik.wireguard_address || mikrotik.public_ip }}</div>
                                 </td>
                                 <td class="whitespace-nowrap px-6 py-4">
                                     <div class="flex items-center text-sm text-gray-500 dark:text-gray-400">

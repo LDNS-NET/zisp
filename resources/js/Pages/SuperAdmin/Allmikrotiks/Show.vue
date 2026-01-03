@@ -60,7 +60,7 @@ const formatDate = (dateString) => {
                                 <span class="w-2 h-2 mr-1.5 rounded-full" :class="props.mikrotik.status === 'online' ? 'bg-green-500' : 'bg-red-500'"></span>
                                 {{ props.mikrotik.status === 'online' ? 'Online' : 'Offline' }}
                             </span>
-                            <span class="text-sm text-gray-500">{{ props.mikrotik.ip_address }}</span>
+                            <span class="text-sm text-gray-500">{{ props.mikrotik.public_ip }}</span>
                         </div>
                     </div>
                 </div>
@@ -90,7 +90,7 @@ const formatDate = (dateString) => {
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             <div>
                                 <label class="block text-sm font-medium text-gray-500 dark:text-gray-400">IP Address</label>
-                                <div class="mt-1 text-sm text-gray-900 dark:text-gray-100 font-mono">{{ props.mikrotik.ip_address }}</div>
+                                <div class="mt-1 text-sm text-gray-900 dark:text-gray-100 font-mono">{{ props.mikrotik.public_ip }}</div>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-500 dark:text-gray-400">WireGuard Address</label>

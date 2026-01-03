@@ -11,7 +11,7 @@ class TenantMikrotik extends Model
 {
     protected $fillable = [
         'name',
-        'ip_address', // Legacy field - prefer wireguard_address for VPN IP
+        // 'ip_address', // Legacy field - removed
         'api_port',
         'ssh_port',
         'openvpn_profile_id',
@@ -156,13 +156,13 @@ class TenantMikrotik extends Model
     {
         switch ($this->connection_type) {
             case 'api':
-                return "http://{$this->ip_address}:{$this->api_port}";
+                return "http://{$this->public_ip}:{$this->api_port}";
             case 'ssh':
-                return "ssh://{$this->ip_address}:{$this->ssh_port}";
+                return "ssh://{$this->public_ip}:{$this->ssh_port}";
             case 'ovpn':
-                return "ovpn://{$this->ip_address}";
+                return "ovpn://{$this->public_ip}";
             default:
-                return $this->ip_address;
+                return $this->public_ip;
         }
     }
 
