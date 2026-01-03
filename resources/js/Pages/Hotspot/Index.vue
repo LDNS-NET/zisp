@@ -414,7 +414,7 @@ async function processPaystackPayment() {
             body: JSON.stringify({ 
                 hotspot_package_id: selectedHotspot.value.id, 
                 phone: phoneNumber.value, 
-                email: phoneNumber.value.replace(/[^0-9]/g, '') + '@mail.com',
+                email: 'test+' + phoneNumber.value.replace(/[^0-9]/g, '') + '@gmail.com',
                 payment_method: 'paystack'
             })
         });
