@@ -30,4 +30,15 @@ class OnboardingRequestController extends Controller
             'requests' => $requests
         ]);
     }
+
+    public function update(Request $request, OnboardingRequest $onboardingRequest)
+    {
+        $validated = $request->validate([
+            'status' => 'required|string|in:pending,contacted,closed',
+        ]);
+
+        $onboardingRequest->update($validated);
+
+        return Redirect::back()->with('success', 'Request status updated successfully.');
+    }
 }

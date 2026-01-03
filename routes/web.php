@@ -365,6 +365,7 @@ Route::middleware(['auth', 'superadmin'])
 
         // Onboarding Requests
         Route::get('onboarding-requests', [OnboardingRequestController::class, 'index'])->name('onboarding-requests.index');
+        Route::patch('onboarding-requests/{onboardingRequest}', [OnboardingRequestController::class, 'update'])->name('onboarding-requests.update');
 
         // Pricing Plans Management
         Route::get('pricing-plans', [App\Http\Controllers\SuperAdmin\PricingPlanController::class, 'index'])->name('pricing-plans.index');

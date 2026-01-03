@@ -1,6 +1,8 @@
 <script setup>
-import { Head, Link } from '@inertiajs/vue3';
+import { ref } from 'vue';
+import { Head, Link, router } from '@inertiajs/vue3';
 import SuperAdminLayout from '@/Layouts/SuperAdminLayout.vue';
+import Modal from '@/Components/Modal.vue';
 import { 
     Mail, 
     User, 
@@ -9,7 +11,8 @@ import {
     MessageSquare, 
     Clock,
     CheckCircle2,
-    XCircle
+    XCircle,
+    X
 } from 'lucide-vue-next';
 
 defineProps({
@@ -19,6 +22,33 @@ defineProps({
 defineOptions({
     // layout: SuperAdminLayout, // Removed to use manual wrapping in template
 });
+
+const selectedRequest = ref(null);
+const showMessageModal = ref(false);
+const showStatusModal = ref(false);
+const newStatus = ref('');
+
+const viewMessage = (request) => {
+    selectedRequest.value = request;
+    showMessageModal.value = true;
+};
+
+const openStatusModal = (request, status) => {
+    selectedRequest.value = request;
+    newStatus.value = status;
+    showStatusModal.value = true;
+};
+
+const updateStatus = () => {
+    router.patch(route('superadmin.onboarding-requests.update', selectedRequest.value.id), {
+        status: newStatus.value
+    }, {
+        onSuccess: () => {
+            showStatusModal.value = false;
+            selectedRequest.value = null;
+        }
+    });
+};
 
 const getStatusColor = (status) => {
     switch (status) {
@@ -106,11 +136,28 @@ const getStatusColor = (status) => {
                                         </td>
                                         <td class="px-4 py-4 text-right">
                                             <div class="flex justify-end gap-2">
-                                                <button class="p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" title="View Message">
+                                                <button 
+                                                    @click="viewMessage(request)"
+                                                    class="p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" 
+                                                    title="View Message"
+                                                >
                                                     <MessageSquare class="w-5 h-5" />
                                                 </button>
-                                                <button class="p-2 text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors" title="Mark as Contacted">
+                                                <button 
+                                                    v-if="request.status === 'pending'"
+                                                    @click="openStatusModal(request, 'contacted')"
+                                                    class="p-2 text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors" 
+                                                    title="Mark as Contacted"
+                                                >
                                                     <CheckCircle2 class="w-5 h-5" />
+                                                </button>
+                                                <button 
+                                                    v-if="request.status === 'contacted'"
+                                                    @click="openStatusModal(request, 'closed')"
+                                                    class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors" 
+                                                    title="Close Request"
+                                                >
+                                                    <XCircle class="w-5 h-5" />
                                                 </button>
                                             </div>
                                         </td>
@@ -132,5 +179,86 @@ const getStatusColor = (status) => {
                 </div>
             </div>
         </div>
+
+        <!-- Message Modal -->
+        <Modal :show="showMessageModal" @close="showMessageModal = false" maxWidth="lg">
+            <div class="p-6 dark:bg-slate-900">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white">Request Details</h3>
+                    <button @click="showMessageModal = false" class="text-gray-400 hover:text-gray-500">
+                        <X class="w-6 h-6" />
+                    </button>
+                </div>
+
+                <div class="space-y-6" v-if="selectedRequest">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Name</label>
+                            <p class="text-gray-900 dark:text-white font-medium">{{ selectedRequest.name }}</p>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Email</label>
+                            <p class="text-gray-900 dark:text-white font-medium">{{ selectedRequest.email }}</p>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">ISP Name</label>
+                            <p class="text-gray-900 dark:text-white font-medium">{{ selectedRequest.isp_name }}</p>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Country</label>
+                            <p class="text-gray-900 dark:text-white font-medium">{{ selectedRequest.country }}</p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Message</label>
+                        <div class="p-4 rounded-xl bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700">
+                            <p class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
+                                {{ selectedRequest.message || 'No message provided.' }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end pt-4">
+                        <button 
+                            @click="showMessageModal = false"
+                            class="px-6 py-2 rounded-lg bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300 font-semibold hover:bg-gray-200 dark:hover:bg-slate-700 transition"
+                        >
+                            Close
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </Modal>
+
+        <!-- Status Update Modal -->
+        <Modal :show="showStatusModal" @close="showStatusModal = false" maxWidth="sm">
+            <div class="p-6 dark:bg-slate-900 text-center">
+                <div class="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 mx-auto mb-4">
+                    <CheckCircle2 class="w-8 h-8" v-if="newStatus === 'contacted'" />
+                    <XCircle class="w-8 h-8" v-else />
+                </div>
+                
+                <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">Update Status?</h3>
+                <p class="text-gray-500 dark:text-gray-400 mb-8">
+                    Are you sure you want to mark this request as <span class="font-bold text-gray-900 dark:text-white">{{ newStatus }}</span>?
+                </p>
+
+                <div class="flex gap-3">
+                    <button 
+                        @click="showStatusModal = false"
+                        class="flex-1 px-4 py-2 rounded-lg border border-gray-200 dark:border-slate-800 text-gray-700 dark:text-gray-300 font-semibold hover:bg-gray-50 dark:hover:bg-slate-800 transition"
+                    >
+                        Cancel
+                    </button>
+                    <button 
+                        @click="updateStatus"
+                        class="flex-1 px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 transition shadow-lg shadow-blue-500/20"
+                    >
+                        Confirm
+                    </button>
+                </div>
+            </div>
+        </Modal>
     </SuperAdminLayout>
 </template>
