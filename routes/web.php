@@ -323,6 +323,15 @@ Route::middleware(['auth', 'tenant.domain'])->group(function () {
 | SuperAdmin Routes
 |--------------------------------------------------------------------------
 */
+
+// Admin Login Routes
+Route::middleware('guest')->group(function () {
+    Route::get('admin/login', [App\Http\Controllers\Admin\AuthController::class, 'showLogin'])->name('admin.login');
+    Route::post('admin/login', [App\Http\Controllers\Admin\AuthController::class, 'login']);
+});
+
+Route::post('admin/logout', [App\Http\Controllers\Admin\AuthController::class, 'logout'])->name('admin.logout');
+
 Route::middleware(['auth', 'superadmin'])
     ->prefix('superadmin')
     ->name('superadmin.')

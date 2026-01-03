@@ -67,7 +67,10 @@ class FlutterwaveService
                 ]
             ];
 
-            Log::info('Flutterwave: Initializing transaction', ['payload' => $payload]);
+            Log::info('Flutterwave: Initializing transaction', [
+                'payload' => $payload,
+                'key_preview' => substr($this->secretKey, 0, 8) . '...' . substr($this->secretKey, -4)
+            ]);
 
             $response = Http::withToken($this->secretKey)
                 ->post("{$this->baseUrl}/payments", $payload);
