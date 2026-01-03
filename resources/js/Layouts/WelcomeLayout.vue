@@ -98,29 +98,15 @@ const openTube = () => {
 </script>
 
 <template>
-    <div class="min-h-screen bg-gradient-to-br from-cyan-200 via-indigo-200 to-emerald-200 dark:from-slate-950 dark:via-blue-950/20 dark:to-slate-900 relative overflow-x-hidden">
-        <!-- Premium Gradient Overlays (Background) -->
-        <div class="fixed inset-0 -z-10">
-            <!-- Main background gradient -->
-            <div class="absolute inset-0 bg-gradient-to-br from-white/80 via-blue-300 to-emerald-200 dark:from-slate-950/80 dark:via-blue-900/5 dark:to-emerald-900/10"></div>
+    <div class="min-h-screen bg-gray-900 relative overflow-x-hidden text-gray-100">
+        <!-- Premium Background Effects (Fixed) -->
+        <div class="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+            <div class="absolute -top-[30%] -left-[10%] w-[70%] h-[70%] rounded-full bg-emerald-500/10 blur-[120px] animate-pulse"></div>
+            <div class="absolute top-[20%] -right-[10%] w-[60%] h-[60%] rounded-full bg-cyan-500/10 blur-[100px] animate-pulse delay-700"></div>
+            <div class="absolute -bottom-[20%] left-[20%] w-[50%] h-[50%] rounded-full bg-teal-500/10 blur-[100px] animate-pulse delay-1000"></div>
             
-            <!-- Subtle radial gradient from top-right (sun effect) -->
-            <div class="absolute -top-96 -right-96 w-[800px] h-[800px] bg-gradient-to-br from-amber-200/20 via-orange-200/10 to-transparent dark:from-amber-900/15 dark:via-orange-900/5 dark:to-transparent rounded-full blur-3xl"></div>
-            
-            <!-- Soft glow traveling to bottom-left -->
-            <div class="absolute -bottom-80 -left-80 w-[600px] h-[600px] bg-gradient-to-tr from-emerald-200/20 via-teal-200/10 to-transparent dark:from-emerald-900/15 dark:via-teal-900/5 dark:to-transparent rounded-full blur-3xl"></div>
-            
-            <!-- Center ambient glow -->
-            <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-gradient-to-r from-blue-200/10 via-sky-200/5 to-transparent dark:from-blue-900/8 dark:via-sky-900/3 dark:to-transparent rounded-full blur-3xl"></div>
-        </div>
-
-        <!-- Subtle Grid Pattern -->
-        <div class="fixed inset-0 -z-10 bg-[linear-gradient(to_right,rgba(0,0,0,0.015)_1px,transparent_1px),linear-gradient(to_bottom,rgba(0,0,0,0.015)_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,rgba(255,255,255,0.025)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.025)_1px,transparent_1px)] bg-[size:80px_80px] pointer-events-none opacity-40"></div>
-
-        <!-- Decorative accent circles (non-intrusive) -->
-        <div class="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
-            <div class="absolute -top-40 -right-40 w-96 h-96 rounded-full bg-gradient-to-bl from-yellow-300/8 to-transparent dark:from-yellow-600/5 dark:to-transparent blur-3xl"></div>
-            <div class="absolute -bottom-40 -left-40 w-80 h-80 rounded-full bg-gradient-to-tr from-teal-300/8 to-transparent dark:from-teal-600/5 dark:to-transparent blur-3xl"></div>
+            <!-- Subtle Grid Overlay -->
+            <div class="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:60px_60px] opacity-20"></div>
         </div>
 
         <!-- Navigation Bar -->
@@ -128,7 +114,7 @@ const openTube = () => {
             class="fixed top-0 left-0 right-0 z-50 transition-all duration-500"
             :class="[
                 scrolled
-                    ? 'bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50 shadow-lg'
+                    ? 'bg-gray-900/80 backdrop-blur-xl border-b border-white/10 shadow-lg'
                     : 'bg-transparent'
             ]"
         >
@@ -272,24 +258,24 @@ const openTube = () => {
         <div class="flex relative min-h-screen">
             <!-- Left Sidebar -->
             <aside
-                class="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-40 lg:w-64 lg:flex lg:flex-col lg:bg-white/80 lg:dark:bg-slate-900/80 lg:border-r lg:border-gray-200/50 lg:dark:border-gray-800/50 lg:backdrop-blur-xl lg:overflow-y-auto"
+                class="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-40 lg:w-64 lg:flex lg:flex-col lg:bg-gray-900/80 lg:border-r lg:border-white/10 lg:backdrop-blur-xl lg:overflow-y-auto"
             >
                 <div class="flex flex-col h-full">
                     <!-- Logo Area in Sidebar -->
-                    <div class="flex items-center justify-between px-4 py-6 border-b border-gray-200/50 dark:border-gray-800/50">
+                    <div class="flex items-center justify-between px-4 py-6 border-b border-white/10">
                     </div>
 
                     <!-- Sidebar Content -->
                     <nav class="flex-1 overflow-y-auto px-4 py-8 space-y-8">
                         <div v-for="section in sidebarSections" :key="section.title" class="space-y-3">
-                            <h3 class="px-3 text-xs font-bold text-gray-900 dark:text-white tracking-widest uppercase">
+                            <h3 class="px-3 text-xs font-bold text-white tracking-widest uppercase">
                                 {{ section.title }}
                             </h3>
                             <ul class="space-y-2">
                                 <li v-for="link in section.links" :key="link.label">
                                     <a
                                         :href="link.href"
-                                        class="group block px-3 py-2 text-sm text-gray-600 dark:text-gray-400 rounded-md transition-all duration-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 hover:text-emerald-600 dark:hover:text-emerald-400"
+                                        class="group block px-3 py-2 text-sm text-gray-400 rounded-md transition-all duration-300 hover:bg-white/5 hover:text-emerald-400"
                                     >
                                         {{ link.label }}
                                     </a>
@@ -299,8 +285,8 @@ const openTube = () => {
                     </nav>
 
                     <!-- Copyright -->
-                    <div class="border-t border-gray-200/50 dark:border-gray-800/50 px-4 py-4">
-                        <p class="text-xs text-gray-500 dark:text-gray-500 text-center">
+                    <div class="border-t border-white/10 px-4 py-4">
+                        <p class="text-xs text-gray-500 text-center">
                             ZYRAAF NETWORKS &copy; {{ new Date().getFullYear() }}
                         </p>
                     </div>
@@ -316,20 +302,20 @@ const openTube = () => {
         </div>
 
         <!-- Footer -->
-        <footer class="relative border-t border-gray-200 dark:border-gray-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm lg:ml-64">
+        <footer class="relative border-t border-white/10 bg-gray-900/50 backdrop-blur-sm lg:ml-64">
             <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
                 <div class="flex flex-col md:flex-row items-center justify-between">
-                    <p class="text-sm text-gray-600 dark:text-gray-400 font-light">
-                        Built with <span class="text-emerald-600 dark:text-emerald-400">❤</span> by skilled developers
+                    <p class="text-sm text-gray-400 font-light">
+                        Built with <span class="text-emerald-400">❤</span> by skilled developers
                     </p>
                     <div class="flex gap-6 mt-6 md:mt-0">
-                        <button @click="openX" class="text-gray-600 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all duration-300 hover:scale-110">
+                        <button @click="openX" class="text-gray-400 hover:text-emerald-400 transition-all duration-300 hover:scale-110">
                             <span class="sr-only">Twitter</span>
                             <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M8.29 20c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0022 5.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-7.678 3.743A11.65 11.65 0 012.909 5.114a4.106 4.106 0 001.27 5.478A4.072 4.072 0 012.8 10.77v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 012 18.407a11.616 11.616 0 006.29 1.84" />
                             </svg>
                         </button>
-                        <button @click="openTikTok" class="text-gray-600 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all duration-300 hover:scale-110">
+                        <button @click="openTikTok" class="text-gray-400 hover:text-emerald-400 transition-all duration-300 hover:scale-110">
                             <span class="sr-only">Tiktok</span>
                             <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -342,7 +328,7 @@ const openTube = () => {
                         </svg>
 
                         </button>
-                        <button @click="openTube" class="text-gray-600 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all duration-300 hover:scale-110">
+                        <button @click="openTube" class="text-gray-400 hover:text-emerald-400 transition-all duration-300 hover:scale-110">
                             <svg
                             xmlns="http://www.w3.org/2000/svg"
                             viewBox="0 0 24 24"

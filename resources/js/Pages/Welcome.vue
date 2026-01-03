@@ -124,100 +124,115 @@ const goToDemo = () => {
     <div class="min-h-screen relative overflow-hidden">
         <!-- Hero Section -->
         <div class="relative overflow-hidden">
-    <!-- Soft background accents -->
-        <div class="absolute -top-24 -right-24 h-96 w-96 rounded-full bg-emerald-500/10 blur-3xl"></div>
-        <div class="absolute -bottom-24 -left-24 h-96 w-96 rounded-full bg-cyan-500/10 blur-3xl"></div>
+            <!-- Soft background accents (layout handles main bg) -->
+            <div class="relative mx-auto flex max-w-7xl w-full flex-col-reverse items-center gap-20 pt-24 lg:flex-row px-4 sm:px-6 lg:px-8">
 
-        <div class="relative mx-auto flex max-w-7xl w-full flex-col-reverse items-center gap-20 pt-24 lg:flex-row px-4 sm:px-6 lg:px-8">
+                <!-- LEFT: Copy -->
+                <div class="max-w-2xl text-center lg:text-left flex-1 animate-fade-in">
+                    <!-- Badge -->
+                    <div class="mb-6 inline-flex items-center gap-2 rounded-full bg-white/5 px-4 py-2 text-sm font-semibold text-emerald-400 backdrop-blur border border-white/10 shadow-sm">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        ✨ Top ISP Management Platform in Africa
+                    </div>
 
-            <!-- LEFT: Copy -->
-            <div class="max-w-2xl text-center lg:text-left flex-1 animate-fade-in">
-                <!-- Badge -->
-                <div class="mb-6 inline-flex items-center gap-2 rounded-full bg-white/80 dark:bg-gray-800/80 px-4 py-2 text-sm font-semibold text-emerald-700 dark:text-emerald-300 backdrop-blur border border-emerald-200/60 dark:border-emerald-700/60 shadow-sm">
-                    ✨ Top ISP Management Platform in Africa
+                    <h1 class="mb-6 text-5xl sm:text-6xl lg:text-7xl font-extrabold leading-tight text-white">
+                        Empower Your ISP with
+                        <span class="block mt-2 bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 bg-clip-text text-transparent">
+                            Zyraaf Cloud
+                        </span>
+                    </h1>
+
+                    <p class="mt-6 text-xl text-gray-300 max-w-xl">
+                        Billing, bandwidth control, payments, and customer management —
+                        built specifically for African ISPs using MikroTik.
+                    </p>
+
+                    <!-- CTA -->
+                    <div class="mt-10 flex flex-col gap-4 sm:flex-row lg:justify-start justify-center">
+                        <Link
+                            v-if="canRegister"
+                            :href="route('register')"
+                            class="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-8 py-4 font-bold text-white shadow-xl hover:scale-105 transition hover:shadow-emerald-500/20"
+                        >
+                            Start Free Trial →
+                        </Link>
+
+                        <Link
+                            v-if="canLogin"
+                            :href="route('login')"
+                            class="inline-flex items-center justify-center rounded-xl border border-white/20 px-8 py-4 font-bold text-emerald-400 hover:bg-white/5 transition"
+                        >
+                            Log In
+                        </Link>
+                    </div>
+
+                    <!-- Trust stats -->
+                    <div class="mt-14 grid grid-cols-3 gap-6 max-w-lg mx-auto lg:mx-0">
+                        <div class="rounded-xl bg-white/5 p-4 text-center backdrop-blur border border-white/10">
+                            <div class="text-2xl font-bold text-emerald-400">100+</div>
+                            <p class="text-xs text-gray-400">Active ISPs</p>
+                        </div>
+                        <div class="rounded-xl bg-white/5 p-4 text-center backdrop-blur border border-white/10">
+                            <div class="text-2xl font-bold text-teal-400">99.9%</div>
+                            <p class="text-xs text-gray-400">Uptime</p>
+                        </div>
+                        <div class="rounded-xl bg-white/5 p-4 text-center backdrop-blur border border-white/10">
+                            <div class="text-2xl font-bold text-cyan-400">24/7</div>
+                            <p class="text-xs text-gray-400">Support</p>
+                        </div>
+                    </div>
                 </div>
 
-                <h1 class="mb-6 text-5xl sm:text-6xl lg:text-7xl font-extrabold leading-tight text-gray-900 dark:text-white">
-                    Empower Your ISP with
-                    <span class="block mt-2 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 bg-clip-text text-transparent">
-                        Zyraaf Cloud
-                    </span>
-                </h1>
+                <!-- RIGHT: Visual feature card -->
+                <div class="flex-1 max-w-lg w-full">
+                    <div class="relative rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl p-8">
+                        <!-- Decorative top bar -->
+                        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 rounded-t-3xl"></div>
+                        
+                        <h3 class="text-lg font-bold text-white mb-6">
+                            Everything your ISP needs
+                        </h3>
 
-                <p class="mt-6 text-xl text-gray-700 dark:text-gray-300 max-w-xl">
-                    Billing, bandwidth control, payments, and customer management —
-                    built specifically for African ISPs using MikroTik.
-                </p>
+                        <ul class="space-y-4 text-gray-300">
+                            <li class="flex items-center gap-3">
+                                <span class="flex items-center justify-center w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 text-xs">✓</span>
+                                PPPoE & Hotspot billing
+                            </li>
+                            <li class="flex items-center gap-3">
+                                <span class="flex items-center justify-center w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 text-xs">✓</span>
+                                MikroTik router management
+                            </li>
+                            <li class="flex items-center gap-3">
+                                <span class="flex items-center justify-center w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 text-xs">✓</span>
+                                Payment automation
+                            </li>
+                            <li class="flex items-center gap-3">
+                                <span class="flex items-center justify-center w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 text-xs">✓</span>
+                                SMS & customer notifications
+                            </li>
+                            <li class="flex items-center gap-3">
+                                <span class="flex items-center justify-center w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 text-xs">✓</span>
+                                Real-time usage & analytics
+                            </li>
+                        </ul>
 
-                <!-- CTA -->
-                <div class="mt-10 flex flex-col gap-4 sm:flex-row lg:justify-start justify-center">
-                    <Link
-                        v-if="canRegister"
-                        :href="route('register')"
-                        class="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-8 py-4 font-bold text-white shadow-xl hover:scale-105 transition"
-                    >
-                        Start Free Trial →
-                    </Link>
-
-                    <Link
-                        v-if="canLogin"
-                        :href="route('login')"
-                        class="inline-flex items-center justify-center rounded-xl border border-emerald-500 px-8 py-4 font-bold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-gray-800 transition"
-                    >
-                        Log In
-                    </Link>
-                </div>
-
-                <!-- Trust stats -->
-                <div class="mt-14 grid grid-cols-3 gap-6 max-w-lg mx-auto lg:mx-0">
-                    <div class="rounded-xl bg-white/70 dark:bg-gray-800/70 p-4 text-center backdrop-blur border">
-                        <div class="text-2xl font-bold text-emerald-600">100+</div>
-                        <p class="text-xs text-gray-600 dark:text-gray-400">Active ISPs</p>
-                    </div>
-                    <div class="rounded-xl bg-white/70 dark:bg-gray-800/70 p-4 text-center backdrop-blur border">
-                        <div class="text-2xl font-bold text-teal-600">99.9%</div>
-                        <p class="text-xs text-gray-600 dark:text-gray-400">Uptime</p>
-                    </div>
-                    <div class="rounded-xl bg-white/70 dark:bg-gray-800/70 p-4 text-center backdrop-blur border">
-                        <div class="text-2xl font-bold text-cyan-600">24/7</div>
-                        <p class="text-xs text-gray-600 dark:text-gray-400">Support</p>
+                        <div class="mt-6 rounded-xl bg-emerald-500/10 p-4 text-sm text-emerald-300 border border-emerald-500/20">
+                            Designed for scale - from small to large Deployements.
+                        </div>
                     </div>
                 </div>
+
             </div>
-
-            <!-- RIGHT: Visual feature card -->
-            <div class="flex-1 max-w-lg w-full">
-                <div class="relative rounded-3xl bg-transparent dark:bg-gray-800/20 backdrop-blur-xl border border-white/50 dark:border-gray-700 shadow-2xl p-8">
-                    
-                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-6">
-                        Everything your ISP needs
-                    </h3>
-
-                    <ul class="space-y-4 text-gray-700 dark:text-gray-300">
-                        <li>⚡ PPPoE & Hotspot billing</li>
-                        <li>📡 MikroTik router management</li>
-                        <li>💳 Payment automation</li>
-                        <li>📩 SMS & customer notifications</li>
-                        <li>📊 Real-time usage & analytics</li>
-                    </ul>
-
-                    <div class="mt-6 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 p-4 text-sm text-emerald-700 dark:text-emerald-300">
-                        Designed for scale - from small to large Deployements.
-                    </div>
-                </div>
-            </div>
-
         </div>
-    </div>
 
 
         <!-- Feature Grid -->
         <section id="features" class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-24">
             <div class="text-center mb-16">
-                <h2 class="text-5xl sm:text-6xl font-bold text-gray-900 dark:text-white mb-4 tracking-tight">
+                <h2 class="text-5xl sm:text-6xl font-bold text-white mb-4 tracking-tight">
                     Core Features
                 </h2>
-                <p class="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto font-light">
+                <p class="text-lg text-gray-400 max-w-2xl mx-auto font-light">
                     Everything you need to run a modern, scalable ISP business
                 </p>
             </div>
@@ -228,13 +243,12 @@ const goToDemo = () => {
                     { icon: '💳', title: 'Payment Reconciliation', desc: 'Supports M-Pesa, PesaPal with automatic real-time updates.' },
                     { icon: '📄', title: 'Automated Invoicing', desc: 'Digital invoices, reminders, and receipts via SMS & email.' },
                     { icon: '👥', title: 'Self-Service Portal', desc: 'Customers manage renewals, usage, and support anytime.' },
-                ]" :key="idx" class="group relative overflow-hidden rounded-2xl bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl p-8 shadow-lg border border-white/50 dark:border-slate-700/50 transition-all duration-500 hover:shadow-2xl hover:scale-105 hover:-translate-y-3 cursor-default">
-                    <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/0 to-teal-500/0 group-hover:from-emerald-500/8 group-hover:to-teal-500/5 transition-all duration-500"></div>
-                    <div class="absolute -inset-1 bg-gradient-to-r from-emerald-600/0 via-teal-600/0 to-cyan-600/0 group-hover:from-emerald-600/20 group-hover:via-teal-600/20 group-hover:to-cyan-600/20 rounded-2xl blur-lg opacity-0 group-hover:opacity-50 transition-opacity duration-500 -z-10"></div>
+                ]" :key="idx" class="group relative overflow-hidden rounded-2xl bg-white/5 backdrop-blur-xl p-8 shadow-lg border border-white/10 transition-all duration-500 hover:shadow-2xl hover:scale-105 hover:-translate-y-3 cursor-default hover:bg-white/10">
+                    <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/0 to-teal-500/0 group-hover:from-emerald-500/10 group-hover:to-teal-500/5 transition-all duration-500"></div>
                     <div class="relative">
                         <div class="text-5xl mb-4 transition-transform duration-300 group-hover:scale-125 group-hover:rotate-6">{{ feature.icon }}</div>
-                        <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-3 tracking-tight">{{ feature.title }}</h3>
-                        <p class="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">{{ feature.desc }}</p>
+                        <h3 class="text-lg font-bold text-white mb-3 tracking-tight">{{ feature.title }}</h3>
+                        <p class="text-gray-400 text-sm leading-relaxed group-hover:text-gray-300 transition-colors">{{ feature.desc }}</p>
                     </div>
                 </div>
             </div>
@@ -243,10 +257,10 @@ const goToDemo = () => {
         <!-- How It Works -->
         <section id="how-it-works" class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-24">
             <div class="text-center mb-16">
-                <h2 class="text-5xl sm:text-6xl font-bold text-gray-900 dark:text-white mb-4 tracking-tight">
+                <h2 class="text-5xl sm:text-6xl font-bold text-white mb-4 tracking-tight">
                     How Zyraaf Cloud Works
                 </h2>
-                <p class="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto font-light">
+                <p class="text-lg text-gray-400 max-w-2xl mx-auto font-light">
                     Get up and running in minutes, not weeks
                 </p>
             </div>
@@ -254,18 +268,18 @@ const goToDemo = () => {
             <div class="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
                 <div v-for="(step, idx) in howItWorksSteps" :key="step.step" class="group relative" :style="{ animationDelay: idx * 100 + 'ms' }">
                     <!-- Connection Line -->
-                    <div v-if="step.step !== '4'" class="hidden lg:block absolute top-24 left-full w-1/4 h-1 bg-gradient-to-r from-emerald-400 via-teal-400 to-transparent opacity-40"></div>
+                    <div v-if="step.step !== '4'" class="hidden lg:block absolute top-24 left-full w-1/4 h-1 bg-gradient-to-r from-emerald-500/40 via-teal-500/40 to-transparent"></div>
 
-                    <div class="relative flex flex-col items-center rounded-2xl bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl p-8 shadow-lg border border-white/50 dark:border-slate-700/50 transition-all duration-500 hover:shadow-2xl hover:-translate-y-3 h-full group">
+                    <div class="relative flex flex-col items-center rounded-2xl bg-white/5 backdrop-blur-xl p-8 shadow-lg border border-white/10 transition-all duration-500 hover:shadow-2xl hover:-translate-y-3 h-full group hover:bg-white/10">
                         <!-- Step Number -->
-                        <div class="absolute -top-6 left-1/2 -translate-x-1/2 h-12 w-12 rounded-full bg-gradient-to-br from-emerald-600 to-teal-600 flex items-center justify-center text-white font-bold text-lg shadow-lg transition-transform duration-300 group-hover:scale-110 dark:from-emerald-500 dark:to-teal-500">
+                        <div class="absolute -top-6 left-1/2 -translate-x-1/2 h-12 w-12 rounded-full bg-gradient-to-br from-emerald-600 to-teal-600 flex items-center justify-center text-white font-bold text-lg shadow-lg transition-transform duration-300 group-hover:scale-110 border border-white/20">
                             {{ step.step }}
                         </div>
 
-                        <h3 class="mt-8 text-lg font-bold text-gray-900 dark:text-white text-center mb-3 tracking-tight">
+                        <h3 class="mt-8 text-lg font-bold text-white text-center mb-3 tracking-tight">
                             {{ step.title }}
                         </h3>
-                        <p class="text-sm text-gray-600 dark:text-gray-300 text-center leading-relaxed">
+                        <p class="text-sm text-gray-400 text-center leading-relaxed group-hover:text-gray-300 transition-colors">
                             {{ step.description }}
                         </p>
                     </div>
@@ -276,60 +290,60 @@ const goToDemo = () => {
         <!-- Advanced Mikrotik Features -->
         <section id="advanced" class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-24">
             <div class="text-center mb-16">
-                <h2 class="text-5xl sm:text-6xl font-bold text-gray-900 dark:text-white mb-4 tracking-tight">
+                <h2 class="text-5xl sm:text-6xl font-bold text-white mb-4 tracking-tight">
                     Advanced Mikrotik Features
                 </h2>
-                <p class="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto font-light">
+                <p class="text-lg text-gray-400 max-w-2xl mx-auto font-light">
                     Enterprise-grade router management at your fingertips
                 </p>
             </div>
 
             <div class="grid gap-8 md:grid-cols-2">
                 <!-- Real-Time User Control -->
-                <div class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500/8 to-emerald-600/4 dark:from-emerald-900/20 dark:to-emerald-800/10 backdrop-blur-xl p-8 border border-emerald-200/60 dark:border-emerald-700/50 shadow-lg transition-all duration-500 hover:shadow-2xl hover:-translate-y-3 hover:border-emerald-200/100 dark:hover:border-emerald-700/80">
-                    <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div class="group relative overflow-hidden rounded-2xl bg-white/5 backdrop-blur-xl p-8 border border-white/10 shadow-lg transition-all duration-500 hover:shadow-2xl hover:-translate-y-3 hover:border-emerald-500/50">
+                    <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                     <div class="relative">
-                        <div class="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-gradient-to-br from-emerald-100 to-emerald-50 dark:from-emerald-900/30 dark:to-emerald-900/20 mb-4 transition-transform duration-300 group-hover:scale-110">
+                        <div class="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-emerald-500/10 mb-4 transition-transform duration-300 group-hover:scale-110 border border-emerald-500/20">
                             <span class="text-2xl">⚡</span>
                         </div>
-                        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-3 tracking-tight">Real-Time User Control</h3>
-                        <p class="text-gray-700 dark:text-gray-300 leading-relaxed">Suspend and reconnect users instantly. Push updated queue rules or credentials without manual router login.</p>
+                        <h3 class="text-xl font-bold text-white mb-3 tracking-tight">Real-Time User Control</h3>
+                        <p class="text-gray-400 leading-relaxed group-hover:text-gray-300">Suspend and reconnect users instantly. Push updated queue rules or credentials without manual router login.</p>
                     </div>
                 </div>
 
                 <!-- Hotspot Voucher Management -->
-                <div class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-500/8 to-green-600/4 dark:from-green-900/20 dark:to-green-800/10 backdrop-blur-xl p-8 border border-green-200/60 dark:border-green-700/50 shadow-lg transition-all duration-500 hover:shadow-2xl hover:-translate-y-3 hover:border-green-200/100 dark:hover:border-green-700/80">
-                    <div class="absolute inset-0 bg-gradient-to-br from-green-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div class="group relative overflow-hidden rounded-2xl bg-white/5 backdrop-blur-xl p-8 border border-white/10 shadow-lg transition-all duration-500 hover:shadow-2xl hover:-translate-y-3 hover:border-green-500/50">
+                    <div class="absolute inset-0 bg-gradient-to-br from-green-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                     <div class="relative">
-                        <div class="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-gradient-to-br from-green-100 to-green-50 dark:from-green-900/30 dark:to-green-900/20 mb-4 transition-transform duration-300 group-hover:scale-110">
+                        <div class="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-green-500/10 mb-4 transition-transform duration-300 group-hover:scale-110 border border-green-500/20">
                             <span class="text-2xl">🎟️</span>
                         </div>
-                        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-3 tracking-tight">Hotspot Voucher Management</h3>
-                        <p class="text-gray-700 dark:text-gray-300 leading-relaxed">Generate, assign, and validate vouchers. Monitor session time and device count live from dashboard.</p>
+                        <h3 class="text-xl font-bold text-white mb-3 tracking-tight">Hotspot Voucher Management</h3>
+                        <p class="text-gray-400 leading-relaxed group-hover:text-gray-300">Generate, assign, and validate vouchers. Monitor session time and device count live from dashboard.</p>
                     </div>
                 </div>
 
                 <!-- Usage-Based Throttling -->
-                <div class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-500/8 to-amber-600/4 dark:from-amber-900/20 dark:to-amber-800/10 backdrop-blur-xl p-8 border border-amber-200/60 dark:border-amber-700/50 shadow-lg transition-all duration-500 hover:shadow-2xl hover:-translate-y-3 hover:border-amber-200/100 dark:hover:border-amber-700/80">
-                    <div class="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div class="group relative overflow-hidden rounded-2xl bg-white/5 backdrop-blur-xl p-8 border border-white/10 shadow-lg transition-all duration-500 hover:shadow-2xl hover:-translate-y-3 hover:border-amber-500/50">
+                    <div class="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                     <div class="relative">
-                        <div class="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-gradient-to-br from-amber-100 to-amber-50 dark:from-amber-900/30 dark:to-amber-900/20 mb-4 transition-transform duration-300 group-hover:scale-110">
+                        <div class="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-amber-500/10 mb-4 transition-transform duration-300 group-hover:scale-110 border border-amber-500/20">
                             <span class="text-2xl">📊</span>
                         </div>
-                        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-3 tracking-tight">Usage-Based Throttling</h3>
-                        <p class="text-gray-700 dark:text-gray-300 leading-relaxed">Apply caps and reset limits based on GB used or time online. Automatically throttle after limits exceeded.</p>
+                        <h3 class="text-xl font-bold text-white mb-3 tracking-tight">Usage-Based Throttling</h3>
+                        <p class="text-gray-400 leading-relaxed group-hover:text-gray-300">Apply caps and reset limits based on GB used or time online. Automatically throttle after limits exceeded.</p>
                     </div>
                 </div>
 
                 <!-- Router Monitoring -->
-                <div class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-cyan-500/8 to-cyan-600/4 dark:from-cyan-900/20 dark:to-cyan-800/10 backdrop-blur-xl p-8 border border-cyan-200/60 dark:border-cyan-700/50 shadow-lg transition-all duration-500 hover:shadow-2xl hover:-translate-y-3 hover:border-cyan-200/100 dark:hover:border-cyan-700/80">
-                    <div class="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div class="group relative overflow-hidden rounded-2xl bg-white/5 backdrop-blur-xl p-8 border border-white/10 shadow-lg transition-all duration-500 hover:shadow-2xl hover:-translate-y-3 hover:border-cyan-500/50">
+                    <div class="absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                     <div class="relative">
-                        <div class="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-gradient-to-br from-cyan-100 to-cyan-50 dark:from-cyan-900/30 dark:to-cyan-900/20 mb-4 transition-transform duration-300 group-hover:scale-110">
+                        <div class="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-cyan-500/10 mb-4 transition-transform duration-300 group-hover:scale-110 border border-cyan-500/20">
                             <span class="text-2xl">📡</span>
                         </div>
-                        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-3 tracking-tight">Router Monitoring & Alerts</h3>
-                        <p class="text-gray-700 dark:text-gray-300 leading-relaxed">Track CPU load, uptime, and online status. Get notified on disconnects or unusual bandwidth spikes in real time.</p>
+                        <h3 class="text-xl font-bold text-white mb-3 tracking-tight">Router Monitoring & Alerts</h3>
+                        <p class="text-gray-400 leading-relaxed group-hover:text-gray-300">Track CPU load, uptime, and online status. Get notified on disconnects or unusual bandwidth spikes in real time.</p>
                     </div>
                 </div>
             </div>
@@ -338,25 +352,25 @@ const goToDemo = () => {
         <!-- Why Choose Us -->
         <section class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-24">
             <div class="text-center mb-16">
-                <h2 class="text-5xl sm:text-6xl font-bold text-gray-900 dark:text-white mb-4 tracking-tight">
+                <h2 class="text-5xl sm:text-6xl font-bold text-white mb-4 tracking-tight">
                     Why Zyraaf Cloud is the Smart Choice
                 </h2>
-                <p class="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto font-light">
+                <p class="text-lg text-gray-400 max-w-2xl mx-auto font-light">
                     Trusted by the leading ISPs across Africa
                 </p>
             </div>
 
             <div class="grid gap-6 md:grid-cols-2">
-                <div v-for="(feature, idx) in detailedFeatures" :key="feature.title" class="group relative overflow-hidden rounded-2xl bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl p-8 shadow-lg border border-white/50 dark:border-slate-700/50 transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 hover:border-emerald-200/60 dark:hover:border-emerald-700/60" :style="{ transitionDelay: idx * 50 + 'ms' }">
-                    <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/0 to-teal-500/0 group-hover:from-emerald-500/6 group-hover:to-teal-500/4 transition-all duration-500"></div>
+                <div v-for="(feature, idx) in detailedFeatures" :key="feature.title" class="group relative overflow-hidden rounded-2xl bg-white/5 backdrop-blur-xl p-8 shadow-lg border border-white/10 transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 hover:bg-white/10" :style="{ transitionDelay: idx * 50 + 'ms' }">
+                    <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/0 to-teal-500/0 group-hover:from-emerald-500/5 group-hover:to-teal-500/5 transition-all duration-500"></div>
                     
                     <div class="relative flex items-start gap-4">
                         <div class="text-4xl flex-shrink-0 mt-1 transition-transform duration-300 group-hover:scale-125 group-hover:-rotate-6">{{ feature.icon }}</div>
                         <div class="flex-1">
-                            <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2 tracking-tight">
+                            <h3 class="text-lg font-bold text-white mb-2 tracking-tight">
                                 {{ feature.title }}
                             </h3>
-                            <p class="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">
+                            <p class="text-gray-400 text-sm leading-relaxed group-hover:text-gray-300">
                                 {{ feature.description }}
                             </p>
                         </div>
@@ -391,32 +405,32 @@ const goToDemo = () => {
             <!-- Demo Modal -->
             <div
                 v-if="showDemoModal"
-                class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+                class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
             >
-                <div class="w-full max-w-md rounded-2xl bg-white dark:bg-gray-900 p-8 shadow-2xl">
-                    <h3 class="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
+                <div class="w-full max-w-md rounded-2xl bg-gray-900 p-8 shadow-2xl border border-white/10">
+                    <h3 class="text-2xl font-semibold text-white mb-4">
                         Demo Access
                     </h3>
 
-                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-6">
+                    <p class="text-sm text-gray-400 mb-6">
                         Use the credentials below to explore the Zyraaf Cloud demo system.
                     </p>
 
                     <div class="space-y-3 mb-6">
-                        <div class="flex justify-between rounded-lg bg-gray-100 dark:bg-gray-800 px-4 py-3">
+                        <div class="flex justify-between rounded-lg bg-gray-800 px-4 py-3 border border-white/5">
                             <span class="text-sm text-gray-500">Username</span>
-                            <span class="font-mono font-semibold text-emerald-600">demo</span>
+                            <span class="font-mono font-semibold text-emerald-400">demo</span>
                         </div>
-                        <div class="flex justify-between rounded-lg bg-gray-100 dark:bg-gray-800 px-4 py-3">
+                        <div class="flex justify-between rounded-lg bg-gray-800 px-4 py-3 border border-white/5">
                             <span class="text-sm text-gray-500">Password</span>
-                            <span class="font-mono font-semibold text-emerald-600">password</span>
+                            <span class="font-mono font-semibold text-emerald-400">password</span>
                         </div>
                     </div>
 
                     <div class="flex gap-3">
                         <button
                             @click="showDemoModal = false"
-                            class="flex-1 rounded-lg border border-gray-300 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100"
+                            class="flex-1 rounded-lg border border-gray-700 px-4 py-3 text-sm font-medium text-gray-300 hover:bg-gray-800"
                         >
                             Close
                         </button>
@@ -433,16 +447,13 @@ const goToDemo = () => {
         </section>
         
 
-        <section id="pricing" class="relative mt-20">
-    <!-- subtle background -->
-    <div class="absolute inset-0 -z-10 bg-gradient-to-br from-blue-50/40 via-transparent to-cyan-50/40 dark:from-blue-900/20 dark:to-cyan-900/20"></div>
-
-    <div class="text-center border-t pt-12 border-gray-300 dark:border-gray-700 px-4">
+        <section id="pricing" class="relative mt-20 pb-24">
+    <div class="text-center border-t pt-12 border-white/10 px-4">
         <!-- Country selector -->
         <div class="animate-fade-in-up">
             <label
                 for="country"
-                class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3"
+                class="block text-sm font-semibold text-gray-300 mb-3"
             >
                 Select your country to view pricing
             </label>
@@ -450,8 +461,8 @@ const goToDemo = () => {
             <select
                 id="country"
                 v-model="selectedCountryCode"
-                class="mx-auto block w-full max-w-xs rounded-lg border-gray-300 dark:border-gray-600
-                       bg-white dark:bg-gray-800 px-4 py-3 text-gray-900 dark:text-gray-100
+                class="mx-auto block w-full max-w-xs rounded-lg border-gray-700
+                       bg-gray-800 px-4 py-3 text-gray-100
                        shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm"
             >
                 <option
@@ -467,29 +478,29 @@ const goToDemo = () => {
         <!-- Pricing cards -->
         <div
             class="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto
-                   rounded-2xl border border-blue-200/50 dark:border-blue-700/50
-                   bg-blue-50/30 dark:bg-blue-900/30 backdrop-blur-md
+                   rounded-2xl border border-white/10
+                   bg-white/5 backdrop-blur-md
                    p-4 sm:p-6 shadow-lg animate-fade-in-up delay-150"
         >
             <!-- PPPoE -->
             <div
-                class="group p-6 bg-white/80 dark:bg-gray-800/80 rounded-2xl
-                       border border-white/50 dark:border-gray-700/50
+                class="group p-6 bg-gray-900/50 rounded-2xl
+                       border border-white/10
                        shadow-lg transition-all duration-300
-                       hover:-translate-y-1 hover:shadow-2xl"
+                       hover:-translate-y-1 hover:shadow-2xl hover:border-emerald-500/30"
             >
-                <h3 class="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
+                <h3 class="text-lg sm:text-xl font-bold text-white">
                     PPPoE Plan
-                    <span class="block text-sm font-medium text-blue-500">
+                    <span class="block text-sm font-medium text-emerald-400">
                         {{ selectedCountry.name }}
                     </span>
                 </h3>
 
-                <div class="mt-4 rounded-xl bg-blue-100 dark:bg-gray-700 p-4 text-center sm:text-left">
-                    <span class="block text-xs uppercase tracking-wide text-cyan-500">
+                <div class="mt-4 rounded-xl bg-gray-800 p-4 text-center sm:text-left border border-white/5">
+                    <span class="block text-xs uppercase tracking-wide text-cyan-400">
                         Price per active user
                     </span>
-                    <div class="mt-1 text-2xl font-mono font-bold text-emerald-600">
+                    <div class="mt-1 text-2xl font-mono font-bold text-emerald-400">
                         {{ selectedCountry.pppoePricePerMonth }}
                         <span class="text-sm font-medium text-gray-500">
                             {{ selectedCountry.currency || 'KES' }} / month
@@ -497,11 +508,11 @@ const goToDemo = () => {
                     </div>
                 </div>
 
-                <p class="mt-4 text-sm text-gray-600 dark:text-gray-400">
+                <p class="mt-4 text-sm text-gray-400">
                     Best for fiber & wireless ISP subscribers
                 </p>
 
-                <ul class="mt-6 space-y-2 text-sm text-gray-700 dark:text-gray-300 text-left">
+                <ul class="mt-6 space-y-2 text-sm text-gray-300 text-left">
                     <li>✔ Unlimited MikroTik routers</li>
                     <li>✔ Monthly billing & expiry control</li>
                     <li>✔ Always-on internet access</li>
@@ -514,23 +525,23 @@ const goToDemo = () => {
 
             <!-- Hotspot -->
             <div
-                class="group p-6 bg-white/80 dark:bg-gray-800/80 rounded-2xl
-                       border border-white/50 dark:border-gray-700/50
+                class="group p-6 bg-gray-900/50 rounded-2xl
+                       border border-white/10
                        shadow-lg transition-all duration-300
-                       hover:-translate-y-1 hover:shadow-2xl"
+                       hover:-translate-y-1 hover:shadow-2xl hover:border-emerald-500/30"
             >
-                <h3 class="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
+                <h3 class="text-lg sm:text-xl font-bold text-white">
                     Hotspot Plan
-                    <span class="block text-sm font-medium text-blue-500">
+                    <span class="block text-sm font-medium text-emerald-400">
                         {{ selectedCountry.name }}
                     </span>
                 </h3>
 
-                <div class="mt-4 rounded-xl bg-blue-100 dark:bg-gray-700 p-4 text-center sm:text-left">
-                    <span class="block text-xs uppercase tracking-wide text-cyan-500">
+                <div class="mt-4 rounded-xl bg-gray-800 p-4 text-center sm:text-left border border-white/5">
+                    <span class="block text-xs uppercase tracking-wide text-cyan-400">
                         Revenue based pricing
                     </span>
-                    <div class="mt-1 text-2xl font-mono font-bold text-emerald-600">
+                    <div class="mt-1 text-2xl font-mono font-bold text-emerald-400">
                         {{ selectedCountry.hotspotPricePerMonth }}
                         <span class="text-sm font-medium text-gray-500">
                             per transaction
@@ -538,11 +549,11 @@ const goToDemo = () => {
                     </div>
                 </div>
 
-                <p class="mt-4 text-sm text-gray-600 dark:text-gray-400">
+                <p class="mt-4 text-sm text-gray-400">
                     Best for public Wi-Fi & pay-as-you-go access
                 </p>
 
-                <ul class="mt-6 space-y-2 text-sm text-gray-700 dark:text-gray-300 text-left">
+                <ul class="mt-6 space-y-2 text-sm text-gray-300 text-left">
                     <li>✔ Unlimited MikroTik routers</li>
                     <li>✔ Pay-as-you-go access</li>
                     <li>✔ STK Push & voucher login</li>
@@ -609,5 +620,18 @@ const goToDemo = () => {
 }
 .delay-150 {
     animation-delay: 150ms;
+}
+
+.animate-spin-slow {
+    animation: spin 8s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
 }
 </style>
