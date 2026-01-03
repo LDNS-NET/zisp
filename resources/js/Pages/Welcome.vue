@@ -464,7 +464,7 @@ const submitOnboarding = () => {
                                 type="text" 
                                 required
                                 class="w-full rounded-xl bg-white/5 border-white/10 text-white focus:border-emerald-500 focus:ring-emerald-500"
-                                placeholder="John Doe"
+                                placeholder="Michael The Dev"
                             />
                         </div>
                         <div>
@@ -474,7 +474,7 @@ const submitOnboarding = () => {
                                 type="email" 
                                 required
                                 class="w-full rounded-xl bg-white/5 border-white/10 text-white focus:border-emerald-500 focus:ring-emerald-500"
-                                placeholder="john@example.com"
+                                placeholder="mikethedev@gmail.com"
                             />
                         </div>
                     </div>
