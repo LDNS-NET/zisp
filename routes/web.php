@@ -81,9 +81,14 @@ Route::get('hotspot-templates/{file}', function ($file) {
         ->header('Expires', '0');
 })->name('hotspot.templates.public');
 
+// Maintenance Route
+Route::get('/maintenance', function () {
+    return Inertia::render('Maintenance');
+})->name('maintenance');
+
 // Hotspot routes (protected by subscription check) replace subscription with a safer middleware for hotspot safe redirects
 
-Route::middleware(['check.subscription'])->group(function () {
+Route::middleware(['check.subscription', 'maintenance.mode'])->group(function () {
 
     Route::get('/hotspot/success', function () {
         return view('hotspot.success');
@@ -135,7 +140,7 @@ Route::get('mikrotiks/{mikrotik}/download-script', [TenantMikrotikController::cl
 |--------------------------------------------------------------------------
 */
 
-Route::middleware(['auth', 'verified', 'tenant.domain'])
+Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode'])
     ->group(function () {
         // Subscription & Renewal (Accessible even if expired)
         Route::get('/subscription/renew', [SubscriptionController::class, 'showRenewal'])->name('subscription.renew');
@@ -385,7 +390,7 @@ Route::prefix('customer')->name('customer.')->group(function () {
     });
     
     // Authenticated customer routes
-    Route::middleware(['auth:customer', 'customer'])->group(function () {
+    Route::middleware(['auth:customer', 'customer', 'maintenance.mode'])->group(function () {
         Route::get('dashboard', [App\Http\Controllers\Customer\DashboardController::class, 'index'])->name('dashboard');
         Route::get('renew', [App\Http\Controllers\Customer\RenewalController::class, 'index'])->name('renew');
         Route::post('renew/pay', [App\Http\Controllers\Customer\RenewalController::class, 'initiatePayment'])->name('renew.pay');

@@ -40,6 +40,8 @@ class AppServiceProvider extends ServiceProvider
         Route::aliasMiddleware('central', \App\Http\Middleware\CentralDomainOnly::class);
         // Register the Tenant middleware globally
         Route::aliasMiddleware('tenant.domain', EnsureTenantDomain::class);
+        // Register Maintenance Mode middleware
+        Route::aliasMiddleware('maintenance.mode', \App\Http\Middleware\CheckMaintenanceMode::class);
 
         Relation::enforceMorphMap([
             'lead' => TenantLeads::class,
