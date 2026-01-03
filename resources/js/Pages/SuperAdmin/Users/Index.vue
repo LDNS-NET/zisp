@@ -183,50 +183,9 @@ const confirmSuspend = () => {
                                     {{ new Date(user.created_at).toLocaleDateString() }}
                                 </td>
                                 <td class="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
-                                    <Menu as="div" class="relative inline-block text-left">
-                                        <MenuButton class="flex items-center rounded-full p-2 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:hover:text-gray-300">
-                                            <MoreVertical class="h-5 w-5" />
-                                        </MenuButton>
-
-                                        <transition
-                                            enter-active-class="transition ease-out duration-100"
-                                            enter-from-class="transform opacity-0 scale-95"
-                                            enter-to-class="transform opacity-100 scale-100"
-                                            leave-active-class="transition ease-in duration-75"
-                                            leave-from-class="transform opacity-100 scale-100"
-                                            leave-to-class="transform opacity-0 scale-95"
-                                        >
-                                            <MenuItems class="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none dark:bg-gray-800 dark:ring-gray-700">
-                                                <MenuItem v-slot="{ active }">
-                                                    <Link
-                                                        :href="route('superadmin.users.show', user.id)"
-                                                        :class="[active ? 'bg-gray-100 dark:bg-gray-700' : '', 'flex w-full items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200']"
-                                                    >
-                                                        <Eye class="mr-3 h-4 w-4 text-gray-400" />
-                                                        View Details
-                                                    </Link>
-                                                </MenuItem>
-                                                <MenuItem v-slot="{ active }">
-                                                    <button
-                                                        @click="openSuspendModal(user)"
-                                                        :class="[active ? 'bg-gray-100 dark:bg-gray-700' : '', 'flex w-full items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200']"
-                                                    >
-                                                        <component :is="user.is_suspended ? CheckCircle : Ban" class="mr-3 h-4 w-4 text-gray-400" />
-                                                        {{ user.is_suspended ? 'Activate User' : 'Suspend User' }}
-                                                    </button>
-                                                </MenuItem>
-                                                <MenuItem v-slot="{ active }">
-                                                    <button
-                                                        @click="openDeleteModal(user)"
-                                                        :class="[active ? 'bg-gray-100 dark:bg-gray-700' : '', 'flex w-full items-center px-4 py-2 text-sm text-red-600 dark:text-red-400']"
-                                                    >
-                                                        <Trash2 class="mr-3 h-4 w-4" />
-                                                        Delete User
-                                                    </button>
-                                                </MenuItem>
-                                            </MenuItems>
-                                        </transition>
-                                    </Menu>
+                                    <button @click="openActions(user)" class="text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors p-2 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700" title="Manage Tenant">
+                                        <MoreVertical class="w-5 h-5" />
+                                    </button>
                                 </td>
                             </tr>
                             <tr v-if="users.data.length === 0">
@@ -277,6 +236,45 @@ const confirmSuspend = () => {
                 </div>
             </div>
         </div>
+
+        <!-- Actions Modal -->
+        <Modal :show="showActionsModal" @close="closeModal" maxWidth="sm">
+            <div class="p-4 dark:bg-slate-800 dark:text-white" v-if="selectedUser">
+                <div class="flex items-center justify-between mb-4 pb-2 border-b border-gray-100 dark:border-slate-700">
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-white truncate pr-4">
+                        {{ selectedUser.name }}
+                    </h3>
+                    <button @click="closeModal" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
+                        <component :is="AlertCircle" class="w-5 h-5 rotate-45" /> <!-- Using AlertCircle as X icon replacement if X is not imported, or import X -->
+                    </button>
+                </div>
+
+                <div class="space-y-1">
+                    <Link :href="route('superadmin.users.show', selectedUser.id)" class="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-left group">
+                        <div class="p-1.5 rounded-md bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/40">
+                            <Eye class="w-4 h-4" />
+                        </div>
+                        <span class="text-sm font-medium text-gray-700 dark:text-gray-200">View Details</span>
+                    </Link>
+
+                    <button @click="openSuspendModal(selectedUser)" class="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-left group">
+                        <div class="p-1.5 rounded-md" :class="selectedUser.is_suspended ? 'bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400 group-hover:bg-green-100' : 'bg-yellow-50 text-yellow-600 dark:bg-yellow-900/20 dark:text-yellow-400 group-hover:bg-yellow-100'">
+                            <component :is="selectedUser.is_suspended ? CheckCircle : Ban" class="w-4 h-4" />
+                        </div>
+                        <span class="text-sm font-medium text-gray-700 dark:text-gray-200">{{ selectedUser.is_suspended ? 'Activate Tenant' : 'Suspend Tenant' }}</span>
+                    </button>
+
+                    <div class="border-t border-gray-100 dark:border-slate-700 my-1"></div>
+
+                    <button @click="openDeleteModal(selectedUser)" class="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-left group">
+                        <div class="p-1.5 rounded-md bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 group-hover:bg-red-100 dark:group-hover:bg-red-900/40">
+                            <Trash2 class="w-4 h-4" />
+                        </div>
+                        <span class="text-sm font-medium text-red-600 dark:text-red-400">Delete Tenant</span>
+                    </button>
+                </div>
+            </div>
+        </Modal>
 
         <!-- Delete Confirmation Modal -->
         <Modal :show="showDeleteModal" @close="closeModal">

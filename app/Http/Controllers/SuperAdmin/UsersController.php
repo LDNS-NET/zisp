@@ -80,14 +80,51 @@ class UsersController extends Controller
     public function show($id)
     {
         $user = User::findOrFail($id);
-        // Fetch detailed tenant info from the all_tenants table (SuperAdmin\Users model)
-        $tenantDetails = \App\Models\SuperAdmin\Users::where('tenant_id', $user->tenant_id)->first();
-
+        
+        // Fetch settings
         $tenantSettings = TenantGeneralSetting::where('tenant_id', $user->tenant_id)->first();
+        
+        // Calculate stats
         $mikrotiks = TenantMikrotik::withoutGlobalScope('created_by')->where('created_by', $user->id)->get();
         $totalEndUsers = NetworkUser::withoutGlobalScope('created_by')->where('created_by', $user->id)->count();
         $totalPayments = TenantPayment::withoutGlobalScope('created_by')->where('created_by', $user->id)->sum('amount');
         $totalMikrotiks = TenantMikrotik::withoutGlobalScope('created_by')->where('created_by', $user->id)->count();
+
+        // Construct tenantDetails manually to bypass missing 'all_tenants' table
+        $tenantDetails = [
+            'name' => $user->name,
+            'username' => $user->username,
+            'email' => $user->email,
+            'phone' => $user->phone,
+            'role' => $user->role,
+            'status' => $user->is_suspended ? 'suspended' : 'active',
+            'business_registration_number' => null, // Missing in DB
+            'address' => $tenantSettings?->address,
+            'country' => $tenantSettings?->country ?? $user->country_code,
+            'timezone' => $tenantSettings?->timezone,
+            'language' => $tenantSettings?->language,
+            'domain' => $tenantSettings?->website, // Mapping website to domain
+            'wallet_balance' => '0.00', // Missing
+            'user_value' => '0.00', // Missing
+            'bank_name' => null,
+            'account_name' => null,
+            'account_number' => null,
+            'mpesa_number' => null,
+            'paybill_number' => null,
+            'till_number' => null,
+            'all_subscribers' => $totalEndUsers,
+            'users_count' => $totalEndUsers,
+            'mikrotik_count' => $totalMikrotiks,
+            'lifetime_traffic' => '0 MB', // Missing
+            'joining_date' => $user->created_at->format('Y-m-d'),
+            'expiry_date' => $user->subscription_expires_at?->format('Y-m-d'),
+            'prunning_date' => null,
+            'email_verified_at' => $user->email_verified_at,
+            'phone_verified_at' => null,
+            'last_login_ip' => null,
+            'two_factor_enabled' => false,
+            'account_locked_until' => null,
+        ];
 
         return Inertia::render('SuperAdmin/Users/Show', [
             'user' => $user,
@@ -97,7 +134,6 @@ class UsersController extends Controller
             'totalEndUsers' => $totalEndUsers,
             'totalPayments' => $totalPayments,
             'totalMikrotiks' => $totalMikrotiks,
-
         ]);
     }
 }
