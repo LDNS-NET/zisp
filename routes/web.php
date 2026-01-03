@@ -83,7 +83,12 @@ Route::get('hotspot-templates/{file}', function ($file) {
 
 // Maintenance Route
 Route::get('/maintenance', function () {
-    return Inertia::render('Maintenance');
+    // Fetch support settings directly or via config if available
+    // Since we injected them into config in AppServiceProvider, we can use config()
+    return Inertia::render('Maintenance', [
+        'support_email' => config('mail.from.address'), // Using the mapped config
+        'support_phone' => \App\Models\SystemSetting::where('key', 'support_phone')->value('value'),
+    ]);
 })->name('maintenance');
 
 // Hotspot routes (protected by subscription check) replace subscription with a safer middleware for hotspot safe redirects

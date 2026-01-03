@@ -3,6 +3,8 @@ import { Head } from '@inertiajs/vue3';
 
 defineProps({
     message: String,
+    support_email: String,
+    support_phone: String,
 });
 </script>
 
@@ -40,9 +42,17 @@ defineProps({
 
             <!-- Footer/Contact -->
             <div class="pt-8 border-t border-gray-200 dark:border-gray-700">
-                <p class="text-xs text-gray-400 dark:text-gray-500">
+                <p class="text-xs text-gray-400 dark:text-gray-500 mb-2">
                     Need urgent assistance? Contact support.
                 </p>
+                <div class="flex flex-col gap-1 text-sm text-gray-600 dark:text-gray-400">
+                    <a v-if="support_email" :href="'mailto:' + support_email" class="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
+                        {{ support_email }}
+                    </a>
+                    <a v-if="support_phone" :href="'tel:' + support_phone" class="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
+                        {{ support_phone }}
+                    </a>
+                </div>
             </div>
         </div>
     </div>
