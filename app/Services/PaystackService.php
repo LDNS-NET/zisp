@@ -160,7 +160,7 @@ class PaystackService
      */
     public function generateReference(string $prefix = 'PAYSTACK'): string
     {
-        return strtoupper($prefix . '|' . uniqid() . '|' . time());
+        return strtoupper($prefix . '-' . uniqid() . '-' . time());
     }
 
     /**
