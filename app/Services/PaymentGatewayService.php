@@ -212,7 +212,7 @@ class PaymentGatewayService
         // Use phone as email if no email provided (Paystack requires valid email format)
         // Remove any non-numeric characters from phone for email
         $cleanPhone = preg_replace('/[^0-9]/', '', $phone);
-        $email = $user->email ?: $cleanPhone . '@example.com';
+        $email = $user->email ?: $cleanPhone . '@mail.com';
         $reference = $this->paystackService->generateReference(strtoupper($type));
         
         $response = $this->paystackService->initializeTransaction(
