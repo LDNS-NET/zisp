@@ -1,6 +1,6 @@
 <script setup>
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import WelcomeLayout from '@/Layouts/WelcomeLayout.vue';
 import Modal from '@/Components/Modal.vue';
 import { CheckCircle2, X } from 'lucide-vue-next';
@@ -139,6 +139,23 @@ const submitOnboarding = () => {
         },
     });
 };
+
+onMounted(() => {
+    // Attempt to detect user's country via IP
+    fetch('https://ipapi.co/json/')
+        .then(response => response.json())
+        .then(data => {
+            if (data.country_code) {
+                const countryExists = props.countries.some(c => c.code === data.country_code);
+                if (countryExists) {
+                    selectedCountryCode.value = data.country_code;
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error detecting country:', error);
+        });
+});
 
 </script>
 

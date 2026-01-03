@@ -5,7 +5,7 @@ import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { countries } from '@/Data/countries';
 import Modal from '@/Components/Modal.vue';
 import { 
@@ -81,6 +81,24 @@ const submitOnboarding = () => {
         },
     });
 };
+
+onMounted(() => {
+    // Attempt to detect user's country via IP
+    fetch('https://ipapi.co/json/')
+        .then(response => response.json())
+        .then(data => {
+            if (data.country_name) {
+                const country = countries.find(c => c.name === data.country_name);
+                if (country) {
+                    form.country = country.name;
+                    selectedCountry();
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error detecting country:', error);
+        });
+});
 </script>
 
 <template>
@@ -210,7 +228,7 @@ const submitOnboarding = () => {
                             v-model="form.phone"
                             required
                             autocomplete="tel"
-                            placeholder="+254 700 000 000"
+                            :placeholder="form.dial_code ? `${form.dial_code} 700 000 000` : '+254 700 000 000'"
                         />
                     </div>
                     <InputError class="mt-2" :message="form.errors.phone" />
