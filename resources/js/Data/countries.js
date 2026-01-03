@@ -8,29 +8,7 @@ export const countries = [
     pppoePricePerMonth: 18,
     hotspotPricePerMonth: "3%",
     minimum_pay: 500,
-    payment_methods: ["mpesa", "airtel_money", "equitel"],
-  },
-  {
-    name: "Tanzania",
-    code: "TZ",
-    currency: "TZS",
-    currency_name: "Tanzanian Shilling",
-    dial_code: "+255",
-    pppoePricePerMonth: 350,
-    hotspotPricePerMonth: "3%",
-    minimum_pay: 10000, // Equivalent to ~500 KES
-    payment_methods: ["mpesa", "tigo_pesa", "airtel_money", "halopesa"],
-  },
-  {
-    name: "Somalia",
-    code: "SO",
-    currency: "SOS",
-    currency_name: "Somali Shilling",
-    dial_code: "+252",
-    pppoePricePerMonth: 88,
-    hotspotPricePerMonth: "3%",
-    minimum_pay: 2500, // Equivalent to ~500 KES
-    payment_methods: ["hormuud_evc_plus", "zaad"],
+    payment_methods: ["mpesa", "airtel_money", "paystack", "flutterwave", "equitel"],
   },
   {
     name: "South Sudan",
@@ -56,6 +34,17 @@ export const countries = [
     payment_methods: ["momo", "airtel_money"],
   },
   {
+    name: "South Africa",
+    code: "ZA",
+    currency: "ZAR",
+    currency_name: "South African Rand",
+    dial_code: "+27",
+    pppoePricePerMonth: 2,
+    hotspotPricePerMonth: "3%",
+    minimum_pay: 65,
+    payment_methods: ["momo", "paystack", "orange_money"],
+  },
+  {
     name: "Nigeria",
     code: "NG",
     currency: "NGN",
@@ -64,7 +53,7 @@ export const countries = [
     pppoePricePerMonth: 220,
     hotspotPricePerMonth: "3%",
     minimum_pay: 5000,
-    payment_methods: ["paystack", "flutterwave"],
+    payment_methods: ["paystack", "momo", "flutterwave"],
   },
   {
     name: "Ghana",
@@ -75,9 +64,31 @@ export const countries = [
     pppoePricePerMonth: 2,
     hotspotPricePerMonth: "3%",
     minimum_pay: 50,
-    payment_methods: ["momo", "vodafone_cash"],
+    payment_methods: ["momo", "paystack", "vodafone_cash"],
+  },
+  {
+    name: "Côte d'Ivoire",
+    code: "CI",
+    currency: "XOF",
+    currency_name: "West African CFA franc",
+    dial_code: "+226",
+    pppoePricePerMonth: 2,
+    hotspotPricePerMonth: "3%",
+    minimum_pay: 50,
+    payment_methods: ["momo", "paystack", "vodafone_cash"],
   },
   /*
+  {
+    name: "Tanzania",
+    code: "TZ",
+    currency: "TZS",
+    currency_name: "Tanzanian Shilling",
+    dial_code: "+255",
+    pppoePricePerMonth: 350,
+    hotspotPricePerMonth: "3%",
+    minimum_pay: 10000, // Equivalent to ~500 KES
+    payment_methods: ["mpesa", "tigo_pesa", "airtel_money", "halopesa"],
+  },
   {
     name: "Rwanda",
     code: "RW",
@@ -89,7 +100,7 @@ export const countries = [
     minimum_pay: 4500,
     payment_methods: ["momo", "orange_money"],
   },
-  {
+  
     name: "Ethiopia",
     code: "ET",
     currency: "ETB",
@@ -99,6 +110,17 @@ export const countries = [
     hotspotPricePerMonth: "3%",
     minimum_pay: 250,
     payment_methods: ["telebirr", "cbe_birr"],
+  },
+  {
+    name: "Somalia",
+    code: "SO",
+    currency: "SOS",
+    currency_name: "Somali Shilling",
+    dial_code: "+252",
+    pppoePricePerMonth: 88,
+    hotspotPricePerMonth: "3%",
+    minimum_pay: 2500, // Equivalent to ~500 KES
+    payment_methods: ["hormuud_evc_plus", "zaad"],
   },
   {
     name: "Egypt",
