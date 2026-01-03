@@ -162,6 +162,15 @@ const submitOnboarding = () => {
                             placeholder="mikethedev"
                         />
                     </div>
+                    <div v-if="form.username" class="mt-2 px-1 animate-fade-in">
+                        <p class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                            <Globe class="w-3 h-3" />
+                            Your subdomain: 
+                            <span class="font-bold text-indigo-600 dark:text-indigo-400">
+                                {{ form.username.toLowerCase().replace(/[^a-z0-9]/g, '') }}.zyraaf.cloud
+                            </span>
+                        </p>
+                    </div>
                     <InputError class="mt-2" :message="form.errors.username" />
                 </div>
 
@@ -430,3 +439,14 @@ const submitOnboarding = () => {
         </Modal>
     </GuestLayout>
 </template>
+
+<style scoped>
+.animate-fade-in {
+    animation: fadeIn 0.3s ease-out forwards;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+</style>
