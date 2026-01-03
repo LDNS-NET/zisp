@@ -16,14 +16,17 @@ use App\Services\CountryService;
 
 use App\Models\Tenants\TenantGeneralSetting;
 use App\Services\PaymentProcessingService;
+use App\Services\PaymentGatewayService;
 
 class TenantHotspotController extends Controller
 {
     protected $paymentProcessingService;
+    protected $paymentGatewayService;
 
-    public function __construct(PaymentProcessingService $paymentProcessingService)
+    public function __construct(PaymentProcessingService $paymentProcessingService, PaymentGatewayService $paymentGatewayService)
     {
         $this->paymentProcessingService = $paymentProcessingService;
+        $this->paymentGatewayService = $paymentGatewayService;
     }
     /**
      * Display a listing of the tenant hotspot packages for the current tenant.
@@ -127,19 +130,20 @@ class TenantHotspotController extends Controller
     }
 
     /**
-     * Process IntaSend checkout for hotspot packages.
+     * Process checkout for hotspot packages using PaymentGatewayService.
      */
     public function checkout(Request $request)
     {
         try {
             // Validate input
             $request->validate([
-                'hotspot_package_id' => 'required|exists:tenant_hotspot_packages,id',
+                'hotspot_package_id' => 'required|exists:tenant_hotspots,id',
                 'phone' => 'required|string',
                 'email' => 'nullable|email',
+                'payment_method' => 'nullable|string|in:mpesa,momo,paystack',
             ]);
 
-         // Get current tenant from subdomain
+            // Get current tenant from subdomain
             $host = $request->getHost();
             $subdomain = explode('.', $host)[0];
             $tenant = Tenant::where('subdomain', $subdomain)->firstOrFail();
@@ -148,109 +152,47 @@ class TenantHotspotController extends Controller
             $package = $this->findTenantPackage($request->hotspot_package_id);
             $amount = $package->price;
 
-            // Resolve country data
-            $countryData = CountryService::getCountryData($tenant->country_code);
-            $currency = $countryData['currency'] ?? 'KES';
-            $dialCode = $countryData['dial_code'] ?? '254';
+            // Determine payment method (default to mpesa for KE, or first available)
+            $paymentMethod = $request->payment_method ?? ($tenant->country_code === 'KE' ? 'mpesa' : 'momo');
 
-            // Normalize phone
-            $phone = $this->formatPhoneNumber($request->phone, $dialCode);
-            if (!$phone) {
-                \Log::warning('Invalid phone number format', ['phone' => $request->phone, 'country' => $tenant->country_code]);
-                return response()->json([
-                    'success' => false,
-                    'message' => "Invalid phone number format for {$countryData['name']}."
-                ]);
-            }
+            // Create a temporary NetworkUser object for PaymentGatewayService
+            $tempUser = new NetworkUser();
+            $tempUser->tenant_id = $tenant->id;
+            $tempUser->phone = $request->phone;
+            $tempUser->email = $request->email;
+            $tempUser->type = 'hotspot';
+            $tempUser->exists = false; // Mark as not persisted
 
-            // Create reference: HS|package_id|phone|uniqid
-            $reference = "HS|{$package->id}|{$phone}|" . strtoupper(uniqid());
+            // Prepare metadata
+            $metadata = [
+                'hotspot_package_id' => $package->id,
+                'type' => 'hotspot',
+            ];
 
-            // Resolve M-Pesa credentials for this tenant
-            $gateway = \App\Models\TenantPaymentGateway::where('tenant_id', $tenant->id)
-                ->where('provider', 'mpesa')
-                ->where('use_own_api', true)
-                ->where('is_active', true)
-                ->first();
-
-            $mpesa = app(\App\Services\MpesaService::class);
-            
-            if ($gateway) {
-                $mpesa->setCredentials([
-                    'consumer_key' => $gateway->mpesa_consumer_key,
-                    'consumer_secret' => $gateway->mpesa_consumer_secret,
-                    'shortcode' => $gateway->mpesa_shortcode,
-                    'passkey' => $gateway->mpesa_passkey,
-                    'environment' => $gateway->mpesa_env,
-                ]);
-            } elseif ($tenant->country_code !== 'KE') {
-                // Enforce custom API for non-Kenyan tenants
-                return response()->json([
-                    'success' => false,
-                    'message' => 'M-Pesa is not configured for this provider. Please contact support.'
-                ], 400);
-            }
-
-            // Initiate M-Pesa STK Push
-            $mpesaResponse = $mpesa->stkPush(
-                $phone,
+            // Use PaymentGatewayService to initiate payment
+            $response = $this->paymentGatewayService->initiatePayment(
+                $tempUser,
                 $amount,
-                $reference,
-                "Hotspot Package - {$package->name}"
+                $request->phone,
+                'hotspot',
+                $metadata,
+                $paymentMethod
             );
 
-            \Log::info('M-Pesa STK Push initiated', [
-                'response' => $mpesaResponse,
-                'reference' => $reference,
-                'using_custom_api' => (bool)$gateway,
-            ]);
-
-            if (!$mpesaResponse['success']) {
-                return response()->json([
-                    'success' => false,
-                    'message' => $mpesaResponse['message'] ?? 'Failed to initiate payment',
+            if ($response['success']) {
+                \Log::info('Hotspot payment initiated', [
+                    'method' => $paymentMethod,
+                    'reference' => $response['reference_id'] ?? null,
+                    'payment_id' => $response['payment_id'] ?? null,
                 ]);
+
+                return response()->json($response);
             }
 
-            // Create payment record immediately with pending status
-            $payment = TenantPayment::create([
-                'phone' => $phone,
-                'hotspot_package_id' => $package->id,
-                'package_id' => null,
-                'amount' => $amount,
-                'currency' => $currency,
-                'payment_method' => 'mpesa',
-                'receipt_number' => $reference,
-                'status' => 'pending',
-                'checked' => false,
-                'disbursement_type' => 'pending',
-                'disbursement_status' => $gateway 
-                    ? ($gateway->mpesa_env === 'sandbox' ? 'testing' : 'completed') 
-                    : (config('mpesa.environment') === 'sandbox' ? 'testing' : 'pending'),
-                'checkout_request_id' => $mpesaResponse['checkout_request_id'] ?? null,
-                'merchant_request_id' => $mpesaResponse['merchant_request_id'] ?? null,
-                'intasend_reference' => null, // Legacy field, keeping null
-                'intasend_checkout_id' => null, // Legacy field, keeping null
-                'response' => $mpesaResponse['response'] ?? [],
-                'tenant_id' => $tenant->id,
-            ]);
+            return response()->json($response, 400);
 
-            \Log::info('Payment record created', [
-                'payment_id' => $payment->id,
-                'reference' => $reference,
-                'checkout_request_id' => $payment->checkout_request_id,
-            ]);
-
-            // Queue job to check payment status (using payment ID)
-            \App\Jobs\CheckMpesaPaymentStatusJob::dispatch($payment)->delay(now()->addSeconds(30));
-
-            return response()->json([
-                'success' => true,
-                'message' => $mpesaResponse['message'] ?? 'STK Push sent. Complete payment on your phone.',
-                'payment_id' => $payment->id,
-            ]);
         } catch (\Exception $e) {
-            \Log::error('STK Push exception', [
+            \Log::error('Hotspot checkout exception', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
@@ -258,6 +200,7 @@ class TenantHotspotController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Payment error: ' . $e->getMessage(),
+
             ]);
         }
     }
