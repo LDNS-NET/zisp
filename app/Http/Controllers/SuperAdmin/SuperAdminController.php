@@ -7,6 +7,15 @@ use App\Models\Tenants\TenantSMS;
 use App\Models\Tenants\NetworkUser;
 use App\Models\User;
 use App\Models\Tenants\TenantPayment;
+<?php
+
+namespace App\Http\Controllers\SuperAdmin;
+
+use App\Http\Controllers\Controller;
+use App\Models\Tenants\TenantSMS;
+use App\Models\Tenants\NetworkUser;
+use App\Models\User;
+use App\Models\Tenants\TenantPayment;
 use App\Models\Tenants\TenantSMSTemplate;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -15,36 +24,89 @@ class SuperAdminController extends Controller
 {
     public function dashboard()
     {
+        // 1. Tenant Metrics
         $totalTenants = User::count();
+        $activeTenants = User::where('is_suspended', false)->count();
+        $suspendedTenants = User::where('is_suspended', true)->count();
+        
+        $lastMonthTenants = User::where('created_at', '<', now()->subMonth())->count();
+        $tenantGrowth = $lastMonthTenants > 0 ? (($totalTenants - $lastMonthTenants) / $lastMonthTenants) * 100 : 100;
+
+        // 2. End User Metrics
         $totalEndUsers = NetworkUser::count();
-        $totalPayments = TenantPayment::sum('amount');
-        $totalSMS = TenantSMS::count();
+        $onlineUsers = NetworkUser::where('online', true)->count(); // Assuming 'online' column exists/synced
+        
+        // 3. Financial Metrics
+        $totalRevenue = TenantPayment::where('status', 'paid')->sum('amount');
+        $thisMonthRevenue = TenantPayment::where('status', 'paid')->whereMonth('created_at', now()->month)->sum('amount');
+        $lastMonthRevenue = TenantPayment::where('status', 'paid')->whereMonth('created_at', now()->subMonth()->month)->sum('amount');
+        $revenueGrowth = $lastMonthRevenue > 0 ? (($thisMonthRevenue - $lastMonthRevenue) / $lastMonthRevenue) * 100 : 100;
 
-        $recentTenants = User::latest()->take(10)->get(['name', 'email', 'phone', 'created_at']);
-        $recentSMS = TenantSMS::latest()->take(10)->get(['recipient_name', 'phone_number', 'message', 'status', 'created_at']);
+        // 4. Revenue Trend (Last 30 Days)
+        $revenueTrend = TenantPayment::where('status', 'paid')
+            ->where('created_at', '>=', now()->subDays(30))
+            ->selectRaw('DATE(created_at) as date, SUM(amount) as total')
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get();
 
+        // 5. Revenue by Gateway
+        $revenueByGateway = TenantPayment::where('status', 'paid')
+            ->selectRaw('payment_method, SUM(amount) as total')
+            ->groupBy('payment_method')
+            ->get();
+
+        // 6. Recent Activity (Enhanced)
+        $recentTenants = User::latest()->take(5)->get();
+        $recentPayments = TenantPayment::where('status', 'paid')->latest()->take(5)->with('tenant')->get();
+        
         $recentActivity = collect()
-            ->merge($recentTenants->map(fn($u)=>[
+            ->merge($recentTenants->map(fn($u) => [
                 'type' => 'tenant',
-                'message' => "New User <b>{$u->name}</b> ({$u->email}, {$u->phone}) registered.",
+                'icon' => 'UserPlus',
+                'title' => 'New Tenant Registered',
+                'description' => "{$u->name} ({$u->email}) joined the platform.",
                 'time' => $u->created_at->diffForHumans(),
-                'created_at' => $u->created_at,
+                'timestamp' => $u->created_at,
             ]))
-            ->merge($recentSMS->map(fn($s)=>[
-                'type' => 'sms',
-                'message' => "SMS sent to <b>{$s->recipient_name}</b> ({$s->phone_number}): {$s->message}",
-                'time' => $s->created_at->diffForHumans(),
-                'date' => $s->created_at,
+            ->merge($recentPayments->map(fn($p) => [
+                'type' => 'payment',
+                'icon' => 'CreditCard',
+                'title' => 'Payment Received',
+                'description' => "Received {$p->currency} {$p->amount} from {$p->phone} via " . ucfirst($p->payment_method),
+                'time' => $p->created_at->diffForHumans(),
+                'timestamp' => $p->created_at,
             ]))
-            ->sortByDesc('created_at')
+            ->sortByDesc('timestamp')
             ->take(10)
             ->values();
 
         return Inertia::render('SuperAdmin/Dashboard/Index', [
-            'totalTenants' => $totalTenants,
-            'totalEndUsers' => $totalEndUsers,
-            'totalPayments' => $totalPayments,
-            'totalSMS' => $totalSMS,
+            'metrics' => [
+                'tenants' => [
+                    'total' => $totalTenants,
+                    'active' => $activeTenants,
+                    'suspended' => $suspendedTenants,
+                    'growth' => round($tenantGrowth, 1),
+                ],
+                'users' => [
+                    'total' => $totalEndUsers,
+                    'online' => $onlineUsers,
+                ],
+                'finance' => [
+                    'total_revenue' => $totalRevenue,
+                    'this_month' => $thisMonthRevenue,
+                    'growth' => round($revenueGrowth, 1),
+                ],
+                'sms' => [
+                    'total' => TenantSMS::count(),
+                    'this_month' => TenantSMS::whereMonth('created_at', now()->month)->count(),
+                ]
+            ],
+            'charts' => [
+                'revenue_trend' => $revenueTrend,
+                'revenue_by_gateway' => $revenueByGateway,
+            ],
             'recentActivity' => $recentActivity,
         ]);
     }
