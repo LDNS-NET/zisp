@@ -2,7 +2,8 @@
 import { ref, watch } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import SuperAdminLayout from '@/Layouts/SuperAdminLayout.vue';
-import { Search, Filter, CreditCard, CheckCircle, XCircle, Clock, AlertCircle } from 'lucide-vue-next';
+import Modal from '@/Components/Modal.vue';
+import { Search, Filter, CreditCard, CheckCircle, XCircle, Clock, AlertCircle, MoreVertical, Eye, Trash2, AlertTriangle, X } from 'lucide-vue-next';
 import debounce from 'lodash/debounce';
 
 const props = defineProps({
@@ -13,6 +14,11 @@ const props = defineProps({
 const search = ref(props.filters?.search || '');
 const status = ref(props.filters?.status || '');
 const method = ref(props.filters?.method || '');
+
+// Modal State
+const showActionsModal = ref(false);
+const showDeleteModal = ref(false);
+const selectedPayment = ref(null);
 
 // Debounced search
 const updateSearch = debounce((value) => {
@@ -34,6 +40,32 @@ watch([status, method], () => {
 
 const formatCurrency = (amount, currency) => {
     return new Intl.NumberFormat('en-KE', { style: 'currency', currency: currency || 'KES' }).format(amount);
+};
+
+// Action Handlers
+const openActions = (payment) => {
+    selectedPayment.value = payment;
+    showActionsModal.value = true;
+};
+
+const openDeleteModal = (payment) => {
+    selectedPayment.value = payment;
+    showDeleteModal.value = true;
+    showActionsModal.value = false;
+};
+
+const closeModal = () => {
+    showActionsModal.value = false;
+    showDeleteModal.value = false;
+    selectedPayment.value = null;
+};
+
+const confirmDelete = () => {
+    if (selectedPayment.value) {
+        router.delete(route('superadmin.payments.destroy', selectedPayment.value.id), {
+            onFinish: () => closeModal(),
+        });
+    }
 };
 </script>
 
@@ -149,12 +181,9 @@ const formatCurrency = (amount, currency) => {
                                     {{ new Date(payment.created_at).toLocaleString() }}
                                 </td>
                                 <td class="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
-                                    <Link 
-                                        :href="route('superadmin.payments.show', payment.id)" 
-                                        class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium"
-                                    >
-                                        View
-                                    </Link>
+                                    <button @click="openActions(payment)" class="text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors p-2 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700" title="Manage Payment">
+                                        <MoreVertical class="w-5 h-5" />
+                                    </button>
                                 </td>
                             </tr>
                             <tr v-if="payments.data.length === 0">
@@ -205,5 +234,68 @@ const formatCurrency = (amount, currency) => {
                 </div>
             </div>
         </div>
+
+        <!-- Actions Modal -->
+        <Modal :show="showActionsModal" @close="closeModal" maxWidth="sm">
+            <div class="p-4 dark:bg-slate-800 dark:text-white" v-if="selectedPayment">
+                <div class="flex items-center justify-between mb-4 pb-2 border-b border-gray-100 dark:border-slate-700">
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-white truncate pr-4">
+                        Payment Details
+                    </h3>
+                    <button @click="closeModal" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
+                        <X class="w-5 h-5" />
+                    </button>
+                </div>
+
+                <div class="space-y-1">
+                    <Link :href="route('superadmin.payments.show', selectedPayment.id)" class="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-left group">
+                        <div class="p-1.5 rounded-md bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/40">
+                            <Eye class="w-4 h-4" />
+                        </div>
+                        <span class="text-sm font-medium text-gray-700 dark:text-gray-200">View Details</span>
+                    </Link>
+
+                    <div class="border-t border-gray-100 dark:border-slate-700 my-1"></div>
+
+                    <button @click="openDeleteModal(selectedPayment)" class="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-left group">
+                        <div class="p-1.5 rounded-md bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 group-hover:bg-red-100 dark:group-hover:bg-red-900/40">
+                            <Trash2 class="w-4 h-4" />
+                        </div>
+                        <span class="text-sm font-medium text-red-600 dark:text-red-400">Delete Payment</span>
+                    </button>
+                </div>
+            </div>
+        </Modal>
+
+        <!-- Delete Confirmation Modal -->
+        <Modal :show="showDeleteModal" @close="closeModal">
+            <div class="p-6">
+                <div class="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full dark:bg-red-900/30">
+                    <AlertTriangle class="w-6 h-6 text-red-600 dark:text-red-400" />
+                </div>
+                <div class="mt-4 text-center">
+                    <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white">Delete Payment?</h3>
+                    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                        Are you sure you want to delete this payment of <b>{{ formatCurrency(selectedPayment?.amount, selectedPayment?.currency) }}</b>? This action cannot be undone.
+                    </p>
+                </div>
+                <div class="mt-6 flex justify-end gap-3">
+                    <button
+                        type="button"
+                        class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700"
+                        @click="closeModal"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        type="button"
+                        class="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                        @click="confirmDelete"
+                    >
+                        Delete Payment
+                    </button>
+                </div>
+            </div>
+        </Modal>
     </SuperAdminLayout>
 </template>
