@@ -2,6 +2,7 @@ export const countries = [
   {
     name: "Kenya",
     code: "KE",
+    flag: "🇰🇪",
     currency: "KES",
     currency_name: "Kenyan Shilling",
     dial_code: "+254",
@@ -13,6 +14,7 @@ export const countries = [
   {
     name: "South Sudan",
     code: "SS",
+    flag: "🇸🇸",
     currency: "SSP",
     currency_name: "South Sudanese Pound",
     dial_code: "+211",
@@ -25,6 +27,7 @@ export const countries = [
   {
     name: "Uganda",
     code: "UG",
+    flag: "🇺🇬",
     currency: "UGX",
     currency_name: "Ugandan Shilling",
     dial_code: "+256",
@@ -36,6 +39,7 @@ export const countries = [
   {
     name: "South Africa",
     code: "ZA",
+    flag: "🇿🇦",
     currency: "ZAR",
     currency_name: "South African Rand",
     dial_code: "+27",
@@ -47,6 +51,7 @@ export const countries = [
   {
     name: "Nigeria",
     code: "NG",
+    flag: "🇳🇬",
     currency: "NGN",
     currency_name: "Nigerian Naira",
     dial_code: "+234",
@@ -58,6 +63,7 @@ export const countries = [
   {
     name: "Ghana",
     code: "GH",
+    flag: "🇬🇭",
     currency: "GHS",
     currency_name: "Ghanaian Cedi",
     dial_code: "+233",
@@ -69,6 +75,7 @@ export const countries = [
   {
     name: "Côte d'Ivoire",
     code: "CI",
+    flag: "🇨🇮",
     currency: "XOF",
     currency_name: "West African CFA franc",
     dial_code: "+226",

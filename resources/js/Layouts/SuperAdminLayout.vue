@@ -53,6 +53,7 @@ const navigation = [
     { name: 'Admins', href: route('superadmin.admins.index'), icon: Shield, active: 'superadmin.admins.*' },
     { name: 'Analytics', href: route('superadmin.analytics.index'), icon: BarChart, active: 'superadmin.analytics.*' },
     { name: 'All Mikrotiks', href: route('superadmin.allmikrotiks.index'), icon: Network, active: 'superadmin.allmikrotiks.*' },
+    { name: 'Onboarding Requests', href: route('superadmin.onboarding-requests.index'), icon: MessageSquare, active: 'superadmin.onboarding-requests.*', badge: 'pending_onboarding_requests' },
 ];
 
 const user = usePage().props.auth.user;
@@ -131,6 +132,18 @@ function toggleSidebar() {
                         />
                         <span :class="['transition-all duration-300 whitespace-nowrap', collapsed ? 'lg:hidden' : 'block']">
                             {{ item.name }}
+                        </span>
+                        
+                        <!-- Badge -->
+                        <span 
+                            v-if="item.badge && $page.props.superadminCounts[item.badge] > 0"
+                            :class="[
+                                'ml-auto inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold',
+                                route().current(item.active) ? 'bg-blue-600 text-white' : 'bg-red-500 text-white',
+                                collapsed ? 'absolute top-1 right-1' : ''
+                            ]"
+                        >
+                            {{ $page.props.superadminCounts[item.badge] }}
                         </span>
                     </Link>
                 </template>

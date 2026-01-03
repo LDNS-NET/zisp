@@ -1,5 +1,5 @@
 <script setup>
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, useForm } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
 import WelcomeLayout from '@/Layouts/WelcomeLayout.vue';
 import Modal from '@/Components/Modal.vue';
@@ -111,10 +111,28 @@ const howItWorksSteps = [
 ];
 
 const showDemoModal = ref(false)
+const showOnboardingModal = ref(false)
 
 const goToDemo = () => {
     window.open('https://demo.zyraaf.cloud/login', '_blank')
 }
+
+const onboardingForm = useForm({
+    name: '',
+    email: '',
+    isp_name: '',
+    country: '',
+    message: '',
+});
+
+const submitOnboarding = () => {
+    onboardingForm.post(route('onboarding-requests.store'), {
+        onSuccess: () => {
+            showOnboardingModal.value = false;
+            onboardingForm.reset();
+        },
+    });
+};
 
 </script>
 
@@ -378,6 +396,141 @@ const goToDemo = () => {
                 </div>
             </div>
         </section>
+
+        <!-- Global Reach & Payment Diversity -->
+        <section class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-24">
+            <div class="grid gap-16 lg:grid-cols-2 items-center">
+                <!-- Global Reach -->
+                <div class="relative group">
+                    <div class="absolute -inset-4 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 rounded-3xl blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    <div class="relative rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 p-8 sm:p-12 shadow-2xl">
+                        <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-emerald-500/10 mb-8 border border-emerald-500/20">
+                            <span class="text-3xl">🌍</span>
+                        </div>
+                        <h2 class="text-4xl font-bold text-white mb-6 tracking-tight">Global Reach</h2>
+                        <p class="text-lg text-gray-300 mb-8 leading-relaxed">
+                            Zyraaf Cloud is designed for the global market. We currently support multiple countries across Africa and are rapidly expanding.
+                        </p>
+                        <div class="flex flex-wrap gap-4">
+                            <div v-for="country in countries.slice(0, 6)" :key="country.code" class="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm text-gray-300 flex items-center gap-2">
+                                <span class="text-lg">{{ country.flag || '📍' }}</span>
+                                {{ country.name }}
+                            </div>
+                            <button 
+                                @click="showOnboardingModal = true"
+                                class="px-4 py-2 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-sm text-emerald-400 hover:bg-emerald-500/30 transition-colors"
+                            >
+                                + Request Your Country
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payment Diversity -->
+                <div class="relative group">
+                    <div class="absolute -inset-4 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 rounded-3xl blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    <div class="relative rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 p-8 sm:p-12 shadow-2xl">
+                        <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-cyan-500/10 mb-8 border border-cyan-500/20">
+                            <span class="text-3xl">💳</span>
+                        </div>
+                        <h2 class="text-4xl font-bold text-white mb-6 tracking-tight">Payment Diversity</h2>
+                        <p class="text-lg text-gray-300 mb-8 leading-relaxed">
+                            We integrate with the most popular payment gateways in each region, ensuring your customers can pay with ease.
+                        </p>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                            <div v-for="gateway in ['M-Pesa', 'MTN MoMo', 'Airtel Money', 'Paystack', 'Flutterwave', 'PesaPal']" :key="gateway" class="p-4 rounded-xl bg-white/5 border border-white/10 text-center">
+                                <span class="text-sm font-semibold text-gray-300">{{ gateway }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Onboarding Request Modal -->
+        <Modal :show="showOnboardingModal" @close="showOnboardingModal = false">
+            <div class="p-8 bg-gray-900 rounded-2xl border border-white/10">
+                <h3 class="text-2xl font-bold text-white mb-2">Request Onboarding</h3>
+                <p class="text-sm text-gray-400 mb-8">
+                    Don't see your country? Tell us about your ISP, and we'll work on bringing Zyraaf Cloud to your region.
+                </p>
+
+                <form @submit.prevent="submitOnboarding" class="space-y-6">
+                    <div class="grid gap-6 sm:grid-cols-2">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Full Name</label>
+                            <input 
+                                v-model="onboardingForm.name"
+                                type="text" 
+                                required
+                                class="w-full rounded-xl bg-white/5 border-white/10 text-white focus:border-emerald-500 focus:ring-emerald-500"
+                                placeholder="John Doe"
+                            />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Email Address</label>
+                            <input 
+                                v-model="onboardingForm.email"
+                                type="email" 
+                                required
+                                class="w-full rounded-xl bg-white/5 border-white/10 text-white focus:border-emerald-500 focus:ring-emerald-500"
+                                placeholder="john@example.com"
+                            />
+                        </div>
+                    </div>
+
+                    <div class="grid gap-6 sm:grid-cols-2">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">ISP Name</label>
+                            <input 
+                                v-model="onboardingForm.isp_name"
+                                type="text" 
+                                required
+                                class="w-full rounded-xl bg-white/5 border-white/10 text-white focus:border-emerald-500 focus:ring-emerald-500"
+                                placeholder="Your ISP Name"
+                            />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Country</label>
+                            <input 
+                                v-model="onboardingForm.country"
+                                type="text" 
+                                required
+                                class="w-full rounded-xl bg-white/5 border-white/10 text-white focus:border-emerald-500 focus:ring-emerald-500"
+                                placeholder="Your Country"
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Message (Optional)</label>
+                        <textarea 
+                            v-model="onboardingForm.message"
+                            rows="4"
+                            class="w-full rounded-xl bg-white/5 border-white/10 text-white focus:border-emerald-500 focus:ring-emerald-500"
+                            placeholder="Tell us more about your needs..."
+                        ></textarea>
+                    </div>
+
+                    <div class="flex gap-4 pt-4">
+                        <button 
+                            type="button"
+                            @click="showOnboardingModal = false"
+                            class="flex-1 px-6 py-3 rounded-xl border border-white/10 text-gray-300 font-semibold hover:bg-white/5 transition"
+                        >
+                            Cancel
+                        </button>
+                        <button 
+                            type="submit"
+                            :disabled="onboardingForm.processing"
+                            class="flex-1 px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold shadow-lg hover:scale-105 transition disabled:opacity-50"
+                        >
+                            {{ onboardingForm.processing ? 'Submitting...' : 'Submit Request' }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </Modal>
 
         <!-- CTA -->
         <section id="demo" class="relative mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-24">

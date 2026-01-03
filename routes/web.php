@@ -43,6 +43,7 @@ use App\Http\Controllers\SuperAdmin\SuperAdminController;
 use App\Http\Controllers\SuperAdmin\UsersController;
 use App\Http\Controllers\SuperAdmin\PaymentsController;
 use App\Http\Controllers\SuperAdmin\AllMikrotiksController;
+use App\Http\Controllers\OnboardingRequestController;
 
 /*
 |--------------------------------------------------------------------------
@@ -90,6 +91,9 @@ Route::get('/maintenance', function () {
         'support_phone' => \App\Models\SystemSetting::where('key', 'support_phone')->value('value'),
     ]);
 })->name('maintenance');
+
+// Onboarding Requests
+Route::post('/onboarding-requests', [OnboardingRequestController::class, 'store'])->name('onboarding-requests.store');
 
 // Hotspot routes (protected by subscription check) replace subscription with a safer middleware for hotspot safe redirects
 
@@ -358,6 +362,9 @@ Route::middleware(['auth', 'superadmin'])
         // Payment Gateways Management
         Route::get('payment-gateways', [App\Http\Controllers\SuperAdmin\PaymentGatewayController::class, 'index'])->name('payment-gateways.index');
         Route::post('payment-gateways/toggle', [App\Http\Controllers\SuperAdmin\PaymentGatewayController::class, 'toggle'])->name('payment-gateways.toggle');
+
+        // Onboarding Requests
+        Route::get('onboarding-requests', [OnboardingRequestController::class, 'index'])->name('onboarding-requests.index');
 
         // Pricing Plans Management
         Route::get('pricing-plans', [App\Http\Controllers\SuperAdmin\PricingPlanController::class, 'index'])->name('pricing-plans.index');

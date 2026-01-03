@@ -99,6 +99,9 @@ class HandleInertiaRequests extends Middleware
                 'support_email' => $settings?->support_email,
             ] : null,
             'sidebarCounts' => $counts,
+            'superadminCounts' => [
+                'pending_onboarding_requests' => $request->user()?->is_super_admin ? \App\Models\OnboardingRequest::where('status', 'pending')->count() : 0,
+            ],
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),
