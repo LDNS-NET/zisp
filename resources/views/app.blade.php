@@ -15,6 +15,7 @@
         @routes
         @vite(['resources/js/app.js'])
         @inertiaHead
+        <script src="https://js.paystack.co/v1/inline.js"></script>
     </head>
     <style>
         #app-loader {

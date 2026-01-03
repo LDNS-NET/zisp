@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { usePage, router } from '@inertiajs/vue3';
+import { usePage, router, Head } from '@inertiajs/vue3';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import DangerButton from '@/Components/DangerButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
@@ -436,31 +436,47 @@ async function processPaystackPayment() {
             isProcessing.value = false;
         }
     } catch (error) {
-        paymentError.value = 'Payment failed.';
+        console.error('Paystack initialization error:', error);
+        paymentError.value = 'Payment initialization failed: ' + error.message;
         showToast('Payment failed.', 'error');
         isProcessing.value = false;
     }
 }
 
 function openPaystackPopup() {
-    const handler = window.PaystackPop.setup({
-        key: paystackPublicKey.value,
-        email: phoneNumber.value.replace(/[^0-9]/g, '') + '@example.com',
-        amount: selectedHotspot.value.price * 100, // Convert to kobo
-        ref: paystackReference.value,
-        onClose: function() {
-            isProcessing.value = false;
-            paymentError.value = 'Payment cancelled';
-            showToast('Payment cancelled', 'error');
-        },
-        callback: function(response) {
-            verifyPaystackPayment(response.reference);
-        }
-    });
-    handler.openIframe();
+    if (!window.PaystackPop) {
+        paymentError.value = 'Paystack library not loaded. Please refresh the page.';
+        showToast('Paystack not loaded', 'error');
+        isProcessing.value = false;
+        return;
+    }
+
+    try {
+        const handler = window.PaystackPop.setup({
+            key: paystackPublicKey.value,
+            email: phoneNumber.value.replace(/[^0-9]/g, '') + '@example.com',
+            amount: selectedHotspot.value.price * 100, // Convert to kobo
+            ref: paystackReference.value,
+            onClose: function() {
+                isProcessing.value = false;
+                paymentError.value = 'Payment cancelled';
+                showToast('Payment cancelled', 'error');
+            },
+            callback: function(response) {
+                verifyPaystackPayment(response.reference);
+            }
+        });
+        handler.openIframe();
+    } catch (error) {
+        console.error('Paystack popup error:', error);
+        paymentError.value = 'Failed to open payment popup: ' + error.message;
+        showToast('Popup error', 'error');
+        isProcessing.value = false;
+    }
 }
 
 async function verifyPaystackPayment(reference) {
+    isProcessing.value = true;
     try {
         const response = await fetch(`/customer/paystack/verify/${reference}`, {
             method: 'GET',
@@ -481,12 +497,13 @@ async function verifyPaystackPayment(reference) {
                 loginToNetwork(data.user.username, data.user.password);
             }, 1000);
         } else {
-            paymentError.value = 'Payment verification failed.';
+            paymentError.value = data.message || 'Payment verification failed.';
             showToast('Payment verification failed', 'error');
             isProcessing.value = false;
         }
     } catch (error) {
-        paymentError.value = 'Payment verification error.';
+        console.error('Paystack verification error:', error);
+        paymentError.value = 'Payment verification error: ' + error.message;
         showToast('Verification error', 'error');
         isProcessing.value = false;
     }
@@ -499,9 +516,7 @@ function formatPhoneNumber(event) {
 </script>
 
 <template>
-    <Head title="Hotspot">
-        <script src="https://js.paystack.co/v1/inline.js"></script>
-    </Head>
+    <Head title="Hotspot" />
     <div class="min-h-screen bg-slate-50 p-4 md:p-8 relative overflow-hidden">
         <!-- Decorative Background Elements (CSS only, no weight) -->
         <div class="absolute top-0 left-0 w-full h-full pointer-events-none opacity-40">
@@ -745,7 +760,7 @@ function formatPhoneNumber(event) {
                             </svg>
                         </button>
                     </div>
-                    <p class="text-white/80 text-sm relative z-10">Secure payment via {{ paymentMethod === 'momo' ? 'MTN MoMo' : 'M-Pesa' }}</p>
+                    <p class="text-white/80 text-sm relative z-10">Secure payment via {{ paymentMethod === 'paystack' ? 'Paystack' : (paymentMethod === 'momo' ? 'MTN MoMo' : 'M-Pesa') }}</p>
                 </div>
 
                 <div class="p-6">
