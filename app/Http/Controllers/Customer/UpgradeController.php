@@ -56,13 +56,8 @@ class UpgradeController extends Controller
             ->pluck('provider')
             ->toArray();
 
-        if (($user->tenant->country_code ?? 'KE') === 'KE') {
-            if (!in_array('mpesa', $gateways)) {
-                $gateways[] = 'mpesa';
-            }
-            // Filter out bank for KE as it's not configured
-            $gateways = array_filter($gateways, fn($g) => $g !== 'bank');
-        }
+        // Filter out bank as it's not configured
+        $gateways = array_filter($gateways, fn($g) => $g !== 'bank');
 
         return Inertia::render('Customer/Upgrade', [
             'user' => $user,

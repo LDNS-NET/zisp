@@ -63,11 +63,6 @@ class TenantHotspotController extends Controller
             ->pluck('provider')
             ->toArray();
 
-        // Always include mpesa for Kenyan tenants if not already present
-        if ($tenant->country_code === 'KE' && !in_array('mpesa', $gateways)) {
-            $gateways[] = 'mpesa';
-        }
-
         // Filter out bank as it's not configured
         $gateways = array_filter($gateways, fn($g) => $g !== 'bank');
 

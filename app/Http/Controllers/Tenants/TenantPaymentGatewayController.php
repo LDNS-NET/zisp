@@ -109,6 +109,15 @@ class TenantPaymentGatewayController extends Controller
         ]);
 
         // ✅ Ensure one record per provider per tenant
+        $isActive = $validated['is_active'] ?? true;
+
+        if ($isActive) {
+            // Deactivate all other gateways for this tenant
+            TenantPaymentGateway::where('tenant_id', $tenantId)
+                ->where('provider', '!=', $validated['provider'])
+                ->update(['is_active' => false]);
+        }
+
         TenantPaymentGateway::updateOrCreate(
             [
                 'tenant_id' => $tenantId,
@@ -117,7 +126,7 @@ class TenantPaymentGatewayController extends Controller
             array_merge($validated, [
                 'created_by' => auth()->id(),
                 'last_updated_by' => auth()->id(),
-                'is_active' => $validated['is_active'] ?? true,
+                'is_active' => $isActive,
             ])
         );
 
