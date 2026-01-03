@@ -20,7 +20,6 @@ import {
     ChevronRight,
     Network,
     Globe,
-    Settings,
     MessageSquare,
     Shield,
     BarChart,
