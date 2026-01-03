@@ -19,8 +19,7 @@ class AllMikrotiksController extends Controller
             $query->where(function($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                   ->orWhere('ip_address', 'like', "%{$search}%")
-                  ->orWhere('wireguard_address', 'like', "%{$search}%")
-                  ->orWhere('location', 'like', "%{$search}%");
+                  ->orWhere('wireguard_address', 'like', "%{$search}%");
             });
         }
 

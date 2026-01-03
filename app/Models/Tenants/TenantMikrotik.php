@@ -110,6 +110,11 @@ class TenantMikrotik extends Model
         return $this->belongsTo(\App\Models\User::class, 'created_by');
     }
 
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Tenant::class, 'tenant_id');
+    }
+
     // Scopes
     public function scopeOnline($query)
     {
