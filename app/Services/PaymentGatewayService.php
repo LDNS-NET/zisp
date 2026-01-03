@@ -209,8 +209,10 @@ class PaymentGatewayService
             'public_key' => $gateway->paystack_public_key,
         ]);
 
-        // Use phone as email if no email provided (Paystack requires email)
-        $email = $user->email ?? $phone . '@customer.local';
+        // Use phone as email if no email provided (Paystack requires valid email format)
+        // Remove any non-numeric characters from phone for email
+        $cleanPhone = preg_replace('/[^0-9]/', '', $phone);
+        $email = $user->email ?: $cleanPhone . '@example.com';
         $reference = $this->paystackService->generateReference(strtoupper($type));
         
         $response = $this->paystackService->initializeTransaction(

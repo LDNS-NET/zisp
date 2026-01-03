@@ -413,7 +413,7 @@ async function processPaystackPayment() {
             body: JSON.stringify({ 
                 hotspot_package_id: selectedHotspot.value.id, 
                 phone: phoneNumber.value, 
-                email: phoneNumber.value + '@customer.local',
+                email: phoneNumber.value.replace(/[^0-9]/g, '') + '@example.com',
                 payment_method: 'paystack'
             })
         });
@@ -445,7 +445,7 @@ async function processPaystackPayment() {
 function openPaystackPopup() {
     const handler = window.PaystackPop.setup({
         key: paystackPublicKey.value,
-        email: phoneNumber.value + '@customer.local',
+        email: phoneNumber.value.replace(/[^0-9]/g, '') + '@example.com',
         amount: selectedHotspot.value.price * 100, // Convert to kobo
         ref: paystackReference.value,
         onClose: function() {
