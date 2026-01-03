@@ -38,6 +38,13 @@ const paymentMessage = ref('');
 const paymentError = ref('');
 const showSuccess = ref(false);
 const selectedPackage = ref(null);
+const paystackPublicKey = ref(null);
+const paystackAccessCode = ref(null);
+
+const totalAmount = computed(() => {
+    if (!selectedPackage.value) return 0;
+    return form.upgrade_type === 'immediate' ? selectedPackage.value.price_difference : selectedPackage.value.price;
+});
 
 const selectPackage = (pkg) => {
     selectedPackage.value = pkg;
@@ -56,6 +63,14 @@ const submit = async () => {
         return;
     }
 
+    if (form.payment_method === 'paystack') {
+        await initiatePaystackPayment();
+    } else {
+        await initiateStandardPayment();
+    }
+};
+
+const initiateStandardPayment = async () => {
     isProcessing.value = true;
     paymentMessage.value = '';
     paymentError.value = '';
@@ -71,6 +86,60 @@ const submit = async () => {
         }
     } catch (error) {
         paymentError.value = error.response?.data?.message || 'Payment initiation failed.';
+        isProcessing.value = false;
+    }
+};
+
+const initiatePaystackPayment = async () => {
+    isProcessing.value = true;
+    paymentMessage.value = '';
+    paymentError.value = '';
+
+    try {
+        const response = await axios.post(route('customer.upgrade.pay'), form);
+        if (response.data.success) {
+            paystackPublicKey.value = response.data.public_key;
+            paystackAccessCode.value = response.data.access_code;
+            openPaystackPopup(response.data.reference_id);
+        } else {
+            paymentError.value = response.data.message;
+            isProcessing.value = false;
+        }
+    } catch (error) {
+        paymentError.value = error.response?.data?.message || 'Payment initiation failed.';
+        isProcessing.value = false;
+    }
+};
+
+const openPaystackPopup = (reference) => {
+    const handler = window.PaystackPop.setup({
+        key: paystackPublicKey.value,
+        email: props.user.email || form.phone + '@customer.local',
+        amount: totalAmount.value * 100, // Convert to kobo
+        ref: reference,
+        onClose: function() {
+            isProcessing.value = false;
+            paymentError.value = 'Payment cancelled';
+        },
+        callback: function(response) {
+            verifyPaystackPayment(response.reference);
+        }
+    });
+    handler.openIframe();
+};
+
+const verifyPaystackPayment = async (reference) => {
+    try {
+        const res = await axios.get(route('customer.upgrade.status', reference));
+        if (res.data.status === 'paid') {
+            isProcessing.value = false;
+            showSuccess.value = true;
+        } else {
+            paymentError.value = 'Payment verification failed.';
+            isProcessing.value = false;
+        }
+    } catch (error) {
+        paymentError.value = 'Payment verification error.';
         isProcessing.value = false;
     }
 };
@@ -257,11 +326,12 @@ const startPolling = (referenceId) => {
                                         <div class="w-12 h-12 rounded-xl bg-white flex items-center justify-center shadow-sm border border-slate-100">
                                             <img v-if="method === 'mpesa'" src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/M-PESA_LOGO-01.svg/1200px-M-PESA_LOGO-01.svg.png" class="h-4" alt="M-Pesa">
                                             <img v-else-if="method === 'momo'" src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/93/MTN_Logo.svg/1200px-MTN_Logo.svg.png" class="h-7" alt="MoMo">
+                                            <img v-else-if="method === 'paystack'" src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/0b/Paystack_Logo.png/320px-Paystack_Logo.png" class="h-5" alt="Paystack">
                                             <span v-else class="text-xs font-black uppercase">{{ method }}</span>
                                         </div>
                                         <div>
-                                            <span class="font-black text-slate-900 capitalize block">{{ method === 'mpesa' ? 'M-Pesa' : (method === 'momo' ? 'MTN MoMo' : method) }}</span>
-                                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Instant STK Push</span>
+                                            <span class="font-black text-slate-900 capitalize block">{{ method === 'mpesa' ? 'M-Pesa' : (method === 'momo' ? 'MTN MoMo' : (method === 'paystack' ? 'Paystack' : method)) }}</span>
+                                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">{{ method === 'paystack' ? 'Card, Bank, USSD' : 'Instant STK Push' }}</span>
                                         </div>
                                         <div v-if="form.payment_method === method" class="absolute -top-2 -right-2 bg-indigo-600 text-white rounded-full p-1 shadow-lg border-2 border-white">
                                             <CheckCircle2 class="w-3 h-3" />
@@ -296,7 +366,7 @@ const startPolling = (referenceId) => {
                                     <div>
                                         <p class="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Total to Pay</p>
                                         <p class="text-4xl font-black text-indigo-100">
-                                            {{ form.upgrade_type === 'immediate' ? selectedPackage.price_difference : selectedPackage.price }} 
+                                            {{ totalAmount }} 
                                             <span class="text-lg font-bold text-indigo-400">{{ currency }}</span>
                                         </p>
                                     </div>

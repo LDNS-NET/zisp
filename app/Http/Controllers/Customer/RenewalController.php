@@ -56,7 +56,7 @@ class RenewalController extends Controller
         $request->validate([
             'phone' => 'required|string',
             'months' => 'required|integer|min:1',
-            'payment_method' => 'required|string|in:momo,mpesa',
+            'payment_method' => 'required|string|in:momo,mpesa,paystack',
         ]);
 
         $user = Auth::guard('customer')->user();

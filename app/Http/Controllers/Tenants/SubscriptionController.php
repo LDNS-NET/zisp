@@ -73,24 +73,25 @@ class SubscriptionController extends Controller
             ], 400);
         }
 
-        $paystack = new PaystackService($paystackSecret);
+        $paystack = new PaystackService([
+            'secret_key' => $paystackSecret,
+            'public_key' => $gateway?->paystack_public_key ?? config('services.paystack.public_key'),
+        ]);
 
         $reference = 'REN-' . strtoupper(uniqid()) . '-' . $tenant->id;
 
-        $data = [
-            'amount' => $bill['final_amount'] * 100, // Paystack expects amount in kobo/cents
-            'email' => $tenant->email ?: 'billing@' . $tenant->subdomain . '.com',
-            'reference' => $reference,
-            'callback_url' => route('subscription.callback'),
-            'metadata' => [
+        $response = $paystack->initializeTransaction(
+            $tenant->email ?: 'billing@' . $tenant->subdomain . '.com',
+            $bill['final_amount'],
+            $reference,
+            [
                 'tenant_id' => $tenant->id,
                 'type' => 'renewal',
-            ],
-        ];
+                'callback_url' => route('subscription.callback'),
+            ]
+        );
 
-        $response = $paystack->initializeTransaction($data);
-
-        if ($response && $response['status']) {
+        if ($response && $response['success']) {
             TenantPayment::create([
                 'tenant_id' => $tenant->id,
                 'phone' => $tenant->phone ?: '0000000000',
@@ -104,7 +105,7 @@ class SubscriptionController extends Controller
 
             return response()->json([
                 'success' => true,
-                'authorization_url' => $response['data']['authorization_url'],
+                'authorization_url' => $response['authorization_url'],
             ]);
         }
 
@@ -146,17 +147,20 @@ class SubscriptionController extends Controller
             return redirect()->route('subscription.renew')->with('error', 'Paystack configuration missing.');
         }
 
-        $paystack = new PaystackService($paystackSecret);
+        $paystack = new PaystackService([
+            'secret_key' => $paystackSecret,
+            'public_key' => $gateway?->paystack_public_key ?? config('services.paystack.public_key'),
+        ]);
 
         $response = $paystack->verifyTransaction($reference);
 
-        if ($response && $response['status'] && $response['data']['status'] === 'success') {
+        if ($response && $response['success'] && $response['status'] === 'success') {
             // Update payment record
             $payment->update([
                 'status' => 'paid',
                 'paid_at' => now(),
                 'checked' => true,
-                'response' => $response['data'],
+                'response' => $response,
             ]);
 
             // Process renewal

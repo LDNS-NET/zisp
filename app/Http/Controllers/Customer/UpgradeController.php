@@ -81,7 +81,7 @@ class UpgradeController extends Controller
         $request->validate([
             'phone' => 'required|string',
             'package_id' => 'required',
-            'payment_method' => 'required|string|in:momo,mpesa',
+            'payment_method' => 'required|string|in:momo,mpesa,paystack',
             'upgrade_type' => 'required|string|in:immediate,after_expiry',
         ]);
 

@@ -35,6 +35,9 @@ const toggleMobileMenu = () => {
 
 <template>
     <div class="min-h-screen bg-slate-50 flex flex-col lg:flex-row">
+        <Head>
+            <script src="https://js.paystack.co/v1/inline.js"></script>
+        </Head>
         <!-- Mobile Header -->
         <header class="lg:hidden bg-white border-b border-slate-200 px-4 h-16 flex items-center justify-between sticky top-0 z-50">
             <div class="flex items-center gap-2">

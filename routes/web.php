@@ -108,6 +108,9 @@ Route::middleware(['check.subscription'])->group(function () {
     // MoMo Routes
     Route::post('/hotspot/momo/checkout', [MomoController::class, 'checkout'])->name('hotspot.momo.checkout');
     Route::post('/hotspot/momo/callback', [MomoController::class, 'callback'])->name('hotspot.momo.callback');
+
+    // Paystack webhook (must be accessible without auth)
+    Route::post('/paystack/webhook', [App\Http\Controllers\Tenants\PaystackController::class, 'webhook'])->name('paystack.webhook');
     Route::get('/hotspot/momo/status/{referenceId}', [MomoController::class, 'checkStatus'])->name('hotspot.momo.status');
 });
 
@@ -355,6 +358,9 @@ Route::prefix('customer')->name('customer.')->group(function () {
         Route::get('upgrade', [App\Http\Controllers\Customer\UpgradeController::class, 'index'])->name('upgrade');
         Route::post('upgrade/pay', [App\Http\Controllers\Customer\UpgradeController::class, 'initiatePayment'])->name('upgrade.pay');
         Route::get('upgrade/status/{referenceId}', [App\Http\Controllers\Customer\UpgradeController::class, 'checkPaymentStatus'])->name('upgrade.status');
+
+        // Paystack verification (for customer portal)
+        Route::get('paystack/verify/{reference}', [App\Http\Controllers\Tenants\PaystackController::class, 'verify'])->name('paystack.verify');
 
         Route::post('logout', [App\Http\Controllers\Customer\AuthController::class, 'logout'])->name('logout');
     });

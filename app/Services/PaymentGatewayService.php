@@ -6,6 +6,7 @@ use App\Models\TenantPaymentGateway;
 use App\Models\Tenants\TenantPayment;
 use App\Services\MomoService;
 use App\Services\MpesaService;
+use App\Services\PaystackService;
 use App\Services\CountryService;
 use Illuminate\Support\Facades\Log;
 
@@ -13,11 +14,13 @@ class PaymentGatewayService
 {
     protected $momoService;
     protected $mpesaService;
+    protected $paystackService;
 
-    public function __construct(MomoService $momoService, MpesaService $mpesaService)
+    public function __construct(MomoService $momoService, MpesaService $mpesaService, PaystackService $paystackService)
     {
         $this->momoService = $momoService;
         $this->mpesaService = $mpesaService;
+        $this->paystackService = $paystackService;
     }
 
     public function initiatePayment($user, $amount, $phone, $type, $metadata, $method)
@@ -39,6 +42,8 @@ class PaymentGatewayService
             return $this->initiateMomo($user, $amount, $phone, $currency, $type, $metadata);
         } elseif ($method === 'mpesa') {
             return $this->initiateMpesa($user, $amount, $phone, $currency, $type, $metadata);
+        } elseif ($method === 'paystack') {
+            return $this->initiatePaystack($user, $amount, $phone, $currency, $type, $metadata);
         }
 
         return ['success' => false, 'message' => 'Unsupported payment method.'];
@@ -186,5 +191,65 @@ class PaymentGatewayService
         }
 
         return null;
+    }
+
+    protected function initiatePaystack($user, $amount, $phone, $currency, $type, $metadata)
+    {
+        $gateway = TenantPaymentGateway::where('tenant_id', $user->tenant_id)
+            ->where('provider', 'paystack')
+            ->where('is_active', true)
+            ->first();
+
+        if (!$gateway || !$gateway->paystack_secret_key) {
+            return ['success' => false, 'message' => 'Paystack payment not configured.'];
+        }
+
+        $this->paystackService->setCredentials([
+            'secret_key' => $gateway->paystack_secret_key,
+            'public_key' => $gateway->paystack_public_key,
+        ]);
+
+        // Use phone as email if no email provided (Paystack requires email)
+        $email = $user->email ?? $phone . '@customer.local';
+        $reference = $this->paystackService->generateReference(strtoupper($type));
+        
+        $response = $this->paystackService->initializeTransaction(
+            $email,
+            $amount,
+            $reference,
+            array_merge($metadata, [
+                'user_id' => $user->id,
+                'username' => $user->username,
+                'phone' => $phone,
+            ])
+        );
+
+        if ($response['success']) {
+            $payment = TenantPayment::create([
+                'tenant_id' => $user->tenant_id,
+                'user_id' => $user->id,
+                'phone' => $phone,
+                'amount' => $amount,
+                'currency' => $currency,
+                'payment_method' => 'paystack',
+                'receipt_number' => $reference,
+                'status' => 'pending',
+                'checkout_request_id' => $response['access_code'],
+                'package_id' => $metadata['package_id'] ?? ($metadata['new_package_id'] ?? null),
+                'hotspot_package_id' => $metadata['hotspot_package_id'] ?? null,
+                'response' => array_merge($response, ['metadata' => $metadata]),
+            ]);
+
+            return [
+                'success' => true,
+                'message' => 'Payment initialized. Complete payment in the popup.',
+                'reference_id' => $reference,
+                'access_code' => $response['access_code'],
+                'public_key' => $gateway->paystack_public_key,
+                'payment_id' => $payment->id
+            ];
+        }
+
+        return ['success' => false, 'message' => $response['message'] ?? 'Payment initiation failed.'];
     }
 }
