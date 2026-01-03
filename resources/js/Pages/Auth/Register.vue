@@ -159,7 +159,7 @@ const submitOnboarding = () => {
                             v-model="form.username"
                             required
                             autocomplete="username"
-                            placeholder="johndoe"
+                            placeholder="mikethedev"
                         />
                     </div>
                     <InputError class="mt-2" :message="form.errors.username" />
@@ -179,7 +179,7 @@ const submitOnboarding = () => {
                             v-model="form.email"
                             required
                             autocomplete="email"
-                            placeholder="john@example.com"
+                            placeholder="mike@example.com"
                         />
                     </div>
                     <InputError class="mt-2" :message="form.errors.email" />
