@@ -20,6 +20,10 @@ import {
     ChevronRight,
     Network,
     Globe,
+    Settings,
+    MessageSquare,
+    Shield,
+    BarChart,
 } from 'lucide-vue-next';
 
 const { theme, setTheme } = useTheme();
@@ -44,6 +48,11 @@ const navigation = [
     { name: 'All Tenants', href: route('superadmin.users.index'), icon: Users, active: 'superadmin.users.*' },
     { name: 'Payments', href: route('superadmin.payments.index'), icon: Banknote, active: 'superadmin.payments.*' },
     { name: 'Payment Gateways', href: route('superadmin.payment-gateways.index'), icon: Globe, active: 'superadmin.payment-gateways.*' },
+    { name: 'Pricing Plans', href: route('superadmin.pricing-plans.index'), icon: Banknote, active: 'superadmin.pricing-plans.*' },
+    { name: 'System Settings', href: route('superadmin.system-settings.index'), icon: Settings, active: 'superadmin.system-settings.*' },
+    { name: 'SMS Gateways', href: route('superadmin.sms-gateways.index'), icon: MessageSquare, active: 'superadmin.sms-gateways.*' },
+    { name: 'Admins', href: route('superadmin.admins.index'), icon: Shield, active: 'superadmin.admins.*' },
+    { name: 'Analytics', href: route('superadmin.analytics.index'), icon: BarChart, active: 'superadmin.analytics.*' },
     { name: 'All Mikrotiks', href: route('superadmin.allmikrotiks.index'), icon: Network, active: 'superadmin.allmikrotiks.*' },
 ];
 

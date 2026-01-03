@@ -247,7 +247,25 @@ class SubscriptionService
     public function calculateMonthlyBill(Tenant $tenant): array
     {
         $countryCode = $tenant->country_code ?: 'KE';
-        $countryData = CountryService::getCountryData($countryCode);
+        
+        // Fetch pricing plan for the country
+        $plan = \App\Models\PricingPlan::where('country_code', $countryCode)
+            ->where('is_active', true)
+            ->first();
+
+        // Fallback to CountryService defaults if no plan exists
+        if (!$plan) {
+            $countryData = CountryService::getCountryData($countryCode);
+            $pppoeRate = $countryData['pppoe_rate'];
+            $hotspotRate = $countryData['hotspot_rate']; // This is a decimal e.g. 0.03
+            $minimumPay = $countryData['minimum_pay'];
+            $currency = $countryData['currency'];
+        } else {
+            $pppoeRate = $plan->pppoe_price_per_month;
+            $hotspotRate = $plan->hotspot_price_percentage / 100; // Convert percentage to decimal
+            $minimumPay = $plan->minimum_pay;
+            $currency = $plan->currency;
+        }
 
         // Count active PPPoE users
         $pppoeUserCount = NetworkUser::withoutGlobalScopes()
@@ -256,9 +274,9 @@ class SubscriptionService
             ->where('status', 'active')
             ->count();
 
-        $pppoeAmount = $pppoeUserCount * $countryData['pppoe_rate'];
+        $pppoeAmount = $pppoeUserCount * $pppoeRate;
 
-        // Calculate 3% of hotspot income for the last 30 days
+        // Calculate hotspot income for the last 30 days
         $hotspotIncome = TenantPayment::withoutGlobalScopes()
             ->where('tenant_id', $tenant->id)
             ->whereNotNull('hotspot_package_id')
@@ -266,24 +284,23 @@ class SubscriptionService
             ->where('paid_at', '>=', now()->subDays(30))
             ->sum('amount');
 
-        $hotspotAmount = $hotspotIncome * $countryData['hotspot_rate'];
+        $hotspotAmount = $hotspotIncome * $hotspotRate;
 
         $totalAmount = $pppoeAmount + $hotspotAmount;
-        $minimumPay = $countryData['minimum_pay'];
 
         $finalAmount = max($totalAmount, $minimumPay);
 
         return [
             'pppoe_users' => $pppoeUserCount,
-            'pppoe_rate' => $countryData['pppoe_rate'],
+            'pppoe_rate' => $pppoeRate,
             'pppoe_amount' => $pppoeAmount,
             'hotspot_income' => $hotspotIncome,
-            'hotspot_rate' => $countryData['hotspot_rate'],
+            'hotspot_rate' => $hotspotRate,
             'hotspot_amount' => $hotspotAmount,
             'total_calculated' => $totalAmount,
             'minimum_pay' => $minimumPay,
             'final_amount' => $finalAmount,
-            'currency' => $countryData['currency'],
+            'currency' => $currency,
         ];
     }
 }

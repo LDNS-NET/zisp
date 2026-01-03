@@ -355,6 +355,28 @@ Route::middleware(['auth', 'superadmin'])
         // Payment Gateways Management
         Route::get('payment-gateways', [App\Http\Controllers\SuperAdmin\PaymentGatewayController::class, 'index'])->name('payment-gateways.index');
         Route::post('payment-gateways/toggle', [App\Http\Controllers\SuperAdmin\PaymentGatewayController::class, 'toggle'])->name('payment-gateways.toggle');
+
+        // Pricing Plans Management
+        Route::get('pricing-plans', [App\Http\Controllers\SuperAdmin\PricingPlanController::class, 'index'])->name('pricing-plans.index');
+        Route::post('pricing-plans', [App\Http\Controllers\SuperAdmin\PricingPlanController::class, 'store'])->name('pricing-plans.store');
+        Route::delete('pricing-plans/{id}', [App\Http\Controllers\SuperAdmin\PricingPlanController::class, 'destroy'])->name('pricing-plans.destroy');
+
+        // System Settings
+        Route::get('system-settings', [App\Http\Controllers\SuperAdmin\SystemSettingsController::class, 'index'])->name('system-settings.index');
+        Route::post('system-settings', [App\Http\Controllers\SuperAdmin\SystemSettingsController::class, 'update'])->name('system-settings.update');
+
+        // SMS Gateways Management
+        Route::get('sms-gateways', [App\Http\Controllers\SuperAdmin\SmsGatewayController::class, 'index'])->name('sms-gateways.index');
+        Route::post('sms-gateways/toggle', [App\Http\Controllers\SuperAdmin\SmsGatewayController::class, 'toggle'])->name('sms-gateways.toggle');
+
+        // Admin Management
+        Route::get('admins', [App\Http\Controllers\SuperAdmin\AdminController::class, 'index'])->name('admins.index');
+        Route::post('admins', [App\Http\Controllers\SuperAdmin\AdminController::class, 'store'])->name('admins.store');
+        Route::put('admins/{id}', [App\Http\Controllers\SuperAdmin\AdminController::class, 'update'])->name('admins.update');
+        Route::delete('admins/{id}', [App\Http\Controllers\SuperAdmin\AdminController::class, 'destroy'])->name('admins.destroy');
+
+        // Reports & Analytics
+        Route::get('analytics', [App\Http\Controllers\SuperAdmin\AnalyticsController::class, 'index'])->name('analytics.index');
     });
 
 /*

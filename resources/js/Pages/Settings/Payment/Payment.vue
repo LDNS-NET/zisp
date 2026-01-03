@@ -14,28 +14,18 @@ const props = defineProps({
     gateways: { type: Array, default: () => [] },
     phone_number: { type: String, default: '' },
     country: { type: String, default: 'KE' },
-    allowed_gateways: { type: Array, default: () => [] },
+    disabled_gateways: { type: Array, default: () => [] },
 });
 
 const currentCountry = computed(() => countries.find(c => c.code === props.country) || countries[0]);
 const supportedMethods = computed(() => {
     const methods = currentCountry.value.payment_methods || [];
-    // If allowed_gateways is empty (e.g. not configured yet), maybe show all? 
-    // Or if it's passed, strictly filter.
-    // Let's assume strict filtering if the prop is present and not empty.
-    // If the prop is empty, it might mean "nothing enabled" OR "legacy/not set".
-    // Given the requirement "make sure that all activated gateways or deactivated should not appear",
-    // we should strictly filter.
     
-    if (props.allowed_gateways && props.allowed_gateways.length > 0) {
-        return methods.filter(method => props.allowed_gateways.includes(method));
+    if (props.disabled_gateways && props.disabled_gateways.length > 0) {
+        return methods.filter(method => !props.disabled_gateways.includes(method));
     }
     
-    // Fallback: if allowed_gateways is empty array, it might mean NOTHING is enabled.
-    // But for backward compatibility during migration, we might want to show all?
-    // User said "activated gateways or deactivated should not appear".
-    // So if the list is empty, we show nothing.
-    return props.allowed_gateways ? [] : methods; 
+    return methods;
 });
 
 // Use the first gateway record if any

@@ -41,9 +41,9 @@ class TenantPaymentGatewayController extends Controller
 
         $countryCode = $tenant?->country_code ?? 'KE';
 
-        // Get enabled gateways for this country from SuperAdmin settings
-        $enabledGateways = \App\Models\CountryGatewaySetting::where('country_code', $countryCode)
-            ->where('is_active', true)
+        // Get disabled gateways for this country from SuperAdmin settings
+        $disabledGateways = \App\Models\CountryGatewaySetting::where('country_code', $countryCode)
+            ->where('is_active', false)
             ->pluck('gateway')
             ->toArray();
         
@@ -51,7 +51,7 @@ class TenantPaymentGatewayController extends Controller
             'gateways' => $gateways,
             'phone_number' => $request->user()?->phone ?? '',
             'country' => $countryCode,
-            'allowed_gateways' => $enabledGateways,
+            'disabled_gateways' => $disabledGateways,
         ]);
     }
 
