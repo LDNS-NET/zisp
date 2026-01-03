@@ -1,67 +1,209 @@
 <script setup>
-
-import { Head, Link, usePage } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { ref, watch } from 'vue';
+import { Head, Link, router } from '@inertiajs/vue3';
 import SuperAdminLayout from '@/Layouts/SuperAdminLayout.vue';
-import Pagination from '@/Components/Pagination.vue';
+import { Search, Filter, CreditCard, CheckCircle, XCircle, Clock, AlertCircle } from 'lucide-vue-next';
+import debounce from 'lodash/debounce';
 
 const props = defineProps({
     payments: Object,
-    filter:Object,
+    filters: Object,
 });
 
+const search = ref(props.filters?.search || '');
+const status = ref(props.filters?.status || '');
+const method = ref(props.filters?.method || '');
+
+// Debounced search
+const updateSearch = debounce((value) => {
+    router.get(
+        route('superadmin.payments.index'),
+        { search: value, status: status.value, method: method.value },
+        { preserveState: true, replace: true }
+    );
+}, 300);
+
+// Watch filters
+watch([status, method], () => {
+    router.get(
+        route('superadmin.payments.index'),
+        { search: search.value, status: status.value, method: method.value },
+        { preserveState: true, replace: true }
+    );
+});
+
+const formatCurrency = (amount, currency) => {
+    return new Intl.NumberFormat('en-KE', { style: 'currency', currency: currency || 'KES' }).format(amount);
+};
 </script>
 
 <template>
-    <Head title="Payments" />
+    <Head title="System Payments" />
 
     <SuperAdminLayout>
         <template #header>
-            <h2 class="text-2xl font-semibold leading-tight">
-                Payments
-            </h2>
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <h2 class="text-2xl font-bold leading-tight text-gray-800 dark:text-gray-200">
+                    System Payments
+                </h2>
+                <div class="text-sm text-gray-500">
+                    {{ payments.total }} transactions found
+                </div>
+            </div>
         </template>
-        <div class="py-6">
-            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
-                    <div class="p-6 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-                        <!-- Payments Table -->
-                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                            <thead class="bg-gray-50 dark:bg-gray-700">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">ID</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Amount</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Receipt</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Paid By</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Paid To</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Checked</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Created At</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                                <tr v-for="payment in props.payments.data" :key="payment.id">
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">{{ payment.id }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">{{ payment.amount }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">{{ payment.status }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">{{ payment.receipt_number }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">{{ payment.phone }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">{{ payment.user_id }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">{{ payment.checked }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">{{ new Date(payment.created_at).toLocaleDateString() }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                        <button>
-                                            <Link :href="`/superadmin/payments/${payment.id}`" class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-600">View</Link>
-                                        </button>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+
+        <div class="space-y-6">
+            <!-- Filters Bar -->
+            <div class="flex flex-col gap-4 rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-900/5 dark:bg-gray-800 dark:ring-gray-700 sm:flex-row sm:items-center sm:justify-between">
+                <!-- Search -->
+                <div class="relative flex-1 max-w-md">
+                    <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                        <Search class="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                        v-model="search"
+                        @input="updateSearch($event.target.value)"
+                        type="text"
+                        placeholder="Search receipt, phone..."
+                        class="block w-full rounded-lg border-0 py-2.5 pl-10 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 dark:bg-gray-900 dark:text-white dark:ring-gray-700 sm:text-sm sm:leading-6"
+                    />
+                </div>
+
+                <!-- Filters -->
+                <div class="flex gap-3">
+                    <select
+                        v-model="method"
+                        class="block rounded-lg border-0 py-2.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 dark:bg-gray-900 dark:text-white dark:ring-gray-700 sm:text-sm sm:leading-6"
+                    >
+                        <option value="">All Methods</option>
+                        <option value="mpesa">M-Pesa</option>
+                        <option value="paystack">Paystack</option>
+                        <option value="flutterwave">Flutterwave</option>
+                    </select>
+
+                    <select
+                        v-model="status"
+                        class="block rounded-lg border-0 py-2.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 dark:bg-gray-900 dark:text-white dark:ring-gray-700 sm:text-sm sm:leading-6"
+                    >
+                        <option value="">All Status</option>
+                        <option value="paid">Paid</option>
+                        <option value="pending">Pending</option>
+                        <option value="failed">Failed</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Table -->
+            <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-900/5 dark:bg-gray-800 dark:ring-gray-700">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead class="bg-gray-50 dark:bg-gray-900/50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Transaction</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Amount</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Tenant</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Status</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Date</th>
+                                <th scope="col" class="relative px-6 py-3">
+                                    <span class="sr-only">Actions</span>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-800">
+                            <tr v-for="payment in payments.data" :key="payment.id" class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                                <td class="whitespace-nowrap px-6 py-4">
+                                    <div class="flex items-center">
+                                        <div class="h-10 w-10 flex-shrink-0 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 dark:bg-indigo-900 dark:text-indigo-300">
+                                            <CreditCard class="h-5 w-5" />
+                                        </div>
+                                        <div class="ml-4">
+                                            <div class="font-medium text-gray-900 dark:text-white">{{ payment.receipt_number || 'N/A' }}</div>
+                                            <div class="text-xs text-gray-500">{{ payment.payment_method }} • {{ payment.phone }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="whitespace-nowrap px-6 py-4">
+                                    <div class="text-sm font-bold text-gray-900 dark:text-white">
+                                        {{ formatCurrency(payment.amount, payment.currency) }}
+                                    </div>
+                                </td>
+                                <td class="whitespace-nowrap px-6 py-4">
+                                    <div class="text-sm text-gray-900 dark:text-white">{{ payment.tenant?.name || 'Unknown' }}</div>
+                                    <div class="text-xs text-gray-500">{{ payment.tenant?.email }}</div>
+                                </td>
+                                <td class="whitespace-nowrap px-6 py-4">
+                                    <span :class="[
+                                        'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium',
+                                        payment.status === 'paid' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
+                                        payment.status === 'pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' :
+                                        'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                                    ]">
+                                        <component 
+                                            :is="payment.status === 'paid' ? CheckCircle : (payment.status === 'pending' ? Clock : XCircle)" 
+                                            class="mr-1.5 h-3 w-3" 
+                                        />
+                                        {{ payment.status.charAt(0).toUpperCase() + payment.status.slice(1) }}
+                                    </span>
+                                </td>
+                                <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                                    {{ new Date(payment.created_at).toLocaleString() }}
+                                </td>
+                                <td class="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
+                                    <Link 
+                                        :href="route('superadmin.payments.show', payment.id)" 
+                                        class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium"
+                                    >
+                                        View
+                                    </Link>
+                                </td>
+                            </tr>
+                            <tr v-if="payments.data.length === 0">
+                                <td colspan="6" class="px-6 py-12 text-center">
+                                    <div class="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400">
+                                        <AlertCircle class="h-12 w-12 mb-3 opacity-20" />
+                                        <p class="text-lg font-medium">No payments found</p>
+                                        <p class="text-sm">Try adjusting your search or filters</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Pagination -->
+                <div v-if="payments.links.length > 3" class="border-t border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-800 sm:px-6">
+                    <div class="flex flex-1 justify-between sm:hidden">
+                        <Link :href="payments.prev_page_url" class="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Previous</Link>
+                        <Link :href="payments.next_page_url" class="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Next</Link>
+                    </div>
+                    <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                        <div>
+                            <p class="text-sm text-gray-700 dark:text-gray-300">
+                                Showing <span class="font-medium">{{ payments.from }}</span> to <span class="font-medium">{{ payments.to }}</span> of <span class="font-medium">{{ payments.total }}</span> results
+                            </p>
+                        </div>
+                        <div>
+                            <nav class="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                                <Link 
+                                    v-for="(link, i) in payments.links" 
+                                    :key="i"
+                                    :href="link.url"
+                                    v-html="link.label"
+                                    :class="[
+                                        'relative inline-flex items-center px-4 py-2 text-sm font-semibold ring-1 ring-inset ring-gray-300 focus:z-20 focus:outline-offset-0',
+                                        link.active 
+                                            ? 'z-10 bg-indigo-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600' 
+                                            : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 dark:text-gray-200 dark:ring-gray-600 dark:hover:bg-gray-700',
+                                        i === 0 ? 'rounded-l-md' : '',
+                                        i === payments.links.length - 1 ? 'rounded-r-md' : '',
+                                        !link.url ? 'pointer-events-none opacity-50' : ''
+                                    ]"
+                                />
+                            </nav>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-        <Pagination :links="props.payments.links" />
-    </SuperAdminLayout> 
+    </SuperAdminLayout>
 </template>

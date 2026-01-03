@@ -9,11 +9,31 @@ use inertia\Inertia;
 
 class AllMikrotiksController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $mikrotiks = TenantMikroTik::orderBy('created_at', 'desc')->paginate(20);
+        $query = TenantMikroTik::withoutGlobalScopes();
+
+        // Search
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('ip_address', 'like', "%{$search}%")
+                  ->orWhere('wireguard_address', 'like', "%{$search}%")
+                  ->orWhere('location', 'like', "%{$search}%");
+            });
+        }
+
+        // Filter by Status
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        $mikrotiks = $query->orderBy('created_at', 'desc')->paginate(20)->withQueryString();
+
         return Inertia::render('SuperAdmin/Allmikrotiks/Index', [
             'mikrotiks' => $mikrotiks,
+            'filters' => $request->only(['search', 'status']),
         ]);
     }
 

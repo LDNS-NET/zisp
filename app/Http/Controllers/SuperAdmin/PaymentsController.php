@@ -14,11 +14,34 @@ use App\Models\Tenants\NetworkUser;
 
 class PaymentsController extends Controller
 {
-    public function index() {
-        $payments = TenantPayment::orderBy('created_at', 'desc')->paginate(20);
+    public function index(Request $request) {
+        $query = TenantPayment::withoutGlobalScopes()->with('tenant');
+
+        // Search
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('receipt_number', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%")
+                  ->orWhere('checkout_request_id', 'like', "%{$search}%");
+            });
+        }
+
+        // Filter by Status
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        // Filter by Method
+        if ($request->filled('method')) {
+            $query->where('payment_method', $request->method);
+        }
+
+        $payments = $query->orderBy('created_at', 'desc')->paginate(20)->withQueryString();
 
         return Inertia::render('SuperAdmin/Payments/Index', [
             'payments' => $payments,
+            'filters' => $request->only(['search', 'status', 'method']),
         ]);
     }
 }

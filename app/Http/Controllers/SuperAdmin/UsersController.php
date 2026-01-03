@@ -16,15 +16,65 @@ use App\Models\Tenants\TenantMikrotik;
 
 class UsersController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $users = User::orderBy('created_at', 'desc')->paginate(20);
-        $tenant = Tenant::all();
+        $query = User::query()->where('role', '!=', 'superadmin'); // Exclude superadmins
+
+        // Search
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%")
+                  ->orWhere('tenant_id', 'like', "%{$search}%");
+            });
+        }
+
+        // Filter by Status
+        if ($request->filled('status')) {
+            if ($request->status === 'active') {
+                $query->where('is_suspended', false);
+            } elseif ($request->status === 'suspended') {
+                $query->where('is_suspended', true);
+            }
+        }
+
+        // Filter by Country
+        if ($request->filled('country')) {
+            $query->where('country_code', $request->country);
+        }
+
+        $users = $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
+        
+        // Get unique countries for filter
+        $countries = User::select('country_code', 'country')->distinct()->whereNotNull('country_code')->get();
 
         return Inertia::render('SuperAdmin/Users/Index', [
             'users' => $users,
-            'tenant' => $tenant,
+            'filters' => $request->only(['search', 'status', 'country']),
+            'countries' => $countries,
         ]);
+    }
+
+    public function suspend(User $user)
+    {
+        $user->update(['is_suspended' => true]);
+        return back()->with('success', 'User suspended successfully.');
+    }
+
+    public function unsuspend(User $user)
+    {
+        $user->update(['is_suspended' => false]);
+        return back()->with('success', 'User activated successfully.');
+    }
+
+    public function destroy(User $user)
+    {
+        // Optional: Add logic to delete tenant data (payments, users, etc.)
+        // For now, just delete the user record
+        $user->delete();
+        return back()->with('success', 'User deleted successfully.');
     }
 
     public function show($id)

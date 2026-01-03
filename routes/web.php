@@ -342,6 +342,8 @@ Route::middleware(['auth', 'superadmin'])
         Route::get('/dashboard', [SuperAdminController::class, 'dashboard'])->name('dashboard');
 
         // Users Management
+        Route::post('users/{user}/suspend', [UsersController::class, 'suspend'])->name('users.suspend');
+        Route::post('users/{user}/unsuspend', [UsersController::class, 'unsuspend'])->name('users.unsuspend');
         Route::resource('users', UsersController::class)->only(['index', 'show', 'destroy']);
 
         // Payments Management
