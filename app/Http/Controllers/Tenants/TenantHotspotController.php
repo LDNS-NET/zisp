@@ -137,11 +137,12 @@ class TenantHotspotController extends Controller
         try {
             // Validate input
             $request->validate([
-                'hotspot_package_id' => 'required|exists:tenant_hotspots,id',
+                'hotspot_package_id' => 'required|exists:tenant_hotspot_packages,id',
                 'phone' => 'required|string',
                 'email' => 'nullable|email',
                 'payment_method' => 'nullable|string|in:mpesa,momo,paystack',
             ]);
+
 
             // Get current tenant from subdomain
             $host = $request->getHost();

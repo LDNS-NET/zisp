@@ -787,7 +787,7 @@ function formatPhoneNumber(event) {
 
                         <div>
                             <label class="block text-sm font-bold text-gray-700 mb-2">
-                                {{ paymentMethod === 'paystack' ? 'Phone Number' : (paymentMethod === 'momo' ? 'MoMo Phone Number' : 'M-Pesa Phone Number') }} 
+                                {{ paymentMethod === 'paystack' ? 'Phone Number (for your account)' : (paymentMethod === 'momo' ? 'MoMo Phone Number' : 'M-Pesa Phone Number') }} 
                                 ({{ currentCountry.dial_code }})
                             </label>
                             <div class="relative">
