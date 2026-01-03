@@ -25,6 +25,7 @@ class PricingPlanController extends Controller
             'pppoe_price_per_month' => 'required|numeric|min:0',
             'hotspot_price_percentage' => 'required|numeric|min:0|max:100',
             'minimum_pay' => 'required|numeric|min:0',
+            'exchange_rate' => 'required|numeric|min:0.00000001',
             'is_active' => 'boolean',
         ]);
 

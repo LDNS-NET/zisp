@@ -25,6 +25,7 @@ const form = useForm({
     pppoe_price_per_month: 0,
     hotspot_price_percentage: 3.00,
     minimum_pay: 0,
+    exchange_rate: 1.0,
     is_active: true,
 });
 
@@ -37,6 +38,7 @@ const openModal = (plan = null) => {
         form.pppoe_price_per_month = plan.pppoe_price_per_month;
         form.hotspot_price_percentage = plan.hotspot_price_percentage;
         form.minimum_pay = plan.minimum_pay;
+        form.exchange_rate = plan.exchange_rate;
         form.is_active = plan.is_active;
     } else {
         form.reset();
@@ -46,6 +48,7 @@ const openModal = (plan = null) => {
         form.pppoe_price_per_month = 0;
         form.hotspot_price_percentage = 3.00;
         form.minimum_pay = 0;
+        form.exchange_rate = 1.0;
         form.is_active = true;
     }
     showModal.value = true;
@@ -75,6 +78,8 @@ const onCountryChange = () => {
     const country = countries.find(c => c.code === form.country_code);
     if (country) {
         form.currency = country.currency;
+        // Set default exchange rate if available in CountryService/Data
+        form.exchange_rate = country.exchange_rate || 1.0;
     }
 };
 
@@ -135,6 +140,7 @@ const getCountryName = (code) => {
                             <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">PPPoE Rate</th>
                             <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Hotspot %</th>
                             <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Min Pay</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Ex. Rate (Local/KES)</th>
                             <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Status</th>
                             <th scope="col" class="relative px-6 py-3"><span class="sr-only">Actions</span></th>
                         </tr>
@@ -164,6 +170,9 @@ const getCountryName = (code) => {
                             </td>
                             <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                                 {{ plan.minimum_pay }}
+                            </td>
+                            <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                                {{ plan.exchange_rate }}
                             </td>
                             <td class="whitespace-nowrap px-6 py-4">
                                 <span :class="[
@@ -261,6 +270,38 @@ const getCountryName = (code) => {
                             required
                         />
                         <div v-if="form.errors.minimum_pay" class="mt-1 text-sm text-red-600">{{ form.errors.minimum_pay }}</div>
+                    </div>
+
+                    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                        <div>
+                            <InputLabel for="exchange_rate" value="Exchange Rate (Local per 1 KES)" />
+                            <TextInput
+                                id="exchange_rate"
+                                v-model="form.exchange_rate"
+                                type="number"
+                                step="0.00000001"
+                                class="mt-1 block w-full"
+                                required
+                            />
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                e.g. 30.00 for UGX (1 KES = 30 UGX)
+                            </p>
+                            <div v-if="form.errors.exchange_rate" class="mt-1 text-sm text-red-600">{{ form.errors.exchange_rate }}</div>
+                        </div>
+
+                        <div class="rounded-lg bg-indigo-50 p-4 dark:bg-indigo-900/20">
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                                KES Equivalent Preview
+                            </h4>
+                            <div class="mt-2 space-y-1">
+                                <p class="text-sm text-gray-600 dark:text-gray-400">
+                                    PPPoE: <span class="font-bold text-gray-900 dark:text-white">KES {{ (form.pppoe_price_per_month / (form.exchange_rate || 1)).toFixed(2) }}</span>
+                                </p>
+                                <p class="text-sm text-gray-600 dark:text-gray-400">
+                                    Min Pay: <span class="font-bold text-gray-900 dark:text-white">KES {{ (form.minimum_pay / (form.exchange_rate || 1)).toFixed(2) }}</span>
+                                </p>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="flex items-center">
