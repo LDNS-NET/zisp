@@ -12,6 +12,7 @@ class PricingPlan extends Model
         'pppoe_price_per_month',
         'hotspot_price_percentage',
         'minimum_pay',
+        'exchange_rate',
         'is_active',
     ];
 
@@ -19,6 +20,7 @@ class PricingPlan extends Model
         'pppoe_price_per_month' => 'decimal:2',
         'hotspot_price_percentage' => 'decimal:2',
         'minimum_pay' => 'decimal:2',
+        'exchange_rate' => 'decimal:8',
         'is_active' => 'boolean',
     ];
 }

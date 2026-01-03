@@ -12,6 +12,7 @@ class CountryService
             'pppoe_rate' => 18,
             'hotspot_rate' => 0.03,
             'minimum_pay' => 500,
+            'exchange_rate' => 1.0,
         ],
         'TZ' => [
             'name' => 'Tanzania',
@@ -20,6 +21,7 @@ class CountryService
             'pppoe_rate' => 350,
             'hotspot_rate' => 0.03,
             'minimum_pay' => 10000,
+            'exchange_rate' => 20.0,
         ],
         'SO' => [
             'name' => 'Somalia',
@@ -28,6 +30,7 @@ class CountryService
             'pppoe_rate' => 88,
             'hotspot_rate' => 0.03,
             'minimum_pay' => 2500,
+            'exchange_rate' => 4.5,
         ],
         'SS' => [
             'name' => 'South Sudan',
@@ -36,6 +39,7 @@ class CountryService
             'pppoe_rate' => 680,
             'hotspot_rate' => 0.03,
             'minimum_pay' => 5000,
+            'exchange_rate' => 10.0,
         ],
         'UG' => [
             'name' => 'Uganda',
@@ -44,6 +48,7 @@ class CountryService
             'pppoe_rate' => 530,
             'hotspot_rate' => 0.03,
             'minimum_pay' => 15000,
+            'exchange_rate' => 30.0,
         ],
         'GH' => [
             'name' => 'Ghana',
@@ -52,6 +57,7 @@ class CountryService
             'pppoe_rate' => 2,
             'hotspot_rate' => 0.03,
             'minimum_pay' => 50,
+            'exchange_rate' => 0.1,
         ],
     ];
 
@@ -69,6 +75,7 @@ class CountryService
             $data['hotspot_rate'] = $plan->hotspot_price_percentage / 100; // Convert percentage to decimal
             $data['minimum_pay'] = $plan->minimum_pay;
             $data['currency'] = $plan->currency;
+            $data['exchange_rate'] = $plan->exchange_rate;
         }
 
         return $data;
@@ -89,6 +96,7 @@ class CountryService
                 $data['hotspot_rate'] = $plan->hotspot_price_percentage / 100;
                 $data['minimum_pay'] = $plan->minimum_pay;
                 $data['currency'] = $plan->currency;
+                $data['exchange_rate'] = $plan->exchange_rate;
                 
                 // Also add formatted values for frontend if needed
                 $data['pppoePricePerMonth'] = $plan->pppoe_price_per_month;
