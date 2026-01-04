@@ -13,7 +13,9 @@ import {
     AlertCircle,
     Trash2,
     MessageSquare,
-    Ban
+    Ban,
+    MoreVertical,
+    Eye
 } from 'lucide-vue-next';
 
 defineProps({
@@ -21,27 +23,36 @@ defineProps({
 });
 
 const selectedRequest = ref(null);
+const showActionsModal = ref(false);
 const showStatusModal = ref(false);
 const showDeleteModal = ref(false);
 const showDetailsModal = ref(false);
 const newStatus = ref('');
 const adminMessage = ref('');
 
+const openActions = (request) => {
+    selectedRequest.value = request;
+    showActionsModal.value = true;
+};
+
 const openStatusModal = (request, status) => {
     selectedRequest.value = request;
     newStatus.value = status;
     adminMessage.value = request.admin_message || request.rejection_reason || '';
     showStatusModal.value = true;
+    showActionsModal.value = false;
 };
 
 const openDeleteModal = (request) => {
     selectedRequest.value = request;
     showDeleteModal.value = true;
+    showActionsModal.value = false;
 };
 
 const openDetailsModal = (request) => {
     selectedRequest.value = request;
     showDetailsModal.value = true;
+    showActionsModal.value = false;
 };
 
 const updateStatus = () => {
@@ -153,46 +164,13 @@ const getStatusColor = (status) => {
                                             </div>
                                         </td>
                                         <td class="px-4 py-4 text-right">
-                                            <div class="flex justify-end gap-2">
-                                                <button 
-                                                    @click="openDetailsModal(request)"
-                                                    class="p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" 
-                                                    title="View Details"
-                                                >
-                                                    <Eye class="w-5 h-5" />
-                                                </button>
-                                                <button 
-                                                    v-if="request.status === 'pending'"
-                                                    @click="openStatusModal(request, 'accepted')"
-                                                    class="p-2 text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors" 
-                                                    title="Accept Request"
-                                                >
-                                                    <CheckCircle2 class="w-5 h-5" />
-                                                </button>
-                                                <button 
-                                                    v-if="request.status === 'pending'"
-                                                    @click="openStatusModal(request, 'rejected')"
-                                                    class="p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors" 
-                                                    title="Reject Request"
-                                                >
-                                                    <XCircle class="w-5 h-5" />
-                                                </button>
-                                                <button 
-                                                    v-if="request.status === 'accepted'"
-                                                    @click="openStatusModal(request, 'revoked')"
-                                                    class="p-2 text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors" 
-                                                    title="Revoke Domain"
-                                                >
-                                                    <Ban class="w-5 h-5" />
-                                                </button>
-                                                <button 
-                                                    @click="openDeleteModal(request)"
-                                                    class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors" 
-                                                    title="Delete Request"
-                                                >
-                                                    <Trash2 class="w-5 h-5" />
-                                                </button>
-                                            </div>
+                                            <button 
+                                                @click="openActions(request)"
+                                                class="text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors p-2 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700" 
+                                                title="Manage Request"
+                                            >
+                                                <MoreVertical class="w-5 h-5" />
+                                            </button>
                                         </td>
                                     </tr>
                                 </tbody>
@@ -212,6 +190,65 @@ const getStatusColor = (status) => {
                 </div>
             </div>
         </div>
+
+        <!-- Actions Modal -->
+        <Modal :show="showActionsModal" @close="showActionsModal = false" maxWidth="sm">
+            <div class="p-6 dark:bg-slate-900">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">Manage Request</h3>
+                    <button @click="showActionsModal = false" class="text-gray-400 hover:text-gray-500">
+                        <X class="w-5 h-5" />
+                    </button>
+                </div>
+
+                <div class="space-y-3">
+                    <button 
+                        @click="openDetailsModal(selectedRequest)"
+                        class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors border border-gray-100 dark:border-slate-700"
+                    >
+                        <Eye class="w-5 h-5 text-blue-500" />
+                        View Details
+                    </button>
+
+                    <button 
+                        v-if="selectedRequest?.status === 'pending'"
+                        @click="openStatusModal(selectedRequest, 'accepted')"
+                        class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors border border-emerald-100 dark:border-emerald-900/30"
+                    >
+                        <CheckCircle2 class="w-5 h-5" />
+                        Accept Request
+                    </button>
+
+                    <button 
+                        v-if="selectedRequest?.status === 'pending'"
+                        @click="openStatusModal(selectedRequest, 'rejected')"
+                        class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors border border-red-100 dark:border-red-900/30"
+                    >
+                        <XCircle class="w-5 h-5" />
+                        Reject Request
+                    </button>
+
+                    <button 
+                        v-if="selectedRequest?.status === 'accepted'"
+                        @click="openStatusModal(selectedRequest, 'revoked')"
+                        class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors border border-orange-100 dark:border-orange-900/30"
+                    >
+                        <Ban class="w-5 h-5" />
+                        Revoke Domain
+                    </button>
+
+                    <div class="border-t border-gray-100 dark:border-slate-800 my-2"></div>
+
+                    <button 
+                        @click="openDeleteModal(selectedRequest)"
+                        class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors border border-gray-100 dark:border-slate-700"
+                    >
+                        <Trash2 class="w-5 h-5 text-gray-400" />
+                        Delete Request
+                    </button>
+                </div>
+            </div>
+        </Modal>
 
         <!-- Status Update Modal -->
         <Modal :show="showStatusModal" @close="showStatusModal = false" maxWidth="md">

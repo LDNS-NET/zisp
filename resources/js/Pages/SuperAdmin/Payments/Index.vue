@@ -93,6 +93,15 @@ const disbursePayment = (payment) => {
         });
     }
 };
+
+const getDisbursementColor = (status) => {
+    switch (status) {
+        case 'completed': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400';
+        case 'pending': return 'bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400';
+        case 'failed': return 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400';
+        default: return 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400';
+    }
+};
 </script>
 
 <template>
@@ -161,6 +170,7 @@ const disbursePayment = (payment) => {
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Amount</th>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Tenant</th>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Status</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Disbursement</th>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Date</th>
                                 <th scope="col" class="relative px-6 py-3">
                                     <span class="sr-only">Actions</span>
@@ -203,6 +213,15 @@ const disbursePayment = (payment) => {
                                         {{ payment.status.charAt(0).toUpperCase() + payment.status.slice(1) }}
                                     </span>
                                 </td>
+                                <td class="whitespace-nowrap px-6 py-4">
+                                    <span v-if="payment.payment_method === 'mpesa'" :class="[
+                                        'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize',
+                                        getDisbursementColor(payment.disbursement_status)
+                                    ]">
+                                        {{ payment.disbursement_status || 'Pending' }}
+                                    </span>
+                                    <span v-else class="text-xs text-gray-400 italic">N/A</span>
+                                </td>
                                 <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                                     {{ new Date(payment.created_at).toLocaleString() }}
                                 </td>
@@ -213,7 +232,7 @@ const disbursePayment = (payment) => {
                                 </td>
                             </tr>
                             <tr v-if="payments.data.length === 0">
-                                <td colspan="6" class="px-6 py-12 text-center">
+                                <td colspan="7" class="px-6 py-12 text-center">
                                     <div class="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400">
                                         <AlertCircle class="h-12 w-12 mb-3 opacity-20" />
                                         <p class="text-lg font-medium">No payments found</p>
