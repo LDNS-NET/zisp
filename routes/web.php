@@ -43,6 +43,7 @@ use App\Http\Controllers\SuperAdmin\SuperAdminController;
 use App\Http\Controllers\SuperAdmin\UsersController;
 use App\Http\Controllers\SuperAdmin\PaymentsController;
 use App\Http\Controllers\SuperAdmin\AllMikrotiksController;
+use App\Http\Controllers\SuperAdmin\HealthCheckController;
 use App\Http\Controllers\OnboardingRequestController;
 
 /*
@@ -441,7 +442,6 @@ Route::middleware(['auth', 'superadmin', 'throttle:120,1'])
         Route::post('admins', [App\Http\Controllers\SuperAdmin\AdminController::class, 'store'])->name('admins.store');
         Route::put('admins/{id}', [App\Http\Controllers\SuperAdmin\AdminController::class, 'update'])->name('admins.update');
         Route::delete('admins/{id}', [App\Http\Controllers\SuperAdmin\AdminController::class, 'destroy'])->name('admins.destroy');
-        Route::get('analytics', [App\Http\Controllers\SuperAdmin\AnalyticsController::class, 'index'])->name('analytics.index');
     });
 
 /*

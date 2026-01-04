@@ -139,14 +139,17 @@ const formatCurrency = (value) => {
 
 const systemHealth = ref(null);
 const loadingHealth = ref(true);
+const healthError = ref(false);
 
 const fetchHealth = async () => {
     loadingHealth.value = true;
+    healthError.value = false;
     try {
         const response = await axios.get(route('superadmin.system.health'));
         systemHealth.value = response.data;
     } catch (error) {
         console.error('Failed to fetch system health', error);
+        healthError.value = true;
     } finally {
         loadingHealth.value = false;
     }
@@ -430,6 +433,14 @@ onMounted(() => {
                         <div class="pt-2 text-[10px] text-gray-400 text-right italic">
                             Last checked: {{ systemHealth.last_check }}
                         </div>
+                    </div>
+
+                    <div v-else-if="healthError" class="flex flex-col items-center justify-center py-6 text-center">
+                        <AlertCircle class="h-8 w-8 text-red-500 mb-2" />
+                        <p class="text-sm text-gray-600 dark:text-gray-400">Failed to load system status</p>
+                        <button @click="fetchHealth" class="mt-2 text-xs text-indigo-600 hover:text-indigo-500 font-medium underline">
+                            Try again
+                        </button>
                     </div>
                 </div>
             </div>
