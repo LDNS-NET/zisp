@@ -11,6 +11,8 @@ use App\Http\Middleware\SuperAdminMiddleware;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use App\Models\Tenants\TenantLeads;
 use App\Models\Tenants\NetworkUser;
+use App\Models\User;
+use App\Models\Tenant;
 use App\Services\WireGuardService;
 
 class AppServiceProvider extends ServiceProvider
@@ -46,6 +48,8 @@ class AppServiceProvider extends ServiceProvider
         Relation::enforceMorphMap([
             'lead' => TenantLeads::class,
             'user' => NetworkUser::class,
+            'admin' => User::class,
+            'tenant' => Tenant::class,
         ]);
 
         // Register model observers
