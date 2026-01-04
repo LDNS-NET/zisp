@@ -61,7 +61,7 @@ const closeModal = () => {
 };
 
 const save = () => {
-    form.post(route('superadmin.pricing-plans.store'), {
+    form.post(route('superadmin.settings.pricing-plans.store'), {
         onSuccess: () => closeModal(),
         preserveScroll: true,
     });
@@ -69,7 +69,7 @@ const save = () => {
 
 const deletePlan = (id) => {
     if (confirm('Are you sure you want to delete this pricing plan?')) {
-        router.delete(route('superadmin.pricing-plans.destroy', id));
+        router.delete(route('superadmin.settings.pricing-plans.destroy', id));
     }
 };
 

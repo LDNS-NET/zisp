@@ -56,7 +56,7 @@ const openDetailsModal = (request) => {
 };
 
 const updateStatus = () => {
-    router.patch(route('superadmin.domain-requests.update', selectedRequest.value.id), {
+    router.patch(route('superadmin.requests.domains.update', selectedRequest.value.id), {
         status: newStatus.value,
         admin_message: adminMessage.value
     }, {
@@ -69,7 +69,7 @@ const updateStatus = () => {
 };
 
 const confirmDelete = () => {
-    router.delete(route('superadmin.domain-requests.destroy', selectedRequest.value.id), {
+    router.delete(route('superadmin.requests.domains.destroy', selectedRequest.value.id), {
         onSuccess: () => {
             showDeleteModal.value = false;
             selectedRequest.value = null;

@@ -44,12 +44,12 @@ const closeModal = () => {
 
 const save = () => {
     if (editingAdmin.value) {
-        form.put(route('superadmin.admins.update', editingAdmin.value.id), {
+        form.put(route('superadmin.system.admins.update', editingAdmin.value.id), {
             onSuccess: () => closeModal(),
             preserveScroll: true,
         });
     } else {
-        form.post(route('superadmin.admins.store'), {
+        form.post(route('superadmin.system.admins.store'), {
             onSuccess: () => closeModal(),
             preserveScroll: true,
         });
@@ -58,7 +58,7 @@ const save = () => {
 
 const deleteAdmin = (id) => {
     if (confirm('Are you sure you want to delete this admin?')) {
-        router.delete(route('superadmin.admins.destroy', id));
+        router.delete(route('superadmin.system.admins.destroy', id));
     }
 };
 </script>

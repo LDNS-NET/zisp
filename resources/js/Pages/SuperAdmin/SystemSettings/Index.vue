@@ -20,7 +20,7 @@ Object.values(props.settings).flat().forEach(setting => {
 const form = useForm(formData);
 
 const save = () => {
-    form.post(route('superadmin.system-settings.update'), {
+    form.post(route('superadmin.settings.system.update'), {
         preserveScroll: true,
         onSuccess: () => {
             // Toast handled by layout

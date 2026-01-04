@@ -28,7 +28,7 @@ const isGatewayEnabled = (countryCode, gateway) => {
 };
 
 const toggleGateway = (countryCode, gateway, currentValue) => {
-    router.post(route('superadmin.sms-gateways.toggle'), {
+    router.post(route('superadmin.settings.sms-gateways.toggle'), {
         country_code: countryCode,
         gateway: gateway,
         is_active: !currentValue,

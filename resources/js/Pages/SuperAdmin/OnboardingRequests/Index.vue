@@ -40,7 +40,7 @@ const openStatusModal = (request, status) => {
 };
 
 const updateStatus = () => {
-    router.patch(route('superadmin.onboarding-requests.update', selectedRequest.value.id), {
+    router.patch(route('superadmin.requests.onboarding.update', selectedRequest.value.id), {
         status: newStatus.value
     }, {
         onSuccess: () => {

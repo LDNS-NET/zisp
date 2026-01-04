@@ -27,7 +27,7 @@ const isGatewayEnabled = (countryCode, gateway) => {
 };
 
 const toggleGateway = (countryCode, gateway, currentValue) => {
-    router.post(route('superadmin.payment-gateways.toggle'), {
+    router.post(route('superadmin.settings.payment-gateways.toggle'), {
         country_code: countryCode,
         gateway: gateway,
         is_active: !currentValue,
