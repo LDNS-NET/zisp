@@ -24,7 +24,10 @@ import {
     Smartphone,
     MapPin,
     Calendar,
-    Wifi
+    Wifi,
+    Upload,
+    FileText,
+    AlertCircle
 } from 'lucide-vue-next';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
@@ -39,6 +42,7 @@ const props = defineProps({
 });
 
 const showModal = ref(false);
+const showImportModal = ref(false);
 const editing = ref(null);
 const viewing = ref(null);
 const selectedFilter = ref(props.filters?.type || 'all');
@@ -54,6 +58,10 @@ const form = useForm({
     package_id: '',
     type: 'hotspot',
     expires_at: '',
+});
+
+const importForm = useForm({
+    file: null,
 });
 
 // Watchers for filters
@@ -82,6 +90,51 @@ function openCreate() {
     form.reset();
     form.type = 'hotspot';
     showModal.value = true;
+}
+
+function openImport() {
+    importForm.reset();
+    showImportModal.value = true;
+}
+
+function submitImport() {
+    importForm.post(route('users.import'), {
+        onSuccess: (page) => {
+            showImportModal.value = false;
+            importForm.reset();
+            toast.success('Import process completed');
+            
+            // Check for import errors in session (passed from backend)
+            // Ideally backend returns them in flash props or errors bag.
+            // Our backend puts 'import_errors' in session flash. 
+            // Inertia props should update automatically.
+            if (page.props.flash?.import_errors && page.props.flash.import_errors.length > 0) {
+                // We might want to show a toast or a modal with errors.
+                // For now, let's just toast a warning or rely on the user checking the success message which mentions errors.
+                 toast.warning(`Some rows were skipped. Check the success message.`);
+            }
+        },
+        onError: () => {
+            toast.error('Failed to import file.');
+        },
+        forceFormData: true,
+    });
+}
+
+function downloadSample() {
+    // Generate a simple CSV content
+    const csvContent = "username,phone,full_name,location,type,package,password\njohn_doe,0712345678,John Doe,Nairobi,hotspot,Weekly Bundle,secret123\njane_smith,0723456789,Jane Smith,Mombasa,pppoe,Home Fiber,securePass";
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    if (link.download !== undefined) {
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", "users_import_sample.csv");
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
 }
 
 const selectedUsers = ref([]);
@@ -179,10 +232,19 @@ const openActions = (user) => {
                         Manage your hotspot and PPPoE subscribers
                     </p>
                 </div>
-                <PrimaryButton @click="openCreate" class="flex items-center gap-2">
-                    <UserPlus class="w-4 h-4" />
-                    <span>Add User</span>
-                </PrimaryButton>
+                <div class="flex items-center gap-3">
+                    <button 
+                        @click="openImport"
+                        class="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-slate-600 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    >
+                        <Upload class="w-4 h-4" />
+                        <span>Import CSV</span>
+                    </button>
+                    <PrimaryButton @click="openCreate" class="flex items-center gap-2">
+                        <UserPlus class="w-4 h-4" />
+                        <span>Add User</span>
+                    </PrimaryButton>
+                </div>
             </div>
         </template>
 
@@ -512,6 +574,98 @@ const openActions = (user) => {
                         Cancel
                     </button>
                 </div>
+            </div>
+        </Modal>
+        <!-- Import Modal -->
+        <Modal :show="showImportModal" @close="showImportModal = false">
+            <div class="p-6 dark:bg-slate-800 dark:text-white">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-white">
+                        Import Users via CSV
+                    </h3>
+                    <button @click="showImportModal = false" class="text-gray-400 hover:text-gray-500 focus:outline-none">
+                        <span class="sr-only">Close</span>
+                        <XCircle class="w-6 h-6" />
+                    </button>
+                </div>
+
+                <div class="mb-6 bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-400 p-4 rounded-r-md">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <AlertCircle class="h-5 w-5 text-blue-400" />
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm text-blue-700 dark:text-blue-300">
+                                Upload a CSV file with the following columns: <br>
+                                <span class="font-mono text-xs">username, phone, full_name, location, type, package, password</span>
+                            </p>
+                            <button 
+                                type="button" 
+                                @click="downloadSample" 
+                                class="mt-2 text-sm font-medium text-blue-700 dark:text-blue-300 underline hover:text-blue-600"
+                            >
+                                Download Sample CSV
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <form @submit.prevent="submitImport" class="space-y-4">
+                    <div class="space-y-2">
+                        <InputLabel for="file" value="Select CSV File" />
+                        <div class="relative border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-lg p-6 hover:border-blue-500 dark:hover:border-blue-500 transition-colors text-center cursor-pointer"
+                             @dragover.prevent
+                             @drop.prevent="(e) => importForm.file = e.dataTransfer.files[0]">
+                            
+                            <input 
+                                type="file" 
+                                id="file" 
+                                accept=".csv,.txt"
+                                class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                @change="(e) => importForm.file = e.target.files[0]"
+                            />
+                            
+                            <div class="space-y-2" v-if="!importForm.file">
+                                <Upload class="mx-auto h-10 w-10 text-gray-400" />
+                                <div class="text-sm text-gray-600 dark:text-gray-400">
+                                    <span class="font-medium text-blue-600 hover:text-blue-500">Click to upload</span> or drag and drop
+                                </div>
+                                <p class="text-xs text-gray-500">CSV or TXT up to 5MB</p>
+                            </div>
+                            
+                            <div v-else class="flex items-center justify-center gap-3">
+                                <FileText class="h-8 w-8 text-blue-500" />
+                                <div class="text-left">
+                                    <p class="text-sm font-medium text-gray-900 dark:text-white">{{ importForm.file.name }}</p>
+                                    <p class="text-xs text-gray-500">{{ (importForm.file.size / 1024).toFixed(1) }} KB</p>
+                                </div>
+                                <button type="button" @click.stop="importForm.file = null" class="p-1 hover:bg-gray-200 dark:hover:bg-slate-700 rounded-full">
+                                    <XCircle class="w-5 h-5 text-gray-500" />
+                                </button>
+                            </div>
+                        </div>
+                        <InputError :message="importForm.errors.file" />
+                    </div>
+
+                    <!-- Import Errors Display -->
+                    <div v-if="$page.props.flash.import_errors && $page.props.flash.import_errors.length > 0" class="mt-4 p-4 bg-red-50 dark:bg-red-900/20 rounded-md">
+                         <h4 class="text-sm font-medium text-red-800 dark:text-red-300 mb-2">Import Warnings/Errors</h4>
+                         <ul class="list-disc pl-5 text-xs text-red-700 dark:text-red-400 max-h-32 overflow-y-auto">
+                             <li v-for="(err, idx) in $page.props.flash.import_errors" :key="idx">{{ err }}</li>
+                         </ul>
+                    </div>
+                
+                    <div class="mt-6 flex justify-end gap-3">
+                        <DangerButton type="button" @click="showImportModal = false">Cancel</DangerButton>
+                        <PrimaryButton 
+                            :disabled="importForm.processing || !importForm.file"
+                            :class="{ 'opacity-25': importForm.processing || !importForm.file }"
+                        >
+                            <span v-if="importForm.processing">Importing...</span>
+                            <span v-else>Start Import</span>
+                        </PrimaryButton>
+                    </div>
+                </form>
             </div>
         </Modal>
     </AuthenticatedLayout>

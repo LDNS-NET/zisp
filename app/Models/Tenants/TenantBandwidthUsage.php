@@ -15,18 +15,23 @@ class TenantBandwidthUsage extends Model
         'packets_in',
         'packets_out',
         'timestamp',
-        'tenant_id',
+        // 'tenant_id', // Column does not exist in migration
     ];
 
     protected static function booted()
     {
         static::addGlobalScope('tenant', function ($query) {
+            $tenantId = null;
+            
             if (tenant()) {
-                $query->where('tenant_id', tenant()->id);
+                $tenantId = tenant()->id;
             } elseif (auth()->check()) {
                 $user = auth()->user();
+                // Check if user is NOT super admin (super admins might want to see all, or specific tenant context)
+                // If is_super_admin is true, usually we might not scope, but if they are simulating a tenant...
+                // existing logic logic had: if (!$user->is_super_admin && $user->tenant_id)
                 if (!$user->is_super_admin && $user->tenant_id) {
-                    $query->where('tenant_id', $user->tenant_id);
+                    $tenantId = $user->tenant_id;
                 }
             } else {
                 // Fallback for public routes
@@ -37,28 +42,20 @@ class TenantBandwidthUsage extends Model
                 if (!in_array($host, $centralDomains)) {
                     $tenant = \App\Models\Tenant::where('subdomain', $subdomain)->first();
                     if ($tenant) {
-                        $query->where('tenant_id', $tenant->id);
+                        $tenantId = $tenant->id;
                     }
                 }
+            }
+
+            if ($tenantId) {
+                // Determine tenant via the related router
+                $query->whereHas('router', function ($q) use ($tenantId) {
+                    $q->where('tenant_id', $tenantId);
+                });
             }
         });
 
-        static::creating(function ($model) {
-            if (empty($model->tenant_id)) {
-                if (tenant()) {
-                    $model->tenant_id = tenant()->id;
-                } elseif (auth()->check() && auth()->user()->tenant_id) {
-                    $model->tenant_id = auth()->user()->tenant_id;
-                } else {
-                    $host = request()->getHost();
-                    $subdomain = explode('.', $host)[0];
-                    $tenant = \App\Models\Tenant::where('subdomain', $subdomain)->first();
-                    if ($tenant) {
-                        $model->tenant_id = $tenant->id;
-                    }
-                }
-            }
-        });
+        // 'creating' event removed as tenant_id column does not exist
     }
 
     protected $casts = [

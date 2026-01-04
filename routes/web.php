@@ -174,6 +174,7 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode'])
         //network users( tenants )
         Route::resource('users', TenantUserController::class);
         Route::delete('/users/bulk-delete', [TenantUserController::class, 'bulkDelete'])->name('users.bulk-delete');
+        Route::post('/users/import', [TenantUserController::class, 'import'])->name('users.import');
         Route::post('users/details', [TenantUserController::class, 'update'])->name('users.details.update');
 
 
