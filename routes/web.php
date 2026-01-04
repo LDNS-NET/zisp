@@ -354,6 +354,7 @@ Route::middleware(['auth', 'superadmin'])
         Route::resource('users', UsersController::class)->only(['index', 'show', 'destroy']);
 
         // Payments Management
+        Route::post('payments/{payment}/disburse', [PaymentsController::class, 'disburse'])->name('payments.disburse');
         Route::resource('payments', PaymentsController::class)->only(['index', 'show', 'destroy']);
 
         // all mikrotiks in the system

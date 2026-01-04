@@ -3,7 +3,7 @@ import { ref, watch } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import SuperAdminLayout from '@/Layouts/SuperAdminLayout.vue';
 import Modal from '@/Components/Modal.vue';
-import { Search, Filter, CreditCard, CheckCircle, XCircle, Clock, AlertCircle, MoreVertical, Eye, Trash2, AlertTriangle, X } from 'lucide-vue-next';
+import { Search, Filter, CreditCard, CheckCircle, XCircle, Clock, AlertCircle, MoreVertical, Eye, Trash2, AlertTriangle, X, Send } from 'lucide-vue-next';
 import debounce from 'lodash/debounce';
 
 const props = defineProps({
@@ -64,6 +64,32 @@ const confirmDelete = () => {
     if (selectedPayment.value) {
         router.delete(route('superadmin.payments.destroy', selectedPayment.value.id), {
             onFinish: () => closeModal(),
+        });
+    }
+};
+
+const canDisburse = (payment) => {
+    if (!payment || !payment.tenant) return false;
+    
+    const isPaid = payment.status === 'paid';
+    const isMpesa = payment.payment_method === 'mpesa';
+    const isPendingOrFailed = ['pending', 'failed'].includes(payment.disbursement_status);
+    const isKenya = payment.tenant.country_code === 'KE';
+    
+    // Check if tenant uses system M-Pesa API
+    const mpesaGateway = payment.tenant.payment_gateways?.find(g => 
+        g.provider === 'mpesa' && g.is_active
+    );
+    
+    const usesSystemApi = mpesaGateway && !mpesaGateway.use_own_api;
+    
+    return isPaid && isMpesa && isPendingOrFailed && isKenya && usesSystemApi;
+};
+
+const disbursePayment = (payment) => {
+    if (confirm('Are you sure you want to trigger manual disbursement for this payment?')) {
+        router.post(route('superadmin.payments.disburse', payment.id), {}, {
+            onSuccess: () => closeModal(),
         });
     }
 };
@@ -254,6 +280,17 @@ const confirmDelete = () => {
                         </div>
                         <span class="text-sm font-medium text-gray-700 dark:text-gray-200">View Details</span>
                     </Link>
+
+                    <button 
+                        v-if="canDisburse(selectedPayment)"
+                        @click="disbursePayment(selectedPayment)" 
+                        class="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors text-left group"
+                    >
+                        <div class="p-1.5 rounded-md bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400 group-hover:bg-green-100 dark:group-hover:bg-green-900/40">
+                            <Send class="w-4 h-4" />
+                        </div>
+                        <span class="text-sm font-medium text-green-600 dark:text-green-400">Manual Disburse</span>
+                    </button>
 
                     <div class="border-t border-gray-100 dark:border-slate-700 my-1"></div>
 

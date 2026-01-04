@@ -14,7 +14,8 @@ import {
     Clock,
     Smartphone,
     FileText,
-    Hash
+    Hash,
+    Send
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -31,6 +32,30 @@ const confirmDelete = () => {
     router.delete(route('superadmin.payments.destroy', props.payment.id), {
         onFinish: () => closeModal(),
     });
+};
+
+const canDisburse = (payment) => {
+    if (!payment || !payment.tenant) return false;
+    
+    const isPaid = payment.status === 'paid';
+    const isMpesa = payment.payment_method === 'mpesa';
+    const isPendingOrFailed = ['pending', 'failed'].includes(payment.disbursement_status);
+    const isKenya = payment.tenant.country_code === 'KE';
+    
+    // Check if tenant uses system M-Pesa API
+    const mpesaGateway = payment.tenant.payment_gateways?.find(g => 
+        g.provider === 'mpesa' && g.is_active
+    );
+    
+    const usesSystemApi = mpesaGateway && !mpesaGateway.use_own_api;
+    
+    return isPaid && isMpesa && isPendingOrFailed && isKenya && usesSystemApi;
+};
+
+const disbursePayment = (payment) => {
+    if (confirm('Are you sure you want to trigger manual disbursement for this payment?')) {
+        router.post(route('superadmin.payments.disburse', payment.id));
+    }
 };
 
 const formatDate = (dateString) => {
@@ -79,7 +104,16 @@ const formatCurrency = (amount) => {
                     </div>
                 </div>
                 
-                <div>
+                <div class="flex items-center gap-3">
+                    <button
+                        v-if="canDisburse(props.payment)"
+                        @click="disbursePayment(props.payment)"
+                        class="inline-flex items-center px-4 py-2 text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800"
+                    >
+                        <Send class="w-4 h-4 mr-2" />
+                        Manual Disburse
+                    </button>
+
                     <button
                         @click="openDeleteModal"
                         class="inline-flex items-center px-4 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800"

@@ -88,5 +88,13 @@ class Tenant extends BaseTenant
     {
         return $this->subscription && $this->subscription->isExpired();
     }
+
+    /**
+     * Get the payment gateways for the tenant.
+     */
+    public function paymentGateways()
+    {
+        return $this->hasMany(TenantPaymentGateway::class, 'tenant_id', 'id');
+    }
 }
 
