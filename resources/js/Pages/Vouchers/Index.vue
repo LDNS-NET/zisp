@@ -21,7 +21,6 @@ import {
     Edit,
     Calendar,
     Tag,
-    Tag,
     Printer,
     Search
 } from 'lucide-vue-next';
