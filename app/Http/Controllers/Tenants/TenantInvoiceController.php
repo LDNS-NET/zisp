@@ -10,7 +10,14 @@ class TenantInvoiceController extends Controller
 {
     public function index(Request $request)
     {
-        $paginated = TenantInvoice::latest()->paginate($request->get('per_page', 10));
+        $paginated = TenantInvoice::latest()
+            ->when($request->search, function ($q) use ($request) {
+                $q->where('user', 'like', "%{$request->search}%")
+                  ->orWhere('package', 'like', "%{$request->search}%")
+                  ->orWhere('id', 'like', "%{$request->search}%");
+            })
+            ->paginate($request->get('per_page', 10));
+
         $allData = TenantInvoice::all()->map(function ($invoice) {
             return [
                 'id' => $invoice->id,
@@ -33,9 +40,12 @@ class TenantInvoiceController extends Controller
             ] : null,
         ];
     })->toArray();
-    return inertia('Invoices/Index', [
-        'invoices' => array_merge($paginated->toArray(), ['allData' => $allData]),
-        'networkUsers' => $users,
+        return inertia('Invoices/Index', [
+            'invoices' => array_merge($paginated->toArray(), ['allData' => $allData]),
+            'networkUsers' => $users,
+            'filters' => [
+                'search' => $request->search,
+            ],
         'can' => [
             'create_invoice' => true, // Set to true or use your permission logic
         ],

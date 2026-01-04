@@ -23,6 +23,20 @@ class TenantTicketController extends Controller
 
         $tickets = TenantTickets::with('client')
             ->where('status', $status)
+            ->when($request->search, function ($q) use ($request) {
+                $q->where(function ($query) use ($request) {
+                    $query->where('ticket_number', 'like', "%{$request->search}%")
+                        ->orWhere('description', 'like', "%{$request->search}%")
+                        ->orWhereHasMorph('client', '*', function ($clientQ, $type) use ($request) {
+                            if ($type === \App\Models\Tenants\NetworkUser::class) {
+                                $clientQ->where('full_name', 'like', "%{$request->search}%")
+                                        ->orWhere('username', 'like', "%{$request->search}%");
+                            } elseif ($type === \App\Models\Tenants\TenantLeads::class) {
+                                $clientQ->where('name', 'like', "%{$request->search}%");
+                            }
+                        });
+                });
+            })
             ->latest()
             ->paginate($request->get('per_page', 10))
             ->withQueryString();
@@ -33,6 +47,9 @@ class TenantTicketController extends Controller
         return Inertia::render('Tickets/Index', [
             'tickets' => $tickets,
             'statusFilter' => $status,
+            'filters' => [
+                'search' => $request->search,
+            ],
             'users' => $users,
             'leads' => $leads,
         ]);

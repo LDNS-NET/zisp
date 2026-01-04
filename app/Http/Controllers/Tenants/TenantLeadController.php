@@ -15,12 +15,23 @@ class TenantLeadController extends Controller
      */
     public function index(Request $request)
     {
+        $search = $request->get('search');
+
         $leads = TenantLeads::select('id', 'name', 'phone_number', 'address', 'email_address', 'status')
+            ->when($search, function ($query, $search) {
+                $query->where('name', 'like', "%{$search}%")
+                    ->orWhere('phone_number', 'like', "%{$search}%")
+                    ->orWhere('email_address', 'like', "%{$search}%")
+                    ->orWhere('address', 'like', "%{$search}%");
+            })
             ->latest()
             ->paginate($request->get('per_page', 10));
 
         return Inertia::render('Leads/Index', [
             'leads' => $leads,
+            'filters' => [
+                'search' => $search,
+            ],
         ]);
     }
 

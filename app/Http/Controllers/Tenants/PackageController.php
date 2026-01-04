@@ -18,13 +18,23 @@ class PackageController extends Controller
      */
     public function index(Request $request)
     {
-        $packages = Package::latest()->paginate($request->get('per_page', 10))->withQueryString();
+        $packages = Package::latest()
+            ->when($request->search, function ($q) use ($request) {
+                $q->where('name', 'like', "%{$request->search}%")
+                  ->orWhere('type', 'like', "%{$request->search}%");
+            })
+            ->paginate($request->get('per_page', 10))
+            ->withQueryString();
+
         $currency = auth()->user()?->tenant?->currency ?? 'KES';
 
         return Inertia::render('Packages/index', [
             'packages'   => $packages->items(),
             'pagination' => $packages->toArray(),
             'currency'   => $currency,
+            'filters'    => [
+                'search' => $request->search,
+            ],
         ]);
     }
 

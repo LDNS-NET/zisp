@@ -13,7 +13,14 @@ class TenantExpensesController extends Controller
      */
     public function index(Request $request)
     {
-        $paginated = TenantExpenses::latest()->paginate($request->get('per_page', 10));
+        $paginated = TenantExpenses::latest()
+            ->when($request->search, function ($q) use ($request) {
+                $q->where('description', 'like', "%{$request->search}%")
+                  ->orWhere('amount', 'like', "%{$request->search}%")
+                  ->orWhere('category', 'like', "%{$request->search}%");
+            })
+            ->paginate($request->get('per_page', 10));
+
         $allData = TenantExpenses::all()->map(function ($expense) {
             return [
                 'id' => $expense->id,
@@ -25,6 +32,9 @@ class TenantExpensesController extends Controller
         });
         return inertia('Tenants/Expenses/Index', [
             'expenses' => array_merge($paginated->toArray(), ['allData' => $allData]),
+            'filters' => [
+                'search' => $request->search,
+            ],
         ]);
     }
 

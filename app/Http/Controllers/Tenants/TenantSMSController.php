@@ -15,7 +15,15 @@ class TenantSMSController extends Controller
 {
     public function index(Request $request)
     {
-        $smsLogs = TenantSMS::latest()->paginate($request->input('per_page', 10))->withQueryString();
+        $smsLogs = TenantSMS::latest()
+            ->when($request->search, function ($q) use ($request) {
+                $q->where('phone_number', 'like', "%{$request->search}%")
+                  ->orWhere('message', 'like', "%{$request->search}%")
+                  ->orWhere('recipient_name', 'like', "%{$request->search}%");
+            })
+            ->paginate($request->input('per_page', 10))
+            ->withQueryString();
+            
         $renters = NetworkUser::all(['id', 'full_name', 'phone']);
         $templates = TenantSMSTemplate::orderBy('name')->get(['id', 'name', 'content']);
 
@@ -23,6 +31,9 @@ class TenantSMSController extends Controller
             'smsLogs' => $smsLogs,
             'renters' => $renters,
             'templates' => $templates,
+            'filters' => [
+                'search' => $request->search,
+            ],
         ]);
     }
 

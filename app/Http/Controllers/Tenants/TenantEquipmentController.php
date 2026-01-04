@@ -12,12 +12,22 @@ class TenantEquipmentController extends Controller
 {
     public function index(Request $request)
     {
-        $equipment = TenantEquipment::latest()->paginate($request->get('per_page', 10));
+        $equipment = TenantEquipment::latest()
+            ->when($request->search, function ($q) use ($request) {
+                $q->where('name', 'like', "%{$request->search}%")
+                  ->orWhere('type', 'like', "%{$request->search}%")
+                  ->orWhere('serial_number', 'like', "%{$request->search}%")
+                  ->orWhere('model', 'like', "%{$request->search}%");
+            })
+            ->paginate($request->get('per_page', 10));
         $totalPrice = (float) TenantEquipment::sum('total_price');
 
         return Inertia::render('Tenants/Equipment/Index', [
             'equipment' => $equipment,
             'totalPrice' => $totalPrice,
+            'filters' => [
+                'search' => $request->search,
+            ],
         ]);
     }
 

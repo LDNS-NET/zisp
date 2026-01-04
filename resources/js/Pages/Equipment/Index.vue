@@ -9,7 +9,7 @@ import PrimaryButton from '@/Components/PrimaryButton.vue'
 import Pagination from '@/Components/Pagination.vue'
 import Modal from '@/Components/Modal.vue'
 import DangerButton from '@/Components/DangerButton.vue'
-import { Plus, Edit, Trash2, Save, X } from 'lucide-vue-next'
+import { Plus, Edit, Trash2, Save, X, Search } from 'lucide-vue-next'
 
 const props = defineProps({
     equipment: Object,
@@ -18,6 +18,19 @@ const props = defineProps({
     filters: Object,
     Pagination: Object,
 })
+
+const search = ref(props.filters?.search || '');
+let searchTimeout;
+watch(search, (value) => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        router.get(
+            route('tenants.equipment.index'),
+            { search: value },
+            { preserveState: true, preserveScroll: true, replace: true }
+        );
+    }, 300);
+});
 
 const showModal = ref(false)
 const editing = ref(null)
@@ -108,10 +121,26 @@ const bulkDelete = () => {
     <Head title="Equipment" />
 
     <div class="max-w-7xl mx-auto p-6 space-y-6">
-        <div class="flex justify-between items-center">
+        <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
             <h2 class="text-2xl font-bold flex">Equipment</h2>
-            <PrimaryButton @click="openAddModal" class="flex items-center gap-2" >
-                <Plus class="h-4 w-4" /> Equipment</PrimaryButton>
+            
+            <div class="flex items-center gap-4 w-full sm:w-auto">
+                <div class="relative w-full sm:w-72">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Search class="h-4 w-4 text-gray-400" />
+                    </div>
+                    <input
+                        v-model="search"
+                        type="text"
+                        placeholder="Search equipment..."
+                        class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg leading-5 bg-white dark:bg-slate-900 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150 ease-in-out"
+                    />
+                </div>
+            
+                <PrimaryButton @click="openAddModal" class="flex items-center gap-2 whitespace-nowrap" >
+                    <Plus class="h-4 w-4" /> Equipment
+                </PrimaryButton>
+            </div>
         </div>
 
         <div class="bg-white p-4 rounded shadow text-xl font-semibold">

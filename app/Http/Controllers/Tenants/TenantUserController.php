@@ -15,11 +15,21 @@ class TenantUserController extends Controller
     public function index(Request $request)
     {
         $type = $request->get('type', 'all');
+        $search = $request->get('search');
 
         $query = NetworkUser::query()
             ->with('package')
             ->when($type !== 'all', function ($q) use ($type) {
                 return $q->where('type', $type);
+            })
+            ->when($search, function ($q) use ($search) {
+                $q->where(function ($subQ) use ($search) {
+                    $subQ->where('full_name', 'like', "%{$search}%")
+                        ->orWhere('username', 'like', "%{$search}%")
+                        ->orWhere('phone', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%")
+                        ->orWhere('account_number', 'like', "%{$search}%");
+                });
             })
             ->latest();
 
@@ -87,7 +97,10 @@ class TenantUserController extends Controller
                     'name' => $user->package->name,
                 ] : null,
             ]),
-            'filters' => compact('type'),
+            'filters' => [
+                'type' => $type,
+                'search' => $search,
+            ],
             'counts' => $counts,
             'packages' => $packages,
         ]);

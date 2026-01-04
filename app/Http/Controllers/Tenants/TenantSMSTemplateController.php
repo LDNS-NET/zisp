@@ -37,10 +37,19 @@ class TenantSMSTemplateController extends Controller
             }
         }
 
-        $templates = TenantSMSTemplate::latest()->paginate($request->input('per_page', 10))->withQueryString();
+        $templates = TenantSMSTemplate::latest()
+            ->when($request->search, function ($q) use ($request) {
+                $q->where('name', 'like', "%{$request->search}%")
+                  ->orWhere('content', 'like', "%{$request->search}%");
+            })
+            ->paginate($request->input('per_page', 10))
+            ->withQueryString();
 
         return Inertia::render('SMSTemplates/Index', [
             'templates' => $templates,
+            'filters' => [
+                'search' => $request->search,
+            ],
         ]);
     }
 

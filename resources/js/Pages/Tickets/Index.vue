@@ -21,7 +21,9 @@ import {
     XCircle,
     User,
     AlertCircle,
-    FileText
+    AlertCircle,
+    FileText,
+    Search
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -29,6 +31,7 @@ const props = defineProps({
     statusFilter: String,
     users: Array,
     leads: Array,
+    filters: Object,
 });
 
 const showModal = ref(false);
@@ -129,7 +132,7 @@ const remove = (ticket) => {
 };
 
 const changeFilter = (status) => {
-    router.visit(route('tickets.index', { status }), {
+    router.visit(route('tickets.index', { status, search: search.value }), {
         preserveScroll: true,
     });
 };
@@ -137,6 +140,19 @@ const changeFilter = (status) => {
 const clients = computed(() =>
     form.client_type === 'user' ? props.users : props.leads,
 );
+
+const search = ref(props.filters?.search || '');
+let searchTimeout;
+watch(search, (value) => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        router.get(
+            route('tickets.index'),
+            { search: value, status: props.statusFilter },
+            { preserveState: true, preserveScroll: true, replace: true }
+        );
+    }, 300);
+});
 
 //bulk delete
 const bulkDelete = () => {
@@ -214,6 +230,18 @@ function showDescription(description) {
                     >
                         Closed
                     </button>
+                </div>
+
+                <div class="relative w-full sm:w-72">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Search class="h-4 w-4 text-gray-400" />
+                    </div>
+                    <input
+                        v-model="search"
+                        type="text"
+                        placeholder="Search tickets..."
+                        class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg leading-5 bg-white dark:bg-slate-900 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150 ease-in-out"
+                    />
                 </div>
 
                 <div v-if="selectedTenantTickets.length" class="flex items-center gap-2">

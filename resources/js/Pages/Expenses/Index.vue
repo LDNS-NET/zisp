@@ -11,7 +11,7 @@ import SelectInput from '@/Components/SelectInput.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Pagination from '@/Components/Pagination.vue';
 import { useToast } from 'vue-toastification';
-import { BanknoteArrowDown, Eye, EyeOff, Plus, Pencil, Trash2 } from 'lucide-vue-next';
+import { BanknoteArrowDown, Eye, EyeOff, Plus, Pencil, Trash2, Search } from 'lucide-vue-next';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import DangerButton from '@/Components/DangerButton.vue';
 import Card from '@/Components/Card.vue';
@@ -20,6 +20,19 @@ const toast = useToast();
 const props = defineProps({
     expenses: Object,
     filters: Object,
+});
+
+const search = ref(props.filters?.search || '');
+let searchTimeout;
+watch(search, (value) => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        router.get(
+            route('tenants.expenses.index'),
+            { search: value },
+            { preserveState: true, preserveScroll: true, replace: true }
+        );
+    }, 300);
 });
 
 function openEditModal(expense) {
@@ -199,10 +212,36 @@ watch(selectedExpense, val => {
                     <BanknoteArrowDown class="inline w-6 h-6 text-gray-600 dark:text-gray-300 mr-1" />
                     Expenses
                 </h2>
-                <PrimaryButton @click="openModal">
-                    <Plus class="inline w-5 h-5 mr-1" />
-                    Add Expense
-                </PrimaryButton>
+                <div class="space-y-6">
+            <!-- Search and Bulk Actions -->
+            <div class="flex flex-col sm:flex-row gap-4 justify-between items-center bg-white dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm">
+                <div class="relative w-full sm:w-72">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Search class="h-4 w-4 text-gray-400" />
+                    </div>
+                    <input
+                        v-model="search"
+                        type="text"
+                        placeholder="Search expenses..."
+                        class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg leading-5 bg-white dark:bg-slate-900 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150 ease-in-out"
+                    />
+                </div>
+
+                <div v-if="selectedExpense.length" class="flex items-center gap-2">
+                    <span class="text-sm text-gray-500 dark:text-gray-400">{{ selectedExpense.length }} selected</span>
+                    <PrimaryButton @click="bulkDelete" class="flex items-center gap-2 bg-red-600 hover:bg-red-700">
+                        <Trash2 class="w-4 h-4" /> Delete
+                    </PrimaryButton>
+                </div>
+                <div v-else>
+                   <PrimaryButton @click="openModal()" class="flex items-center gap-2">
+                        <Plus class="w-4 h-4" /> Add Expense
+                   </PrimaryButton>
+                </div>
+            </div>
+
+            <!-- Mobile View -->
+            </div>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 

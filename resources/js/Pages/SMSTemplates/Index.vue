@@ -25,6 +25,20 @@ import Checkbox from '@/Components/Checkbox.vue';
 
 const props = defineProps({
     templates: Object,
+    filters: Object,
+});
+
+const search = ref(props.filters?.search || '');
+let searchTimeout;
+watch(search, (value) => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        router.get(
+            route('smstemplates.index'),
+            { search: value },
+            { preserveState: true, preserveScroll: true, replace: true }
+        );
+    }, 300);
 });
 
 const toast = useToast();
@@ -195,6 +209,28 @@ const bulkDelete = () => {
         </template>
 
         <div class="space-y-6">
+            <!-- Search and Actions -->
+            <div class="flex flex-col sm:flex-row gap-4 justify-between items-center bg-white dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm">
+                <div class="relative w-full sm:w-72">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Search class="h-4 w-4 text-gray-400" />
+                    </div>
+                    <input
+                        v-model="search"
+                        type="text"
+                        placeholder="Search templates..."
+                        class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg leading-5 bg-white dark:bg-slate-900 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150 ease-in-out"
+                    />
+                </div>
+
+                <div v-if="selectedItems.length" class="flex items-center gap-2">
+                    <span class="text-sm text-gray-500 dark:text-gray-400">{{ selectedItems.length }} selected</span>
+                    <DangerButton @click="bulkDelete" class="flex items-center gap-2">
+                        <Trash2 class="w-4 h-4" /> Delete
+                    </DangerButton>
+                </div>
+            </div>
+
             <!-- Main Content -->
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
                 <!-- Bulk Actions Toolbar -->
