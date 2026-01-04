@@ -3,7 +3,7 @@ import { ref, watch } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import SuperAdminLayout from '@/Layouts/SuperAdminLayout.vue';
 import Modal from '@/Components/Modal.vue';
-import { Search, Filter, MoreVertical, Trash2, Eye, Ban, CheckCircle, AlertCircle, AlertTriangle, X, Edit, Globe, User as UserIcon, Phone, Mail, Download, ChevronDown } from 'lucide-vue-next';
+import { Search, Filter, MoreVertical, Trash2, Eye, Ban, CheckCircle, AlertCircle, AlertTriangle, X, Edit, Globe, User as UserIcon, Phone, Mail, Download, ChevronDown, Shield } from 'lucide-vue-next';
 import debounce from 'lodash/debounce';
 import { useForm } from '@inertiajs/vue3';
 import InputLabel from '@/Components/InputLabel.vue';
@@ -171,6 +171,12 @@ const exportUsers = () => {
         status: status.value,
         country: country.value,
     });
+};
+
+const impersonateUser = (user) => {
+    if (confirm(`Are you sure you want to impersonate ${user.name}?`)) {
+        router.post(route('superadmin.users.impersonate', user.id));
+    }
 };
 </script>
 
@@ -438,6 +444,13 @@ const exportUsers = () => {
                             <Edit class="w-4 h-4" />
                         </div>
                         <span class="text-sm font-medium text-gray-700 dark:text-gray-200">Edit Details</span>
+                    </button>
+
+                    <button @click="impersonateUser(selectedUser)" class="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-left group">
+                        <div class="p-1.5 rounded-md bg-orange-50 text-orange-600 dark:bg-orange-900/20 dark:text-orange-400 group-hover:bg-orange-100 dark:group-hover:bg-orange-900/40">
+                            <Shield class="w-4 h-4" />
+                        </div>
+                        <span class="text-sm font-medium text-gray-700 dark:text-gray-200">Impersonate Tenant</span>
                     </button>
 
                     <div class="border-t border-gray-100 dark:border-slate-700 my-1"></div>

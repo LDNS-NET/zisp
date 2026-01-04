@@ -27,7 +27,8 @@ import {
     Activity,
     ChevronLeft,
     Globe,
-    Bell
+    Bell,
+    Shield
 } from 'lucide-vue-next';
 
 const { theme, setTheme } = useTheme();
@@ -183,6 +184,22 @@ function toggleSidebar() {
         <div class="flex-1 flex flex-col min-w-0">
             
             <!-- Top Header -->
+            <div v-if="$page.props.auth.impersonated_by" class="bg-orange-600 text-white px-4 py-2 flex items-center justify-between z-50">
+                <div class="flex items-center gap-2">
+                    <Shield class="w-4 h-4" />
+                    <span class="text-sm font-medium">
+                        You are currently impersonating <strong>{{ user.name }}</strong>
+                    </span>
+                </div>
+                <Link 
+                    :href="route('impersonate.leave')" 
+                    method="post" 
+                    as="button"
+                    class="text-xs font-bold uppercase tracking-wider bg-white text-orange-600 px-3 py-1 rounded hover:bg-orange-50 transition-colors"
+                >
+                    Leave Impersonation
+                </Link>
+            </div>
             <header class="h-16 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between px-4 sm:px-6 lg:px-8 z-30 sticky top-0">
                 
                 <!-- Left: Mobile Toggle -->

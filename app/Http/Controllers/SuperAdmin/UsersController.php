@@ -362,4 +362,28 @@ class UsersController extends Controller
 
         return response()->stream($callback, 200, $headers);
     }
+
+    public function impersonate(User $user)
+    {
+        // 1. Ensure the user is not a superadmin
+        if ($user->role === 'superadmin') {
+            return back()->with('error', 'Cannot impersonate another superadmin.');
+        }
+
+        // 2. Store the original superadmin ID in the session
+        session()->put('impersonated_by', auth()->id());
+
+        // 3. Log the activity
+        SuperAdminActivity::log(
+            'user.impersonated',
+            "Started impersonating tenant: {$user->name}",
+            $user
+        );
+
+        // 4. Log in as the tenant admin
+        auth()->login($user);
+
+        // 5. Redirect to the tenant dashboard
+        return redirect()->route('dashboard')->with('success', "Now impersonating {$user->name}");
+    }
 }

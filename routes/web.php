@@ -342,6 +342,7 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::post('admin/logout', [App\Http\Controllers\Admin\AuthController::class, 'logout'])->name('admin.logout');
+Route::post('impersonate/leave', [App\Http\Controllers\ImpersonationController::class, 'leave'])->name('impersonate.leave');
 
 Route::middleware(['auth', 'superadmin', 'throttle:120,1'])
     ->prefix('superadmin')
@@ -361,6 +362,7 @@ Route::middleware(['auth', 'superadmin', 'throttle:120,1'])
             Route::delete('/{user}', [UsersController::class, 'destroy'])->name('destroy');
             Route::post('/{user}/suspend', [UsersController::class, 'suspend'])->name('suspend');
             Route::post('/{user}/unsuspend', [UsersController::class, 'unsuspend'])->name('unsuspend');
+            Route::post('/{user}/impersonate', [UsersController::class, 'impersonate'])->name('impersonate');
         });
 
         // Payment Management
@@ -420,6 +422,9 @@ Route::middleware(['auth', 'superadmin', 'throttle:120,1'])
             Route::post('admins', [App\Http\Controllers\SuperAdmin\AdminController::class, 'store'])->name('admins.store');
             Route::put('admins/{id}', [App\Http\Controllers\SuperAdmin\AdminController::class, 'update'])->name('admins.update');
             Route::delete('admins/{id}', [App\Http\Controllers\SuperAdmin\AdminController::class, 'destroy'])->name('admins.destroy');
+
+            // Health Check
+            Route::get('health', [HealthCheckController::class, 'index'])->name('health');
         });
         
         // Legacy route compatibility (to be deprecated)
