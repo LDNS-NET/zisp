@@ -3,8 +3,14 @@ import { ref, watch } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import SuperAdminLayout from '@/Layouts/SuperAdminLayout.vue';
 import Modal from '@/Components/Modal.vue';
-import { Search, Filter, MoreVertical, Trash2, Eye, Ban, CheckCircle, AlertCircle, AlertTriangle, X } from 'lucide-vue-next';
+import { Search, Filter, MoreVertical, Trash2, Eye, Ban, CheckCircle, AlertCircle, AlertTriangle, X, Edit, Globe, User as UserIcon, Phone, Mail } from 'lucide-vue-next';
 import debounce from 'lodash/debounce';
+import { useForm } from '@inertiajs/vue3';
+import InputLabel from '@/Components/InputLabel.vue';
+import TextInput from '@/Components/TextInput.vue';
+import InputError from '@/Components/InputError.vue';
+import PrimaryButton from '@/Components/PrimaryButton.vue';
+import SecondaryButton from '@/Components/SecondaryButton.vue';
 
 const props = defineProps({
     users: Object,
@@ -19,8 +25,17 @@ const country = ref(props.filters.country || '');
 // Modal State
 const showDeleteModal = ref(false);
 const showSuspendModal = ref(false);
+const showEditModal = ref(false);
 const showActionsModal = ref(false);
 const selectedUser = ref(null);
+
+const editForm = useForm({
+    name: '',
+    email: '',
+    phone: '',
+    username: '',
+    domain: '',
+});
 
 // Debounced search
 const updateSearch = debounce((value) => {
@@ -58,9 +73,30 @@ const openSuspendModal = (user) => {
     showActionsModal.value = false;
 };
 
+const openEditModal = (user) => {
+    selectedUser.value = user;
+    editForm.name = user.name;
+    editForm.email = user.email;
+    editForm.phone = user.phone;
+    editForm.username = user.username;
+    editForm.domain = user.tenant_general_setting?.website || '';
+    showEditModal.value = true;
+    showActionsModal.value = false;
+};
+
+const updateUser = () => {
+    editForm.put(route('superadmin.users.update', selectedUser.value.id), {
+        onSuccess: () => {
+            closeModal();
+            editForm.reset();
+        }
+    });
+};
+
 const closeModal = () => {
     showDeleteModal.value = false;
     showSuspendModal.value = false;
+    showEditModal.value = false;
     showActionsModal.value = false;
     selectedUser.value = null;
 };
@@ -272,6 +308,13 @@ const confirmSuspend = () => {
                         <span class="text-sm font-medium text-gray-700 dark:text-gray-200">{{ selectedUser.is_suspended ? 'Activate Tenant' : 'Suspend Tenant' }}</span>
                     </button>
 
+                    <button @click="openEditModal(selectedUser)" class="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-left group">
+                        <div class="p-1.5 rounded-md bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/40">
+                            <Edit class="w-4 h-4" />
+                        </div>
+                        <span class="text-sm font-medium text-gray-700 dark:text-gray-200">Edit Details</span>
+                    </button>
+
                     <div class="border-t border-gray-100 dark:border-slate-700 my-1"></div>
 
                     <button @click="openDeleteModal(selectedUser)" class="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-left group">
@@ -349,6 +392,114 @@ const confirmSuspend = () => {
                         {{ selectedUser?.is_suspended ? 'Activate' : 'Suspend' }}
                     </button>
                 </div>
+            </div>
+        </Modal>
+
+        <!-- Edit Tenant Modal -->
+        <Modal :show="showEditModal" @close="closeModal" maxWidth="lg">
+            <div class="p-6 dark:bg-slate-900">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white">Edit Tenant Details</h3>
+                    <button @click="closeModal" class="text-gray-400 hover:text-gray-500">
+                        <X class="w-6 h-6" />
+                    </button>
+                </div>
+
+                <form @submit.prevent="updateUser" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <InputLabel for="name" value="Full Name" />
+                            <div class="mt-1 relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <UserIcon class="h-4 w-4 text-gray-400" />
+                                </div>
+                                <TextInput 
+                                    id="name"
+                                    type="text"
+                                    class="block w-full pl-10"
+                                    v-model="editForm.name"
+                                    required
+                                />
+                            </div>
+                            <InputError class="mt-2" :message="editForm.errors.name" />
+                        </div>
+
+                        <div>
+                            <InputLabel for="username" value="Username" />
+                            <div class="mt-1 relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <UserIcon class="h-4 w-4 text-gray-400" />
+                                </div>
+                                <TextInput 
+                                    id="username"
+                                    type="text"
+                                    class="block w-full pl-10"
+                                    v-model="editForm.username"
+                                    required
+                                />
+                            </div>
+                            <InputError class="mt-2" :message="editForm.errors.username" />
+                        </div>
+
+                        <div>
+                            <InputLabel for="email" value="Email Address" />
+                            <div class="mt-1 relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <Mail class="h-4 w-4 text-gray-400" />
+                                </div>
+                                <TextInput 
+                                    id="email"
+                                    type="email"
+                                    class="block w-full pl-10"
+                                    v-model="editForm.email"
+                                    required
+                                />
+                            </div>
+                            <InputError class="mt-2" :message="editForm.errors.email" />
+                        </div>
+
+                        <div>
+                            <InputLabel for="phone" value="Phone Number" />
+                            <div class="mt-1 relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <Phone class="h-4 w-4 text-gray-400" />
+                                </div>
+                                <TextInput 
+                                    id="phone"
+                                    type="text"
+                                    class="block w-full pl-10"
+                                    v-model="editForm.phone"
+                                    required
+                                />
+                            </div>
+                            <InputError class="mt-2" :message="editForm.errors.phone" />
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <InputLabel for="domain" value="Custom Domain / Website" />
+                            <div class="mt-1 relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <Globe class="h-4 w-4 text-gray-400" />
+                                </div>
+                                <TextInput 
+                                    id="domain"
+                                    type="text"
+                                    class="block w-full pl-10"
+                                    v-model="editForm.domain"
+                                    placeholder="e.g. wifi.yourbrand.com"
+                                />
+                            </div>
+                            <InputError class="mt-2" :message="editForm.errors.domain" />
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-end gap-3 pt-6">
+                        <SecondaryButton @click="closeModal">Cancel</SecondaryButton>
+                        <PrimaryButton :class="{ 'opacity-25': editForm.processing }" :disabled="editForm.processing">
+                            Save Changes
+                        </PrimaryButton>
+                    </div>
+                </form>
             </div>
         </Modal>
     </SuperAdminLayout>

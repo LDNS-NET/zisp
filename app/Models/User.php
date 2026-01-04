@@ -53,4 +53,9 @@ class User extends Authenticatable
     {
         return $this->belongsTo(Tenant::class);
     }
+
+    public function tenantGeneralSetting()
+    {
+        return $this->hasOne(TenantGeneralSetting::class, 'tenant_id', 'tenant_id');
+    }
 }

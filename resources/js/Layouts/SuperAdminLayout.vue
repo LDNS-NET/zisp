@@ -16,13 +16,11 @@ import {
     FolderEdit,
     Menu,
     X,
-    ChevronDown,
-    ChevronRight,
-    Network,
-    Globe,
-    MessageSquare,
     Shield,
     BarChart,
+    Bell,
+    ChevronDown,
+    ChevronRight,
 } from 'lucide-vue-next';
 
 const { theme, setTheme } = useTheme();
@@ -53,8 +51,38 @@ const navigation = [
     { name: 'Admins', href: route('superadmin.admins.index'), icon: Shield, active: 'superadmin.admins.*' },
     { name: 'Analytics', href: route('superadmin.analytics.index'), icon: BarChart, active: 'superadmin.analytics.*' },
     { name: 'All Mikrotiks', href: route('superadmin.allmikrotiks.index'), icon: Network, active: 'superadmin.allmikrotiks.*' },
-    { name: 'Onboarding Requests', href: route('superadmin.onboarding-requests.index'), icon: MessageSquare, active: 'superadmin.onboarding-requests.*', badge: 'pending_onboarding_requests' },
+    { 
+        name: 'Notifications', 
+        icon: Bell, 
+        active: ['superadmin.onboarding-requests.*', 'superadmin.domain-requests.*'],
+        children: [
+            { name: 'Onboarding', href: route('superadmin.onboarding-requests.index'), active: 'superadmin.onboarding-requests.*', badge: 'pending_onboarding_requests' },
+            { name: 'Domain Requests', href: route('superadmin.domain-requests.index'), active: 'superadmin.domain-requests.*', badge: 'pending_domain_requests' },
+        ]
+    },
 ];
+
+const openMenus = ref({});
+
+const toggleMenu = (name) => {
+    openMenus.value[name] = !openMenus.value[name];
+};
+
+const isMenuActive = (item) => {
+    if (Array.isArray(item.active)) {
+        return item.active.some(a => route().current(a));
+    }
+    return route().current(item.active);
+};
+
+// Initialize open menus based on active route
+onMounted(() => {
+    navigation.forEach(item => {
+        if (item.children && isMenuActive(item)) {
+            openMenus.value[item.name] = true;
+        }
+    });
+});
 
 const user = usePage().props.auth.user;
 
@@ -110,7 +138,59 @@ function toggleSidebar() {
                         {{ item.header }}
                     </div>
                     
-                    <!-- Link -->
+                    <!-- Link with Children (Toggle) -->
+                    <div v-else-if="item.children" class="space-y-1">
+                        <button 
+                            @click="toggleMenu(item.name)"
+                            :class="[
+                                'w-full group flex items-center px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200',
+                                isMenuActive(item)
+                                    ? 'bg-blue-50/50 text-blue-700 dark:bg-blue-900/10 dark:text-blue-400' 
+                                    : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white'
+                            ]"
+                        >
+                            <component 
+                                :is="item.icon" 
+                                :class="[
+                                    'flex-shrink-0 w-5 h-5 transition-colors duration-200',
+                                    isMenuActive(item) ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 group-hover:text-gray-600 dark:text-gray-500 dark:group-hover:text-gray-300',
+                                    collapsed ? 'mx-auto' : 'mr-3'
+                                ]" 
+                            />
+                            <span :class="['transition-all duration-300 whitespace-nowrap', collapsed ? 'lg:hidden' : 'block']">
+                                {{ item.name }}
+                            </span>
+                            <ChevronDown 
+                                v-if="!collapsed"
+                                :class="['ml-auto w-4 h-4 transition-transform duration-200', openMenus[item.name] ? 'rotate-180' : '']"
+                            />
+                        </button>
+
+                        <!-- Sub-items -->
+                        <div v-if="openMenus[item.name] && !collapsed" class="pl-10 space-y-1">
+                            <Link 
+                                v-for="child in item.children" 
+                                :key="child.name"
+                                :href="child.href"
+                                :class="[
+                                    'flex items-center px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200',
+                                    route().current(child.active)
+                                        ? 'text-blue-600 dark:text-blue-400 bg-blue-50/30 dark:bg-blue-900/10'
+                                        : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-slate-800'
+                                ]"
+                            >
+                                {{ child.name }}
+                                <span 
+                                    v-if="child.badge && $page.props.superadminCounts[child.badge] > 0"
+                                    class="ml-auto inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500 text-white"
+                                >
+                                    {{ $page.props.superadminCounts[child.badge] }}
+                                </span>
+                            </Link>
+                        </div>
+                    </div>
+                    
+                    <!-- Simple Link -->
                     <Link 
                         v-else
                         :href="item.href"

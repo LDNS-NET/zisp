@@ -24,7 +24,8 @@ import {
     Smartphone,
     Layers,
     Activity,
-    ChevronLeft
+    ChevronLeft,
+    Globe
 } from 'lucide-vue-next';
 
 const { theme, setTheme } = useTheme();
@@ -229,6 +230,9 @@ function toggleSidebar() {
                             </DropdownLink>
                             <DropdownLink :href="route('settings.general.edit')" class="flex items-center gap-2">
                                 <Settings class="w-4 h-4" /> Settings
+                            </DropdownLink>
+                            <DropdownLink :href="route('domain-requests.index')" class="flex items-center gap-2">
+                                <Globe class="w-4 h-4" /> Domain Settings
                             </DropdownLink>
                             <div class="border-t border-gray-100 dark:border-slate-700 my-1"></div>
                             <DropdownLink :href="route('logout')" method="post" as="button" class="flex items-center gap-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">

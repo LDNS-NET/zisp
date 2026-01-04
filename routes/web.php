@@ -235,6 +235,10 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode'])
         Route::get('settings/general', [TenantGeneralSettingsController::class, 'edit'])->name('settings.general.edit');
         Route::post('settings/general', [TenantGeneralSettingsController::class, 'update'])->name('settings.general.update');
 
+        // Domain Requests
+        Route::get('domain-requests', [App\Http\Controllers\Tenants\DomainRequestController::class, 'index'])->name('domain-requests.index');
+        Route::post('domain-requests', [App\Http\Controllers\Tenants\DomainRequestController::class, 'store'])->name('domain-requests.store');
+
         //Mikrotik Details
         Route::resource('mikrotikdetails', MikrotikDetailsController::class)->only(['index']);
 
@@ -351,7 +355,7 @@ Route::middleware(['auth', 'superadmin'])
         // Users Management
         Route::post('users/{user}/suspend', [UsersController::class, 'suspend'])->name('users.suspend');
         Route::post('users/{user}/unsuspend', [UsersController::class, 'unsuspend'])->name('users.unsuspend');
-        Route::resource('users', UsersController::class)->only(['index', 'show', 'destroy']);
+        Route::resource('users', UsersController::class)->only(['index', 'show', 'update', 'destroy']);
 
         // Payments Management
         Route::post('payments/{payment}/disburse', [PaymentsController::class, 'disburse'])->name('payments.disburse');
@@ -367,6 +371,11 @@ Route::middleware(['auth', 'superadmin'])
         // Onboarding Requests
         Route::get('onboarding-requests', [OnboardingRequestController::class, 'index'])->name('onboarding-requests.index');
         Route::patch('onboarding-requests/{onboardingRequest}', [OnboardingRequestController::class, 'update'])->name('onboarding-requests.update');
+
+        // Domain Requests
+        Route::get('domain-requests', [App\Http\Controllers\SuperAdmin\DomainRequestController::class, 'index'])->name('domain-requests.index');
+        Route::patch('domain-requests/{domainRequest}', [App\Http\Controllers\SuperAdmin\DomainRequestController::class, 'update'])->name('domain-requests.update');
+        Route::delete('domain-requests/{domainRequest}', [App\Http\Controllers\SuperAdmin\DomainRequestController::class, 'destroy'])->name('domain-requests.destroy');
 
         // Pricing Plans Management
         Route::get('pricing-plans', [App\Http\Controllers\SuperAdmin\PricingPlanController::class, 'index'])->name('pricing-plans.index');

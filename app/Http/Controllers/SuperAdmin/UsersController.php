@@ -45,7 +45,7 @@ class UsersController extends Controller
             $query->where('country_code', $request->country);
         }
 
-        $users = $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
+        $users = $query->with('tenantGeneralSetting')->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
         
         // Get unique countries for filter
         $countries = User::select('country_code', 'country')->distinct()->whereNotNull('country_code')->get();
@@ -75,6 +75,36 @@ class UsersController extends Controller
         // For now, just delete the user record
         $user->delete();
         return back()->with('success', 'User deleted successfully.');
+    }
+
+    public function update(Request $request, $id)
+    {
+        $user = User::findOrFail($id);
+        
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,' . $user->id,
+            'phone' => 'required|string|max:20',
+            'username' => 'required|string|unique:users,username,' . $user->id,
+            'domain' => 'nullable|string|max:255',
+        ]);
+
+        $user->update([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'phone' => $validated['phone'],
+            'username' => $validated['username'],
+        ]);
+
+        // Update domain in TenantGeneralSetting
+        if ($user->tenant_id) {
+            TenantGeneralSetting::updateOrCreate(
+                ['tenant_id' => $user->tenant_id],
+                ['website' => $validated['domain']]
+            );
+        }
+
+        return back()->with('success', 'User details updated successfully.');
     }
 
     public function show($id)
