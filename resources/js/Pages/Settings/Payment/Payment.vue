@@ -270,8 +270,8 @@ const save = () => {
                         class="mt-1 block w-full rounded border-gray-300 dark:bg-gray-800"
                     >
                         <template v-if="country === 'KE'">
-                            <option v-if="supportedMethods.includes('phone') || supportedMethods.includes('mpesa')" value="phone">M-Pesa Phone (Automatic)</option>
-                            <option v-if="supportedMethods.includes('phone') || supportedMethods.includes('mpesa')" value="custom_mpesa">Custom M-Pesa API</option>
+                            <option v-if="supportedMethods.includes('mpesa') || supportedMethods.includes('phone')" value="phone">M-Pesa Phone (Automatic)</option>
+                            <option v-if="supportedMethods.includes('custom_mpesa')" value="custom_mpesa">Custom M-Pesa API</option>
                             <option v-if="supportedMethods.includes('bank')" value="bank">Bank</option>
                             <option v-if="supportedMethods.includes('mpesa_till')" value="mpesa_till">M-Pesa Till</option>
                             <option v-if="supportedMethods.includes('mpesa_paybill')" value="mpesa_paybill">M-Pesa Paybill</option>

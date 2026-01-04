@@ -60,6 +60,7 @@ class TenantHotspotController extends Controller
         // Get configured payment gateways for this tenant
         $gateways = \App\Models\TenantPaymentGateway::where('tenant_id', $tenant->id)
             ->where('is_active', true)
+            ->orderByDesc('updated_at')
             ->pluck('provider')
             ->toArray();
 
