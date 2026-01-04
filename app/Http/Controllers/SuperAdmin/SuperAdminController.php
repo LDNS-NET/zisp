@@ -1,3 +1,12 @@
+<?php
+
+namespace App\Http\Controllers\SuperAdmin;
+
+use App\Http\Controllers\Controller;
+use App\Models\Tenants\TenantSMS;
+use App\Models\Tenants\NetworkUser;
+use App\Models\User;
+use App\Models\Tenants\TenantPayment;
 use App\Models\Tenants\TenantSMSTemplate;
 use App\Models\Radius\Radacct;
 use App\Models\Tenant;
