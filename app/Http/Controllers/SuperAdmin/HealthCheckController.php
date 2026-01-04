@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use App\Models\Tenants\TenantMikrotik;
+use Illuminate\Support\Facades\File;
 
 class HealthCheckController extends Controller
 {
@@ -16,9 +18,12 @@ class HealthCheckController extends Controller
             'database' => $this->checkDatabase(),
             'cache' => $this->checkCache(),
             'disk' => $this->checkDiskSpace(),
+            'server' => $this->checkServerLoad(),
+            'mikrotik' => $this->checkMikrotikConnectivity(),
+            'queue' => $this->checkQueueStatus(),
+            'errors' => $this->checkRecentErrors(),
             'services' => [
                 'intasend' => $this->checkIntaSend(),
-                // Add more services here
             ],
             'last_check' => now()->toDateTimeString(),
         ]);
@@ -82,6 +87,94 @@ class HealthCheckController extends Controller
             return ['status' => 'healthy', 'message' => 'Service reachable'];
         } catch (\Exception $e) {
             return ['status' => 'unhealthy', 'message' => 'Service unreachable'];
+        }
+    }
+
+    private function checkServerLoad()
+    {
+        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+            try {
+                // CPU Load
+                $cpuLoad = shell_exec('wmic cpu get loadpercentage /Value');
+                preg_match('/LoadPercentage=(\d+)/', $cpuLoad, $matches);
+                $cpu = isset($matches[1]) ? (int)$matches[1] : 0;
+
+                // RAM Usage
+                $memInfo = shell_exec('wmic OS get FreePhysicalMemory,TotalVisibleMemorySize /Value');
+                preg_match('/FreePhysicalMemory=(\d+)/', $memInfo, $freeMatches);
+                preg_match('/TotalVisibleMemorySize=(\d+)/', $memInfo, $totalMatches);
+                
+                $free = isset($freeMatches[1]) ? (int)$freeMatches[1] : 0;
+                $total = isset($totalMatches[1]) ? (int)$totalMatches[1] : 0;
+                $used = $total - $free;
+                $ramPercent = $total > 0 ? round(($used / $total) * 100, 2) : 0;
+
+                return [
+                    'status' => ($cpu < 90 && $ramPercent < 90) ? 'healthy' : 'warning',
+                    'cpu' => $cpu,
+                    'ram' => $ramPercent,
+                    'message' => "CPU: {$cpu}%, RAM: {$ramPercent}%"
+                ];
+            } catch (\Exception $e) {
+                return ['status' => 'unhealthy', 'message' => 'Could not check server load'];
+            }
+        }
+
+        return ['status' => 'unknown', 'message' => 'OS not supported for load check'];
+    }
+
+    private function checkMikrotikConnectivity()
+    {
+        try {
+            $total = TenantMikrotik::count();
+            $online = TenantMikrotik::where('status', 'online')->count();
+            $offline = $total - $online;
+
+            return [
+                'status' => $offline === 0 ? 'healthy' : ($online > 0 ? 'warning' : 'unhealthy'),
+                'total' => $total,
+                'online' => $online,
+                'offline' => $offline,
+                'message' => "{$online}/{$total} Online"
+            ];
+        } catch (\Exception $e) {
+            return ['status' => 'unhealthy', 'message' => 'Database error'];
+        }
+    }
+
+    private function checkQueueStatus()
+    {
+        try {
+            $failedJobs = DB::table('failed_jobs')->where('failed_at', '>=', now()->subDay())->count();
+            return [
+                'status' => $failedJobs === 0 ? 'healthy' : 'warning',
+                'failed_24h' => $failedJobs,
+                'message' => $failedJobs === 0 ? 'Running smoothly' : "{$failedJobs} failed jobs in 24h"
+            ];
+        } catch (\Exception $e) {
+            return ['status' => 'unhealthy', 'message' => 'Could not check queue status'];
+        }
+    }
+
+    private function checkRecentErrors()
+    {
+        try {
+            $logPath = storage_path('logs/laravel.log');
+            if (!File::exists($logPath)) {
+                return ['status' => 'healthy', 'message' => 'No logs found'];
+            }
+
+            // Read last 100 lines of log
+            $logs = shell_exec('powershell -command "Get-Content ' . $logPath . ' -Tail 100"');
+            $errorCount = substr_count(strtoupper($logs), '.ERROR:') + substr_count(strtoupper($logs), '.CRITICAL:');
+
+            return [
+                'status' => $errorCount === 0 ? 'healthy' : ($errorCount < 5 ? 'warning' : 'unhealthy'),
+                'count' => $errorCount,
+                'message' => $errorCount === 0 ? 'No recent errors' : "{$errorCount} errors in recent logs"
+            ];
+        } catch (\Exception $e) {
+            return ['status' => 'unhealthy', 'message' => 'Could not read logs'];
         }
     }
 

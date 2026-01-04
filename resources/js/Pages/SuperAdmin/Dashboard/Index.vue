@@ -4,7 +4,8 @@ import { computed, onMounted, ref } from 'vue';
 import axios from 'axios';
 import { 
     User, Banknote, MessageSquare, Building2, Activity, ArrowRight, 
-    TrendingUp, TrendingDown, CreditCard, UserPlus, AlertCircle, CheckCircle 
+    TrendingUp, TrendingDown, CreditCard, UserPlus, AlertCircle, CheckCircle,
+    Cpu, HardDrive, Network, Layers, ShieldAlert
 } from 'lucide-vue-next';
 import { 
     Chart as ChartJS, 
@@ -369,69 +370,112 @@ onMounted(() => {
                         <div v-for="i in 4" :key="i" class="h-8 bg-gray-100 dark:bg-gray-700 rounded"></div>
                     </div>
                     
-                    <div v-else-if="systemHealth" class="space-y-4">
-                        <!-- Database -->
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center">
-                                <component :is="systemHealth.database.status === 'healthy' ? CheckCircle : AlertCircle" 
-                                    :class="['h-5 w-5 mr-2', systemHealth.database.status === 'healthy' ? 'text-green-500' : 'text-red-500']" />
-                                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Database</span>
+                    <div v-else-if="systemHealth" class="space-y-6">
+                        <!-- Server Load (CPU/RAM) -->
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between text-xs font-medium text-gray-500">
+                                <div class="flex items-center gap-1">
+                                    <Cpu class="h-3.5 w-3.5" />
+                                    <span>CPU Load</span>
+                                </div>
+                                <span>{{ systemHealth.server.cpu }}%</span>
                             </div>
-                            <span :class="[
-                                'inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset',
-                                systemHealth.database.status === 'healthy' ? 'bg-green-50 text-green-700 ring-green-600/20' : 'bg-red-50 text-red-700 ring-red-600/20'
-                            ]">
-                                {{ systemHealth.database.message }}
-                            </span>
+                            <div class="h-1.5 w-full bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                                <div 
+                                    class="h-full transition-all duration-500" 
+                                    :class="systemHealth.server.cpu > 80 ? 'bg-red-500' : 'bg-indigo-500'"
+                                    :style="{ width: `${systemHealth.server.cpu}%` }"
+                                ></div>
+                            </div>
+
+                            <div class="flex items-center justify-between text-xs font-medium text-gray-500">
+                                <div class="flex items-center gap-1">
+                                    <HardDrive class="h-3.5 w-3.5" />
+                                    <span>RAM Usage</span>
+                                </div>
+                                <span>{{ systemHealth.server.ram }}%</span>
+                            </div>
+                            <div class="h-1.5 w-full bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                                <div 
+                                    class="h-full transition-all duration-500" 
+                                    :class="systemHealth.server.ram > 80 ? 'bg-red-500' : 'bg-blue-500'"
+                                    :style="{ width: `${systemHealth.server.ram}%` }"
+                                ></div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <!-- MikroTik Connectivity -->
+                            <div class="p-3 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-700">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <Network class="h-4 w-4 text-indigo-500" />
+                                    <span class="text-xs font-semibold text-gray-700 dark:text-gray-300">Routers</span>
+                                </div>
+                                <div class="text-lg font-bold text-gray-900 dark:text-white">
+                                    {{ systemHealth.mikrotik.online }}/{{ systemHealth.mikrotik.total }}
+                                </div>
+                                <div class="text-[10px] text-gray-500">Online Status</div>
+                            </div>
+
+                            <!-- Queue Status -->
+                            <div class="p-3 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-700">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <Layers class="h-4 w-4 text-purple-500" />
+                                    <span class="text-xs font-semibold text-gray-700 dark:text-gray-300">Queues</span>
+                                </div>
+                                <div class="text-lg font-bold" :class="systemHealth.queue.status === 'healthy' ? 'text-green-600' : 'text-yellow-600'">
+                                    {{ systemHealth.queue.status === 'healthy' ? 'Active' : 'Warning' }}
+                                </div>
+                                <div class="text-[10px] text-gray-500">{{ systemHealth.queue.failed_24h }} failed (24h)</div>
+                            </div>
+                        </div>
+
+                        <!-- Core Services -->
+                        <div class="space-y-3">
+                            <!-- Database -->
+                            <div class="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900/30 transition-colors">
+                                <div class="flex items-center">
+                                    <div :class="['p-1.5 rounded-md mr-3', systemHealth.database.status === 'healthy' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600']">
+                                        <CheckCircle v-if="systemHealth.database.status === 'healthy'" class="h-4 w-4" />
+                                        <AlertCircle v-else class="h-4 w-4" />
+                                    </div>
+                                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Database</span>
+                                </div>
+                                <span class="text-xs font-bold text-gray-500 uppercase">{{ systemHealth.database.status }}</span>
+                            </div>
+                            
+                            <!-- IntaSend -->
+                            <div class="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900/30 transition-colors">
+                                <div class="flex items-center">
+                                    <div :class="['p-1.5 rounded-md mr-3', systemHealth.services.intasend.status === 'healthy' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600']">
+                                        <CheckCircle v-if="systemHealth.services.intasend.status === 'healthy'" class="h-4 w-4" />
+                                        <AlertCircle v-else class="h-4 w-4" />
+                                    </div>
+                                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">IntaSend API</span>
+                                </div>
+                                <span class="text-xs font-bold text-gray-500 uppercase">{{ systemHealth.services.intasend.status }}</span>
+                            </div>
+
+                            <!-- Recent Errors -->
+                            <div class="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900/30 transition-colors">
+                                <div class="flex items-center">
+                                    <div :class="['p-1.5 rounded-md mr-3', systemHealth.errors.status === 'healthy' ? 'bg-green-100 text-green-600' : 'bg-yellow-100 text-yellow-600']">
+                                        <ShieldAlert class="h-4 w-4" />
+                                    </div>
+                                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">System Logs</span>
+                                </div>
+                                <span class="text-xs font-bold" :class="systemHealth.errors.count > 0 ? 'text-yellow-600' : 'text-gray-500'">
+                                    {{ systemHealth.errors.count }} Errors
+                                </span>
+                            </div>
                         </div>
                         
-                        <!-- Cache -->
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center">
-                                <component :is="systemHealth.cache.status === 'healthy' ? CheckCircle : AlertCircle" 
-                                    :class="['h-5 w-5 mr-2', systemHealth.cache.status === 'healthy' ? 'text-green-500' : 'text-red-500']" />
-                                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Cache</span>
+                        <div class="pt-4 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                            <span class="text-[10px] text-gray-400 italic">Last checked: {{ systemHealth.last_check }}</span>
+                            <div class="flex gap-1">
+                                <span class="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                                <span class="text-[10px] font-medium text-green-600 uppercase tracking-wider">Live Monitoring</span>
                             </div>
-                            <span :class="[
-                                'inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset',
-                                systemHealth.cache.status === 'healthy' ? 'bg-green-50 text-green-700 ring-green-600/20' : 'bg-red-50 text-red-700 ring-red-600/20'
-                            ]">
-                                {{ systemHealth.cache.message }}
-                            </span>
-                        </div>
-                        
-                        <!-- Disk Space -->
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center">
-                                <component :is="systemHealth.disk.status === 'healthy' ? CheckCircle : AlertCircle" 
-                                    :class="['h-5 w-5 mr-2', systemHealth.disk.status === 'healthy' ? 'text-green-500' : 'text-yellow-500']" />
-                                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Disk Space</span>
-                            </div>
-                            <span :class="[
-                                'inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset',
-                                systemHealth.disk.status === 'healthy' ? 'bg-green-50 text-green-700 ring-green-600/20' : 'bg-yellow-50 text-yellow-700 ring-yellow-600/20'
-                            ]">
-                                {{ systemHealth.disk.message }}
-                            </span>
-                        </div>
-                        
-                        <!-- IntaSend -->
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center">
-                                <component :is="systemHealth.services.intasend.status === 'healthy' ? CheckCircle : AlertCircle" 
-                                    :class="['h-5 w-5 mr-2', systemHealth.services.intasend.status === 'healthy' ? 'text-green-500' : 'text-red-500']" />
-                                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">IntaSend API</span>
-                            </div>
-                            <span :class="[
-                                'inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset',
-                                systemHealth.services.intasend.status === 'healthy' ? 'bg-green-50 text-green-700 ring-green-600/20' : 'bg-red-50 text-red-700 ring-red-600/20'
-                            ]">
-                                {{ systemHealth.services.intasend.message }}
-                            </span>
-                        </div>
-                        
-                        <div class="pt-2 text-[10px] text-gray-400 text-right italic">
-                            Last checked: {{ systemHealth.last_check }}
                         </div>
                     </div>
 
