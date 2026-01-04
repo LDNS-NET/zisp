@@ -21,7 +21,6 @@ import {
     User,
     DollarSign,
     Calendar,
-    Calendar,
     FileText,
     Search
 } from 'lucide-vue-next';
