@@ -35,6 +35,11 @@ const existing = props.gateways[0] || {};
 const getInitialCollectionMethod = (gateway) => {
     if (!gateway) return props.country === 'KE' ? 'phone' : 'paystack';
     
+    // Check for Custom M-Pesa first
+    if (gateway.provider === 'mpesa' && props.country === 'KE' && (gateway.use_own_api === 1 || gateway.use_own_api === true)) {
+        return 'custom_mpesa';
+    }
+
     if (gateway.provider === 'momo') return 'momo';
     if (gateway.provider === 'airtel_money') return 'airtel_money';
     if (gateway.provider === 'paystack') return 'paystack';
@@ -91,51 +96,63 @@ import { watch } from 'vue';
 watch(() => form.collection_method, (newMethod) => {
     let targetProvider = 'mpesa';
     let targetPayoutMethod = '';
+    let useOwnApi = false;
 
     if (newMethod === 'momo') targetProvider = 'momo';
     else if (newMethod === 'airtel_money') targetProvider = 'airtel_money';
     else if (newMethod === 'paystack') targetProvider = 'paystack';
     else if (newMethod === 'flutterwave') targetProvider = 'flutterwave';
     else if (newMethod === 'bank') targetProvider = 'bank';
+    else if (newMethod === 'custom_mpesa') { targetProvider = 'mpesa'; useOwnApi = true; targetPayoutMethod = 'mpesa_phone'; }
     else if (newMethod === 'phone') { targetProvider = 'mpesa'; targetPayoutMethod = 'mpesa_phone'; }
     else if (newMethod === 'mpesa_till') { targetProvider = 'mpesa'; targetPayoutMethod = 'till'; }
     else if (newMethod === 'mpesa_paybill') { targetProvider = 'mpesa'; targetPayoutMethod = 'paybill'; }
+
+    // Update use_own_api immediately
+    form.use_own_api = useOwnApi;
 
     const existing = props.gateways.find(g => 
         g.provider === targetProvider && 
         (targetProvider !== 'mpesa' || g.payout_method === targetPayoutMethod)
     );
 
-    if (existing) {
-        form.phone_number = existing.phone_number || '';
-        form.bank_name = existing.bank_name || '';
-        form.bank_account = existing.bank_account || '';
-        form.bank_paybill = existing.bank_paybill || '';
-        form.till_number = existing.till_number || '';
-        form.paybill_business_number = existing.paybill_business_number || '';
-        form.paybill_account_number = existing.paybill_account_number || '';
-        form.mpesa_consumer_key = existing.mpesa_consumer_key || '';
-        form.mpesa_consumer_secret = existing.mpesa_consumer_secret || '';
-        form.mpesa_shortcode = existing.mpesa_shortcode || '';
-        form.mpesa_passkey = existing.mpesa_passkey || '';
-        form.mpesa_env = existing.mpesa_env || 'sandbox';
-        form.paystack_public_key = existing.paystack_public_key || '';
-        form.paystack_secret_key = existing.paystack_secret_key || '';
-        form.flutterwave_public_key = existing.flutterwave_public_key || '';
-        form.flutterwave_secret_key = existing.flutterwave_secret_key || '';
-        form.momo_api_user = existing.momo_api_user || '';
-        form.momo_api_key = existing.momo_api_key || '';
-        form.momo_subscription_key = existing.momo_subscription_key || '';
-        form.momo_env = existing.momo_env || 'sandbox';
-        form.airtel_client_id = existing.airtel_client_id || '';
-        form.airtel_client_secret = existing.airtel_client_secret || '';
-        form.airtel_env = existing.airtel_env || 'sandbox';
-        form.use_own_api = existing.use_own_api === 1 || existing.use_own_api === true || false;
-        form.is_active = existing.is_active ?? true;
+    // If we have an exact match including use_own_api for M-Pesa, prefer that.
+    const strictMatch = props.gateways.find(g => 
+        g.provider === targetProvider && 
+        (targetProvider !== 'mpesa' || (g.payout_method === targetPayoutMethod && (g.use_own_api == useOwnApi)))
+    );
+
+    const recordToLoad = strictMatch || existing;
+
+    if (recordToLoad) {
+        form.phone_number = recordToLoad.phone_number || '';
+        form.bank_name = recordToLoad.bank_name || '';
+        form.bank_account = recordToLoad.bank_account || '';
+        form.bank_paybill = recordToLoad.bank_paybill || '';
+        form.till_number = recordToLoad.till_number || '';
+        form.paybill_business_number = recordToLoad.paybill_business_number || '';
+        form.paybill_account_number = recordToLoad.paybill_account_number || '';
+        form.mpesa_consumer_key = recordToLoad.mpesa_consumer_key || '';
+        form.mpesa_consumer_secret = recordToLoad.mpesa_consumer_secret || '';
+        form.mpesa_shortcode = recordToLoad.mpesa_shortcode || '';
+        form.mpesa_passkey = recordToLoad.mpesa_passkey || '';
+        form.mpesa_env = recordToLoad.mpesa_env || 'sandbox';
+        form.paystack_public_key = recordToLoad.paystack_public_key || '';
+        form.paystack_secret_key = recordToLoad.paystack_secret_key || '';
+        form.flutterwave_public_key = recordToLoad.flutterwave_public_key || '';
+        form.flutterwave_secret_key = recordToLoad.flutterwave_secret_key || '';
+        form.momo_api_user = recordToLoad.momo_api_user || '';
+        form.momo_api_key = recordToLoad.momo_api_key || '';
+        form.momo_subscription_key = recordToLoad.momo_subscription_key || '';
+        form.momo_env = recordToLoad.momo_env || 'sandbox';
+        form.airtel_client_id = recordToLoad.airtel_client_id || '';
+        form.airtel_client_secret = recordToLoad.airtel_client_secret || '';
+        form.airtel_env = recordToLoad.airtel_env || 'sandbox';
+        form.use_own_api = recordToLoad.use_own_api === 1 || recordToLoad.use_own_api === true || false;
+        form.is_active = recordToLoad.is_active ?? true;
     } else {
         // Reset fields if no existing config
-        form.use_own_api = false;
-        // Keep common fields like phone number if it's a phone-based method
+        if (!useOwnApi) form.use_own_api = false;
     }
 });
 
@@ -148,38 +165,52 @@ const save = () => {
         case 'phone':
             form.provider = 'mpesa';
             form.payout_method = 'mpesa_phone';
+            form.use_own_api = false;
+            break;
+        case 'custom_mpesa':
+            form.provider = 'mpesa';
+            form.payout_method = 'mpesa_phone';
+            form.use_own_api = true;
             break;
         case 'bank':
             form.provider = 'bank';
             form.payout_method = 'bank';
+            form.use_own_api = false;
             break;
         case 'mpesa_till':
             form.provider = 'mpesa';
             form.payout_method = 'till';
+            form.use_own_api = false;
             break;
         case 'mpesa_paybill':
             form.provider = 'mpesa';
             form.payout_method = 'paybill';
+            form.use_own_api = false;
             break;
         case 'paystack':
             form.provider = 'paystack';
             form.payout_method = '';
+            form.use_own_api = false;
             break;
         case 'flutterwave':
             form.provider = 'flutterwave';
             form.payout_method = '';
+            form.use_own_api = false;
             break;
         case 'momo':
             form.provider = 'momo';
             form.payout_method = null;
+            form.use_own_api = false;
             break;
         case 'airtel_money':
             form.provider = 'airtel_money';
             form.payout_method = null;
+            form.use_own_api = false;
             break;
         default:
             form.provider = form.collection_method;
             form.payout_method = null;
+            form.use_own_api = false;
     }
 
     form.post(route('settings.payment.update'), {
@@ -212,7 +243,7 @@ const save = () => {
 
             <form @submit.prevent="save" class="mt-6 space-y-6">
                 <!-- Warning for Custom API -->
-                <div v-if="form.use_own_api && country === 'KE'" class="rounded-lg border border-yellow-400 bg-yellow-50 p-4 dark:bg-yellow-900/30">
+                <div v-if="form.collection_method === 'custom_mpesa' && country === 'KE'" class="rounded-lg border border-yellow-400 bg-yellow-50 p-4 dark:bg-yellow-900/30">
                     <div class="flex">
                         <div class="flex-shrink-0">
                             <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
@@ -239,7 +270,8 @@ const save = () => {
                         class="mt-1 block w-full rounded border-gray-300 dark:bg-gray-800"
                     >
                         <template v-if="country === 'KE'">
-                            <option v-if="supportedMethods.includes('phone') || supportedMethods.includes('mpesa')" value="phone">M-Pesa Phone</option>
+                            <option v-if="supportedMethods.includes('phone') || supportedMethods.includes('mpesa')" value="phone">M-Pesa Phone (Automatic)</option>
+                            <option v-if="supportedMethods.includes('phone') || supportedMethods.includes('mpesa')" value="custom_mpesa">Custom M-Pesa API</option>
                             <option v-if="supportedMethods.includes('bank')" value="bank">Bank</option>
                             <option v-if="supportedMethods.includes('mpesa_till')" value="mpesa_till">M-Pesa Till</option>
                             <option v-if="supportedMethods.includes('mpesa_paybill')" value="mpesa_paybill">M-Pesa Paybill</option>
@@ -401,25 +433,10 @@ const save = () => {
                 </div>
 
                 <!-- Custom M-Pesa API Settings -->
-                <div v-if="country === 'KE'" class="border-t border-gray-300 pt-6 dark:border-gray-700">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Custom M-Pesa API</h3>
-                            <p class="text-sm text-gray-600 dark:text-gray-400">
-                                Use your own M-Pesa Daraja API credentials for collections.
-                            </p>
-                        </div>
-                        <div class="flex items-center">
-                            <input
-                                type="checkbox"
-                                v-model="form.use_own_api"
-                                class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                            />
-                            <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">Enable Custom API</span>
-                        </div>
-                    </div>
+                <div v-if="form.collection_method === 'custom_mpesa'" class="border-t border-gray-300 pt-6 dark:border-gray-700">
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Custom M-Pesa API Credentials</h3>
 
-                    <div v-if="form.use_own_api" class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                         <div>
                             <InputLabel value="Consumer Key" />
                             <TextInput

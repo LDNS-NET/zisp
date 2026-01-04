@@ -33,7 +33,7 @@ const supportedMethods = computed(() => {
     return props.paymentMethods || ['mpesa'];
 });
 
-const paymentMethod = ref(supportedMethods.value.includes('paystack') ? 'paystack' : (supportedMethods.value.includes('flutterwave') ? 'flutterwave' : (supportedMethods.value.includes('mpesa') ? 'mpesa' : supportedMethods.value[0])));
+const paymentMethod = ref(supportedMethods.value.length > 0 ? supportedMethods.value[0] : 'mpesa');
 
 const isValidPhoneNumber = computed(() => {
     if (!phoneNumber.value) return false;
