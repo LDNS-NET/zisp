@@ -161,6 +161,7 @@ watch(() => form.collection_method, (newMethod) => {
  * Normalize and submit the payment gateway form
  */
 const save = () => {
+    form.is_active = true;
     switch (form.collection_method) {
         case 'phone':
             form.provider = 'mpesa';

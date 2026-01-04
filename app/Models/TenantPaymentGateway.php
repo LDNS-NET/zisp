@@ -97,7 +97,11 @@ class TenantPaymentGateway extends Model
 
     public function getPaystackSecretKeyAttribute($value)
     {
-        return $value ? Crypt::decryptString($value) : null;
+        $key = $value ? Crypt::decryptString($value) : null;
+        if ($key) {
+            $key = str_replace('Bearer ', '', trim($key));
+        }
+        return $key;
     }
 
     public function getFlutterwavePublicKeyAttribute($value)
@@ -107,7 +111,11 @@ class TenantPaymentGateway extends Model
 
     public function getFlutterwaveSecretKeyAttribute($value)
     {
-        return $value ? Crypt::decryptString($value) : null;
+        $key = $value ? Crypt::decryptString($value) : null;
+        if ($key) {
+            $key = str_replace('Bearer ', '', trim($key));
+        }
+        return $key;
     }
 
     public function getMomoApiUserAttribute($value)
@@ -283,7 +291,7 @@ class TenantPaymentGateway extends Model
 
     public function setPaystackSecretKeyAttribute($value)
     {
-        $this->attributes['paystack_secret_key'] = $value ? Crypt::encryptString($value) : null;
+        $this->attributes['paystack_secret_key'] = $value ? Crypt::encryptString(trim($value)) : null;
     }
 
     public function setFlutterwavePublicKeyAttribute($value)
@@ -293,7 +301,7 @@ class TenantPaymentGateway extends Model
 
     public function setFlutterwaveSecretKeyAttribute($value)
     {
-        $this->attributes['flutterwave_secret_key'] = $value ? Crypt::encryptString($value) : null;
+        $this->attributes['flutterwave_secret_key'] = $value ? Crypt::encryptString(trim($value)) : null;
     }
 
     public function setMomoApiUserAttribute($value)
