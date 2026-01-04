@@ -302,8 +302,14 @@ watch(selectedExpense, val => {
                             </tbody>
                         </table>
                     </div>
-                    <div class="mt-4">
-                        <Pagination :links="expenses && expenses.links ? expenses.links : []" />
+                    <div v-show="expenses.total > 0" class="mt-4">
+                        <Pagination 
+                            :links="expenses.links" 
+                            :per-page="expenses.per_page"
+                            :total="expenses.total"
+                            :from="expenses.from"
+                            :to="expenses.to"
+                        />
                     </div>
                 </div>
             </div>

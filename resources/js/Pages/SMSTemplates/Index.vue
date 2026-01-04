@@ -25,7 +25,6 @@ import Checkbox from '@/Components/Checkbox.vue';
 
 const props = defineProps({
     templates: Object,
-    perPage: Number,
 });
 
 const toast = useToast();
@@ -322,8 +321,14 @@ const bulkDelete = () => {
                 </div>
 
                 <!-- Pagination -->
-                <div v-if="templates.total > templates.per_page" class="border-t border-gray-200 dark:border-gray-700 px-4 py-3 sm:px-6">
-                    <Pagination :links="templates.links" />
+                <div v-show="templates.total > 0" class="border-t border-gray-200 dark:border-gray-700 px-4 py-3 sm:px-6">
+                    <Pagination 
+                        :links="templates.links" 
+                        :per-page="templates.per_page"
+                        :total="templates.total"
+                        :from="templates.from"
+                        :to="templates.to"
+                    />
                 </div>
             </div>
         </div>

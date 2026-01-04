@@ -845,7 +845,15 @@ function generatePaymentConfirmation() {
                 </table>
             </div>
 
-            <Pagination :links="payments.links" />
+            <div v-show="payments.total > 0" class="flex justify-center mt-6">
+                <Pagination 
+                    :links="payments.links" 
+                    :per-page="payments.per_page"
+                    :total="payments.total"
+                    :from="payments.from"
+                    :to="payments.to"
+                />
+            </div>
         </div>
 
         <!-- Modal -->

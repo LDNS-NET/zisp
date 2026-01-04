@@ -340,8 +340,14 @@ watch(search, (value) => {
             </div>
 
             <!-- Pagination -->
-            <div v-if="leads.links.length > 3" class="flex justify-center mt-6">
-                <Pagination :links="leads.links" />
+            <div v-show="leads.total > 0" class="flex justify-center mt-6">
+                <Pagination 
+                    :links="leads.links" 
+                    :per-page="leads.per_page"
+                    :total="leads.total"
+                    :from="leads.from"
+                    :to="leads.to"
+                />
             </div>
         </div>
 

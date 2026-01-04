@@ -15,15 +15,12 @@ class TenantSMSController extends Controller
 {
     public function index(Request $request)
     {
-        $perPage = (int) $request->input('perPage', 10);
-
-        $smsLogs = TenantSMS::latest()->paginate($perPage)->withQueryString();
+        $smsLogs = TenantSMS::latest()->paginate($request->input('per_page', 10))->withQueryString();
         $renters = NetworkUser::all(['id', 'full_name', 'phone']);
         $templates = TenantSMSTemplate::orderBy('name')->get(['id', 'name', 'content']);
 
         return Inertia::render('SMS/Index', [
             'smsLogs' => $smsLogs,
-            'perPage' => (int) $perPage,
             'renters' => $renters,
             'templates' => $templates,
         ]);

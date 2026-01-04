@@ -16,9 +16,9 @@ class PackageController extends Controller
     /**
      * Display a listing of packages.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $packages = Package::latest()->paginate(10)->withQueryString();
+        $packages = Package::latest()->paginate($request->get('per_page', 10))->withQueryString();
         $currency = auth()->user()?->tenant?->currency ?? 'KES';
 
         return Inertia::render('Packages/index', [

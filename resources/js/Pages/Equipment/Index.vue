@@ -159,7 +159,15 @@ const bulkDelete = () => {
             </tbody>
         </table>
     </div>
-    <Pagination :links="equipment.links" />
+    <div v-show="equipment.total > 0" class="flex justify-center mt-6">
+        <Pagination 
+            :links="equipment.links" 
+            :per-page="equipment.per_page"
+            :total="equipment.total"
+            :from="equipment.from"
+            :to="equipment.to"
+        />
+    </div>
 
     <!-- Modal -->
     <Modal :show="showModal" @close="showModal = false">

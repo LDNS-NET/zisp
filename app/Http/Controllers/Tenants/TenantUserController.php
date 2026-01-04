@@ -23,7 +23,8 @@ class TenantUserController extends Controller
             })
             ->latest();
 
-        $users = $query->paginate(10);
+        $perPage = $request->get('per_page', 10);
+        $users = $query->paginate($perPage);
 
         // Get current tenant's router IPs (VPN IPs)
         $nasIps = \App\Models\Tenants\TenantMikrotik::pluck('wireguard_address')->filter()->toArray();

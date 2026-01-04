@@ -383,8 +383,14 @@ function showDescription(description) {
             </div>
 
             <!-- Pagination -->
-            <div v-if="tickets.links.length > 3" class="flex justify-center mt-6">
-                <Pagination :links="tickets.links" />
+            <div v-show="tickets.total > 0" class="flex justify-center mt-6">
+                <Pagination 
+                    :links="tickets.links" 
+                    :per-page="tickets.per_page"
+                    :total="tickets.total"
+                    :from="tickets.from"
+                    :to="tickets.to"
+                />
             </div>
         </div>
 

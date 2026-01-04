@@ -10,9 +10,9 @@ use Illuminate\Validation\Rule;
 
 class TenantEquipmentController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $equipment = TenantEquipment::latest()->paginate(10);
+        $equipment = TenantEquipment::latest()->paginate($request->get('per_page', 10));
         $totalPrice = (float) TenantEquipment::sum('total_price');
 
         return Inertia::render('Tenants/Equipment/Index', [

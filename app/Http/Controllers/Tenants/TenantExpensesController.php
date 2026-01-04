@@ -11,9 +11,9 @@ class TenantExpensesController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $paginated = TenantExpenses::latest()->paginate(10);
+        $paginated = TenantExpenses::latest()->paginate($request->get('per_page', 10));
         $allData = TenantExpenses::all()->map(function ($expense) {
             return [
                 'id' => $expense->id,

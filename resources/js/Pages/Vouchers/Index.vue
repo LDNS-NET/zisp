@@ -353,8 +353,14 @@ const openActions = (voucher) => {
             </div>
 
             <!-- Pagination -->
-            <div v-if="vouchers.total > vouchers.per_page" class="flex justify-center mt-6">
-                <Pagination :links="vouchers.links" />
+            <div v-show="vouchers.total > 0" class="flex justify-center mt-6">
+                <Pagination 
+                    :links="vouchers.links" 
+                    :per-page="vouchers.per_page"
+                    :total="vouchers.total"
+                    :from="vouchers.from"
+                    :to="vouchers.to"
+                />
             </div>
         </div>
         

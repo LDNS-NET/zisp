@@ -313,8 +313,14 @@ function remove(pkg) {
             </div>
 
             <!-- Pagination -->
-            <div v-if="pagination && pagination.links && pagination.links.length > 3" class="flex justify-center mt-6">
-                <Pagination :links="pagination.links" />
+            <div v-show="pagination.total > 0" class="flex justify-center mt-6">
+                <Pagination 
+                    :links="pagination.links" 
+                    :per-page="pagination.per_page"
+                    :total="pagination.total"
+                    :from="pagination.from"
+                    :to="pagination.to"
+                />
             </div>
         </div>
 

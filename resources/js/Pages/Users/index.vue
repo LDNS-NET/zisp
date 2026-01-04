@@ -460,7 +460,13 @@ const openActions = (user) => {
                 </div>
             </div>
 
-            <Pagination :links="users.links" />
+            <Pagination 
+                :links="users.links" 
+                :per-page="users.per_page" 
+                :total="users.total" 
+                :from="users.from" 
+                :to="users.to" 
+            />
         </div>
 
         <!-- Create/Edit Modal -->

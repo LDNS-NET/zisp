@@ -37,11 +37,10 @@ class TenantSMSTemplateController extends Controller
             }
         }
 
-        $templates = TenantSMSTemplate::latest()->paginate($perPage)->withQueryString();
+        $templates = TenantSMSTemplate::latest()->paginate($request->input('per_page', 10))->withQueryString();
 
         return Inertia::render('SMSTemplates/Index', [
             'templates' => $templates,
-            'perPage' => (int) $perPage,
         ]);
     }
 

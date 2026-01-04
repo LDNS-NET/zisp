@@ -24,7 +24,7 @@ class TenantTicketController extends Controller
         $tickets = TenantTickets::with('client')
             ->where('status', $status)
             ->latest()
-            ->paginate(10)
+            ->paginate($request->get('per_page', 10))
             ->withQueryString();
 
             $users = NetworkUser::select('id', 'full_name')->get();

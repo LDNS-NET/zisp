@@ -324,8 +324,14 @@ function isOverdue(dueDate, status) {
             </div>
 
             <!-- Pagination -->
-            <div v-if="props.invoices.links && props.invoices.links.length > 3" class="flex justify-center mt-6">
-                <Pagination :links="props.invoices.links" />
+            <div v-show="invoices.total > 0" class="flex justify-center mt-6">
+                <Pagination 
+                    :links="invoices.links" 
+                    :per-page="invoices.per_page"
+                    :total="invoices.total"
+                    :from="invoices.from"
+                    :to="invoices.to"
+                />
             </div>
         </div>
 

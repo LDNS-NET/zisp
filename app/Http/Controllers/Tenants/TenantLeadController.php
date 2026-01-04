@@ -13,11 +13,11 @@ class TenantLeadController extends Controller
     /**
      * Display a listing of the leads for the authenticated user.
      */
-    public function index()
+    public function index(Request $request)
     {
         $leads = TenantLeads::select('id', 'name', 'phone_number', 'address', 'email_address', 'status')
             ->latest()
-            ->paginate(10);
+            ->paginate($request->get('per_page', 10));
 
         return Inertia::render('Leads/Index', [
             'leads' => $leads,

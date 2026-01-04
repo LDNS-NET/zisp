@@ -30,7 +30,6 @@ import { useToast } from 'vue-toastification';
 
 const props = defineProps({
     smsLogs: Object,
-    perPage: Number,
     filters: Object,
     renters: Array,
     templates: Array,
@@ -335,8 +334,14 @@ const formatDate = (dateString) => {
                 </div>
 
                 <!-- Pagination -->
-                <div v-if="smsLogs.total > smsLogs.per_page" class="border-t border-gray-200 dark:border-gray-700 px-4 py-3 sm:px-6">
-                    <Pagination :links="smsLogs.links" />
+                <div v-show="smsLogs.total > 0" class="border-t border-gray-200 dark:border-gray-700 px-4 py-3 sm:px-6">
+                    <Pagination 
+                        :links="smsLogs.links" 
+                        :per-page="smsLogs.per_page"
+                        :total="smsLogs.total"
+                        :from="smsLogs.from"
+                        :to="smsLogs.to"
+                    />
                 </div>
             </div>
         </div>

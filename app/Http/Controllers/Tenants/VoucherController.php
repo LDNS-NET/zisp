@@ -29,7 +29,8 @@ class VoucherController extends Controller
             $query->where('status', $status);
         }
 
-        $vouchers = $query->with('package')->paginate(10)->withQueryString();
+        $perPage = $request->get('per_page', 10);
+        $vouchers = $query->with('package')->paginate($perPage)->withQueryString();
 
         return Inertia::render('Vouchers/Index', [
             'vouchers'      => $vouchers,

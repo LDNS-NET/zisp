@@ -8,9 +8,9 @@ use Illuminate\Http\Request;
 use App\Models\Tenants\NetworkUser;
 class TenantInvoiceController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $paginated = TenantInvoice::latest()->paginate(10);
+        $paginated = TenantInvoice::latest()->paginate($request->get('per_page', 10));
         $allData = TenantInvoice::all()->map(function ($invoice) {
             return [
                 'id' => $invoice->id,
