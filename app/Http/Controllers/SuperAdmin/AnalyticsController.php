@@ -4,6 +4,7 @@ namespace App\Http\Controllers\SuperAdmin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Tenant;
+use App\Models\User;
 use App\Models\Tenants\TenantPayment;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -43,7 +44,11 @@ class AnalyticsController extends Controller
             ->get();
 
         // 3. Active vs Inactive Tenants
-        $tenantStatus = Tenant::select('status', DB::raw('count(*) as total'))
+        $tenantStatus = User::where('role', '!=', 'superadmin')
+            ->select(
+                DB::raw('CASE WHEN is_suspended = 1 THEN "suspended" ELSE "active" END as status'),
+                DB::raw('count(*) as total')
+            )
             ->groupBy('status')
             ->get();
 
