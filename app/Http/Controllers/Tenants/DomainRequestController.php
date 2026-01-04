@@ -9,9 +9,9 @@ use Inertia\Inertia;
 
 class DomainRequestController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $tenantId = tenant('id');
+        $tenantId = $request->user()->tenant_id;
         $requests = DomainRequest::where('tenant_id', $tenantId)->latest()->paginate(10);
         
         return Inertia::render('Tenants/DomainRequests/Index', [
@@ -27,8 +27,12 @@ class DomainRequestController extends Controller
             'metadata' => 'nullable|array',
         ]);
 
-        $validated['tenant_id'] = tenant('id');
+        $validated['tenant_id'] = $request->user()->tenant_id;
         $validated['status'] = 'pending';
+
+        if (!$validated['tenant_id']) {
+            return back()->with('error', 'Unable to identify tenant. Please try again.');
+        }
 
         DomainRequest::create($validated);
 
