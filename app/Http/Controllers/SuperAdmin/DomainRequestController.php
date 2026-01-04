@@ -7,6 +7,7 @@ use App\Models\DomainRequest;
 use App\Models\TenantGeneralSetting;
 use App\Models\User;
 use App\Notifications\DomainRequestStatusNotification;
+use App\Notifications\NewDomainRequestNotification;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 

@@ -3,7 +3,7 @@ import { ref, watch } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import SuperAdminLayout from '@/Layouts/SuperAdminLayout.vue';
 import Modal from '@/Components/Modal.vue';
-import { Search, Filter, CreditCard, CheckCircle, XCircle, Clock, AlertCircle, MoreVertical, Eye, Trash2, AlertTriangle, X, Send } from 'lucide-vue-next';
+import { Search, Filter, CreditCard, CheckCircle, XCircle, Clock, AlertCircle, MoreVertical, Eye, Trash2, AlertTriangle, X, Send, Download } from 'lucide-vue-next';
 import debounce from 'lodash/debounce';
 
 const props = defineProps({
@@ -102,6 +102,14 @@ const getDisbursementColor = (status) => {
         default: return 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400';
     }
 };
+
+const exportPayments = () => {
+    window.location.href = route('superadmin.payments.export', {
+        search: search.value,
+        status: status.value,
+        method: method.value,
+    });
+};
 </script>
 
 <template>
@@ -110,12 +118,22 @@ const getDisbursementColor = (status) => {
     <SuperAdminLayout>
         <template #header>
             <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <h2 class="text-2xl font-bold leading-tight text-gray-800 dark:text-gray-200">
-                    System Payments
-                </h2>
-                <div class="text-sm text-gray-500">
-                    {{ payments.total }} transactions found
+                <div>
+                    <h2 class="text-2xl font-bold leading-tight text-gray-800 dark:text-gray-200">
+                        System Payments
+                    </h2>
+                    <div class="text-sm text-gray-500 mt-1">
+                        {{ payments.total }} transactions found
+                    </div>
                 </div>
+                <!-- Export Button -->
+                <button
+                    @click="exportPayments"
+                    class="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:bg-gray-800 dark:text-gray-200 dark:ring-gray-600 dark:hover:bg-gray-700"
+                >
+                    <Download class="h-4 w-4" />
+                    Export CSV
+                </button>
             </div>
         </template>
 

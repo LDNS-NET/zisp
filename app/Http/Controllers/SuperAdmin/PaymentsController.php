@@ -10,6 +10,7 @@ use App\Models\Tenants\TenantPayment;
 use App\Models\Tenant;
 use App\Models\SuperAdmin\Payments;
 use App\Models\Tenants\NetworkUser;
+use App\Models\SuperAdminActivity;
 
 
 class PaymentsController extends Controller
@@ -90,6 +91,18 @@ class PaymentsController extends Controller
 
         // Trigger disbursement
         \App\Jobs\ProcessDisbursementJob::dispatch($payment);
+        
+        SuperAdminActivity::log(
+            'payment.disbursed',
+            "Triggered manual disbursement for payment #{$payment->id} ({$payment->currency} {$payment->amount})",
+            $payment,
+            [
+                'payment_id' => $payment->id,
+                'amount' => $payment->amount,
+                'currency' => $payment->currency,
+                'tenant_id' => $tenant->id,
+            ]
+        );
 
         return back()->with('success', 'Manual disbursement triggered successfully.');
     }
@@ -97,8 +110,106 @@ class PaymentsController extends Controller
     public function destroy($id)
     {
         $payment = TenantPayment::withoutGlobalScopes()->findOrFail($id);
+        $paymentData = [
+            'id' => $payment->id,
+            'amount' => $payment->amount,
+            'currency' => $payment->currency,
+            'phone' => $payment->phone,
+        ];
+        
         $payment->delete();
+        
+        SuperAdminActivity::log(
+            'payment.deleted',
+            "Deleted payment #{$paymentData['id']} ({$paymentData['currency']} {$paymentData['amount']})",
+            null,
+            $paymentData
+        );
 
         return redirect()->route('superadmin.payments.index')->with('success', 'Payment deleted successfully.');
+    }
+
+    /**
+     * Export payments to CSV
+     */
+    public function export(Request $request)
+    {
+        $query = TenantPayment::withoutGlobalScopes()->with(['tenant.paymentGateways', 'user']);
+
+        // Apply same filters as index
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('receipt_number', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%")
+                  ->orWhere('checkout_request_id', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('method')) {
+            $query->where('payment_method', $request->method);
+        }
+
+        $payments = $query->orderBy('created_at', 'desc')->get();
+
+        // Create CSV
+        $filename = 'payments_export_' . now()->format('Y-m-d_His') . '.csv';
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+        ];
+
+        $callback = function() use ($payments) {
+            $file = fopen('php://output', 'w');
+            
+            // CSV Headers
+            fputcsv($file, [
+                'ID',
+                'Receipt Number',
+                'Phone',
+                'Amount',
+                'Currency',
+                'Payment Method',
+                'Status',
+                'Disbursement Status',
+                'Tenant Name',
+                'User Name',
+                'Paid At',
+                'Created At',
+            ]);
+
+            // CSV Data
+            foreach ($payments as $payment) {
+                fputcsv($file, [
+                    $payment->id,
+                    $payment->receipt_number ?? '',
+                    $payment->phone,
+                    $payment->amount,
+                    $payment->currency,
+                    $payment->payment_method,
+                    $payment->status,
+                    $payment->disbursement_status ?? '',
+                    $payment->tenant?->name ?? '',
+                    $payment->user?->name ?? '',
+                    $payment->paid_at?->format('Y-m-d H:i:s') ?? '',
+                    $payment->created_at->format('Y-m-d H:i:s'),
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        SuperAdminActivity::log(
+            'payments.exported',
+            "Exported {$payments->count()} payments to CSV",
+            null,
+            ['count' => $payments->count(), 'filters' => $request->only(['search', 'status', 'method'])]
+        );
+
+        return response()->stream($callback, 200, $headers);
     }
 }

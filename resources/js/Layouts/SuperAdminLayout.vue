@@ -23,7 +23,8 @@ import {
     ChevronRight,
     Globe,
     MessageSquare,
-    Network
+    Network,
+    Activity
 } from 'lucide-vue-next';
 
 const { theme, setTheme } = useTheme();
@@ -53,6 +54,7 @@ const navigation = [
     { name: 'SMS Gateways', href: route('superadmin.sms-gateways.index'), icon: MessageSquare, active: 'superadmin.sms-gateways.*' },
     { name: 'Admins', href: route('superadmin.admins.index'), icon: Shield, active: 'superadmin.admins.*' },
     { name: 'Analytics', href: route('superadmin.analytics.index'), icon: BarChart, active: 'superadmin.analytics.*' },
+    { name: 'Activity Log', href: route('superadmin.system.activity-log'), icon: Activity, active: 'superadmin.system.activity-log' },
     { name: 'All Mikrotiks', href: route('superadmin.allmikrotiks.index'), icon: Network, active: 'superadmin.allmikrotiks.*' },
     { 
         name: 'Notifications', 

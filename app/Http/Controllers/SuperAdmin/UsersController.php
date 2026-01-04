@@ -11,6 +11,7 @@ use App\Models\Tenants\TenantPayment;
 use App\Models\Tenant;
 use App\Models\TenantGeneralSetting;
 use App\Models\Tenants\TenantMikrotik;
+use App\Models\SuperAdminActivity;
 
 
 
@@ -60,26 +61,55 @@ class UsersController extends Controller
     public function suspend(User $user)
     {
         $user->update(['is_suspended' => true]);
+        
+        SuperAdminActivity::log(
+            'user.suspended',
+            "Suspended tenant: {$user->name} ({$user->email})",
+            $user,
+            ['tenant_id' => $user->tenant_id]
+        );
+        
         return back()->with('success', 'User suspended successfully.');
     }
 
     public function unsuspend(User $user)
     {
         $user->update(['is_suspended' => false]);
+        
+        SuperAdminActivity::log(
+            'user.unsuspended',
+            "Activated tenant: {$user->name} ({$user->email})",
+            $user,
+            ['tenant_id' => $user->tenant_id]
+        );
+        
         return back()->with('success', 'User activated successfully.');
     }
 
     public function destroy(User $user)
     {
+        $userName = $user->name;
+        $userEmail = $user->email;
+        $tenantId = $user->tenant_id;
+        
         // Optional: Add logic to delete tenant data (payments, users, etc.)
         // For now, just delete the user record
         $user->delete();
+        
+        SuperAdminActivity::log(
+            'user.deleted',
+            "Deleted tenant: {$userName} ({$userEmail})",
+            null,
+            ['tenant_id' => $tenantId, 'deleted_user' => $userName]
+        );
+        
         return back()->with('success', 'User deleted successfully.');
     }
 
     public function update(Request $request, $id)
     {
         $user = User::findOrFail($id);
+        $oldData = $user->only(['name', 'email', 'phone', 'username']);
         
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -97,6 +127,7 @@ class UsersController extends Controller
         ]);
 
         // Update domain in TenantGeneralSetting and domains table
+        $oldDomain = null;
         if ($user->tenant_id) {
             $oldDomain = TenantGeneralSetting::where('tenant_id', $user->tenant_id)->value('website');
             
@@ -118,6 +149,17 @@ class UsersController extends Controller
                 }
             }
         }
+        
+        SuperAdminActivity::log(
+            'user.updated',
+            "Updated tenant details: {$user->name}",
+            $user,
+            [
+                'old' => $oldData,
+                'new' => $user->only(['name', 'email', 'phone', 'username']),
+                'domain_changed' => $oldDomain !== $validated['domain'],
+            ]
+        );
 
         return back()->with('success', 'User details updated successfully.');
     }
@@ -180,5 +222,144 @@ class UsersController extends Controller
             'totalPayments' => $totalPayments,
             'totalMikrotiks' => $totalMikrotiks,
         ]);
+    }
+
+    /**
+     * Bulk action handler
+     */
+    public function bulkAction(Request $request)
+    {
+        $validated = $request->validate([
+            'action' => 'required|in:suspend,activate,delete',
+            'user_ids' => 'required|array|min:1',
+            'user_ids.*' => 'exists:users,id',
+        ]);
+
+        $users = User::whereIn('id', $validated['user_ids'])->get();
+        $count = $users->count();
+
+        switch ($validated['action']) {
+            case 'suspend':
+                foreach ($users as $user) {
+                    $user->update(['is_suspended' => true]);
+                }
+                SuperAdminActivity::log(
+                    'users.bulk_suspended',
+                    "Bulk suspended {$count} tenants",
+                    null,
+                    ['user_ids' => $validated['user_ids'], 'count' => $count]
+                );
+                return back()->with('success', "{$count} users suspended successfully.");
+
+            case 'activate':
+                foreach ($users as $user) {
+                    $user->update(['is_suspended' => false]);
+                }
+                SuperAdminActivity::log(
+                    'users.bulk_activated',
+                    "Bulk activated {$count} tenants",
+                    null,
+                    ['user_ids' => $validated['user_ids'], 'count' => $count]
+                );
+                return back()->with('success', "{$count} users activated successfully.");
+
+            case 'delete':
+                $userNames = $users->pluck('name')->toArray();
+                User::whereIn('id', $validated['user_ids'])->delete();
+                SuperAdminActivity::log(
+                    'users.bulk_deleted',
+                    "Bulk deleted {$count} tenants",
+                    null,
+                    ['user_ids' => $validated['user_ids'], 'user_names' => $userNames, 'count' => $count]
+                );
+                return back()->with('success', "{$count} users deleted successfully.");
+        }
+    }
+
+    /**
+     * Export users to CSV
+     */
+    public function export(Request $request)
+    {
+        $query = User::query()->where('role', '!=', 'superadmin');
+
+        // Apply same filters as index
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%")
+                  ->orWhere('tenant_id', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('status')) {
+            if ($request->status === 'active') {
+                $query->where('is_suspended', false);
+            } elseif ($request->status === 'suspended') {
+                $query->where('is_suspended', true);
+            }
+        }
+
+        if ($request->filled('country')) {
+            $query->where('country_code', $request->country);
+        }
+
+        $users = $query->with('tenantGeneralSetting')->get();
+
+        // Create CSV
+        $filename = 'tenants_export_' . now()->format('Y-m-d_His') . '.csv';
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+        ];
+
+        $callback = function() use ($users) {
+            $file = fopen('php://output', 'w');
+            
+            // CSV Headers
+            fputcsv($file, [
+                'ID',
+                'Name',
+                'Email',
+                'Phone',
+                'Username',
+                'Tenant ID',
+                'Domain',
+                'Country',
+                'Status',
+                'Subscription Expires',
+                'Created At',
+            ]);
+
+            // CSV Data
+            foreach ($users as $user) {
+                fputcsv($file, [
+                    $user->id,
+                    $user->name,
+                    $user->email,
+                    $user->phone,
+                    $user->username,
+                    $user->tenant_id,
+                    $user->tenantGeneralSetting?->website ?? '',
+                    $user->country ?? '',
+                    $user->is_suspended ? 'Suspended' : 'Active',
+                    $user->subscription_expires_at?->format('Y-m-d H:i:s') ?? '',
+                    $user->created_at->format('Y-m-d H:i:s'),
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        SuperAdminActivity::log(
+            'users.exported',
+            "Exported {$users->count()} tenants to CSV",
+            null,
+            ['count' => $users->count(), 'filters' => $request->only(['search', 'status', 'country'])]
+        );
+
+        return response()->stream($callback, 200, $headers);
     }
 }

@@ -13,9 +13,11 @@ class AdminController extends Controller
 {
     public function index()
     {
-        // Assuming SuperAdmins have a specific role or flag. 
-        // For now, let's assume users without a tenant_id are SuperAdmins.
-        $admins = User::whereNull('tenant_id')->get();
+        // Get users with superadmin role and null tenant_id
+        $admins = User::whereNull('tenant_id')
+            ->where('role', 'superadmin')
+            ->orderBy('created_at', 'desc')
+            ->get();
 
         return Inertia::render('SuperAdmin/Admins/Index', [
             'admins' => $admins,

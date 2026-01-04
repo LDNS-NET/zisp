@@ -3,7 +3,7 @@ import { ref, watch } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import SuperAdminLayout from '@/Layouts/SuperAdminLayout.vue';
 import Modal from '@/Components/Modal.vue';
-import { Search, Filter, MoreVertical, Trash2, Eye, Ban, CheckCircle, AlertCircle, AlertTriangle, X, Edit, Globe, User as UserIcon, Phone, Mail } from 'lucide-vue-next';
+import { Search, Filter, MoreVertical, Trash2, Eye, Ban, CheckCircle, AlertCircle, AlertTriangle, X, Edit, Globe, User as UserIcon, Phone, Mail, Download, ChevronDown } from 'lucide-vue-next';
 import debounce from 'lodash/debounce';
 import { useForm } from '@inertiajs/vue3';
 import InputLabel from '@/Components/InputLabel.vue';
@@ -22,12 +22,19 @@ const search = ref(props.filters.search || '');
 const status = ref(props.filters.status || '');
 const country = ref(props.filters.country || '');
 
+// Bulk Actions State
+const selectedUsers = ref([]);
+const showBulkActionsDropdown = ref(false);
+const allSelected = ref(false);
+
 // Modal State
 const showDeleteModal = ref(false);
 const showSuspendModal = ref(false);
 const showEditModal = ref(false);
 const showActionsModal = ref(false);
+const showBulkActionModal = ref(false);
 const selectedUser = ref(null);
+const bulkAction = ref('');
 
 const editForm = useForm({
     name: '',
@@ -117,6 +124,54 @@ const confirmSuspend = () => {
         });
     }
 };
+
+// Bulk Actions
+const toggleSelectAll = () => {
+    if (allSelected.value) {
+        selectedUsers.value = [];
+        allSelected.value = false;
+    } else {
+        selectedUsers.value = props.users.data.map(u => u.id);
+        allSelected.value = true;
+    }
+};
+
+const toggleUserSelection = (userId) => {
+    const index = selectedUsers.value.indexOf(userId);
+    if (index > -1) {
+        selectedUsers.value.splice(index, 1);
+    } else {
+        selectedUsers.value.push(userId);
+    }
+    allSelected.value = selectedUsers.value.length === props.users.data.length;
+};
+
+const openBulkActionModal = (action) => {
+    bulkAction.value = action;
+    showBulkActionModal.value = true;
+    showBulkActionsDropdown.value = false;
+};
+
+const confirmBulkAction = () => {
+    router.post(route('superadmin.users.bulk-action'), {
+        action: bulkAction.value,
+        user_ids: selectedUsers.value,
+    }, {
+        onSuccess: () => {
+            selectedUsers.value = [];
+            allSelected.value = false;
+            showBulkActionModal.value = false;
+        }
+    });
+};
+
+const exportUsers = () => {
+    window.location.href = route('superadmin.users.export', {
+        search: search.value,
+        status: status.value,
+        country: country.value,
+    });
+};
 </script>
 
 <template>
@@ -125,11 +180,64 @@ const confirmSuspend = () => {
     <SuperAdminLayout>
         <template #header>
             <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <h2 class="text-2xl font-bold leading-tight text-gray-800 dark:text-gray-200">
-                    Manage Tenants
-                </h2>
-                <div class="text-sm text-gray-500">
-                    {{ users.total }} total tenants
+                <div>
+                    <h2 class="text-2xl font-bold leading-tight text-gray-800 dark:text-gray-200">
+                        Manage Tenants
+                    </h2>
+                    <div class="text-sm text-gray-500 mt-1">
+                        {{ users.total }} total tenants
+                        <span v-if="selectedUsers.length > 0" class="ml-2 text-indigo-600 font-medium">
+                            ({{ selectedUsers.length }} selected)
+                        </span>
+                    </div>
+                </div>
+                <div class="flex gap-3">
+                    <!-- Bulk Actions Dropdown -->
+                    <div v-if="selectedUsers.length > 0" class="relative">
+                        <button
+                            @click="showBulkActionsDropdown = !showBulkActionsDropdown"
+                            class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                        >
+                            Bulk Actions ({{ selectedUsers.length }})
+                            <ChevronDown class="h-4 w-4" />
+                        </button>
+                        <div
+                            v-if="showBulkActionsDropdown"
+                            class="absolute right-0 z-10 mt-2 w-48 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 dark:bg-gray-800"
+                        >
+                            <div class="py-1">
+                                <button
+                                    @click="openBulkActionModal('activate')"
+                                    class="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
+                                >
+                                    <CheckCircle class="mr-3 h-4 w-4 text-green-600" />
+                                    Activate Selected
+                                </button>
+                                <button
+                                    @click="openBulkActionModal('suspend')"
+                                    class="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
+                                >
+                                    <Ban class="mr-3 h-4 w-4 text-yellow-600" />
+                                    Suspend Selected
+                                </button>
+                                <button
+                                    @click="openBulkActionModal('delete')"
+                                    class="flex w-full items-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                >
+                                    <Trash2 class="mr-3 h-4 w-4" />
+                                    Delete Selected
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Export Button -->
+                    <button
+                        @click="exportUsers"
+                        class="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:bg-gray-800 dark:text-gray-200 dark:ring-gray-600 dark:hover:bg-gray-700"
+                    >
+                        <Download class="h-4 w-4" />
+                        Export CSV
+                    </button>
                 </div>
             </div>
         </template>
@@ -180,6 +288,14 @@ const confirmSuspend = () => {
                     <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                         <thead class="bg-gray-50 dark:bg-gray-900/50">
                             <tr>
+                                <th scope="col" class="w-12 px-6 py-3">
+                                    <input
+                                        type="checkbox"
+                                        :checked="allSelected"
+                                        @change="toggleSelectAll"
+                                        class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
+                                    />
+                                </th>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Tenant</th>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Contact</th>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Location</th>
@@ -192,6 +308,14 @@ const confirmSuspend = () => {
                         </thead>
                         <tbody class="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-800">
                             <tr v-for="user in users.data" :key="user.id" class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                                <td class="px-6 py-4">
+                                    <input
+                                        type="checkbox"
+                                        :checked="selectedUsers.includes(user.id)"
+                                        @change="toggleUserSelection(user.id)"
+                                        class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
+                                    />
+                                </td>
                                 <td class="whitespace-nowrap px-6 py-4">
                                     <div class="flex items-center">
                                         <div class="h-10 w-10 flex-shrink-0 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold dark:bg-indigo-900 dark:text-indigo-300">
@@ -233,7 +357,8 @@ const confirmSuspend = () => {
                                 </td>
                             </tr>
                             <tr v-if="users.data.length === 0">
-                                <td colspan="6" class="px-6 py-12 text-center">
+                                <td colspan="7" class="px-6 py-12 text-center">
+
                                     <div class="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400">
                                         <AlertCircle class="h-12 w-12 mb-3 opacity-20" />
                                         <p class="text-lg font-medium">No tenants found</p>
@@ -500,6 +625,40 @@ const confirmSuspend = () => {
                         </PrimaryButton>
                     </div>
                 </form>
+            </div>
+        </Modal>
+        
+        <!-- Bulk Action Confirmation Modal -->
+        <Modal :show="showBulkActionModal" @close="showBulkActionModal = false">
+            <div class="p-6">
+                <div class="flex items-center justify-center w-12 h-12 mx-auto" :class="bulkAction === 'delete' ? 'bg-red-100 dark:bg-red-900/30' : (bulkAction === 'suspend' ? 'bg-yellow-100 dark:bg-yellow-900/30' : 'bg-green-100 dark:bg-green-900/30')">
+                    <component :is="bulkAction === 'delete' ? AlertTriangle : (bulkAction === 'suspend' ? Ban : CheckCircle)" class="w-6 h-6" :class="bulkAction === 'delete' ? 'text-red-600 dark:text-red-400' : (bulkAction === 'suspend' ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400')" />
+                </div>
+                <div class="mt-4 text-center">
+                    <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white">
+                        {{ bulkAction === 'delete' ? 'Delete' : (bulkAction === 'suspend' ? 'Suspend' : 'Activate') }} {{ selectedUsers.length }} Tenant{{ selectedUsers.length > 1 ? 's' : '' }}?
+                    </h3>
+                    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                        {{ bulkAction === 'delete' ? 'This action cannot be undone and will remove all associated data.' : (bulkAction === 'suspend' ? 'These tenants will lose access to the system immediately.' : 'These tenants will regain access to the system.') }}
+                    </p>
+                </div>
+                <div class="mt-6 flex justify-end gap-3">
+                    <button
+                        type="button"
+                        class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700"
+                        @click="showBulkActionModal = false"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        type="button"
+                        class="px-4 py-2 text-sm font-medium text-white border border-transparent rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2"
+                        :class="bulkAction === 'delete' ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500' : (bulkAction === 'suspend' ? 'bg-yellow-600 hover:bg-yellow-700 focus:ring-yellow-500' : 'bg-green-600 hover:bg-green-700 focus:ring-green-500')"
+                        @click="confirmBulkAction"
+                    >
+                        {{ bulkAction === 'delete' ? 'Delete' : (bulkAction === 'suspend' ? 'Suspend' : 'Activate') }}
+                    </button>
+                </div>
             </div>
         </Modal>
     </SuperAdminLayout>

@@ -343,60 +343,102 @@ Route::middleware('guest')->group(function () {
 
 Route::post('admin/logout', [App\Http\Controllers\Admin\AuthController::class, 'logout'])->name('admin.logout');
 
-Route::middleware(['auth', 'superadmin'])
+Route::middleware(['auth', 'superadmin', 'throttle:120,1'])
     ->prefix('superadmin')
     ->name('superadmin.')
     ->group(function () {
-
-
+        
         // Dashboard
         Route::get('/dashboard', [SuperAdminController::class, 'dashboard'])->name('dashboard');
+        
+        // User Management
+        Route::prefix('users')->name('users.')->group(function () {
+            Route::get('/', [UsersController::class, 'index'])->name('index');
+            Route::get('/export', [UsersController::class, 'export'])->name('export');
+            Route::post('/bulk-action', [UsersController::class, 'bulkAction'])->name('bulk-action');
+            Route::get('/{user}', [UsersController::class, 'show'])->name('show');
+            Route::put('/{user}', [UsersController::class, 'update'])->name('update');
+            Route::delete('/{user}', [UsersController::class, 'destroy'])->name('destroy');
+            Route::post('/{user}/suspend', [UsersController::class, 'suspend'])->name('suspend');
+            Route::post('/{user}/unsuspend', [UsersController::class, 'unsuspend'])->name('unsuspend');
+        });
 
-        // Users Management
-        Route::post('users/{user}/suspend', [UsersController::class, 'suspend'])->name('users.suspend');
-        Route::post('users/{user}/unsuspend', [UsersController::class, 'unsuspend'])->name('users.unsuspend');
-        Route::resource('users', UsersController::class)->only(['index', 'show', 'update', 'destroy']);
+        // Payment Management
+        Route::prefix('payments')->name('payments.')->group(function () {
+            Route::get('/', [PaymentsController::class, 'index'])->name('index');
+            Route::get('/export', [PaymentsController::class, 'export'])->name('export');
+            Route::get('/{payment}', [PaymentsController::class, 'show'])->name('show');
+            Route::delete('/{payment}', [PaymentsController::class, 'destroy'])->name('destroy');
+            Route::post('/{payment}/disburse', [PaymentsController::class, 'disburse'])->name('disburse');
+        });
 
-        // Payments Management
-        Route::post('payments/{payment}/disburse', [PaymentsController::class, 'disburse'])->name('payments.disburse');
-        Route::resource('payments', PaymentsController::class)->only(['index', 'show', 'destroy']);
-
-        // all mikrotiks in the system
+        // MikroTik Management
         Route::resource('allmikrotiks', AllMikrotiksController::class)->only(['index', 'show', 'destroy']);
 
-        // Payment Gateways Management
+        // Settings & Configuration
+        Route::prefix('settings')->name('settings.')->group(function () {
+            // Payment Gateways
+            Route::get('payment-gateways', [App\Http\Controllers\SuperAdmin\PaymentGatewayController::class, 'index'])->name('payment-gateways.index');
+            Route::post('payment-gateways/toggle', [App\Http\Controllers\SuperAdmin\PaymentGatewayController::class, 'toggle'])->name('payment-gateways.toggle');
+            
+            // SMS Gateways
+            Route::get('sms-gateways', [App\Http\Controllers\SuperAdmin\SmsGatewayController::class, 'index'])->name('sms-gateways.index');
+            Route::post('sms-gateways/toggle', [App\Http\Controllers\SuperAdmin\SmsGatewayController::class, 'toggle'])->name('sms-gateways.toggle');
+            
+            // System Settings
+            Route::get('system', [App\Http\Controllers\SuperAdmin\SystemSettingsController::class, 'index'])->name('system.index');
+            Route::post('system', [App\Http\Controllers\SuperAdmin\SystemSettingsController::class, 'update'])->name('system.update');
+            
+            // Pricing Plans
+            Route::get('pricing-plans', [App\Http\Controllers\SuperAdmin\PricingPlanController::class, 'index'])->name('pricing-plans.index');
+            Route::post('pricing-plans', [App\Http\Controllers\SuperAdmin\PricingPlanController::class, 'store'])->name('pricing-plans.store');
+            Route::delete('pricing-plans/{id}', [App\Http\Controllers\SuperAdmin\PricingPlanController::class, 'destroy'])->name('pricing-plans.destroy');
+        });
+
+        // Requests & Approvals
+        Route::prefix('requests')->name('requests.')->group(function () {
+            // Onboarding Requests
+            Route::get('onboarding', [OnboardingRequestController::class, 'index'])->name('onboarding.index');
+            Route::patch('onboarding/{onboardingRequest}', [OnboardingRequestController::class, 'update'])->name('onboarding.update');
+            
+            // Domain Requests
+            Route::get('domains', [App\Http\Controllers\SuperAdmin\DomainRequestController::class, 'index'])->name('domains.index');
+            Route::patch('domains/{domainRequest}', [App\Http\Controllers\SuperAdmin\DomainRequestController::class, 'update'])->name('domains.update');
+            Route::delete('domains/{domainRequest}', [App\Http\Controllers\SuperAdmin\DomainRequestController::class, 'destroy'])->name('domains.destroy');
+        });
+
+        // System Management
+        Route::prefix('system')->name('system.')->group(function () {
+            // Analytics
+            Route::get('analytics', [App\Http\Controllers\SuperAdmin\AnalyticsController::class, 'index'])->name('analytics');
+            
+            // Activity Log
+            Route::get('activity-log', [App\Http\Controllers\SuperAdmin\ActivityLogController::class, 'index'])->name('activity-log');
+            
+            // Admin Management
+            Route::get('admins', [App\Http\Controllers\SuperAdmin\AdminController::class, 'index'])->name('admins.index');
+            Route::post('admins', [App\Http\Controllers\SuperAdmin\AdminController::class, 'store'])->name('admins.store');
+            Route::put('admins/{id}', [App\Http\Controllers\SuperAdmin\AdminController::class, 'update'])->name('admins.update');
+            Route::delete('admins/{id}', [App\Http\Controllers\SuperAdmin\AdminController::class, 'destroy'])->name('admins.destroy');
+        });
+        
+        // Legacy route compatibility (to be deprecated)
         Route::get('payment-gateways', [App\Http\Controllers\SuperAdmin\PaymentGatewayController::class, 'index'])->name('payment-gateways.index');
         Route::post('payment-gateways/toggle', [App\Http\Controllers\SuperAdmin\PaymentGatewayController::class, 'toggle'])->name('payment-gateways.toggle');
-
-        // Onboarding Requests
-        Route::get('onboarding-requests', [OnboardingRequestController::class, 'index'])->name('onboarding-requests.index');
-        Route::patch('onboarding-requests/{onboardingRequest}', [OnboardingRequestController::class, 'update'])->name('onboarding-requests.update');
-
-        // Domain Requests
         Route::get('domain-requests', [App\Http\Controllers\SuperAdmin\DomainRequestController::class, 'index'])->name('domain-requests.index');
         Route::patch('domain-requests/{domainRequest}', [App\Http\Controllers\SuperAdmin\DomainRequestController::class, 'update'])->name('domain-requests.update');
         Route::delete('domain-requests/{domainRequest}', [App\Http\Controllers\SuperAdmin\DomainRequestController::class, 'destroy'])->name('domain-requests.destroy');
-
-        // Pricing Plans Management
         Route::get('pricing-plans', [App\Http\Controllers\SuperAdmin\PricingPlanController::class, 'index'])->name('pricing-plans.index');
         Route::post('pricing-plans', [App\Http\Controllers\SuperAdmin\PricingPlanController::class, 'store'])->name('pricing-plans.store');
         Route::delete('pricing-plans/{id}', [App\Http\Controllers\SuperAdmin\PricingPlanController::class, 'destroy'])->name('pricing-plans.destroy');
-
-        // System Settings
         Route::get('system-settings', [App\Http\Controllers\SuperAdmin\SystemSettingsController::class, 'index'])->name('system-settings.index');
         Route::post('system-settings', [App\Http\Controllers\SuperAdmin\SystemSettingsController::class, 'update'])->name('system-settings.update');
-
-        // SMS Gateways Management
         Route::get('sms-gateways', [App\Http\Controllers\SuperAdmin\SmsGatewayController::class, 'index'])->name('sms-gateways.index');
         Route::post('sms-gateways/toggle', [App\Http\Controllers\SuperAdmin\SmsGatewayController::class, 'toggle'])->name('sms-gateways.toggle');
-
-        // Admin Management
         Route::get('admins', [App\Http\Controllers\SuperAdmin\AdminController::class, 'index'])->name('admins.index');
         Route::post('admins', [App\Http\Controllers\SuperAdmin\AdminController::class, 'store'])->name('admins.store');
         Route::put('admins/{id}', [App\Http\Controllers\SuperAdmin\AdminController::class, 'update'])->name('admins.update');
         Route::delete('admins/{id}', [App\Http\Controllers\SuperAdmin\AdminController::class, 'destroy'])->name('admins.destroy');
-
-        // Reports & Analytics
         Route::get('analytics', [App\Http\Controllers\SuperAdmin\AnalyticsController::class, 'index'])->name('analytics.index');
     });
 
