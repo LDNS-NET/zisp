@@ -95,22 +95,39 @@ class HealthCheckController extends Controller
         if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
             try {
                 // CPU Load
-                $cpu = (int)shell_exec('powershell -ExecutionPolicy Bypass -Command "(Get-CimInstance Win32_Processor | Measure-Object -Property LoadPercentage -Average).Average"');
+                $cpuOutput = $this->runCommand('powershell -ExecutionPolicy Bypass -Command "(Get-CimInstance Win32_Processor | Measure-Object -Property LoadPercentage -Average).Average"');
+                if ($cpuOutput === null || $cpuOutput === '') {
+                    $cpuOutput = $this->runCommand('wmic cpu get loadpercentage /Value');
+                    preg_match('/LoadPercentage=(\d+)/', $cpuOutput, $matches);
+                    $cpu = isset($matches[1]) ? (int)$matches[1] : 0;
+                } else {
+                    $cpu = (int)$cpuOutput;
+                }
                 
                 // RAM Usage
-                $memJson = shell_exec('powershell -ExecutionPolicy Bypass -Command "Get-CimInstance Win32_OperatingSystem | Select-Object FreePhysicalMemory, TotalVisibleMemorySize | ConvertTo-Json"');
-                $mem = json_decode($memJson, true);
+                $memJson = $this->runCommand('powershell -ExecutionPolicy Bypass -Command "Get-CimInstance Win32_OperatingSystem | Select-Object FreePhysicalMemory, TotalVisibleMemorySize | ConvertTo-Json"');
+                if ($memJson) {
+                    $mem = json_decode($memJson, true);
+                    $free = $mem['FreePhysicalMemory'] ?? 0;
+                    $total = $mem['TotalVisibleMemorySize'] ?? 0;
+                } else {
+                    $memInfo = $this->runCommand('wmic OS get FreePhysicalMemory,TotalVisibleMemorySize /Value');
+                    preg_match('/FreePhysicalMemory=(\d+)/', $memInfo, $freeMatches);
+                    preg_match('/TotalVisibleMemorySize=(\d+)/', $memInfo, $totalMatches);
+                    $free = isset($freeMatches[1]) ? (int)$freeMatches[1] : 0;
+                    $total = isset($totalMatches[1]) ? (int)$totalMatches[1] : 0;
+                }
                 
-                $free = $mem['FreePhysicalMemory'] ?? 0;
-                $total = $mem['TotalVisibleMemorySize'] ?? 0;
                 $used = $total - $free;
                 $ramPercent = $total > 0 ? round(($used / $total) * 100, 2) : 0;
 
                 // Load Average (Processor Queue Length)
-                $loadAvg = (int)shell_exec('powershell -ExecutionPolicy Bypass -Command "(Get-CimInstance Win32_PerfFormattedData_PerfOS_System).ProcessorQueueLength"');
+                $loadAvg = $this->runCommand('powershell -ExecutionPolicy Bypass -Command "(Get-CimInstance Win32_PerfFormattedData_PerfOS_System).ProcessorQueueLength"');
+                $loadAvg = $loadAvg !== null ? (int)$loadAvg : 0;
 
                 // Uptime
-                $uptimeSeconds = (int)shell_exec('powershell -ExecutionPolicy Bypass -Command "((Get-Date) - (Get-CimInstance Win32_OperatingSystem).LastBootUpTime).TotalSeconds"');
+                $uptimeSeconds = $this->runCommand('powershell -ExecutionPolicy Bypass -Command "((Get-Date) - (Get-CimInstance Win32_OperatingSystem).LastBootUpTime).TotalSeconds"');
+                $uptimeSeconds = $uptimeSeconds !== null ? (int)$uptimeSeconds : 0;
 
                 return [
                     'status' => ($cpu < 90 && $ramPercent < 90) ? 'healthy' : 'warning',
@@ -140,6 +157,16 @@ class HealthCheckController extends Controller
             'load_avg' => 0,
             'uptime' => 'N/A'
         ];
+    }
+
+    private function runCommand($command)
+    {
+        try {
+            $output = shell_exec($command);
+            return $output !== null ? trim($output) : null;
+        } catch (\Exception $e) {
+            return null;
+        }
     }
 
     private function formatUptime($seconds)

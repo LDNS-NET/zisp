@@ -403,7 +403,23 @@ onMounted(() => {
                                 ></div>
                             </div>
 
-                            <div class="grid grid-cols-2 gap-4 mt-2">
+                            <!-- Disk Usage -->
+                            <div class="flex items-center justify-between text-xs font-medium text-gray-500 mt-3">
+                                <div class="flex items-center gap-1">
+                                    <HardDrive class="h-3.5 w-3.5" />
+                                    <span>Disk Usage</span>
+                                </div>
+                                <span>{{ systemHealth.disk.details.used_percent }}%</span>
+                            </div>
+                            <div class="h-1.5 w-full bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                                <div 
+                                    class="h-full transition-all duration-500" 
+                                    :class="systemHealth.disk.details.used_percent > 90 ? 'bg-red-500' : 'bg-green-500'"
+                                    :style="{ width: `${systemHealth.disk.details.used_percent}%` }"
+                                ></div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4 mt-3">
                                 <div class="flex items-center gap-2 text-xs font-medium text-gray-500">
                                     <Zap class="h-3.5 w-3.5 text-yellow-500" />
                                     <span>Load: {{ systemHealth.server.load_avg }}</span>
