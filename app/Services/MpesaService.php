@@ -506,6 +506,7 @@ class MpesaService
             $phone = '254' . $phone;
         }
 
+        return $phone;
     }
 
     /**
