@@ -95,7 +95,7 @@ class TenantUserController extends Controller
         $validated = $request->validate([
             'full_name' => 'nullable|string|max:255',
             'username' => 'required|string|max:255',
-            'password' => 'nullable|string|min:6',
+            'password' => 'nullable|string|min:3',
             'phone' => 'required|string|max:15',
             /*'email' => [
                 'nullable',
