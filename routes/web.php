@@ -411,9 +411,6 @@ Route::middleware(['auth', 'superadmin', 'throttle:120,1'])
 
         // System Management
         Route::prefix('system')->name('system.')->group(function () {
-            // Analytics
-            Route::get('analytics', [App\Http\Controllers\SuperAdmin\AnalyticsController::class, 'index'])->name('analytics');
-            
             // Activity Log
             Route::get('activity-log', [App\Http\Controllers\SuperAdmin\ActivityLogController::class, 'index'])->name('activity-log');
             

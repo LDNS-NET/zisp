@@ -1,17 +1,9 @@
-<?php
-
-
-namespace App\Http\Controllers\SuperAdmin;
-
-use App\Http\Controllers\Controller;
-use App\Models\Tenants\TenantSMS;
-use App\Models\Tenants\NetworkUser;
-use App\Models\User;
-use App\Models\Tenants\TenantPayment;
 use App\Models\Tenants\TenantSMSTemplate;
 use App\Models\Radius\Radacct;
+use App\Models\Tenant;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\DB;
 
 class SuperAdminController extends Controller
 {
@@ -55,7 +47,28 @@ class SuperAdminController extends Controller
             ->groupBy('payment_method')
             ->get();
 
-        // 6. Recent Activity (Enhanced)
+        // 6. 6-Month MRR Data
+        $mrrData = TenantPayment::where('status', 'paid')
+            ->where('paid_at', '>=', now()->subMonths(6))
+            ->select(
+                DB::raw('DATE_FORMAT(paid_at, "%Y-%m") as month'),
+                DB::raw('SUM(amount) as total')
+            )
+            ->groupBy('month')
+            ->orderBy('month')
+            ->get();
+
+        // 7. 6-Month Tenant Growth
+        $tenantGrowthData = Tenant::where('created_at', '>=', now()->subMonths(6))
+            ->select(
+                DB::raw('DATE_FORMAT(created_at, "%Y-%m") as month'),
+                DB::raw('COUNT(*) as count')
+            )
+            ->groupBy('month')
+            ->orderBy('month')
+            ->get();
+
+        // 8. Recent Activity (Enhanced)
         $recentTenants = User::latest()->take(5)->get();
         $recentPayments = TenantPayment::where('status', 'paid')->latest()->take(5)->with('tenant')->get();
         
@@ -105,6 +118,8 @@ class SuperAdminController extends Controller
             'charts' => [
                 'revenue_trend' => $revenueTrend,
                 'revenue_by_gateway' => $revenueByGateway,
+                'mrr_data' => $mrrData,
+                'tenant_growth' => $tenantGrowthData,
             ],
             'recentActivity' => $recentActivity,
         ]);

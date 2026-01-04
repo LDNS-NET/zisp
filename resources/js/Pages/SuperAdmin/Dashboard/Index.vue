@@ -6,8 +6,6 @@ import {
     User, Banknote, MessageSquare, Building2, Activity, ArrowRight, 
     TrendingUp, TrendingDown, CreditCard, UserPlus, AlertCircle, CheckCircle 
 } from 'lucide-vue-next';
-import SuperAdminLayout from '@/Layouts/SuperAdminLayout.vue';
-import { Line, Doughnut } from 'vue-chartjs';
 import { 
     Chart as ChartJS, 
     Title, 
@@ -17,12 +15,15 @@ import {
     PointElement, 
     CategoryScale, 
     LinearScale, 
-    ArcElement 
+    ArcElement,
+    BarElement
 } from 'chart.js';
+import { Line, Doughnut, Bar } from 'vue-chartjs';
+import SuperAdminLayout from '@/Layouts/SuperAdminLayout.vue';
 
 // Register ChartJS components
 ChartJS.register(
-    Title, Tooltip, Legend, LineElement, PointElement, CategoryScale, LinearScale, ArcElement
+    Title, Tooltip, Legend, LineElement, PointElement, CategoryScale, LinearScale, ArcElement, BarElement
 );
 
 const page = usePage();
@@ -86,6 +87,48 @@ const gatewayOptions = {
     maintainAspectRatio: false,
     plugins: {
         legend: { position: 'right' }
+    }
+};
+
+// MRR Chart Data (6 Months)
+const mrrChartData = computed(() => {
+    const data = charts.value.mrr_data ?? [];
+    return {
+        labels: data.map(d => d.month),
+        datasets: [{
+            label: 'MRR (KES)',
+            data: data.map(d => d.total),
+            borderColor: '#4f46e5',
+            backgroundColor: 'rgba(79, 70, 229, 0.1)',
+            fill: true,
+            tension: 0.4
+        }]
+    };
+});
+
+// Tenant Growth Chart Data (6 Months)
+const growthChartData = computed(() => {
+    const data = charts.value.tenant_growth ?? [];
+    return {
+        labels: data.map(d => d.month),
+        datasets: [{
+            label: 'New Tenants',
+            data: data.map(d => d.count),
+            backgroundColor: '#10b981',
+            borderRadius: 4
+        }]
+    };
+});
+
+const barOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+        legend: { display: false }
+    },
+    scales: {
+        y: { beginAtZero: true, grid: { color: '#f3f4f6' } },
+        x: { grid: { display: false } }
     }
 };
 
@@ -241,6 +284,25 @@ onMounted(() => {
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Revenue by Gateway</h3>
                     <div class="h-72 flex items-center justify-center">
                         <Doughnut :data="gatewayData" :options="gatewayOptions" />
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2.5 Analytics Charts (Merged) -->
+            <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                <!-- MRR 6 Months -->
+                <div class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-900/5 dark:bg-gray-800 dark:ring-gray-700">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">MRR Trend (6 Months)</h3>
+                    <div class="h-72">
+                        <Line :data="mrrChartData" :options="revenueTrendOptions" />
+                    </div>
+                </div>
+
+                <!-- Tenant Growth 6 Months -->
+                <div class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-900/5 dark:bg-gray-800 dark:ring-gray-700">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Tenant Growth (6 Months)</h3>
+                    <div class="h-72">
+                        <Bar :data="growthChartData" :options="barOptions" />
                     </div>
                 </div>
             </div>

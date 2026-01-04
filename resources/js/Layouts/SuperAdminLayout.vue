@@ -53,7 +53,6 @@ const navigation = [
     { name: 'System Settings', href: route('superadmin.settings.system.index'), icon: Settings, active: 'superadmin.settings.system.*' },
     { name: 'SMS Gateways', href: route('superadmin.settings.sms-gateways.index'), icon: MessageSquare, active: 'superadmin.settings.sms-gateways.*' },
     { name: 'Admins', href: route('superadmin.system.admins.index'), icon: Shield, active: 'superadmin.system.admins.*' },
-    { name: 'Analytics', href: route('superadmin.system.analytics'), icon: BarChart, active: 'superadmin.system.analytics' },
     { name: 'Activity Log', href: route('superadmin.system.activity-log'), icon: Activity, active: 'superadmin.system.activity-log' },
     { name: 'All Mikrotiks', href: route('superadmin.allmikrotiks.index'), icon: Network, active: 'superadmin.allmikrotiks.*' },
     { 
