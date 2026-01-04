@@ -26,7 +26,6 @@ import {
     Layers,
     Activity,
     ChevronLeft,
-    ChevronLeft,
     Globe,
     Bell
 } from 'lucide-vue-next';
