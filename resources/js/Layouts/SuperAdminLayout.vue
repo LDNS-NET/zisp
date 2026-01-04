@@ -261,7 +261,21 @@ function toggleSidebar() {
 
                 <!-- Right: Actions -->
                 <div class="flex items-center gap-3 sm:gap-4">
-                    
+                    <!-- Notifications -->
+                    <Link 
+                        :href="route('superadmin.domain-requests.index')" 
+                        class="relative p-2 text-gray-500 hover:bg-gray-100 rounded-full dark:text-gray-400 dark:hover:bg-slate-800 transition-colors"
+                        title="Notifications"
+                    >
+                        <Bell class="w-5 h-5" />
+                        <span 
+                            v-if="user.unread_notifications_count > 0"
+                            class="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-white dark:ring-slate-900"
+                        >
+                            {{ user.unread_notifications_count }}
+                        </span>
+                    </Link>
+
                     <!-- Theme Toggle -->
                     <button 
                         @click="setTheme(theme === 'dark' ? 'light' : 'dark')"

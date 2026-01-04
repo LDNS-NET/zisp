@@ -12,7 +12,8 @@ import {
     X,
     AlertCircle,
     Trash2,
-    MessageSquare
+    MessageSquare,
+    Ban
 } from 'lucide-vue-next';
 
 defineProps({
@@ -22,13 +23,14 @@ defineProps({
 const selectedRequest = ref(null);
 const showStatusModal = ref(false);
 const showDeleteModal = ref(false);
+const showDetailsModal = ref(false);
 const newStatus = ref('');
-const rejectionReason = ref('');
+const adminMessage = ref('');
 
 const openStatusModal = (request, status) => {
     selectedRequest.value = request;
     newStatus.value = status;
-    rejectionReason.value = request.rejection_reason || '';
+    adminMessage.value = request.admin_message || request.rejection_reason || '';
     showStatusModal.value = true;
 };
 
@@ -37,15 +39,20 @@ const openDeleteModal = (request) => {
     showDeleteModal.value = true;
 };
 
+const openDetailsModal = (request) => {
+    selectedRequest.value = request;
+    showDetailsModal.value = true;
+};
+
 const updateStatus = () => {
     router.patch(route('superadmin.domain-requests.update', selectedRequest.value.id), {
         status: newStatus.value,
-        rejection_reason: rejectionReason.value
+        admin_message: adminMessage.value
     }, {
         onSuccess: () => {
             showStatusModal.value = false;
             selectedRequest.value = null;
-            rejectionReason.value = '';
+            adminMessage.value = '';
         }
     });
 };
@@ -64,6 +71,7 @@ const getStatusColor = (status) => {
         case 'pending': return 'bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400';
         case 'accepted': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400';
         case 'rejected': return 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400';
+        case 'revoked': return 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400';
         default: return 'bg-gray-100 text-gray-700';
     }
 };
@@ -133,8 +141,8 @@ const getStatusColor = (status) => {
                                                 <span :class="['px-2.5 py-1 rounded-full text-xs font-medium capitalize w-fit', getStatusColor(request.status)]">
                                                     {{ request.status }}
                                                 </span>
-                                                <p v-if="request.status === 'rejected' && request.rejection_reason" class="text-xs text-red-500 max-w-[200px] truncate" :title="request.rejection_reason">
-                                                    Reason: {{ request.rejection_reason }}
+                                                <p v-if="request.admin_message || request.rejection_reason" class="text-xs text-gray-500 dark:text-gray-400 max-w-[200px] truncate" :title="request.admin_message || request.rejection_reason">
+                                                    {{ request.admin_message || request.rejection_reason }}
                                                 </p>
                                             </div>
                                         </td>
@@ -146,6 +154,13 @@ const getStatusColor = (status) => {
                                         </td>
                                         <td class="px-4 py-4 text-right">
                                             <div class="flex justify-end gap-2">
+                                                <button 
+                                                    @click="openDetailsModal(request)"
+                                                    class="p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" 
+                                                    title="View Details"
+                                                >
+                                                    <Eye class="w-5 h-5" />
+                                                </button>
                                                 <button 
                                                     v-if="request.status === 'pending'"
                                                     @click="openStatusModal(request, 'accepted')"
@@ -161,6 +176,14 @@ const getStatusColor = (status) => {
                                                     title="Reject Request"
                                                 >
                                                     <XCircle class="w-5 h-5" />
+                                                </button>
+                                                <button 
+                                                    v-if="request.status === 'accepted'"
+                                                    @click="openStatusModal(request, 'revoked')"
+                                                    class="p-2 text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors" 
+                                                    title="Revoke Domain"
+                                                >
+                                                    <Ban class="w-5 h-5" />
                                                 </button>
                                                 <button 
                                                     @click="openDeleteModal(request)"
@@ -195,7 +218,7 @@ const getStatusColor = (status) => {
             <div class="p-6 dark:bg-slate-900">
                 <div class="flex items-center justify-between mb-6">
                     <h3 class="text-xl font-bold text-gray-900 dark:text-white">
-                        {{ newStatus === 'accepted' ? 'Accept Domain Request' : 'Reject Domain Request' }}
+                        {{ newStatus === 'accepted' ? 'Accept Domain Request' : (newStatus === 'rejected' ? 'Reject Domain Request' : 'Revoke Domain Access') }}
                     </h3>
                     <button @click="showStatusModal = false" class="text-gray-400 hover:text-gray-500">
                         <X class="w-6 h-6" />
@@ -220,13 +243,15 @@ const getStatusColor = (status) => {
                         </div>
                     </div>
 
-                    <div v-if="newStatus === 'rejected'">
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Rejection Reason</label>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Message to Tenant (Optional)
+                        </label>
                         <textarea 
-                            v-model="rejectionReason"
+                            v-model="adminMessage"
                             rows="3"
                             class="w-full rounded-lg border-gray-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:ring-blue-500 focus:border-blue-500"
-                            placeholder="Type the reason for rejection..."
+                            :placeholder="newStatus === 'accepted' ? 'Provide DNS instructions or welcome message...' : 'Reason for this action...'"
                         ></textarea>
                     </div>
 
@@ -240,9 +265,59 @@ const getStatusColor = (status) => {
                         <button 
                             @click="updateStatus"
                             class="flex-1 px-4 py-2 rounded-lg text-white font-semibold transition shadow-lg"
-                            :class="newStatus === 'accepted' ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20' : 'bg-red-600 hover:bg-red-700 shadow-red-500/20'"
+                            :class="newStatus === 'accepted' ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20' : (newStatus === 'rejected' ? 'bg-red-600 hover:bg-red-700 shadow-red-500/20' : 'bg-orange-600 hover:bg-orange-700 shadow-orange-500/20')"
                         >
                             Confirm {{ newStatus }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </Modal>
+
+        <!-- Details Modal -->
+        <Modal :show="showDetailsModal" @close="showDetailsModal = false" maxWidth="md">
+            <div class="p-6 dark:bg-slate-900" v-if="selectedRequest">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white">Request Details</h3>
+                    <button @click="showDetailsModal = false" class="text-gray-400 hover:text-gray-500">
+                        <X class="w-6 h-6" />
+                    </button>
+                </div>
+
+                <div class="space-y-6">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="p-3 rounded-lg bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700">
+                            <span class="text-xs text-gray-500 uppercase font-bold tracking-wider">Status</span>
+                            <div class="mt-1">
+                                <span :class="['px-2 py-0.5 rounded-full text-xs font-medium capitalize', getStatusColor(selectedRequest.status)]">
+                                    {{ selectedRequest.status }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="p-3 rounded-lg bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700">
+                            <span class="text-xs text-gray-500 uppercase font-bold tracking-wider">Type</span>
+                            <p class="mt-1 font-medium text-gray-900 dark:text-white capitalize">{{ selectedRequest.type }}</p>
+                        </div>
+                    </div>
+
+                    <div class="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800">
+                        <span class="text-xs text-blue-600 dark:text-blue-400 uppercase font-bold tracking-wider">Requested Domain</span>
+                        <p class="mt-1 font-mono text-lg font-bold text-blue-700 dark:text-blue-300">{{ selectedRequest.requested_domain }}</p>
+                    </div>
+
+                    <div v-if="selectedRequest.admin_message || selectedRequest.rejection_reason" class="space-y-2">
+                        <span class="text-xs text-gray-500 uppercase font-bold tracking-wider">Admin Message</span>
+                        <div class="p-4 rounded-lg bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                            {{ selectedRequest.admin_message || selectedRequest.rejection_reason }}
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end pt-4">
+                        <button 
+                            @click="showDetailsModal = false"
+                            class="px-6 py-2 rounded-lg bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300 font-semibold hover:bg-gray-200 dark:hover:bg-slate-700 transition"
+                        >
+                            Close
                         </button>
                     </div>
                 </div>

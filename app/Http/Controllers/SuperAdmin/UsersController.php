@@ -96,12 +96,27 @@ class UsersController extends Controller
             'username' => $validated['username'],
         ]);
 
-        // Update domain in TenantGeneralSetting
+        // Update domain in TenantGeneralSetting and domains table
         if ($user->tenant_id) {
+            $oldDomain = TenantGeneralSetting::where('tenant_id', $user->tenant_id)->value('website');
+            
             TenantGeneralSetting::updateOrCreate(
                 ['tenant_id' => $user->tenant_id],
                 ['website' => $validated['domain']]
             );
+
+            $tenant = \App\Models\Tenant::find($user->tenant_id);
+            if ($tenant) {
+                // Remove old domain if it changed
+                if ($oldDomain && $oldDomain !== $validated['domain']) {
+                    $tenant->domains()->where('domain', $oldDomain)->delete();
+                }
+                
+                // Add new domain if provided and not exists
+                if ($validated['domain'] && !$tenant->domains()->where('domain', $validated['domain'])->exists()) {
+                    $tenant->domains()->create(['domain' => $validated['domain']]);
+                }
+            }
         }
 
         return back()->with('success', 'User details updated successfully.');

@@ -16,7 +16,8 @@ import {
     XCircle,
     AlertCircle,
     Info,
-    X
+    X,
+    Eye
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -24,6 +25,8 @@ const props = defineProps({
 });
 
 const showRequestModal = ref(false);
+const showDetailsModal = ref(false);
+const selectedRequest = ref(null);
 const requestType = ref('custom');
 
 const form = useForm({
@@ -36,6 +39,11 @@ const openRequestModal = (type) => {
     form.type = type;
     form.requested_domain = '';
     showRequestModal.value = true;
+};
+
+const openDetailsModal = (request) => {
+    selectedRequest.value = request;
+    showDetailsModal.value = true;
 };
 
 const submitRequest = () => {
@@ -52,6 +60,7 @@ const getStatusColor = (status) => {
         case 'pending': return 'bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400';
         case 'accepted': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400';
         case 'rejected': return 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400';
+        case 'revoked': return 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400';
         default: return 'bg-gray-100 text-gray-700';
     }
 };
@@ -121,6 +130,7 @@ const getStatusColor = (status) => {
                                         <th class="px-4 py-3 text-sm font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Requested Domain</th>
                                         <th class="px-4 py-3 text-sm font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Status</th>
                                         <th class="px-4 py-3 text-sm font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Date</th>
+                                        <th class="px-4 py-3 text-sm font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider text-right">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
@@ -140,8 +150,15 @@ const getStatusColor = (status) => {
                                                 <span :class="['px-2.5 py-1 rounded-full text-xs font-medium capitalize w-fit', getStatusColor(request.status)]">
                                                     {{ request.status }}
                                                 </span>
-                                                <div v-if="request.status === 'rejected' && request.rejection_reason" class="text-xs text-red-500 bg-red-50 dark:bg-red-900/20 p-2 rounded-lg mt-1 border border-red-100 dark:border-red-900/30">
-                                                    <span class="font-bold">Reason:</span> {{ request.rejection_reason }}
+                                                <div v-if="request.admin_message || request.rejection_reason" 
+                                                     :class="[
+                                                         'text-xs p-2 rounded-lg mt-1 border',
+                                                         request.status === 'accepted' ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-900/30' :
+                                                         request.status === 'rejected' ? 'text-red-600 bg-red-50 dark:bg-red-900/20 border-red-100 dark:border-red-900/30' :
+                                                         'text-gray-600 bg-gray-50 dark:bg-gray-800 border-gray-100 dark:border-gray-700'
+                                                     ]"
+                                                >
+                                                    <span class="font-bold">Message:</span> {{ request.admin_message || request.rejection_reason }}
                                                 </div>
                                             </div>
                                         </td>
@@ -149,6 +166,15 @@ const getStatusColor = (status) => {
                                             <div class="text-sm text-gray-500 dark:text-gray-400">
                                                 {{ new Date(request.created_at).toLocaleDateString() }}
                                             </div>
+                                        </td>
+                                        <td class="px-4 py-4 text-right">
+                                            <button 
+                                                @click="openDetailsModal(request)"
+                                                class="p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" 
+                                                title="View Details"
+                                            >
+                                                <Eye class="w-5 h-5" />
+                                            </button>
                                         </td>
                                     </tr>
                                 </tbody>
@@ -168,6 +194,56 @@ const getStatusColor = (status) => {
                 </div>
             </div>
         </div>
+
+        <!-- Details Modal -->
+        <Modal :show="showDetailsModal" @close="showDetailsModal = false" maxWidth="md">
+            <div class="p-6 dark:bg-slate-900" v-if="selectedRequest">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white">Request Details</h3>
+                    <button @click="showDetailsModal = false" class="text-gray-400 hover:text-gray-500">
+                        <X class="w-6 h-6" />
+                    </button>
+                </div>
+
+                <div class="space-y-6">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="p-3 rounded-lg bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700">
+                            <span class="text-xs text-gray-500 uppercase font-bold tracking-wider">Status</span>
+                            <div class="mt-1">
+                                <span :class="['px-2 py-0.5 rounded-full text-xs font-medium capitalize', getStatusColor(selectedRequest.status)]">
+                                    {{ selectedRequest.status }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="p-3 rounded-lg bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700">
+                            <span class="text-xs text-gray-500 uppercase font-bold tracking-wider">Type</span>
+                            <p class="mt-1 font-medium text-gray-900 dark:text-white capitalize">{{ selectedRequest.type }}</p>
+                        </div>
+                    </div>
+
+                    <div class="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800">
+                        <span class="text-xs text-blue-600 dark:text-blue-400 uppercase font-bold tracking-wider">Requested Domain</span>
+                        <p class="mt-1 font-mono text-lg font-bold text-blue-700 dark:text-blue-300">{{ selectedRequest.requested_domain }}</p>
+                    </div>
+
+                    <div v-if="selectedRequest.admin_message || selectedRequest.rejection_reason" class="space-y-2">
+                        <span class="text-xs text-gray-500 uppercase font-bold tracking-wider">Message from Admin</span>
+                        <div class="p-4 rounded-lg bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                            {{ selectedRequest.admin_message || selectedRequest.rejection_reason }}
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end pt-4">
+                        <button 
+                            @click="showDetailsModal = false"
+                            class="px-6 py-2 rounded-lg bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300 font-semibold hover:bg-gray-200 dark:hover:bg-slate-700 transition"
+                        >
+                            Close
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </Modal>
 
         <!-- Request Modal -->
         <Modal :show="showRequestModal" @close="showRequestModal = false" maxWidth="md">

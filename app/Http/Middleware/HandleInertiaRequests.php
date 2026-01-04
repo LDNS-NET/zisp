@@ -88,7 +88,9 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'auth' => [
-                'user' => $request->user() ?? $request->user('customer'),
+                'user' => $request->user() ? array_merge($request->user()->toArray(), [
+                    'unread_notifications_count' => $request->user()->unreadNotifications()->count(),
+                ]) : ($request->user('customer') ? $request->user('customer')->toArray() : null),
             ],
             'tenant' => $tenant ? [
                 'id' => $tenant->id,

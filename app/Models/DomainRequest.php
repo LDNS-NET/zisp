@@ -12,6 +12,7 @@ class DomainRequest extends Model
         'requested_domain',
         'status',
         'rejection_reason',
+        'admin_message',
         'metadata',
     ];
 
