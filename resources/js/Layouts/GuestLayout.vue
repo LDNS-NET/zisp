@@ -1,6 +1,7 @@
 <script setup>
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
 import { Link, usePage } from '@inertiajs/vue3';
+import Toast from '@/Components/Toast.vue';
 
 const page = usePage();
 const tenantLogo = page.props.tenantLogo;
@@ -32,4 +33,5 @@ const tenantLogo = page.props.tenantLogo;
             <slot />
         </div>
     </div>
+    <Toast />
 </template>

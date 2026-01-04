@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { Link, usePage, useForm, Head } from '@inertiajs/vue3';
+import Toast from '@/Components/Toast.vue';
 import { 
     LayoutDashboard, 
     RefreshCw, 
@@ -150,6 +151,7 @@ const toggleMobileMenu = () => {
             </div>
         </main>
     </div>
+    <Toast />
 </template>
 
 <style>

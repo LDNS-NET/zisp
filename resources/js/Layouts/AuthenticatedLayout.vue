@@ -3,6 +3,7 @@ import { ref, onMounted, watch } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
+import Toast from '@/Components/Toast.vue';
 import { useTheme } from '@/composables/useTheme';
 import {
     LayoutDashboard,
@@ -258,6 +259,7 @@ function toggleSidebar() {
             </main>
         </div>
     </div>
+    <Toast />
 </template>
 
 <style scoped>

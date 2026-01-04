@@ -21,6 +21,9 @@ import {
     Bell,
     ChevronDown,
     ChevronRight,
+    Globe,
+    MessageSquare,
+    Network
 } from 'lucide-vue-next';
 
 const { theme, setTheme } = useTheme();

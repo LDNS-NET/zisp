@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
+import Toast from '@/Components/Toast.vue';
 import { useTheme } from '@/composables/useTheme';
 import { Moon, Sun } from 'lucide-vue-next';
 
@@ -360,6 +361,7 @@ const openTube = () => {
             </div>
         </footer>
     </div>
+    <Toast />
 </template>
 
 <style scoped>
