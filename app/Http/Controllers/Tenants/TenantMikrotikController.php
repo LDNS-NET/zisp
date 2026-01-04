@@ -909,10 +909,15 @@ class TenantMikrotikController extends Controller
     {
         $router = TenantMikrotik::findOrFail($id);
 
-        // Validate token if provided
+        // Validate token - MUST be provided and MUST match
         $token = $request->query('token');
-        if ($token && $token !== $router->sync_token) {
-            abort(403, 'Invalid token');
+        if (!$token || $token !== $router->sync_token) {
+            Log::warning('Unauthorized public script download attempt', [
+                'router_id' => $id,
+                'client_ip' => $request->ip(),
+                'token_provided' => $token ? 'invalid' : 'missing'
+            ]);
+            abort(403, 'Invalid or missing token');
         }
 
         $caUrl = optional($router->openvpnProfile)->ca_cert_path
@@ -992,13 +997,12 @@ class TenantMikrotikController extends Controller
         try {
             $router = TenantMikrotik::findOrFail($mikrotik);
 
-            // Log incoming request for debugging
+            // Log incoming request for debugging - sanitized
             Log::info('WireGuard registration attempt', [
                 'router_id' => $mikrotik,
                 'router_name' => $router->name,
                 'client_ip' => $request->ip(),
-                'has_token' => $request->has('token') || $request->query('token') ? 'yes' : 'no',
-                'post_data' => $request->except(['token']), // Log POST data without token
+                'has_token' => ($request->has('token') || $request->query('token')) ? 'yes' : 'no',
             ]);
 
             // Validate sync token
@@ -1008,7 +1012,6 @@ class TenantMikrotikController extends Controller
                     'router_id' => $router->id,
                     'provided_token' => $token ? 'present' : 'missing',
                     'client_ip' => $request->ip(),
-                    'wireguard_public_key' => $request->wg_public_key,
                 ]);
                 return response()->json([
                     'success' => false,

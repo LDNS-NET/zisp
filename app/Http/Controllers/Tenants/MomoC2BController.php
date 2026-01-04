@@ -24,6 +24,16 @@ class MomoC2BController extends Controller
      */
     public function callback(Request $request)
     {
+        // Security: Validate source IP
+        $momo = app(\App\Services\MomoService::class);
+        if (!$momo->isValidSourceIp($request->ip())) {
+            Log::warning('MoMo C2B Callback: Unauthorized IP attempt', [
+                'ip' => $request->ip(),
+                'data' => $request->all()
+            ]);
+            return response()->json(['status' => 'unauthorized'], 403);
+        }
+
         $data = $request->all();
         
         Log::info('MoMo C2B Callback received', ['data' => $data]);

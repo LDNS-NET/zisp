@@ -506,6 +506,38 @@ class MpesaService
             $phone = '254' . $phone;
         }
 
-        return $phone;
+    }
+
+    /**
+     * Validate if the request is coming from a trusted M-Pesa IP address.
+     * 
+     * @param string $ip
+     * @return bool
+     */
+    public function isValidSourceIp(string $ip): bool
+    {
+        // In sandbox, allow all IPs for testing convenience
+        if ($this->environment === 'sandbox') {
+            return true;
+        }
+
+        // Trusted Safaricom M-Pesa G2 IP ranges
+        // Note: These should ideally be moved to a config file
+        $trustedIps = [
+            '196.201.214.200',
+            '196.201.214.206',
+            '196.201.213.114',
+            '196.201.214.207',
+            '196.201.214.208',
+            '196.201.213.44',
+            '196.201.212.127',
+            '196.201.212.138',
+            '196.201.212.129',
+            '196.201.212.136',
+            '196.201.212.74',
+            '196.201.212.69',
+        ];
+
+        return in_array($ip, $trustedIps);
     }
 }

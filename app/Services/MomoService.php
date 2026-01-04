@@ -29,7 +29,7 @@ class MomoService
         $this->apiUser = $credentials['api_user'] ?? null;
         $this->apiKey = $credentials['api_key'] ?? null;
         $this->subscriptionKey = $credentials['subscription_key'] ?? null;
-        $this->environment = $credentials['environment'] ?? 'sandbox';
+        $this->environment = $credentials['environment'] ?? config('momo.environment', 'sandbox');
 
         // MTN MoMo API Base URLs
         $this->baseUrl = $this->environment === 'production'
@@ -206,6 +206,51 @@ class MomoService
         
         // Add country code if missing (example for Uganda +256)
         // This should ideally be handled based on the tenant's country
-        return $phone;
+    }
+
+    /**
+     * Validate if the request is coming from a trusted MTN MoMo IP address.
+     * 
+     * @param string $ip
+     * @return bool
+     */
+    public function isValidSourceIp(string $ip): bool
+    {
+        // In sandbox, allow all IPs for testing convenience
+        if ($this->environment === 'sandbox') {
+            return true;
+        }
+
+        // Trusted MTN MoMo IP ranges (Example ranges, should be verified with MTN documentation)
+        // Note: These should ideally be moved to a config file
+        $trustedIps = [
+            '196.11.240.0/24',
+            '196.11.242.0/24',
+        ];
+
+        foreach ($trustedIps as $range) {
+            if ($this->ipInNetwork($ip, $range)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if an IP is in a network range (CIDR)
+     */
+    private function ipInNetwork($ip, $range)
+    {
+        if (strpos($range, '/') === false) {
+            return $ip === $range;
+        }
+
+        list($subnet, $bits) = explode('/', $range);
+        $ip = ip2long($ip);
+        $subnet = ip2long($subnet);
+        $mask = -1 << (32 - $bits);
+        $subnet &= $mask;
+        return ($ip & $mask) == $subnet;
     }
 }

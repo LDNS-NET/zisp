@@ -19,6 +19,18 @@ class MpesaC2BController extends Controller
      */
     public function validation(Request $request, MpesaService $mpesa)
     {
+        // Security: Validate source IP
+        if (!$mpesa->isValidSourceIp($request->ip())) {
+            Log::warning('M-Pesa C2B Validation: Unauthorized IP attempt', [
+                'ip' => $request->ip(),
+                'data' => $request->all()
+            ]);
+            return response()->json([
+                'ResultCode' => 1,
+                'ResultDesc' => 'Rejected: Unauthorized source'
+            ], 403);
+        }
+
         $data = $mpesa->parseC2B($request->all());
         $accountNumber = $data['bill_ref_number'];
 
@@ -48,6 +60,18 @@ class MpesaC2BController extends Controller
      */
     public function confirmation(Request $request, MpesaService $mpesa)
     {
+        // Security: Validate source IP
+        if (!$mpesa->isValidSourceIp($request->ip())) {
+            Log::warning('M-Pesa C2B Confirmation: Unauthorized IP attempt', [
+                'ip' => $request->ip(),
+                'data' => $request->all()
+            ]);
+            return response()->json([
+                'ResultCode' => 1,
+                'ResultDesc' => 'Rejected: Unauthorized source'
+            ], 403);
+        }
+
         $data = $mpesa->parseC2B($request->all());
         $accountNumber = $data['bill_ref_number'];
 
