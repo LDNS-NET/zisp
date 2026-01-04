@@ -83,6 +83,7 @@ class CreateSuperAdmin extends Command
         } else {
             // Create new superadmin
             $name = $this->option('name') ?: $this->ask('Full name');
+            $phone = $this->ask('Phone number');
             $password = $this->option('password') ?: $this->secret('Password');
             
             if (!$this->option('password')) {
@@ -103,6 +104,7 @@ class CreateSuperAdmin extends Command
             $user = User::create([
                 'name' => $name,
                 'email' => $email,
+                'phone' => $phone,
                 'password' => Hash::make($password),
                 'role' => 'superadmin',
                 'tenant_id' => null,
