@@ -61,6 +61,7 @@ class CreateSuperAdmin extends Command
             // Update existing user to superadmin
             $user->update([
                 'role' => 'superadmin',
+                'is_super_admin' => true,
                 'tenant_id' => null,
                 'email_verified_at' => now(),
             ]);
@@ -107,6 +108,7 @@ class CreateSuperAdmin extends Command
                 'phone' => $phone,
                 'password' => Hash::make($password),
                 'role' => 'superadmin',
+                'is_super_admin' => true,
                 'tenant_id' => null,
                 'email_verified_at' => now(),
                 'username' => explode('@', $email)[0] . '_superadmin',

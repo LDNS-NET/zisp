@@ -27,6 +27,7 @@ class User extends Authenticatable
         'tenant_id',
         'subscription_expires_at',
         'is_super_admin',
+        'role',
         'email_verified_at',
         'last_login_at',
         'is_suspended',
