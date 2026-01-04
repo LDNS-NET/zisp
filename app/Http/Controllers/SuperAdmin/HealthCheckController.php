@@ -95,32 +95,62 @@ class HealthCheckController extends Controller
         if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
             try {
                 // CPU Load
-                $cpuLoad = shell_exec('wmic cpu get loadpercentage /Value');
-                preg_match('/LoadPercentage=(\d+)/', $cpuLoad, $matches);
-                $cpu = isset($matches[1]) ? (int)$matches[1] : 0;
-
-                // RAM Usage
-                $memInfo = shell_exec('wmic OS get FreePhysicalMemory,TotalVisibleMemorySize /Value');
-                preg_match('/FreePhysicalMemory=(\d+)/', $memInfo, $freeMatches);
-                preg_match('/TotalVisibleMemorySize=(\d+)/', $memInfo, $totalMatches);
+                $cpu = (int)shell_exec('powershell -ExecutionPolicy Bypass -Command "(Get-CimInstance Win32_Processor | Measure-Object -Property LoadPercentage -Average).Average"');
                 
-                $free = isset($freeMatches[1]) ? (int)$freeMatches[1] : 0;
-                $total = isset($totalMatches[1]) ? (int)$totalMatches[1] : 0;
+                // RAM Usage
+                $memJson = shell_exec('powershell -ExecutionPolicy Bypass -Command "Get-CimInstance Win32_OperatingSystem | Select-Object FreePhysicalMemory, TotalVisibleMemorySize | ConvertTo-Json"');
+                $mem = json_decode($memJson, true);
+                
+                $free = $mem['FreePhysicalMemory'] ?? 0;
+                $total = $mem['TotalVisibleMemorySize'] ?? 0;
                 $used = $total - $free;
                 $ramPercent = $total > 0 ? round(($used / $total) * 100, 2) : 0;
+
+                // Load Average (Processor Queue Length)
+                $loadAvg = (int)shell_exec('powershell -ExecutionPolicy Bypass -Command "(Get-CimInstance Win32_PerfFormattedData_PerfOS_System).ProcessorQueueLength"');
+
+                // Uptime
+                $uptimeSeconds = (int)shell_exec('powershell -ExecutionPolicy Bypass -Command "((Get-Date) - (Get-CimInstance Win32_OperatingSystem).LastBootUpTime).TotalSeconds"');
 
                 return [
                     'status' => ($cpu < 90 && $ramPercent < 90) ? 'healthy' : 'warning',
                     'cpu' => $cpu,
                     'ram' => $ramPercent,
+                    'load_avg' => $loadAvg,
+                    'uptime' => $this->formatUptime($uptimeSeconds),
                     'message' => "CPU: {$cpu}%, RAM: {$ramPercent}%"
                 ];
             } catch (\Exception $e) {
-                return ['status' => 'unhealthy', 'message' => 'Could not check server load'];
+                return [
+                    'status' => 'unhealthy', 
+                    'message' => 'Monitoring error',
+                    'cpu' => 0,
+                    'ram' => 0,
+                    'load_avg' => 0,
+                    'uptime' => 'N/A'
+                ];
             }
         }
 
-        return ['status' => 'unknown', 'message' => 'OS not supported for load check'];
+        return [
+            'status' => 'unknown', 
+            'message' => 'OS not supported',
+            'cpu' => 0,
+            'ram' => 0,
+            'load_avg' => 0,
+            'uptime' => 'N/A'
+        ];
+    }
+
+    private function formatUptime($seconds)
+    {
+        $days = floor($seconds / 86400);
+        $hours = floor(($seconds % 86400) / 3600);
+        $minutes = floor(($seconds % 3600) / 60);
+
+        if ($days > 0) return "{$days}d {$hours}h";
+        if ($hours > 0) return "{$hours}h {$minutes}m";
+        return "{$minutes}m";
     }
 
     private function checkMikrotikConnectivity()

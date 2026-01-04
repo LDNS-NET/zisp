@@ -5,7 +5,7 @@ import axios from 'axios';
 import { 
     User, Banknote, MessageSquare, Building2, Activity, ArrowRight, 
     TrendingUp, TrendingDown, CreditCard, UserPlus, AlertCircle, CheckCircle,
-    Cpu, HardDrive, Network, Layers, ShieldAlert
+    Cpu, HardDrive, Network, Layers, ShieldAlert, Clock, Zap
 } from 'lucide-vue-next';
 import { 
     Chart as ChartJS, 
@@ -401,6 +401,17 @@ onMounted(() => {
                                     :class="systemHealth.server.ram > 80 ? 'bg-red-500' : 'bg-blue-500'"
                                     :style="{ width: `${systemHealth.server.ram}%` }"
                                 ></div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4 mt-2">
+                                <div class="flex items-center gap-2 text-xs font-medium text-gray-500">
+                                    <Zap class="h-3.5 w-3.5 text-yellow-500" />
+                                    <span>Load: {{ systemHealth.server.load_avg }}</span>
+                                </div>
+                                <div class="flex items-center gap-2 text-xs font-medium text-gray-500 justify-end">
+                                    <Clock class="h-3.5 w-3.5 text-blue-500" />
+                                    <span>Up: {{ systemHealth.server.uptime }}</span>
+                                </div>
                             </div>
                         </div>
 
