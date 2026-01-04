@@ -59,6 +59,9 @@ class TenantUserController extends Controller
         // Get user counts by type for filters
         $counts = [
             'all' => NetworkUser::count(),
+            'hotspot' => NetworkUser::where('type', 'hotspot')->count(),
+            'pppoe' => NetworkUser::where('type', 'pppoe')->count(),
+            'static' => NetworkUser::where('type', 'static')->count(),
             'active' => NetworkUser::where('status', 'active')->count(),
             'inactive' => NetworkUser::where('status', 'inactive')->count(),
             'online' => count($onlineUsernames),
