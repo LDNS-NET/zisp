@@ -36,20 +36,35 @@ class TenantActiveUsersController extends Controller
             ->limit($maxUsers * 2)
             ->get();
 
-        // Get all network users with their packages for type lookup
-        $networkUsers = NetworkUser::with('package')->get()->keyBy('username');
+        // Get all network users with their packages for type lookup - standardize to lowercase for lookup
+        $networkUsers = NetworkUser::with('package')->get()->keyBy(function ($item) {
+            return strtolower($item->username);
+        });
 
         foreach ($radRows as $row) {
             $router = $routers[$row->nasipaddress] ?? null;
             $routerName = $router?->name ?? ($row->nasipaddress);
 
-            // Get user type from NetworkUser's package, fallback to MAC-based detection
+            // Get user type from NetworkUser's package
+            // Lookup using lowercase username
             $networkUser = $networkUsers[strtolower($row->username)] ?? null;
-            if ($networkUser && $networkUser->package) {
-                $type = $networkUser->package->type;
+            
+            if ($networkUser) {
+                // If we found the user, use their type directly
+                $type = $networkUser->type ?? ($networkUser->package?->type ?? 'unknown');
             } else {
-                // Fallback: detect from MAC address format (hotspot has colons, pppoe doesn't)
-                $type = str_contains(strtolower($row->callingstationid), ':') ? 'hotspot' : 'pppoe';
+                // If user not found in DB but is in RADIUS (orphan session?), try to guess
+                // Check if username looks like a MAC address (often Hotspot trial/login by MAC)
+                $isMacUser = preg_match('/^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/', $row->username);
+                
+                if ($isMacUser) {
+                    $type = 'hotspot';
+                } else {
+                    // Start with 'pppoe' as default for named users if not found, 
+                    // or check framedprotocol/nasporttype if available (but they aren't in this query)
+                    // For now, default to 'pppoe' for non-MAC usernames as it's the more common "account" type
+                    $type = 'pppoe';
+                }
             }
 
             $activeUsers[] = [
