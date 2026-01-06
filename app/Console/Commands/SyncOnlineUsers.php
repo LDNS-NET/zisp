@@ -16,7 +16,10 @@ class SyncOnlineUsers extends Command
     {
         $this->info('Starting online sessions cleanup...');
         $totalSessions = TenantActiveSession::withoutGlobalScopes()->count();
-        $this->info("Total sessions in database: $totalSessions");
+        $activeCount = TenantActiveSession::withoutGlobalScopes()->where('status', 'active')->count();
+        $disconnectedCount = TenantActiveSession::withoutGlobalScopes()->where('status', 'disconnected')->count();
+        
+        $this->info("Total sessions in database: $totalSessions (Active: $activeCount, Disconnected: $disconnectedCount)");
         
         // 1. Mark stale sessions as disconnected
         // If we haven't heard from a session in 15 minutes (no interim update), it's likely gone.

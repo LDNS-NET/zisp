@@ -39,6 +39,8 @@ class RadiusAccountingController extends Controller
             $framedIp = $extract($data['Framed-IP-Address'] ?? null);
             $macAddress = $extract($data['Calling-Station-Id'] ?? null);
 
+            Log::debug("RADIUS Parsed: Status=$statusType, User=$username, Session=$sessionId, NAS=$nasIp");
+
             if (!$statusType || !$sessionId || !$username) {
                 // Return received data to help debugging in FreeRADIUS logs
                 return response()->json([
@@ -68,17 +70,25 @@ class RadiusAccountingController extends Controller
                 return response()->json(['message' => 'Unknown NAS IP'], 404);
             }
 
-            // Find User
+            // Find User (Case-insensitive)
             // Use withoutGlobalScopes to ensure we find the user regardless of current context
             $user = NetworkUser::withoutGlobalScopes()
-                ->where('username', $username)
                 ->where('tenant_id', $router->tenant_id)
+                ->where(function($q) use ($username) {
+                    $q->where('username', $username)
+                      ->orWhere(\DB::raw('lower(username)'), strtolower($username));
+                })
                 ->first();
+
+            if (!$user) {
+                Log::warning("RADIUS Accounting: User not found: $username for tenant {$router->tenant_id}");
+            }
 
             // Unique Session Key
             $uniqueSessionKey = $sessionId;
 
-            if ($statusType === 'Start' || $statusType === 'Interim-Update') {
+            // Handle both string and numeric status types (1=Start, 3=Interim-Update)
+            if (in_array($statusType, ['Start', 'Interim-Update', '1', 1, '3', 3])) {
                 TenantActiveSession::withoutGlobalScopes()->updateOrCreate(
                     ['session_id' => $uniqueSessionKey],
                     [
@@ -98,7 +108,7 @@ class RadiusAccountingController extends Controller
                 }
 
                 Log::info("RADIUS Accounting: Updated active session for $username on router {$router->id}");
-            } elseif ($statusType === 'Stop') {
+            } elseif (in_array($statusType, ['Stop', '2', 2])) {
                 // Mark as disconnected
                 TenantActiveSession::withoutGlobalScopes()
                     ->where('session_id', $uniqueSessionKey)
