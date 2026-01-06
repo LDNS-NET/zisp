@@ -21,6 +21,7 @@ class TenantActiveSession extends Model
         'connected_at',
         'last_seen_at',
         'status',
+        'tenant_id',
     ];
 
     protected $casts = [
@@ -38,8 +39,27 @@ class TenantActiveSession extends Model
         return $this->belongsTo(NetworkUser::class, 'user_id');
     }
 
+    public function tenant()
+    {
+        return $this->belongsTo(\App\Models\Tenant::class, 'tenant_id');
+    }
+
     public function scopeActive($query)
     {
         return $query->where('status', 'active');
+    }
+
+    protected static function booted()
+    {
+        static::addGlobalScope('tenant', function ($query) {
+            if (tenant()) {
+                $query->where('tenant_id', tenant()->id);
+            } elseif (auth()->check()) {
+                $user = auth()->user();
+                if (!$user->is_super_admin && $user->tenant_id) {
+                    $query->where('tenant_id', $user->tenant_id);
+                }
+            }
+        });
     }
 }

@@ -39,6 +39,7 @@ class SyncOnlineUsers extends Command
                     
                     $activeSessions[$key] = [
                         'router_id' => $router->id,
+                        'tenant_id' => $router->tenant_id,
                         'username' => $user['username'],
                         'ip_address' => $user['ip'],
                         'mac_address' => $user['mac'],
@@ -61,17 +62,21 @@ class SyncOnlineUsers extends Command
             ->get();
 
         // Map RADIUS sessions to routers based on NAS IP
-        // We need a map of Router IP -> Router ID
+        // We need a map of Router IP -> [Router ID, Tenant ID]
         $routerMap = [];
         $allRouters = TenantMikrotik::all(); // Get all, even offline ones, for RADIUS mapping
         foreach ($allRouters as $r) {
-            if ($r->wireguard_address) $routerMap[$r->wireguard_address] = $r->id;
-            if ($r->ip_address) $routerMap[$r->ip_address] = $r->id;
+            $data = ['id' => $r->id, 'tenant_id' => $r->tenant_id];
+            if ($r->wireguard_address) $routerMap[$r->wireguard_address] = $data;
+            if ($r->ip_address) $routerMap[$r->ip_address] = $data;
         }
 
         foreach ($radiusSessions as $session) {
-            $routerId = $routerMap[$session->nasipaddress] ?? null;
-            if (!$routerId) continue; // Unknown router
+            $routerData = $routerMap[$session->nasipaddress] ?? null;
+            if (!$routerData) continue; // Unknown router
+            
+            $routerId = $routerData['id'];
+            $tenantId = $routerData['tenant_id'];
 
             $key = $routerId . '_' . $session->username . '_' . $session->framedipaddress;
 
@@ -80,6 +85,7 @@ class SyncOnlineUsers extends Command
             if (!isset($activeSessions[$key])) {
                 $activeSessions[$key] = [
                     'router_id' => $routerId,
+                    'tenant_id' => $tenantId,
                     'username' => $session->username,
                     'ip_address' => $session->framedipaddress,
                     'mac_address' => $session->callingstationid,
@@ -117,6 +123,7 @@ class SyncOnlineUsers extends Command
                 ],
                 [
                     'router_id' => $sessionData['router_id'],
+                    'tenant_id' => $sessionData['tenant_id'] ?? null,
                     'user_id' => $userId,
                     'ip_address' => $sessionData['ip_address'] ?? '0.0.0.0',
                     'mac_address' => $sessionData['mac_address'] ?? '',
