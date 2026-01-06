@@ -64,7 +64,7 @@ class SyncOnlineUsers extends Command
         // Map RADIUS sessions to routers based on NAS IP
         // We need a map of Router IP -> [Router ID, Tenant ID]
         $routerMap = [];
-        $allRouters = TenantMikrotik::withoutGlobalScopes()->all(); // Get all, even offline ones, for RADIUS mapping
+        $allRouters = TenantMikrotik::withoutGlobalScopes()->get(); // Get all, even offline ones, for RADIUS mapping
         foreach ($allRouters as $r) {
             $data = ['id' => $r->id, 'tenant_id' => $r->tenant_id];
             if ($r->wireguard_address) $routerMap[$r->wireguard_address] = $data;
@@ -103,13 +103,18 @@ class SyncOnlineUsers extends Command
         // 4. Sync to Local Database
         // We need to resolve User IDs
         $usernames = array_filter(array_column($activeSessions, 'username'));
-        $users = NetworkUser::withoutGlobalScopes()->whereIn('username', $usernames)->pluck('id', 'username')->toArray();
+        // We can't easily pluck by username alone in multi-tenant, so we'll fetch and map manually
+        $usersList = NetworkUser::withoutGlobalScopes()->whereIn('username', $usernames)->get(['id', 'username', 'tenant_id']);
+        $userMap = [];
+        foreach ($usersList as $u) {
+            $userMap[$u->tenant_id . '_' . $u->username] = $u->id;
+        }
         // Also handle case-insensitive or fuzzy matching if needed, but strict for now
 
         $currentSessionIds = [];
 
         foreach ($activeSessions as $sessionData) {
-            $userId = $users[$sessionData['username']] ?? null;
+            $userId = $userMap[($sessionData['tenant_id'] ?? '') . '_' . $sessionData['username']] ?? null;
             
             // Generate a unique session ID for our table if not provided by RADIUS
             // We use a composite key of router_id + username + ip for the "session" concept in our DB
