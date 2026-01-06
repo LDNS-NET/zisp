@@ -54,8 +54,13 @@ class RadiusAccountingController extends Controller
 
             // Find Router and Tenant
             // Use withoutGlobalScopes to ensure we find the router regardless of current context
+            // Match by any of the possible IP addresses the RADIUS server might report
             $router = TenantMikrotik::withoutGlobalScopes()
-                ->where('wireguard_address', $nasIp)
+                ->where(function($query) use ($nasIp) {
+                    $query->where('wireguard_address', $nasIp)
+                          ->orWhere('public_ip', $nasIp)
+                          ->orWhere('ip_address', $nasIp);
+                })
                 ->first();
 
             if (!$router) {
@@ -91,6 +96,8 @@ class RadiusAccountingController extends Controller
                 if ($user) {
                     $user->withoutGlobalScopes()->update(['online' => true]);
                 }
+
+                Log::info("RADIUS Accounting: Updated active session for $username on router {$router->id}");
             } elseif ($statusType === 'Stop') {
                 // Mark as disconnected
                 TenantActiveSession::withoutGlobalScopes()

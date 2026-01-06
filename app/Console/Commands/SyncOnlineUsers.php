@@ -15,6 +15,8 @@ class SyncOnlineUsers extends Command
     public function handle()
     {
         $this->info('Starting online sessions cleanup...');
+        $totalSessions = TenantActiveSession::withoutGlobalScopes()->count();
+        $this->info("Total sessions in database: $totalSessions");
         
         // 1. Mark stale sessions as disconnected
         // If we haven't heard from a session in 15 minutes (no interim update), it's likely gone.
