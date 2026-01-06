@@ -37,24 +37,27 @@ class TenantUserController extends Controller
         $users = $query->paginate($perPage);
 
         // Determine currently online usernames from TenantActiveSession
-        $onlineUsernames = \App\Models\Tenants\TenantActiveSession::where('tenant_id', optional(tenant())->id)
-            ->where('status', 'active')
-            ->whereNotNull('username')
-            ->pluck('username')
-            ->map(fn($u) => strtolower(trim($u)))
-            ->unique()
-            ->toArray();
+        $onlineUsernames = [];
+        if (tenant()) {
+            $onlineUsernames = \App\Models\Tenants\TenantActiveSession::where('tenant_id', tenant()->id)
+                ->where('status', 'active')
+                ->whereNotNull('username')
+                ->pluck('username')
+                ->map(fn($u) => strtolower(trim($u)))
+                ->unique()
+                ->toArray();
 
-        // Sync 'online' column (0 = offline, 1 = online)
-        // Set online=1 for active usernames
-        NetworkUser::whereIn(\DB::raw('lower(trim(username))'), $onlineUsernames)
-            ->where('online', false)
-            ->update(['online' => true]);
+            // Sync 'online' column (0 = offline, 1 = online)
+            // Set online=1 for active usernames
+            NetworkUser::whereIn(\DB::raw('lower(trim(username))'), $onlineUsernames)
+                ->where('online', false)
+                ->update(['online' => true]);
 
-        // Set online=0 for others previously marked online but not in list
-        NetworkUser::whereNotIn(\DB::raw('lower(trim(username))'), $onlineUsernames)
-            ->where('online', true)
-            ->update(['online' => false]);
+            // Set online=0 for others previously marked online but not in list
+            NetworkUser::whereNotIn(\DB::raw('lower(trim(username))'), $onlineUsernames)
+                ->where('online', true)
+                ->update(['online' => false]);
+        }
 
         // Get available packages for the form
         $packages = [

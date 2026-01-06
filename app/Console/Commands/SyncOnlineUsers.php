@@ -23,7 +23,7 @@ class SyncOnlineUsers extends Command
         $startTime = microtime(true);
 
         // 1. Get all routers
-        $routers = TenantMikrotik::where('status', 'online')->get();
+        $routers = TenantMikrotik::withoutGlobalScopes()->where('status', 'online')->get();
         $activeSessions = [];
 
         // 2. Fetch from MikroTik (Real-time source)
@@ -64,7 +64,7 @@ class SyncOnlineUsers extends Command
         // Map RADIUS sessions to routers based on NAS IP
         // We need a map of Router IP -> [Router ID, Tenant ID]
         $routerMap = [];
-        $allRouters = TenantMikrotik::all(); // Get all, even offline ones, for RADIUS mapping
+        $allRouters = TenantMikrotik::withoutGlobalScopes()->all(); // Get all, even offline ones, for RADIUS mapping
         foreach ($allRouters as $r) {
             $data = ['id' => $r->id, 'tenant_id' => $r->tenant_id];
             if ($r->wireguard_address) $routerMap[$r->wireguard_address] = $data;
@@ -103,7 +103,7 @@ class SyncOnlineUsers extends Command
         // 4. Sync to Local Database
         // We need to resolve User IDs
         $usernames = array_filter(array_column($activeSessions, 'username'));
-        $users = NetworkUser::whereIn('username', $usernames)->pluck('id', 'username')->toArray();
+        $users = NetworkUser::withoutGlobalScopes()->whereIn('username', $usernames)->pluck('id', 'username')->toArray();
         // Also handle case-insensitive or fuzzy matching if needed, but strict for now
 
         $currentSessionIds = [];
