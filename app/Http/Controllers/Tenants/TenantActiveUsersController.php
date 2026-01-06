@@ -20,6 +20,7 @@ class TenantActiveUsersController extends Controller
         // Fetch active sessions from local database (synced via background job)
         $query = \App\Models\Tenants\TenantActiveSession::with(['user.package', 'router'])
             ->where('status', 'active')
+            ->where('last_seen_at', '>', now()->subMinutes(15))
             ->orderBy('last_seen_at', 'desc');
 
         // Optional: Filter by router if needed
