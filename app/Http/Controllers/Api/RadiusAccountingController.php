@@ -35,8 +35,7 @@ class RadiusAccountingController extends Controller
             // Find Router and Tenant
             // Use withoutGlobalScopes to ensure we find the router regardless of current context
             $router = TenantMikrotik::withoutGlobalScopes()
-                ->where('ip_address', $nasIp)
-                ->orWhere('wireguard_address', $nasIp)
+                ->where('wireguard_address', $nasIp)
                 ->first();
 
             if (!$router) {
