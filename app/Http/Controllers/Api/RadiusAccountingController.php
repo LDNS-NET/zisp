@@ -21,26 +21,35 @@ class RadiusAccountingController extends Controller
             $data = $request->all();
             Log::info('RADIUS Accounting Webhook:', $data);
 
-            $statusType = $data['Acct-Status-Type'] ?? null;
-            if (is_array($statusType)) $statusType = $statusType[0] ?? null;
+            // Helper to extract value from RADIUS JSON format
+            $extract = function($value) {
+                if (!is_array($value)) return $value;
+                // Handle verbose format: ['type' => 'string', 'value' => ['data']]
+                if (isset($value['value']) && is_array($value['value'])) {
+                    return $value['value'][0] ?? null;
+                }
+                // Handle simple array: ['data']
+                return $value[0] ?? null;
+            };
 
-            $username = $data['User-Name'] ?? null;
-            if (is_array($username)) $username = $username[0] ?? null;
-
-            $sessionId = $data['Acct-Session-Id'] ?? null;
-            if (is_array($sessionId)) $sessionId = $sessionId[0] ?? null;
-
-            $nasIp = $data['NAS-IP-Address'] ?? null;
-            if (is_array($nasIp)) $nasIp = $nasIp[0] ?? null;
-
-            $framedIp = $data['Framed-IP-Address'] ?? null;
-            if (is_array($framedIp)) $framedIp = $framedIp[0] ?? null;
-
-            $macAddress = $data['Calling-Station-Id'] ?? null;
-            if (is_array($macAddress)) $macAddress = $macAddress[0] ?? null;
+            $statusType = $extract($data['Acct-Status-Type'] ?? null);
+            $username = $extract($data['User-Name'] ?? null);
+            $sessionId = $extract($data['Acct-Session-Id'] ?? null);
+            $nasIp = $extract($data['NAS-IP-Address'] ?? null);
+            $framedIp = $extract($data['Framed-IP-Address'] ?? null);
+            $macAddress = $extract($data['Calling-Station-Id'] ?? null);
 
             if (!$statusType || !$sessionId || !$username) {
-                return response()->json(['message' => 'Missing required fields'], 400);
+                // Return received data to help debugging in FreeRADIUS logs
+                return response()->json([
+                    'message' => 'Missing required fields',
+                    'received' => $data,
+                    'parsed' => [
+                        'statusType' => $statusType,
+                        'username' => $username,
+                        'sessionId' => $sessionId
+                    ]
+                ], 400);
             }
 
             // Find Router and Tenant
