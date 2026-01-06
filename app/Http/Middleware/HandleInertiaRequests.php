@@ -67,23 +67,7 @@ class HandleInertiaRequests extends Middleware
             'mikrotiks' => \App\Models\Tenants\TenantMikrotik::count(),
         ];
 
-        // Fetch online users count from RADIUS
-        if ($tenant) {
-            $routers = \App\Models\Tenants\TenantMikrotik::all();
-            $routerIps = $routers->pluck('wireguard_address')
-                ->merge($routers->pluck('ip_address'))
-                ->filter()
-                ->unique()
-                ->values()
-                ->toArray();
-
-            if (!empty($routerIps)) {
-                $counts['online_users'] = \App\Models\Radius\Radacct::whereNull('acctstoptime')
-                    ->whereIn('nasipaddress', $routerIps)
-                    ->where('acctupdatetime', '>', now()->subMinutes(10)) // Ignore stale sessions
-                    ->count();
-            }
-        }
+            $counts['online_users'] = \App\Models\Tenants\TenantActiveSession::where('status', 'active')->count();
 
         return [
             ...parent::share($request),

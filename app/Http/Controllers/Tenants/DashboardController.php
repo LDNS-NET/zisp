@@ -80,10 +80,7 @@ class DashboardController extends Controller
                     'hotspot' => NetworkUser::where('type', 'hotspot')->count(),
                     'pppoe' => NetworkUser::where('type', 'pppoe')->count(),
                     'static' => NetworkUser::where('type', 'static')->count(),
-                    'activeUsers' => \App\Models\Tenants\TenantActiveSession::where('status', 'active')
-                        ->whereHas('user', function($q) use ($userId) {
-                            $q->where('created_by', $userId);
-                        })->count(),
+                    'activeUsers' => \App\Models\Tenants\TenantActiveSession::where('status', 'active')->count(),
                     'expired' => NetworkUser::whereDate('expires_at', '<', now())->count(),
                 ],
                 // Leads
