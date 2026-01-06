@@ -150,10 +150,7 @@ class SyncOnlineUsers extends Command
         // Set all users to offline first (or just those that were active?)
         // Better: Set online=true for users in activeSessions, online=false for others.
         // To be efficient:
-        // Get IDs of currently active users
-        $activeUserIds = array_filter(array_unique(array_values($users))); // $users is username -> id map
-        
-        // But we need the IDs from the active sessions we just processed
+        // Get IDs of currently active users from the active sessions we just processed
         $activeUserIds = TenantActiveSession::withoutGlobalScopes()->where('status', 'active')
             ->whereNotNull('user_id')
             ->pluck('user_id')
