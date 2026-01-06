@@ -46,7 +46,7 @@ class TenantActiveUsersController extends Controller
             }
 
             return [
-                'username' => $session->username ?? $session->ip_address, // Fallback for static
+                'username' => $user->username ?? $session->username ?? $session->ip_address, // Fallback for static
                 'user_type' => $type,
                 'ip' => $session->ip_address,
                 'mac' => $session->mac_address,
