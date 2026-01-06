@@ -22,11 +22,22 @@ class RadiusAccountingController extends Controller
             Log::info('RADIUS Accounting Webhook:', $data);
 
             $statusType = $data['Acct-Status-Type'] ?? null;
+            if (is_array($statusType)) $statusType = $statusType[0] ?? null;
+
             $username = $data['User-Name'] ?? null;
+            if (is_array($username)) $username = $username[0] ?? null;
+
             $sessionId = $data['Acct-Session-Id'] ?? null;
+            if (is_array($sessionId)) $sessionId = $sessionId[0] ?? null;
+
             $nasIp = $data['NAS-IP-Address'] ?? null;
+            if (is_array($nasIp)) $nasIp = $nasIp[0] ?? null;
+
             $framedIp = $data['Framed-IP-Address'] ?? null;
+            if (is_array($framedIp)) $framedIp = $framedIp[0] ?? null;
+
             $macAddress = $data['Calling-Station-Id'] ?? null;
+            if (is_array($macAddress)) $macAddress = $macAddress[0] ?? null;
 
             if (!$statusType || !$sessionId || !$username) {
                 return response()->json(['message' => 'Missing required fields'], 400);
