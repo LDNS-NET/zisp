@@ -60,8 +60,7 @@ class RadiusAccountingController extends Controller
             $router = TenantMikrotik::withoutGlobalScopes()
                 ->where(function($query) use ($nasIp) {
                     $query->where('wireguard_address', $nasIp)
-                          ->orWhere('public_ip', $nasIp)
-                          ->orWhere('ip_address', $nasIp);
+                          ->orWhere('public_ip', $nasIp);
                 })
                 ->first();
 
