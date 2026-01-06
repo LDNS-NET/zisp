@@ -117,7 +117,7 @@ class SyncOnlineUsers extends Command
 
             $currentSessionIds[] = $uniqueSessionKey;
 
-            TenantActiveSession::updateOrCreate(
+            TenantActiveSession::withoutGlobalScopes()->updateOrCreate(
                 [
                     'session_id' => $uniqueSessionKey,
                 ],
@@ -137,7 +137,7 @@ class SyncOnlineUsers extends Command
 
         // 5. Cleanup: Mark sessions not in our list as disconnected
         // We only touch 'active' sessions. If they are not in the current list, they are gone.
-        TenantActiveSession::where('status', 'active')
+        TenantActiveSession::withoutGlobalScopes()->where('status', 'active')
             ->whereNotIn('session_id', $currentSessionIds)
             ->update(['status' => 'disconnected', 'last_seen_at' => now()]);
 
@@ -149,17 +149,17 @@ class SyncOnlineUsers extends Command
         $activeUserIds = array_filter(array_unique(array_values($users))); // $users is username -> id map
         
         // But we need the IDs from the active sessions we just processed
-        $activeUserIds = TenantActiveSession::where('status', 'active')
+        $activeUserIds = TenantActiveSession::withoutGlobalScopes()->where('status', 'active')
             ->whereNotNull('user_id')
             ->pluck('user_id')
             ->unique()
             ->toArray();
 
         if (!empty($activeUserIds)) {
-            NetworkUser::whereIn('id', $activeUserIds)->update(['online' => true]);
-            NetworkUser::whereNotIn('id', $activeUserIds)->update(['online' => false]);
+            NetworkUser::withoutGlobalScopes()->whereIn('id', $activeUserIds)->update(['online' => true]);
+            NetworkUser::withoutGlobalScopes()->whereNotIn('id', $activeUserIds)->update(['online' => false]);
         } else {
-            NetworkUser::query()->update(['online' => false]);
+            NetworkUser::withoutGlobalScopes()->update(['online' => false]);
         }
 
         $duration = round(microtime(true) - $startTime, 2);

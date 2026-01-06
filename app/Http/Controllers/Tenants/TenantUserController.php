@@ -37,7 +37,8 @@ class TenantUserController extends Controller
         $users = $query->paginate($perPage);
 
         // Determine currently online usernames from TenantActiveSession
-        $onlineUsernames = \App\Models\Tenants\TenantActiveSession::where('status', 'active')
+        $onlineUsernames = \App\Models\Tenants\TenantActiveSession::where('tenant_id', tenant()->id)
+            ->where('status', 'active')
             ->whereNotNull('username')
             ->pluck('username')
             ->map(fn($u) => strtolower(trim($u)))

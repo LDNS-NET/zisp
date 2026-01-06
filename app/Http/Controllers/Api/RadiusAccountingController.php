@@ -89,9 +89,8 @@ class RadiusAccountingController extends Controller
                 );
 
                 if ($user) {
-                    $user->update(['online' => true]);
+                    $user->withoutGlobalScopes()->update(['online' => true]);
                 }
-
             } elseif ($statusType === 'Stop') {
                 // Mark as disconnected
                 TenantActiveSession::withoutGlobalScopes()
@@ -105,12 +104,13 @@ class RadiusAccountingController extends Controller
                     // Check if user has other active sessions
                     $activeCount = TenantActiveSession::withoutGlobalScopes()
                         ->where('user_id', $user->id)
+                        ->where('tenant_id', $router->tenant_id)
                         ->where('status', 'active')
                         ->where('session_id', '!=', $uniqueSessionKey)
                         ->count();
                     
                     if ($activeCount === 0) {
-                        $user->update(['online' => false]);
+                        $user->withoutGlobalScopes()->update(['online' => false]);
                     }
                 }
             }
