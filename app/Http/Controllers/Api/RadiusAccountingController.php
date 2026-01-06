@@ -80,6 +80,7 @@ class RadiusAccountingController extends Controller
                         'router_id' => $router->id,
                         'tenant_id' => $router->tenant_id,
                         'user_id' => $user ? $user->id : null,
+                        'username' => $username,
                         'ip_address' => $framedIp ?? '0.0.0.0',
                         'mac_address' => $macAddress ?? '',
                         'status' => 'active',
