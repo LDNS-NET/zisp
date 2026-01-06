@@ -24,6 +24,7 @@ class SyncOnlineUsers extends Command
 
         // 1. Get all routers
         $routers = TenantMikrotik::withoutGlobalScopes()->where('status', 'online')->get();
+        $this->info("Found " . $routers->count() . " online routers.");
         $activeSessions = [];
 
         // 2. Fetch from MikroTik (Real-time source)
@@ -56,10 +57,9 @@ class SyncOnlineUsers extends Command
 
         // 3. Fetch from RADIUS (Secondary source)
         // Only consider sessions that are NOT closed (acctstoptime IS NULL)
-        // AND have been updated recently (e.g. last 10 mins) to avoid stale sessions
         $radiusSessions = Radacct::whereNull('acctstoptime')
-            ->where('acctupdatetime', '>', now()->subMinutes(10))
             ->get();
+        $this->info("Found " . $radiusSessions->count() . " active sessions in RADIUS.");
 
         // Map RADIUS sessions to routers based on NAS IP
         // We need a map of Router IP -> [Router ID, Tenant ID]
@@ -69,11 +69,20 @@ class SyncOnlineUsers extends Command
             $data = ['id' => $r->id, 'tenant_id' => $r->tenant_id];
             if ($r->wireguard_address) $routerMap[$r->wireguard_address] = $data;
             if ($r->ip_address) $routerMap[$r->ip_address] = $data;
+            if ($r->public_ip) $routerMap[$r->public_ip] = $data;
         }
 
         foreach ($radiusSessions as $session) {
             $routerData = $routerMap[$session->nasipaddress] ?? null;
-            if (!$routerData) continue; // Unknown router
+            if (!$routerData) {
+                // Log once per unknown NAS IP to avoid spam
+                static $unknownNas = [];
+                if (!isset($unknownNas[$session->nasipaddress])) {
+                    $this->warn("RADIUS session for unknown NAS IP: {$session->nasipaddress}");
+                    $unknownNas[$session->nasipaddress] = true;
+                }
+                continue;
+            }
             
             $routerId = $routerData['id'];
             $tenantId = $routerData['tenant_id'];
