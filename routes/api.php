@@ -30,5 +30,6 @@ Route::middleware([InitializeTenancyByDomain::class, PreventAccessFromCentralDom
 
 
 Route::post('/radius/auth', [TenantRadiusController::class, 'auth']);
+Route::post('/radius/accounting', [\App\Http\Controllers\Api\RadiusAccountingController::class, 'store']);
 Route::get('/mikrotiks/status', [MikrotikController::class, 'status']);
 
