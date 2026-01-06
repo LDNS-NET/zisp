@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
-import { Head, usePage, Link } from '@inertiajs/vue3';
+import { Head, usePage, Link, router } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import VueApexCharts from 'vue3-apexcharts';
 import {
@@ -72,6 +72,15 @@ function updateCountdown() {
 onMounted(() => {
     updateCountdown();
     setInterval(updateCountdown, 1000);
+
+    // Poll for real-time stats updates every 5 seconds
+    setInterval(() => {
+        router.reload({
+            only: ['stats'],
+            preserveScroll: true,
+            preserveState: true,
+        });
+    }, 5000);
 });
 
 // Compute subscription status color
