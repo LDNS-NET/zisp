@@ -67,7 +67,9 @@ class HandleInertiaRequests extends Middleware
             'mikrotiks' => \App\Models\Tenants\TenantMikrotik::count(),
         ];
 
-            $counts['online_users'] = \App\Models\Tenants\TenantActiveSession::where('tenant_id', tenant()->id)->where('status', 'active')->count();
+        if ($tenant) {
+            $counts['online_users'] = \App\Models\Tenants\TenantActiveSession::where('tenant_id', $tenant->id)->where('status', 'active')->count();
+        }
 
         return [
             ...parent::share($request),
