@@ -3,10 +3,13 @@
 namespace App\Models\Tenants;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Models\Tenants\NetworkUser;
+use App\Models\Tenants\TenantMikrotik;
 
 class TenantActiveSession extends Model
 {
+    protected $table = 'tenant_active_sessions';
+
     protected $fillable = [
         'router_id',
         'user_id',
@@ -18,119 +21,25 @@ class TenantActiveSession extends Model
         'connected_at',
         'last_seen_at',
         'status',
-        'tenant_id',
     ];
 
-    protected static function booted()
-    {
-        static::addGlobalScope('tenant', function ($query) {
-            if (tenant()) {
-                $query->where('tenant_id', tenant()->id);
-            } elseif (auth()->check()) {
-                $user = auth()->user();
-                if (!$user->is_super_admin && $user->tenant_id) {
-                    $query->where('tenant_id', $user->tenant_id);
-                }
-            } else {
-                // Fallback for public routes
-                $host = request()->getHost();
-                $subdomain = explode('.', $host)[0];
-                $centralDomains = config('tenancy.central_domains', []);
-                
-                if (!in_array($host, $centralDomains)) {
-                    $tenant = \App\Models\Tenant::where('subdomain', $subdomain)->first();
-                    if ($tenant) {
-                        $query->where('tenant_id', $tenant->id);
-                    }
-                }
-            }
-        });
-
-        static::creating(function ($model) {
-            if (empty($model->tenant_id)) {
-                if (tenant()) {
-                    $model->tenant_id = tenant()->id;
-                } elseif (auth()->check() && auth()->user()->tenant_id) {
-                    $model->tenant_id = auth()->user()->tenant_id;
-                } else {
-                    $host = request()->getHost();
-                    $subdomain = explode('.', $host)[0];
-                    $tenant = \App\Models\Tenant::where('subdomain', $subdomain)->first();
-                    if ($tenant) {
-                        $model->tenant_id = $tenant->id;
-                    }
-                }
-            }
-        });
-    }
-
     protected $casts = [
-        'bytes_in' => 'integer',
-        'bytes_out' => 'integer',
         'connected_at' => 'datetime',
         'last_seen_at' => 'datetime',
     ];
 
-    // Relationships
-    public function router(): BelongsTo
+    public function router()
     {
         return $this->belongsTo(TenantMikrotik::class, 'router_id');
     }
 
-    public function user(): BelongsTo
+    public function user()
     {
         return $this->belongsTo(NetworkUser::class, 'user_id');
     }
 
-    // Scopes
     public function scopeActive($query)
     {
         return $query->where('status', 'active');
-    }
-
-    public function scopeDisconnected($query)
-    {
-        return $query->where('status', 'disconnected');
-    }
-
-    public function scopeExpired($query)
-    {
-        return $query->where('status', 'expired');
-    }
-
-    // Helper methods
-    public function getBytesInFormatted(): string
-    {
-        return $this->formatBytes($this->bytes_in);
-    }
-
-    public function getBytesOutFormatted(): string
-    {
-        return $this->formatBytes($this->bytes_out);
-    }
-
-    public function getSessionDuration(): string
-    {
-        if (!$this->connected_at) return 'Unknown';
-        
-        $start = $this->connected_at;
-        $end = $this->last_seen_at ?? now();
-        $duration = $end->diffInSeconds($start);
-        
-        $hours = floor($duration / 3600);
-        $minutes = floor(($duration % 3600) / 60);
-        $seconds = $duration % 60;
-        
-        return sprintf('%02d:%02d:%02d', $hours, $minutes, $seconds);
-    }
-
-    private function formatBytes($bytes): string
-    {
-        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
-        $bytes = max($bytes, 0);
-        $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
-        $pow = min($pow, count($units) - 1);
-        $bytes /= pow(1024, $pow);
-        return round($bytes, 2) . ' ' . $units[$pow];
     }
 }

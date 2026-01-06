@@ -73,12 +73,15 @@ class TenantMikrotikController extends Controller
         // Build real-time data defaults
 
         // Build realtime defaults from DB
-        $activeRows = Radacct::whereNull('acctstoptime')
-            ->where('nasipaddress', $router->wireguard_address)
-            ->where('acctupdatetime', '>', now()->subMinutes(10)) // Ignore stale sessions
+        // Build realtime defaults from DB (TenantActiveSession)
+        $activeSessions = TenantActiveSession::where('router_id', $router->id)
+            ->where('status', 'active')
             ->get();
-        $hotspotActiveDb = $activeRows->filter(fn($row) => str_contains(strtolower($row->callingstationid ?? ''), ':'))->count();
-        $pppoeActiveDb = $activeRows->count() - $hotspotActiveDb;
+            
+        $hotspotActiveDb = $activeSessions->where('type', 'hotspot')->count();
+        $pppoeActiveDb = $activeSessions->where('type', 'pppoe')->count();
+        // If type is missing/unknown, we might want to count them too, but for now stick to known types or total
+        // $totalActive = $activeSessions->count();
 
         $realtimeData = [
             'resources' => [
@@ -114,8 +117,8 @@ class TenantMikrotikController extends Controller
                     // Fetch data in parallel or sequence (sequence for now)
                     $realtimeData['resources'] = $apiService->getSystemResource();
                     $realtimeData['interfaces'] = $apiService->getInterfaces();
-                    $realtimeData['hotspot_active'] = $apiService->getHotspotActive();
-                    $realtimeData['pppoe_active'] = $apiService->getPppoeActive();
+                    // $realtimeData['hotspot_active'] = $apiService->getHotspotActive(); // Removed live fetch
+                    // $realtimeData['pppoe_active'] = $apiService->getPppoeActive(); // Removed live fetch
                     $realtimeData['wireguard_peers'] = $apiService->getWireGuardPeers();
                     $realtimeData['router_logs'] = $apiService->getLogs(20); // Get last 20 logs
 
@@ -402,8 +405,9 @@ class TenantMikrotikController extends Controller
                 'uptime' => $router->uptime ?? null,
                 'uptime_formatted' => $uptimeFormatted,
                 'identity' => $router->name,
-                'hotspot_users' => 0, // Will be fetched on-demand for individual routers
-                'pppoe_users' => 0, // Will be fetched on-demand for individual routers
+                'identity' => $router->name,
+                'hotspot_users' => TenantActiveSession::where('router_id', $router->id)->where('status', 'active')->where('type', 'hotspot')->count(),
+                'pppoe_users' => TenantActiveSession::where('router_id', $router->id)->where('status', 'active')->where('type', 'pppoe')->count(),
             ];
         }
 
@@ -505,9 +509,8 @@ class TenantMikrotikController extends Controller
                 ], 400);
             }
 
-            $apiService = new RouterApiService($router);
-            $hotspotActive = $apiService->getHotspotActive();
-            $pppoeActive = $apiService->getPppoeActive();
+            $hotspotActive = TenantActiveSession::where('router_id', $id)->where('status', 'active')->where('type', 'hotspot')->count();
+            $pppoeActive = TenantActiveSession::where('router_id', $id)->where('status', 'active')->where('type', 'pppoe')->count();
 
             return response()->json([
                 'success' => true,

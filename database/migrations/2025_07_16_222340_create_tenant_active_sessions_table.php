@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('tenant_active_sessions', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('router_id');
-            $table->unsignedBigInteger('user_id'); // FK to network_users
+            $table->unsignedBigInteger('user_id')->nullable(); // FK to network_users
             $table->string('session_id');
             $table->string('ip_address');
             $table->string('mac_address');
