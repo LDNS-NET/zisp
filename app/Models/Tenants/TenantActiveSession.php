@@ -13,6 +13,7 @@ class TenantActiveSession extends Model
     protected $fillable = [
         'router_id',
         'user_id',
+        'username',
         'session_id',
         'ip_address',
         'mac_address',

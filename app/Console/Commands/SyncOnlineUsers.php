@@ -125,6 +125,7 @@ class SyncOnlineUsers extends Command
                     'router_id' => $sessionData['router_id'],
                     'tenant_id' => $sessionData['tenant_id'] ?? null,
                     'user_id' => $userId,
+                    'username' => $sessionData['username'],
                     'ip_address' => $sessionData['ip_address'] ?? '0.0.0.0',
                     'mac_address' => $sessionData['mac_address'] ?? '',
                     'status' => 'active',
