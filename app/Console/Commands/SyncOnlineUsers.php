@@ -3,169 +3,47 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use App\Models\Tenants\TenantMikrotik;
 use App\Models\Tenants\NetworkUser;
 use App\Models\Tenants\TenantActiveSession;
-use App\Models\Radius\Radacct;
-use App\Services\MikrotikService;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
 
 class SyncOnlineUsers extends Command
 {
     protected $signature = 'app:sync-online-users';
-    protected $description = 'Sync online users from MikroTik and RADIUS to local cache';
+    protected $description = 'Cleanup stale online sessions and sync user online status';
 
     public function handle()
     {
-        $this->info('Starting online users sync...');
-        $startTime = microtime(true);
+        $this->info('Starting online sessions cleanup...');
+        
+        // 1. Mark stale sessions as disconnected
+        // If we haven't heard from a session in 15 minutes (no interim update), it's likely gone.
+        $staleThreshold = now()->subMinutes(15);
+        
+        $affected = TenantActiveSession::withoutGlobalScopes()
+            ->where('status', 'active')
+            ->where('last_seen_at', '<', $staleThreshold)
+            ->update([
+                'status' => 'disconnected',
+                'last_seen_at' => now(),
+            ]);
 
-        // 1. Get all routers
-        $routers = TenantMikrotik::withoutGlobalScopes()->where('status', 'online')->get();
-        $this->info("Found " . $routers->count() . " online routers.");
-        $activeSessions = [];
-
-        // 2. Fetch from MikroTik (Real-time source)
-        foreach ($routers as $router) {
-            try {
-                $service = MikrotikService::forMikrotik($router);
-                // Use getOnlineUsers which fetches Hotspot, PPPoE, and Static
-                $onlineUsers = $service->getOnlineUsers();
-
-                foreach ($onlineUsers as $user) {
-                    // Key for uniqueness: router_id + username + ip
-                    $key = $router->id . '_' . ($user['username'] ?? 'unknown') . '_' . ($user['ip'] ?? 'unknown');
-                    
-                    $activeSessions[$key] = [
-                        'router_id' => $router->id,
-                        'tenant_id' => $router->tenant_id,
-                        'username' => $user['username'],
-                        'ip_address' => $user['ip'],
-                        'mac_address' => $user['mac'],
-                        'session_start' => $user['session_start'], // Might be uptime or login-by
-                        'type' => $user['user_type'],
-                        'source' => 'mikrotik',
-                    ];
-                }
-            } catch (\Exception $e) {
-                Log::error("Failed to sync router {$router->id}: " . $e->getMessage());
-                // Continue to next router, don't stop the whole process
-            }
+        if ($affected > 0) {
+            $this->info("Marked {$affected} stale sessions as disconnected.");
         }
 
-        // 3. Fetch from RADIUS (Secondary source)
-        // Only consider sessions that are NOT closed (acctstoptime IS NULL)
-        $radiusSessions = Radacct::whereNull('acctstoptime')
-            ->get();
-        $this->info("Found " . $radiusSessions->count() . " active sessions in RADIUS.");
-
-        // Map RADIUS sessions to routers based on NAS IP
-        // We need a map of Router IP -> [Router ID, Tenant ID]
-        $routerMap = [];
-        $allRouters = TenantMikrotik::withoutGlobalScopes()->get(); // Get all, even offline ones, for RADIUS mapping
-        foreach ($allRouters as $r) {
-            $data = ['id' => $r->id, 'tenant_id' => $r->tenant_id];
-            if ($r->wireguard_address) $routerMap[$r->wireguard_address] = $data;
-            if ($r->ip_address) $routerMap[$r->ip_address] = $data;
-            if ($r->public_ip) $routerMap[$r->public_ip] = $data;
-        }
-
-        foreach ($radiusSessions as $session) {
-            $routerData = $routerMap[$session->nasipaddress] ?? null;
-            if (!$routerData) {
-                // Log once per unknown NAS IP to avoid spam
-                static $unknownNas = [];
-                if (!isset($unknownNas[$session->nasipaddress])) {
-                    $this->warn("RADIUS session for unknown NAS IP: {$session->nasipaddress}");
-                    $unknownNas[$session->nasipaddress] = true;
-                }
-                continue;
-            }
-            
-            $routerId = $routerData['id'];
-            $tenantId = $routerData['tenant_id'];
-
-            $key = $routerId . '_' . $session->username . '_' . $session->framedipaddress;
-
-            // If already found in MikroTik, just update/enrich if needed
-            // If not found, add it (RADIUS is secondary source)
-            if (!isset($activeSessions[$key])) {
-                $activeSessions[$key] = [
-                    'router_id' => $routerId,
-                    'tenant_id' => $tenantId,
-                    'username' => $session->username,
-                    'ip_address' => $session->framedipaddress,
-                    'mac_address' => $session->callingstationid,
-                    'session_start' => $session->acctstarttime,
-                    'type' => 'radius', // Generic type, could infer from other fields
-                    'source' => 'radius',
-                    'session_id' => $session->acctsessionid,
-                ];
-            } else {
-                // Enrich MikroTik data with RADIUS session ID if matching
-                $activeSessions[$key]['session_id'] = $session->acctsessionid;
-            }
-        }
-
-        // 4. Sync to Local Database
-        // We need to resolve User IDs
-        $usernames = array_filter(array_column($activeSessions, 'username'));
-        // We can't easily pluck by username alone in multi-tenant, so we'll fetch and map manually
-        $usersList = NetworkUser::withoutGlobalScopes()->whereIn('username', $usernames)->get(['id', 'username', 'tenant_id']);
-        $userMap = [];
-        foreach ($usersList as $u) {
-            $userMap[$u->tenant_id . '_' . $u->username] = $u->id;
-        }
-        // Also handle case-insensitive or fuzzy matching if needed, but strict for now
-
-        $currentSessionIds = [];
-
-        foreach ($activeSessions as $sessionData) {
-            $userId = $userMap[($sessionData['tenant_id'] ?? '') . '_' . $sessionData['username']] ?? null;
-            
-            // Generate a unique session ID for our table if not provided by RADIUS
-            // We use a composite key of router_id + username + ip for the "session" concept in our DB
-            $uniqueSessionKey = $sessionData['session_id'] ?? ('local_' . md5($sessionData['router_id'] . $sessionData['username'] . $sessionData['ip_address']));
-
-            $currentSessionIds[] = $uniqueSessionKey;
-
-            TenantActiveSession::withoutGlobalScopes()->updateOrCreate(
-                [
-                    'session_id' => $uniqueSessionKey,
-                ],
-                [
-                    'router_id' => $sessionData['router_id'],
-                    'tenant_id' => $sessionData['tenant_id'] ?? null,
-                    'user_id' => $userId,
-                    'username' => $sessionData['username'],
-                    'ip_address' => $sessionData['ip_address'] ?? '0.0.0.0',
-                    'mac_address' => $sessionData['mac_address'] ?? '',
-                    'status' => 'active',
-                    'last_seen_at' => now(),
-                    // 'connected_at' => ... parse session_start if possible
-                ]
-            );
-        }
-
-        // 5. Cleanup: Mark sessions not in our list as disconnected
-        // We only touch 'active' sessions. If they are not in the current list, they are gone.
-        TenantActiveSession::withoutGlobalScopes()->where('status', 'active')
-            ->whereNotIn('session_id', $currentSessionIds)
-            ->update(['status' => 'disconnected', 'last_seen_at' => now()]);
-
-        // 6. Sync NetworkUser 'online' status
-        // Set all users to offline first (or just those that were active?)
-        // Better: Set online=true for users in activeSessions, online=false for others.
-        // To be efficient:
-        // Get IDs of currently active users from the active sessions we just processed
-        $activeUserIds = TenantActiveSession::withoutGlobalScopes()->where('status', 'active')
+        // 2. Sync NetworkUser 'online' status based on CURRENT active sessions
+        // This ensures the online flag in network_users matches the active_sessions table
+        
+        // Get IDs of all users who have at least one 'active' session
+        $activeUserIds = TenantActiveSession::withoutGlobalScopes()
+            ->where('status', 'active')
             ->whereNotNull('user_id')
             ->pluck('user_id')
             ->unique()
             ->toArray();
 
+        // Mark users as online/offline
         if (!empty($activeUserIds)) {
             NetworkUser::withoutGlobalScopes()->whereIn('id', $activeUserIds)->update(['online' => true]);
             NetworkUser::withoutGlobalScopes()->whereNotIn('id', $activeUserIds)->update(['online' => false]);
@@ -173,7 +51,6 @@ class SyncOnlineUsers extends Command
             NetworkUser::withoutGlobalScopes()->update(['online' => false]);
         }
 
-        $duration = round(microtime(true) - $startTime, 2);
-        $this->info("Sync complete in {$duration}s. Active users: " . count($activeSessions));
+        $this->info("Sync complete. Active users: " . count($activeUserIds));
     }
 }
