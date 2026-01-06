@@ -484,7 +484,7 @@ class MikrotikService
             $client = $this->getClient();
             $users = [];
             // Hotspot users
-            $hotspot = $client->query('/ip/hotspot/active')->read();
+            $hotspot = $client->query('/ip/hotspot/active/print')->read();
             foreach ($hotspot as $row) {
                 $users[] = [
                     'username' => $row['user'] ?? null,
@@ -496,7 +496,7 @@ class MikrotikService
                 ];
             }
             // PPPoE users
-            $pppoe = $client->query('/ppp/active')->read();
+            $pppoe = $client->query('/ppp/active/print')->read();
             foreach ($pppoe as $row) {
                 $users[] = [
                     'username' => $row['name'] ?? null,
@@ -508,7 +508,7 @@ class MikrotikService
                 ];
             }
             // Static DHCP leases (optional)
-            $static = $client->query('/ip/dhcp-server/lease')->read();
+            $static = $client->query('/ip/dhcp-server/lease/print')->read();
             foreach ($static as $row) {
                 if (($row['status'] ?? '') === 'bound' && ($row['dynamic'] ?? 'true') === 'false') {
                     $users[] = [
