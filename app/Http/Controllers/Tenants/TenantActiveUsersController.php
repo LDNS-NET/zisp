@@ -21,7 +21,6 @@ class TenantActiveUsersController extends Controller
         $query = \App\Models\Tenants\TenantActiveSession::with(['user.package', 'router'])
             ->where('status', 'active')
             ->where('last_seen_at', '>', now()->subMinutes(15))
-            ->groupBy('username', 'mac_address')
             ->orderBy('last_seen_at', 'desc');
 
         // Optional: Filter by router if needed
@@ -29,7 +28,9 @@ class TenantActiveUsersController extends Controller
             $query->where('router_id', $request->input('router_id'));
         }
 
-        $sessions = $query->limit($maxUsers)->get();
+        $sessions = $query->limit($maxUsers)->get()->unique(function ($item) {
+            return $item->username . $item->mac_address;
+        });
 
         $activeUsers = $sessions->map(function ($session) {
             $user = $session->user;
