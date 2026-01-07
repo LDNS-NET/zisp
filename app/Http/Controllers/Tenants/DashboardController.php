@@ -82,7 +82,7 @@ class DashboardController extends Controller
                     'static' => NetworkUser::where('type', 'static')->count(),
                     'activeUsers' => \App\Models\Tenants\TenantActiveSession::where('tenant_id', optional(tenant())->id)
                         ->where('status', 'active')
-                        ->where('last_seen_at', '>', now()->subMinutes(15))
+                        ->where('last_seen_at', '>', now()->subHours(24))
                         ->distinct('username')
                         ->count(),
                     'expired' => NetworkUser::whereDate('expires_at', '<', now())->count(),

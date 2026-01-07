@@ -20,9 +20,9 @@ class CleanupStaleSessions extends Command
         // Thresholds
         // PPPoE: 5 minutes
         // Hotspot: 10 minutes
-        // For simplicity, we'll use a safe 10 minute threshold for all for now, 
+        // For simplicity, we'll use a safe 24 hour threshold for all for now, 
         // or we could query based on acctsessionid prefix or other indicators if available.
-        $threshold = now()->subMinutes(10);
+        $threshold = now()->subHours(24);
 
         // 1. Find stale RADIUS sessions
         // acctstoptime IS NULL AND acctupdatetime < threshold
