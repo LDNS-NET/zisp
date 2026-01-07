@@ -86,8 +86,24 @@ class RadiusAccountingController extends Controller
             // Unique Session Key
             $uniqueSessionKey = $sessionId;
 
-            // Handle both string and numeric status types (1=Start, 3=Interim-Update)
             if (in_array($statusType, ['Start', 'Interim-Update', '1', 1, '3', 3])) {
+                // Prune other active sessions for this user/MAC to prevent duplicates
+                // We mark them as disconnected if they have a different session_id
+                TenantActiveSession::withoutGlobalScopes()
+                    ->where('tenant_id', $router->tenant_id)
+                    ->where('status', 'active')
+                    ->where('session_id', '!=', $uniqueSessionKey)
+                    ->where(function($q) use ($username, $macAddress) {
+                        $q->where('username', $username);
+                        if ($macAddress) {
+                            $q->orWhere('mac_address', $macAddress);
+                        }
+                    })
+                    ->update([
+                        'status' => 'disconnected',
+                        'last_seen_at' => now(),
+                    ]);
+
                 TenantActiveSession::withoutGlobalScopes()->updateOrCreate(
                     ['session_id' => $uniqueSessionKey],
                     [

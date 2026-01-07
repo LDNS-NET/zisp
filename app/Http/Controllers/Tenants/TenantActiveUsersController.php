@@ -21,6 +21,7 @@ class TenantActiveUsersController extends Controller
         $query = \App\Models\Tenants\TenantActiveSession::with(['user.package', 'router'])
             ->where('status', 'active')
             ->where('last_seen_at', '>', now()->subMinutes(15))
+            ->groupBy('username', 'mac_address')
             ->orderBy('last_seen_at', 'desc');
 
         // Optional: Filter by router if needed
