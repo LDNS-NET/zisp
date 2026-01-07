@@ -1,8 +1,8 @@
 <script setup>
 import { ref, computed } from 'vue';
-import { Head } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Activity, Users, Wifi, Network, Clock, User, MapPin } from 'lucide-vue-next';
+import { Activity, Users, Wifi, Network, Clock, User, MapPin, RefreshCw } from 'lucide-vue-next';
 
 const props = defineProps({
     activeUsers: {
@@ -11,6 +11,18 @@ const props = defineProps({
     },
     message: String,
 });
+
+// Refresh logic
+const isRefreshing = ref(false);
+const refreshData = () => {
+    isRefreshing.value = true;
+    router.reload({
+        only: ['activeUsers'],
+        onFinish: () => {
+            isRefreshing.value = false;
+        },
+    });
+};
 
 // Filter state
 const selectedType = ref('all');
@@ -174,9 +186,19 @@ const formatSessionTime = (time) => {
                         <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
                             {{ selectedType === 'all' ? 'All Active Users' : `${selectedType.charAt(0).toUpperCase() + selectedType.slice(1)} Users` }}
                         </h3>
-                        <span class="rounded-full bg-blue-100 px-3 py-1 text-sm font-semibold text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
-                            {{ filteredUsers.length }} online
-                        </span>
+                        <div class="flex items-center gap-3">
+                            <span class="rounded-full bg-blue-100 px-3 py-1 text-sm font-semibold text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+                                {{ filteredUsers.length }} online
+                            </span>
+                            <button 
+                                @click="refreshData" 
+                                :disabled="isRefreshing"
+                                class="flex items-center gap-2 rounded-lg bg-white px-3 py-1 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:opacity-50 dark:bg-slate-700 dark:text-gray-200 dark:ring-slate-600 dark:hover:bg-slate-600"
+                            >
+                                <RefreshCw :class="{ 'animate-spin': isRefreshing }" class="h-4 w-4" />
+                                Refresh
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Message if no Mikrotik -->
