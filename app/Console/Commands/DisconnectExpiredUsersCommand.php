@@ -17,81 +17,88 @@ class DisconnectExpiredUsersCommand extends Command
 
     public function handle()
     {
-        $this->info('Checking for expired active users...');
+        $this->info('Checking for expired users who are still online...');
 
-        // Get all active sessions from RADIUS (acctstoptime is NULL)
-        $activeSessions = Radacct::whereNull('acctstoptime')
-            ->where('acctupdatetime', '>', now()->subMinutes(10)) // Ignore stale sessions
+        // 1. Find all users who have expired but are still marked as online
+        // Use withoutGlobalScopes to check across all tenants
+        $expiredUsers = NetworkUser::withoutGlobalScopes()
+            ->whereNotNull('expires_at')
+            ->where('expires_at', '<', now())
+            ->where('online', true)
             ->get();
 
-        if ($activeSessions->isEmpty()) {
-            $this->info('No active sessions found.');
+        if ($expiredUsers->isEmpty()) {
+            $this->info('No expired online users found.');
             return 0;
         }
 
-        $this->info("Found {$activeSessions->count()} active sessions.");
+        $this->info("Found {$expiredUsers->count()} expired users marked as online.");
 
         $disconnectedCount = 0;
         $errorCount = 0;
 
-        foreach ($activeSessions as $session) {
+        foreach ($expiredUsers as $user) {
             try {
-                // Find the network user (within current tenant context)
-                $user = NetworkUser::where('username', $session->username)->first();
+                // 2. Find their active session(s)
+                $activeSessions = \App\Models\Tenants\TenantActiveSession::withoutGlobalScopes()
+                    ->where('user_id', $user->id)
+                    ->where('status', 'active')
+                    ->with('router')
+                    ->get();
 
-                // Skip if user not found
-                if (!$user) {
+                if ($activeSessions->isEmpty()) {
+                    // If no active session found but user is marked online, just sync the flag
+                    $user->update(['online' => false]);
                     continue;
                 }
 
-                // Skip if user doesn't have an expiration date
-                if (!$user->expires_at) {
-                    continue;
+                foreach ($activeSessions as $session) {
+                    $router = $session->router;
+
+                    if (!$router) {
+                        Log::warning("Could not find router for expired user session", [
+                            'username' => $user->username,
+                            'session_id' => $session->session_id
+                        ]);
+                        continue;
+                    }
+
+                    // 3. Disconnect the user from the router
+                    $apiService = new RouterApiService($router);
+                    $userType = $user->package->type ?? $user->type ?? 'pppoe';
+
+                    $this->info("Attempting to disconnect expired user: {$user->username} from router: {$router->name}");
+
+                    if ($apiService->disconnectUser($user->username, $userType)) {
+                        // Mark session as disconnected in our DB
+                        $session->update([
+                            'status' => 'disconnected',
+                            'last_seen_at' => now()
+                        ]);
+                        
+                        $disconnectedCount++;
+                        $this->info("✓ Disconnected: {$user->username}");
+                    } else {
+                        $errorCount++;
+                        $this->warn("✗ Failed to disconnect: {$user->username}");
+                    }
                 }
 
-                // Skip if user hasn't expired yet
-                if ($user->expires_at->isFuture()) {
-                    continue;
-                }
+                // Final sync of the online flag
+                $user->update(['online' => false]);
 
-                // User is expired and still connected - disconnect them
-                Log::info("Disconnecting expired user: {$user->username}", [
+                Log::info("Expired user disconnected: {$user->username}", [
                     'user_id' => $user->id,
-                    'expiration' => $user->expires_at,
-                    'nas_ip' => $session->nasipaddress
+                    'expiration' => $user->expires_at
                 ]);
-
-                // Find the router by the NAS IP address (which is the WireGuard IP)
-                $router = TenantMikrotik::where('wireguard_address', $session->nasipaddress)->first();
-
-                if (!$router) {
-                    Log::warning("Could not find router for expired user session", [
-                        'username' => $session->username,
-                        'nas_ip' => $session->nasipaddress
-                    ]);
-                    $errorCount++;
-                    continue;
-                }
-
-                // Disconnect the user
-                $apiService = new RouterApiService($router);
-                $userType = $user->package->type ?? $user->type ?? 'pppoe';
-
-                if ($apiService->disconnectUser($session->username, $userType)) {
-                    $disconnectedCount++;
-                    $this->info("✓ Disconnected expired user: {$user->username}");
-                } else {
-                    $errorCount++;
-                    $this->warn("✗ Failed to disconnect user: {$user->username}");
-                }
 
             } catch (\Exception $e) {
                 $errorCount++;
                 Log::error('Error disconnecting expired user', [
-                    'username' => $session->username ?? 'unknown',
+                    'username' => $user->username,
                     'error' => $e->getMessage()
                 ]);
-                $this->error("✗ Error: {$e->getMessage()}");
+                $this->error("✗ Error for {$user->username}: {$e->getMessage()}");
             }
         }
 
