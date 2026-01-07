@@ -461,6 +461,7 @@ class RouterApiService
      */
     public function disconnectUser(string $username, string $type): bool
     {
+        Log::debug("RouterApiService: Attempting to disconnect user $username (type: $type) from router {$this->mikrotik->name}");
         try {
             $client = $this->getClient();
 

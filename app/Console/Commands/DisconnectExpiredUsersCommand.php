@@ -18,21 +18,21 @@ class DisconnectExpiredUsersCommand extends Command
     public function handle()
     {
         $this->info('Checking for expired users who are still online...');
+        $this->info('Current Server Time: ' . now()->toDateTimeString());
 
-        // 1. Find all users who have expired but are still marked as online
+        // 1. Find all users who have expired
         // Use withoutGlobalScopes to check across all tenants
         $expiredUsers = NetworkUser::withoutGlobalScopes()
             ->whereNotNull('expires_at')
             ->where('expires_at', '<', now())
-            ->where('online', true)
             ->get();
 
         if ($expiredUsers->isEmpty()) {
-            $this->info('No expired online users found.');
+            $this->info('No expired users found in the database.');
             return 0;
         }
 
-        $this->info("Found {$expiredUsers->count()} expired users marked as online.");
+        $this->info("Found {$expiredUsers->count()} expired users in total.");
 
         $disconnectedCount = 0;
         $errorCount = 0;
@@ -47,10 +47,15 @@ class DisconnectExpiredUsersCommand extends Command
                     ->get();
 
                 if ($activeSessions->isEmpty()) {
-                    // If no active session found but user is marked online, just sync the flag
-                    $user->update(['online' => false]);
+                    // If user is marked online but has no active session, sync the flag
+                    if ($user->online) {
+                        $this->info("User {$user->username} marked online but has no active sessions. Syncing flag.");
+                        $user->update(['online' => false]);
+                    }
                     continue;
                 }
+
+                $this->info("User {$user->username} is expired and has {$activeSessions->count()} active sessions.");
 
                 foreach ($activeSessions as $session) {
                     $router = $session->router;
