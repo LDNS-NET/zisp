@@ -37,9 +37,9 @@ class TenantUserController extends Controller
         $users = $query->paginate($perPage);
 
         // Determine current session statuses from TenantActiveUsers
-        // Build a map: lower(trim(username)) => final status ('active' if any session active, otherwise the first non-empty status)
-        $sessionStatuses = [];
         $activeUsernames = [];
+        $tenantId = null;
+        $allActiveCountRaw = 0;
 
         if (tenant()) {
             $tenantId = tenant()->id;
@@ -63,7 +63,12 @@ class TenantUserController extends Controller
             \Log::debug("Raw DB Count for Tenant: " . $allActiveCountRaw);
             
             if (!empty($activeUsernames)) {
-                \Log::debug("Sample Active Usernames: " . implode(', ', array_slice($activeUsernames, 0, 5)));
+                \Log::debug("Sample Active Usernames: " . implode(', ', array_slice($activeUsernames, 0, 10)));
+            } else {
+                \Log::debug("NO ACTIVE USERNAMES FOUND IN tenant_active_users FOR TENANT {$tenantId}");
+                // Check if there are ANY active users at all in the table
+                $globalActiveCount = \DB::table('tenant_active_users')->where('status', 'active')->count();
+                \Log::debug("Global Active Users Count (all tenants): " . $globalActiveCount);
             }
 
             // Sync 'online' column: Mark active users online
