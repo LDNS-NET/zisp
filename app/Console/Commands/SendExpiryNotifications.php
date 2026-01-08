@@ -33,7 +33,7 @@ class SendExpiryNotifications extends Command
             return 1;
         }
 
-        $supportNumber = Auth::user()->phone ?? '';
+        $supportNumber = tenant()?->phone ?? '';
 
         foreach ($users as $user) {
             $packageName = $user->package ? $user->package->name : '';
@@ -53,7 +53,7 @@ class SendExpiryNotifications extends Command
             }
 
             $smsLog = TenantSMS::create([
-                'recipient_name' => $user->full_name,
+                'recipient_name' => $user->full_name ?? $user->username ?? 'Unknown',
                 'phone_number' => $user->phone ?? $user->phone_number ?? null,
                 'message' => $message,
                 'status' => 'pending',
