@@ -55,7 +55,7 @@ class SendExpiryNotifications extends Command
                 '{username}' => $user->username ?? '',
                 '{password}' => $user->password ?? '',
                 '{support_number}' => $supportNumber,
-                '{portal_url}' => 'http://' . ($user->tenant->domain ?? 'portal.example.com'),
+                '{portal_url}' => config('app.url'),
             ];
             
             $message = $template->content;
