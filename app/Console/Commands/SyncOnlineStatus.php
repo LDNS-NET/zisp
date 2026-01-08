@@ -19,7 +19,7 @@ class SyncOnlineStatus extends Command
         // Load all sessions centralised (no tenant scope)
         $sessions = TenantActiveUsers::withoutGlobalScopes()
             ->whereNotNull('username')
-            ->get(['tenant_id', 'username', 'status']);
+            ->get(['tenant_id', 'username', 'user_id', 'status']);
 
         // Build grouping by tenant
         $sessionsByTenant = $sessions->groupBy('tenant_id');
@@ -32,12 +32,14 @@ class SyncOnlineStatus extends Command
 
             $tenantSessions = $sessionsByTenant->get($tenantId, collect());
 
-            $sessionStatuses = [];
-            $activeUsernames = [];
-            $nonActiveUsernames = [];
+                $sessionStatuses = [];
+                $activeUsernames = [];
+                $nonActiveUsernames = [];
+                $activeUserIds = [];
 
             if ($tenantSessions->isNotEmpty()) {
-                $grouped = $tenantSessions->groupBy(fn ($s) => strtolower(trim($s->username)));
+                // group by normalized username for username-based lookup
+                $grouped = $tenantSessions->groupBy(fn ($s) => strtolower(trim(explode('@', $s->username)[0] ?? $s->username)));
 
                 foreach ($grouped as $username => $group) {
                     $statuses = $group->pluck('status')->map(fn($st) => strtolower(trim((string)$st)));
@@ -49,10 +51,21 @@ class SyncOnlineStatus extends Command
                         $nonActiveUsernames[] = $username;
                     }
                 }
+
+                // collect active user ids when available
+                $activeUserIds = $tenantSessions->where('status', 'active')->pluck('user_id')->filter()->unique()->values()->toArray();
             }
 
             // Sync DB
             // Mark active users online
+            // Mark active users online by id and username
+            if (!empty($activeUserIds)) {
+                NetworkUser::withoutGlobalScopes()
+                    ->where('tenant_id', $tenantId)
+                    ->whereIn('id', $activeUserIds)
+                    ->where('online', false)
+                    ->update(['online' => true]);
+            }
             if (!empty($activeUsernames)) {
                 NetworkUser::withoutGlobalScopes()
                     ->where('tenant_id', $tenantId)

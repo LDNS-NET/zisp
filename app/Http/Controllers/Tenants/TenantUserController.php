@@ -45,12 +45,25 @@ class TenantUserController extends Controller
             $tenantId = tenant()->id;
             \Log::debug("Tenant ID: {$tenantId} (Type: " . gettype($tenantId) . ")");
 
-            // Get all active usernames for this tenant without any time constraints for now
-            $activeUsernames = \App\Models\Tenants\TenantActiveUsers::withoutGlobalScopes()
+            // Get all active sessions for this tenant. Prefer matching by user_id when available,
+            // otherwise fall back to normalized username (lowercase, trimmed, strip domain part)
+            $activeSessions = \App\Models\Tenants\TenantActiveUsers::withoutGlobalScopes()
                 ->where('tenant_id', $tenantId)
                 ->where('status', 'active')
-                ->pluck('username')
-                ->map(fn($u) => strtolower(trim($u)))
+                ->get(['username', 'user_id']);
+
+            $activeUserIds = $activeSessions->pluck('user_id')->filter()->unique()->values()->toArray();
+
+            $activeUsernames = $activeSessions->pluck('username')
+                ->filter()
+                ->map(function($u) {
+                    $u = (string) $u;
+                    // strip domain parts if present (user@domain)
+                    if (strpos($u, '@') !== false) {
+                        $u = explode('@', $u)[0];
+                    }
+                    return strtolower(trim($u));
+                })
                 ->unique()
                 ->toArray();
             
@@ -73,14 +86,32 @@ class TenantUserController extends Controller
 
             // Sync 'online' column: Mark active users online
             if (!empty($activeUsernames)) {
-                NetworkUser::whereIn(\DB::raw('lower(trim(username))'), $activeUsernames)
-                    ->where('online', false)
-                    ->update(['online' => true]);
+                // Mark DB users online either by matching user_id or normalized username
+                if (!empty($activeUserIds)) {
+                    NetworkUser::whereIn('id', $activeUserIds)
+                        ->where('online', false)
+                        ->update(['online' => true]);
+                }
+                if (!empty($activeUsernames)) {
+                    NetworkUser::whereIn(\DB::raw('lower(trim(username))'), $activeUsernames)
+                        ->where('online', false)
+                        ->update(['online' => true]);
+                }
 
                 // Mark everyone else offline (who was online)
-                NetworkUser::whereNotIn(\DB::raw('lower(trim(username))'), $activeUsernames)
-                    ->where('online', true)
-                    ->update(['online' => false]);
+                // Mark offline: for users present in sessions but not active, match by id or username
+                if (!empty($activeUserIds)) {
+                    NetworkUser::whereNotIn('id', $activeUserIds)
+                        ->where('tenant_id', $tenantId)
+                        ->where('online', true)
+                        ->update(['online' => false]);
+                }
+                if (!empty($activeUsernames)) {
+                    NetworkUser::whereNotIn(\DB::raw('lower(trim(username))'), $activeUsernames)
+                        ->where('tenant_id', $tenantId)
+                        ->where('online', true)
+                        ->update(['online' => false]);
+                }
             } else {
                 // No active sessions at all -> mark all users offline
                 NetworkUser::where('online', true)
@@ -110,7 +141,9 @@ class TenantUserController extends Controller
         return inertia('Users/index', [
             'users' => $users->through(function($user) use ($activeUsernames) {
                 // Check if user is in the active usernames list
-                $isOnline = in_array(strtolower(trim($user->username)), $activeUsernames);
+                // Check by id first, then by normalized username
+                $normalized = strtolower(trim(explode('@', $user->username)[0] ?? $user->username));
+                $isOnline = in_array($user->id, $activeUserIds) || in_array($normalized, $activeUsernames);
                 \Log::debug("User: {$user->username}, Is Online: " . ($isOnline ? 'Yes' : 'No'));
                 
                 return [
