@@ -42,15 +42,29 @@ class TenantUserController extends Controller
         $activeUsernames = [];
 
         if (tenant()) {
+            // Debug: Count all active sessions for this tenant regardless of time
+            $allActiveCount = \App\Models\Tenants\TenantActiveUsers::where('tenant_id', tenant()->id)
+                ->where('status', 'active')
+                ->count();
+            
+            \Log::debug("Tenant ID: " . tenant()->id . ", Total Active Sessions: " . $allActiveCount);
+
             // Get all active usernames for this tenant (last seen within 24 hours)
+            // We'll be more lenient with the time for now to debug
             $activeUsernames = \App\Models\Tenants\TenantActiveUsers::where('tenant_id', tenant()->id)
                 ->where('status', 'active')
-                ->where('last_seen_at', '>', now()->subHours(24))
+                ->where(function($q) {
+                    $q->where('last_seen_at', '>', now()->subHours(48)) // Increased to 48h for safety
+                      ->orWhereNull('last_seen_at');
+                })
                 ->whereNotNull('username')
-                ->distinct()
                 ->pluck('username')
                 ->map(fn($u) => strtolower(trim($u)))
+                ->unique()
                 ->toArray();
+            
+            \Log::debug("Active Usernames Count (48h): " . count($activeUsernames));
+            \Log::debug("Sample Active Usernames: " . implode(', ', array_slice($activeUsernames, 0, 5)));
 
             // Sync 'online' column: Mark active users online
             if (!empty($activeUsernames)) {
@@ -117,6 +131,11 @@ class TenantUserController extends Controller
                 'search' => $search,
             ],
             'activeUsernames' => $activeUsernames,
+            'debugInfo' => [
+                'tenant_id' => tenant() ? tenant()->id : 'null',
+                'all_active_count' => $allActiveCount ?? 0,
+                'filtered_active_count' => count($activeUsernames),
+            ],
             'counts' => $counts,
             'packages' => $packages,
         ]);

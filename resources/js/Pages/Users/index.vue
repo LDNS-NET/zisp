@@ -40,6 +40,7 @@ const props = defineProps({
     counts: Object,
     packages: Object,
     activeUsernames: Array,
+    debugInfo: Object,
 });
 
 const showModal = ref(false);
@@ -263,8 +264,8 @@ const openActions = (user) => {
             </div>
         </template>
 
-        <div v-if="false" class="bg-gray-100 p-2 text-xs font-mono mb-4">
-            Active Usernames: {{ activeUsernames }}
+        <div v-if="true" class="bg-gray-100 dark:bg-slate-900 p-2 text-[10px] font-mono mb-4 rounded border border-gray-200 dark:border-slate-700">
+            Debug Info: {{ debugInfo }} | Active Usernames: {{ activeUsernames }}
         </div>
 
         <div class="space-y-6">
