@@ -92,7 +92,7 @@ class TenantMikrotik extends Model
 
     public function activeSessions(): HasMany
     {
-        return $this->hasMany(TenantActiveSession::class, 'router_id');
+        return $this->hasMany(TenantActiveUsers::class, 'router_id');
     }
 
     public function alerts(): HasMany

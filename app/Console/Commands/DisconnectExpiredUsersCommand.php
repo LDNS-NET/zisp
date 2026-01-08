@@ -40,7 +40,7 @@ class DisconnectExpiredUsersCommand extends Command
         foreach ($expiredUsers as $user) {
             try {
                 // 2. Find their active session(s)
-                $activeSessions = \App\Models\Tenants\TenantActiveSession::withoutGlobalScopes()
+                $activeSessions = \App\Models\Tenants\TenantActiveUsers::withoutGlobalScopes()
                     ->where('user_id', $user->id)
                     ->where('status', 'active')
                     ->with('router')
@@ -78,7 +78,8 @@ class DisconnectExpiredUsersCommand extends Command
                         // Mark session as disconnected in our DB
                         $session->update([
                             'status' => 'disconnected',
-                            'last_seen_at' => now()
+                            'last_seen_at' => now(),
+                            'disconnected_at' => now(),
                         ]);
                         
                         $disconnectedCount++;

@@ -17,8 +17,8 @@ class TenantActiveUsersController extends Controller
     {
         $maxUsers = (int) ($request->input('limit', 500));
         
-        // Fetch active sessions from local database (synced via background job)
-        $query = \App\Models\Tenants\TenantActiveSession::with(['user.package', 'router'])
+        // Fetch active users from local database (synced via background job or RADIUS)
+        $query = \App\Models\Tenants\TenantActiveUsers::with(['user.package', 'router'])
             ->where('status', 'active')
             ->where('last_seen_at', '>', now()->subHours(24))
             ->orderBy('last_seen_at', 'desc');
@@ -28,11 +28,11 @@ class TenantActiveUsersController extends Controller
             $query->where('router_id', $request->input('router_id'));
         }
 
-        $sessions = $query->limit($maxUsers)->get()->unique(function ($item) {
+        $activeUsersData = $query->limit($maxUsers)->get()->unique(function ($item) {
             return $item->username . $item->mac_address;
         });
 
-        $activeUsers = $sessions->map(function ($session) {
+        $activeUsers = $activeUsersData->map(function ($session) {
             $user = $session->user;
             // Determine type
             $type = 'unknown';
@@ -42,10 +42,6 @@ class TenantActiveUsersController extends Controller
                  // Guess type if no user relation
                  $isMacUser = preg_match('/^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/', $session->username);
                  $type = $isMacUser ? 'hotspot' : 'pppoe';
-                 // If static IP (no username usually, or hostname), check source
-                 if ($session->source === 'mikrotik' && !$session->username) {
-                     $type = 'static';
-                 }
             }
 
             return [
@@ -53,9 +49,9 @@ class TenantActiveUsersController extends Controller
                 'user_type' => $type,
                 'ip' => $session->ip_address,
                 'mac' => $session->mac_address,
-                'session_start' => $session->session_start ?? $session->created_at->toDateTimeString(),
+                'session_start' => $session->connected_at ? $session->connected_at->toDateTimeString() : $session->created_at->toDateTimeString(),
                 'session_end' => null,
-                'package_name' => $user->package->name ?? ($user->groupname ?? 'N/A'),
+                'package_name' => $user->package->name ?? 'N/A',
                 'router_name' => $session->router->name ?? 'Unknown',
                 'last_seen' => $session->last_seen_at->diffForHumans(),
             ];
@@ -63,7 +59,7 @@ class TenantActiveUsersController extends Controller
 
         return Inertia::render('Activeusers/Index', [
             'activeUsers' => $activeUsers,
-            'message' => $sessions->count() >= $maxUsers ? "Showing first {$maxUsers} active users." : null,
+            'message' => $activeUsersData->count() >= $maxUsers ? "Showing first {$maxUsers} active users." : null,
         ]);
     }
 }

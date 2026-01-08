@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\Tenants\TenantActiveSession;
 use App\Models\Tenants\TenantMikrotik;
 use App\Models\Tenants\NetworkUser;
 use Illuminate\Support\Facades\Log;
@@ -89,7 +88,7 @@ class RadiusAccountingController extends Controller
             if (in_array($statusType, ['Start', 'Interim-Update', '1', 1, '3', 3])) {
                 // Prune other active sessions for this user/MAC to prevent duplicates
                 // We mark them as disconnected if they have a different session_id
-                TenantActiveSession::withoutGlobalScopes()
+                \App\Models\Tenants\TenantActiveUsers::withoutGlobalScopes()
                     ->where('tenant_id', $router->tenant_id)
                     ->where('status', 'active')
                     ->where('session_id', '!=', $uniqueSessionKey)
@@ -102,9 +101,10 @@ class RadiusAccountingController extends Controller
                     ->update([
                         'status' => 'disconnected',
                         'last_seen_at' => now(),
+                        'disconnected_at' => now(),
                     ]);
 
-                TenantActiveSession::withoutGlobalScopes()->updateOrCreate(
+                \App\Models\Tenants\TenantActiveUsers::withoutGlobalScopes()->updateOrCreate(
                     ['session_id' => $uniqueSessionKey],
                     [
                         'router_id' => $router->id,
@@ -115,6 +115,7 @@ class RadiusAccountingController extends Controller
                         'mac_address' => $macAddress ?? '',
                         'status' => 'active',
                         'last_seen_at' => now(),
+                        'connected_at' => $statusType == 'Start' ? now() : null,
                     ]
                 );
 
@@ -122,19 +123,20 @@ class RadiusAccountingController extends Controller
                     $user->withoutGlobalScopes()->update(['online' => true]);
                 }
 
-                Log::info("RADIUS Accounting: Updated active session for $username on router {$router->id}");
+                Log::info("RADIUS Accounting: Updated active user for $username on router {$router->id}");
             } elseif (in_array($statusType, ['Stop', '2', 2])) {
                 // Mark as disconnected
-                TenantActiveSession::withoutGlobalScopes()
+                \App\Models\Tenants\TenantActiveUsers::withoutGlobalScopes()
                     ->where('session_id', $uniqueSessionKey)
                     ->update([
                         'status' => 'disconnected',
                         'last_seen_at' => now(),
+                        'disconnected_at' => now(),
                     ]);
 
                 if ($user) {
                     // Check if user has other active sessions
-                    $activeCount = TenantActiveSession::withoutGlobalScopes()
+                    $activeCount = \App\Models\Tenants\TenantActiveUsers::withoutGlobalScopes()
                         ->where('user_id', $user->id)
                         ->where('tenant_id', $router->tenant_id)
                         ->where('status', 'active')

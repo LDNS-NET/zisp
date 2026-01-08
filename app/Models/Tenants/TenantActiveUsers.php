@@ -12,22 +12,46 @@ class TenantActiveUsers extends Model
     protected $table = "tenant_active_users";
 
     protected $fillable = [
-        "username",
-        'user_type',
-        'ip/mac_address',
-        "session_start",
-        "session_end",
-        "created_by",
-        "tenant_id",
+        'router_id',
+        'user_id',
+        'username',
+        'session_id',
+        'ip_address',
+        'mac_address',
+        'bytes_in',
+        'bytes_out',
+        'status',
+        'last_seen_at',
+        'connected_at',
+        'disconnected_at',
+        'created_by',
+        'tenant_id',
     ];
 
     protected $casts = [
-        'last_active_at' => 'datetime',
+        'last_seen_at' => 'datetime',
+        'connected_at' => 'datetime',
+        'disconnected_at' => 'datetime',
     ];
+
+    public function router()
+    {
+        return $this->belongsTo(TenantMikrotik::class, 'router_id');
+    }
 
     public function user()
     {
-        return $this->belongsTo(NetworkUser::class, 'username');
+        return $this->belongsTo(NetworkUser::class, 'user_id');
+    }
+
+    public function tenant()
+    {
+        return $this->belongsTo(\App\Models\Tenant::class, 'tenant_id');
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->where('status', 'active');
     }
 
     protected static function booted()
@@ -40,18 +64,6 @@ class TenantActiveUsers extends Model
                 if (!$user->is_super_admin && $user->tenant_id) {
                     $query->where('tenant_id', $user->tenant_id);
                 }
-            } else {
-                // Fallback for public routes
-                $host = request()->getHost();
-                $subdomain = explode('.', $host)[0];
-                $centralDomains = config('tenancy.central_domains', []);
-                
-                if (!in_array($host, $centralDomains)) {
-                    $tenant = \App\Models\Tenant::where('subdomain', $subdomain)->first();
-                    if ($tenant) {
-                        $query->where('tenant_id', $tenant->id);
-                    }
-                }
             }
         });
 
@@ -61,13 +73,6 @@ class TenantActiveUsers extends Model
                     $model->tenant_id = tenant()->id;
                 } elseif (auth()->check() && auth()->user()->tenant_id) {
                     $model->tenant_id = auth()->user()->tenant_id;
-                } else {
-                    $host = request()->getHost();
-                    $subdomain = explode('.', $host)[0];
-                    $tenant = \App\Models\Tenant::where('subdomain', $subdomain)->first();
-                    if ($tenant) {
-                        $model->tenant_id = $tenant->id;
-                    }
                 }
             }
 

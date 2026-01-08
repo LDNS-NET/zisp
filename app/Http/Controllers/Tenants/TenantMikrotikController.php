@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Tenants;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\Tenants\{TenantMikrotik, TenantOpenVPNProfile, TenantRouterLog, TenantBandwidthUsage, TenantActiveSession};
+use App\Models\Tenants\{TenantMikrotik, TenantOpenVPNProfile, TenantRouterLog, TenantBandwidthUsage, TenantActiveUsers};
 use App\Models\Radius\Nas;
 use App\Models\Tenants\TenantRouterAlert;
 use App\Services\{MikrotikService, MikrotikScriptGenerator, TenantHotspotService};
@@ -73,13 +73,17 @@ class TenantMikrotikController extends Controller
         // Build real-time data defaults
 
         // Build realtime defaults from DB
-        // Build realtime defaults from DB (TenantActiveSession)
-        $activeSessions = TenantActiveSession::where('router_id', $router->id)
+        // Build realtime defaults from DB (TenantActiveUsers)
+        $activeSessions = TenantActiveUsers::where('router_id', $router->id)
             ->where('status', 'active')
             ->get();
             
-        $hotspotActiveDb = $activeSessions->where('type', 'hotspot')->count();
-        $pppoeActiveDb = $activeSessions->where('type', 'pppoe')->count();
+        $hotspotActiveDb = $activeSessions->filter(function($s) {
+            return ($s->user_type ?? '') == 'hotspot' || preg_match('/^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/', $s->username);
+        })->count();
+        $pppoeActiveDb = $activeSessions->filter(function($s) {
+            return ($s->user_type ?? '') == 'pppoe' || !preg_match('/^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/', $s->username);
+        })->count();
         // If type is missing/unknown, we might want to count them too, but for now stick to known types or total
         // $totalActive = $activeSessions->count();
 
@@ -406,8 +410,12 @@ class TenantMikrotikController extends Controller
                 'uptime_formatted' => $uptimeFormatted,
                 'identity' => $router->name,
                 'identity' => $router->name,
-                'hotspot_users' => TenantActiveSession::where('router_id', $router->id)->where('status', 'active')->where('type', 'hotspot')->count(),
-                'pppoe_users' => TenantActiveSession::where('router_id', $router->id)->where('status', 'active')->where('type', 'pppoe')->count(),
+                'hotspot_users' => TenantActiveUsers::where('router_id', $router->id)->where('status', 'active')->where(function($q) {
+                    $q->where('user_type', 'hotspot')->orWhere('username', 'REGEXP', '^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$');
+                })->count(),
+                'pppoe_users' => TenantActiveUsers::where('router_id', $router->id)->where('status', 'active')->where(function($q) {
+                    $q->where('user_type', 'pppoe')->orWhere('username', 'NOT REGEXP', '^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$');
+                })->count(),
             ];
         }
 
@@ -509,8 +517,12 @@ class TenantMikrotikController extends Controller
                 ], 400);
             }
 
-            $hotspotActive = TenantActiveSession::where('router_id', $id)->where('status', 'active')->where('type', 'hotspot')->count();
-            $pppoeActive = TenantActiveSession::where('router_id', $id)->where('status', 'active')->where('type', 'pppoe')->count();
+            $hotspotActive = TenantActiveUsers::where('router_id', $id)->where('status', 'active')->where(function($q) {
+                $q->where('user_type', 'hotspot')->orWhere('username', 'REGEXP', '^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$');
+            })->count();
+            $pppoeActive = TenantActiveUsers::where('router_id', $id)->where('status', 'active')->where(function($q) {
+                $q->where('user_type', 'pppoe')->orWhere('username', 'NOT REGEXP', '^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$');
+            })->count();
 
             return response()->json([
                 'success' => true,

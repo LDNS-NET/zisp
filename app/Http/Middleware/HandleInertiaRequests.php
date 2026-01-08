@@ -68,7 +68,7 @@ class HandleInertiaRequests extends Middleware
         ];
 
         if ($tenant) {
-            $counts['online_users'] = \App\Models\Tenants\TenantActiveSession::where('tenant_id', $tenant->id)
+            $counts['online_users'] = \App\Models\Tenants\TenantActiveUsers::where('tenant_id', $tenant->id)
                 ->where('status', 'active')
                 ->where('last_seen_at', '>', now()->subHours(24))
                 ->distinct('username')

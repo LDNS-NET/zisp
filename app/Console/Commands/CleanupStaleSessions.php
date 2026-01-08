@@ -4,7 +4,6 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use App\Models\Radius\Radacct;
-use App\Models\Tenants\TenantActiveSession;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
@@ -38,9 +37,13 @@ class CleanupStaleSessions extends Command
 
             // Also mark as disconnected in local cache if exists
             if ($session->acctsessionid) {
-                TenantActiveSession::withoutGlobalScopes()
+                \App\Models\Tenants\TenantActiveUsers::withoutGlobalScopes()
                     ->where('session_id', $session->acctsessionid)
-                    ->update(['status' => 'disconnected', 'last_seen_at' => now()]);
+                    ->update([
+                        'status' => 'disconnected', 
+                        'last_seen_at' => now(),
+                        'disconnected_at' => now(),
+                    ]);
             }
 
             $count++;
@@ -48,8 +51,8 @@ class CleanupStaleSessions extends Command
 
         $this->info("Closed {$count} stale RADIUS sessions.");
 
-        // 2. Also cleanup TenantActiveSession directly (in case RADIUS didn't send Stop)
-        $staleLocalSessions = TenantActiveSession::withoutGlobalScopes()
+        // 2. Also cleanup TenantActiveUsers directly (in case RADIUS didn't send Stop)
+        $staleLocalSessions = \App\Models\Tenants\TenantActiveUsers::withoutGlobalScopes()
             ->where('status', 'active')
             ->where('last_seen_at', '<', $threshold)
             ->get();
@@ -58,14 +61,15 @@ class CleanupStaleSessions extends Command
         foreach ($staleLocalSessions as $session) {
             $session->update([
                 'status' => 'disconnected',
-                'last_seen_at' => now()
+                'last_seen_at' => now(),
+                'disconnected_at' => now(),
             ]);
 
             // Also update user's online flag if they have no other active sessions
             if ($session->user_id) {
                 $user = \App\Models\Tenants\NetworkUser::withoutGlobalScopes()->find($session->user_id);
                 if ($user) {
-                    $activeCount = TenantActiveSession::withoutGlobalScopes()
+                    $activeCount = \App\Models\Tenants\TenantActiveUsers::withoutGlobalScopes()
                         ->where('user_id', $user->id)
                         ->where('status', 'active')
                         ->count();
