@@ -38,7 +38,18 @@ class RadiusAccountingController extends Controller
             $framedIp = $extract($data['Framed-IP-Address'] ?? null);
             $macAddress = $extract($data['Calling-Station-Id'] ?? null);
 
-            Log::debug("RADIUS Parsed: Status=$statusType, User=$username, Session=$sessionId, NAS=$nasIp");
+            // Extract metrics
+            $inputOctets = (int) $extract($data['Acct-Input-Octets'] ?? 0);
+            $outputOctets = (int) $extract($data['Acct-Output-Octets'] ?? 0);
+            $inputGigawords = (int) $extract($data['Acct-Input-Gigawords'] ?? 0);
+            $outputGigawords = (int) $extract($data['Acct-Output-Gigawords'] ?? 0);
+            $sessionTime = (int) $extract($data['Acct-Session-Time'] ?? 0);
+
+            // Calculate total bytes (Gigawords * 4GB + Octets)
+            $bytesIn = ($inputGigawords * 4294967296) + $inputOctets;
+            $bytesOut = ($outputGigawords * 4294967296) + $outputOctets;
+
+            Log::debug("RADIUS Parsed: Status=$statusType, User=$username, Session=$sessionId, NAS=$nasIp, In=$bytesIn, Out=$bytesOut");
 
             if (!$statusType || !$sessionId || !$username) {
                 // Return received data to help debugging in FreeRADIUS logs
@@ -114,6 +125,8 @@ class RadiusAccountingController extends Controller
                         'ip_address' => $framedIp ?? '0.0.0.0',
                         'mac_address' => $macAddress ?? '',
                         'status' => 'active',
+                        'bytes_in' => $bytesIn,
+                        'bytes_out' => $bytesOut,
                         'last_seen_at' => now(),
                         'connected_at' => $statusType == 'Start' ? now() : null,
                     ]
@@ -130,6 +143,8 @@ class RadiusAccountingController extends Controller
                     ->where('session_id', $uniqueSessionKey)
                     ->update([
                         'status' => 'disconnected',
+                        'bytes_in' => $bytesIn,
+                        'bytes_out' => $bytesOut,
                         'last_seen_at' => now(),
                         'disconnected_at' => now(),
                     ]);
