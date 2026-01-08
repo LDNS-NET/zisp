@@ -69,7 +69,8 @@ class SendExpiryWarningNotifications extends Command
 
             $smsLog = TenantSMS::create([
                 'tenant_id' => $user->tenant_id,
-                'recipient_name' => $user->full_name ?? $user->username ?? 'Unknown',
+                'tenant_id' => $user->tenant_id,
+                'recipient_name' => ($user->full_name ?: $user->username) ?: 'Customer',
                 'phone_number' => $user->phone ?? $user->phone_number ?? null,
                 'message' => $message,
                 'status' => 'pending',
