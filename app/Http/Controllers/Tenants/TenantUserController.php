@@ -60,15 +60,24 @@ class TenantUserController extends Controller
                 }
             }
 
-            // Sync 'online' column only for users present in session list
+            // Sync 'online' column for users present in session list
             if (!empty($activeUsernames)) {
                 NetworkUser::whereIn(\DB::raw('lower(trim(username))'), $activeUsernames)
                     ->where('online', false)
                     ->update(['online' => true]);
             }
 
+            // Users present in sessions but not active -> offline
             if (!empty($nonActiveUsernames)) {
                 NetworkUser::whereIn(\DB::raw('lower(trim(username))'), $nonActiveUsernames)
+                    ->where('online', true)
+                    ->update(['online' => false]);
+            }
+
+            // Users with NO session records should be considered offline in real-time
+            $sessionUsernames = array_keys($sessionStatuses);
+            if (!empty($sessionUsernames)) {
+                NetworkUser::whereNotIn(\DB::raw('lower(trim(username))'), $sessionUsernames)
                     ->where('online', true)
                     ->update(['online' => false]);
             }
@@ -103,9 +112,10 @@ class TenantUserController extends Controller
                 'email' => $user->email,
                 'location' => $user->location,
                 'type' => $user->type,
+                // Prefer session-derived status; if no sessions exist for the user, treat as offline
                 'is_online' => isset($sessionStatuses[strtolower(trim($user->username))])
                     ? ($sessionStatuses[strtolower(trim($user->username))] === 'active')
-                    : (bool) $user->online,
+                    : false,
                 'expires_at' => $user->expires_at,
                 'expiry_human' => optional($user->expires_at)->diffForHumans(),
                 'package' => $user->package ? [

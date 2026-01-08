@@ -17,7 +17,8 @@ class SendExpiryNotifications extends Command
 
     public function handle()
     {
-        $users = NetworkUser::whereNotNull('expires_at')
+        $users = NetworkUser::withoutGlobalScopes()
+            ->whereNotNull('expires_at')
             ->where('expires_at', '<=', now())
             ->whereNull('expiry_notified_at')
             ->get();
@@ -27,19 +28,24 @@ class SendExpiryNotifications extends Command
             return 0;
         }
 
-        $template = TenantSMSTemplate::where('name', 'Internet Expiry')->first();
-        if (!$template) {
-            $this->error('No Internet Expiry template found.');
-            return 1;
-        }
-
-        $supportNumber = tenant()?->phone ?? '';
-
         foreach ($users as $user) {
+            // Get tenant-specific template
+            $template = TenantSMSTemplate::withoutGlobalScopes()
+                ->where('tenant_id', $user->tenant_id)
+                ->where('name', 'Internet Expiry')
+                ->first();
+
+            if (!$template) {
+                Log::warning("No Internet Expiry template found for tenant {$user->tenant_id}");
+                continue;
+            }
+
+            $supportNumber = $user->tenant?->phone ?? '';
+
             $packageName = $user->package ? $user->package->name : '';
             $replacements = [
                 '{expiry_date}' => $user->expires_at ? $user->expires_at->format('Y-m-d') : 'N/A',
-                '{full_name}' => $user->full_name ?? '',
+                '{full_name}' => $user->full_name ?? $user->username ?? 'Customer',
                 '{phone}' => $user->phone ?? '',
                 '{account_number}' => $user->account_number ?? '',
                 '{package}' => $packageName,
@@ -47,12 +53,14 @@ class SendExpiryNotifications extends Command
                 '{password}' => $user->password ?? '',
                 '{support_number}' => $supportNumber,
             ];
+            
             $message = $template->content;
             foreach ($replacements as $key => $value) {
                 $message = str_replace($key, $value, $message);
             }
 
             $smsLog = TenantSMS::create([
+                'tenant_id' => $user->tenant_id,
                 'recipient_name' => $user->full_name ?? $user->username ?? 'Unknown',
                 'phone_number' => $user->phone ?? $user->phone_number ?? null,
                 'message' => $message,
@@ -63,27 +71,36 @@ class SendExpiryNotifications extends Command
             $apiKey = env('TALKSASA_API_KEY');
             $senderId = env('TALKSASA_SENDER_ID');
             $phoneNumbers = preg_replace('/^0/', '254', trim($user->phone ?? $user->phone_number ?? ''));
+            
             if ($apiKey && $senderId && $phoneNumbers) {
-                $response = Http::withHeaders([
-                    'Authorization' => 'Bearer ' . $apiKey,
-                    'Accept' => 'application/json',
-                    'Content-Type' => 'application/json',
-                ])->post('https://bulksms.talksasa.com/api/v3/sms/send', [
-                    'recipient' => $phoneNumbers,
-                    'sender_id' => $senderId,
-                    'type' => 'plain',
-                    'message' => $message,
-                ]);
-                $data = $response->json();
-                if ($response->successful() && isset($data['status']) && $data['status'] === 'success') {
-                    $smsLog->update([
-                        'status' => 'sent',
-                        'sent_at' => now(),
+                try {
+                    $response = Http::withHeaders([
+                        'Authorization' => 'Bearer ' . $apiKey,
+                        'Accept' => 'application/json',
+                        'Content-Type' => 'application/json',
+                    ])->post('https://bulksms.talksasa.com/api/v3/sms/send', [
+                        'recipient' => $phoneNumbers,
+                        'sender_id' => $senderId,
+                        'type' => 'plain',
+                        'message' => $message,
                     ]);
-                } else {
+                    
+                    $data = $response->json();
+                    if ($response->successful() && isset($data['status']) && $data['status'] === 'success') {
+                        $smsLog->update([
+                            'status' => 'sent',
+                            'sent_at' => now(),
+                        ]);
+                    } else {
+                        $smsLog->update([
+                            'status' => 'failed',
+                            'error_message' => $data['message'] ?? $response->body(),
+                        ]);
+                    }
+                } catch (\Exception $e) {
                     $smsLog->update([
                         'status' => 'failed',
-                        'error_message' => $data['message'] ?? $response->body(),
+                        'error_message' => $e->getMessage(),
                     ]);
                 }
             } else {
@@ -95,7 +112,7 @@ class SendExpiryNotifications extends Command
 
             $user->expiry_notified_at = now();
             $user->save();
-            Log::info('Sent expiry SMS to user', ['user_id' => $user->id]);
+            Log::info('Sent expiry SMS to user', ['user_id' => $user->id, 'tenant_id' => $user->tenant_id]);
         }
 
         $this->info('Expiry notifications sent.');

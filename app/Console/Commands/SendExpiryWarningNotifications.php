@@ -20,7 +20,8 @@ class SendExpiryWarningNotifications extends Command
         
         // Find users whose internet will expire between now and 3 days from now
         // and who haven't been warned yet
-        $users = NetworkUser::whereNotNull('expires_at')
+        $users = NetworkUser::withoutGlobalScopes()
+            ->whereNotNull('expires_at')
             ->where('expires_at', '>', now())
             ->where('expires_at', '<=', now()->addDays(3))
             ->whereNull('expiry_warning_sent_at')
@@ -33,15 +34,20 @@ class SendExpiryWarningNotifications extends Command
 
         $this->info("Found {$users->count()} users to notify.");
 
-        $template = TenantSMSTemplate::where('name', 'Internet Expiry Warning')->first();
-        if (!$template) {
-            $this->error('No "Internet Expiry Warning" template found.');
-            return 1;
-        }
-
-        $supportNumber = tenant()?->phone ?? '';
-
         foreach ($users as $user) {
+            // Get tenant-specific template
+            $template = TenantSMSTemplate::withoutGlobalScopes()
+                ->where('tenant_id', $user->tenant_id)
+                ->where('name', 'Internet Expiry Warning')
+                ->first();
+
+            if (!$template) {
+                Log::warning("No Internet Expiry Warning template found for tenant {$user->tenant_id}");
+                continue;
+            }
+
+            $supportNumber = $user->tenant?->phone ?? '';
+
             $packageName = $user->package ? $user->package->name : '';
             $replacements = [
                 '{expiry_date}' => $user->expires_at ? $user->expires_at->format('Y-m-d') : 'N/A',
@@ -60,6 +66,7 @@ class SendExpiryWarningNotifications extends Command
             }
 
             $smsLog = TenantSMS::create([
+                'tenant_id' => $user->tenant_id,
                 'recipient_name' => $user->full_name ?? $user->username ?? 'Unknown',
                 'phone_number' => $user->phone ?? $user->phone_number ?? null,
                 'message' => $message,
@@ -111,7 +118,7 @@ class SendExpiryWarningNotifications extends Command
 
             $user->expiry_warning_sent_at = now();
             $user->save();
-            Log::info('Sent expiry warning SMS to user', ['user_id' => $user->id]);
+            Log::info('Sent expiry warning SMS to user', ['user_id' => $user->id, 'tenant_id' => $user->tenant_id]);
         }
 
         $this->info('Expiry warning notifications sent.');
