@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Log;
 
 class TenantRadiusController extends Controller
 {
-    public function authenticate(Request $request)
+    public function auth(Request $request)
     {
         $validated = $request->validate([
             'username' => 'required|string',

@@ -103,11 +103,8 @@ class RadiusAccountingController extends Controller
                     ->where('tenant_id', $router->tenant_id)
                     ->where('status', 'active')
                     ->where('session_id', '!=', $uniqueSessionKey)
-                    ->where(function($q) use ($username, $macAddress) {
+                    ->where(function($q) use ($username) {
                         $q->where('username', $username);
-                        if ($macAddress) {
-                            $q->orWhere('mac_address', $macAddress);
-                        }
                     })
                     ->update([
                         'status' => 'disconnected',
