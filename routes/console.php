@@ -10,6 +10,7 @@ Artisan::command('inspire', function () {
 
 // Scheduled Tasks (Laravel 12 format)
 Schedule::command('sms:send-expiry-notifications')->everyFiveMinutes();
+Schedule::command('sms:send-expiry-warnings')->everySixHours();
 
 Schedule::command('routers:sync')
     ->everyFourMinutes()

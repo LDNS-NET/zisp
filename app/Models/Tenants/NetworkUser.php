@@ -37,7 +37,8 @@ class NetworkUser extends Authenticatable
         'pending_package_activation_at',
         'status',
         'registered_at',
-        'expires_at',
+        'expiry_notified_at',
+        'expiry_warning_sent_at',
         'online',
         'created_by',
         'tenant_id',
@@ -46,6 +47,8 @@ class NetworkUser extends Authenticatable
     protected $casts = [
         'registered_at' => 'datetime',
         'expires_at' => 'datetime',
+        'expiry_notified_at' => 'datetime',
+        'expiry_warning_sent_at' => 'datetime',
         'pending_package_activation_at' => 'datetime',
         'online' => 'boolean',
     ];
