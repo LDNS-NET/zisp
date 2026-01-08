@@ -23,6 +23,10 @@ Schedule::command('wireguard:sync-peers')
 
 Schedule::command('users:disconnect-expired')->everyMinute();
 
+Schedule::command('winbox:sync')
+    ->everyTwoMinutes()
+    ->withoutOverlapping();
+
 Schedule::command('app:cleanup-stale-sessions')->everyFiveMinutes();
 
 Schedule::command('network:process-upgrades')
