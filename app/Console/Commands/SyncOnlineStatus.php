@@ -3,7 +3,7 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use App\Models\Tenants\TenantActiveSession;
+use App\Models\Tenants\TenantActiveUsers;
 use App\Models\Tenants\NetworkUser;
 use Illuminate\Support\Facades\DB;
 
@@ -17,7 +17,7 @@ class SyncOnlineStatus extends Command
         $this->info('Starting sync of online status from tenant_active_sessions...');
 
         // Load all sessions centralised (no tenant scope)
-        $sessions = TenantActiveSession::withoutGlobalScopes()
+        $sessions = TenantActiveUsers::withoutGlobalScopes()
             ->whereNotNull('username')
             ->get(['tenant_id', 'username', 'status']);
 

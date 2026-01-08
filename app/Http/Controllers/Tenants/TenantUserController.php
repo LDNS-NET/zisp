@@ -36,14 +36,14 @@ class TenantUserController extends Controller
         $perPage = $request->get('per_page', 10);
         $users = $query->paginate($perPage);
 
-        // Determine current session statuses from TenantActiveSession
+        // Determine current session statuses from TenantActiveUsers
         // Build a map: lower(trim(username)) => final status ('active' if any session active, otherwise the first non-empty status)
         $sessionStatuses = [];
         $activeUsernames = [];
         $nonActiveUsernames = [];
 
         if (tenant()) {
-            $sessions = \App\Models\Tenants\TenantActiveSession::where('tenant_id', tenant()->id)
+            $sessions = \App\Models\Tenants\TenantActiveUsers::where('tenant_id', tenant()->id)
                 ->whereNotNull('username')
                 ->get(['username', 'status']);
 
@@ -96,8 +96,6 @@ class TenantUserController extends Controller
             'hotspot' => NetworkUser::where('type', 'hotspot')->count(),
             'pppoe' => NetworkUser::where('type', 'pppoe')->count(),
             'static' => NetworkUser::where('type', 'static')->count(),
-            'active' => NetworkUser::where('status', 'active')->count(),
-            'inactive' => NetworkUser::where('status', 'inactive')->count(),
             'online' => count($activeUsernames),
             'expired' => NetworkUser::where('expires_at', '<', now())->count(),
         ];
