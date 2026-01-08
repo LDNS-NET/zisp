@@ -42,9 +42,10 @@ class TenantUserController extends Controller
         $activeUsernames = [];
 
         if (tenant()) {
-            // Get all active usernames for this tenant
+            // Get all active usernames for this tenant (last seen within 24 hours)
             $activeUsernames = \App\Models\Tenants\TenantActiveUsers::where('tenant_id', tenant()->id)
                 ->where('status', 'active')
+                ->where('last_seen_at', '>', now()->subHours(24))
                 ->whereNotNull('username')
                 ->distinct()
                 ->pluck('username')
@@ -97,10 +98,8 @@ class TenantUserController extends Controller
                 'email' => $user->email,
                 'location' => $user->location,
                 'type' => $user->type,
-                // Prefer session-derived status; if no sessions exist for the user, treat as offline
-                'is_online' => isset($sessionStatuses[strtolower(trim($user->username))])
-                    ? ($sessionStatuses[strtolower(trim($user->username))] === 'active')
-                    : false,
+                // Check if user is in the active usernames list
+                'is_online' => in_array(strtolower(trim($user->username)), $activeUsernames),
                 'expires_at' => $user->expires_at,
                 'expiry_human' => optional($user->expires_at)->diffForHumans(),
                 'package' => $user->package ? [

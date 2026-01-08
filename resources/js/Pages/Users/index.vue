@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useForm, Link, router, Head } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Modal from '@/Components/Modal.vue';
@@ -83,6 +83,20 @@ watch(search, (value) => {
             { preserveScroll: true }
         );
     }, 300);
+});
+
+onMounted(() => {
+    // Poll for real-time status updates every 5 seconds
+    const interval = setInterval(() => {
+        router.reload({
+            only: ['users', 'counts'],
+            preserveScroll: true,
+            preserveState: true,
+        });
+    }, 5000);
+
+    // Clean up interval on unmount
+    return () => clearInterval(interval);
 });
 
 function openCreate() {
