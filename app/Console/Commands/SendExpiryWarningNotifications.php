@@ -59,7 +59,7 @@ class SendExpiryWarningNotifications extends Command
                 '{username}' => $user->username ?? '',
                 '{password}' => $user->password ?? '',
                 '{support_number}' => $supportNumber,
-                '{portal_url}' => config('app.url'),
+                '{portal_url}' => $user->tenant?->portal_url ?? 'https://zyraaf.cloud/customer/login',
             ];
             
             $message = $template->content;
