@@ -193,6 +193,11 @@ class NetworkUser extends Authenticatable
                 $user->web_password = \Illuminate\Support\Facades\Hash::make($user->password);
             }
 
+            // Auto-fill full_name with username if empty (Fail-safe for notifications)
+            if (empty($user->full_name) && !empty($user->username)) {
+                $user->full_name = $user->username;
+            }
+
             if ($user->isDirty('expires_at')) {
                 $newExpiry = $user->expires_at;
                 $oldExpiry = $user->getOriginal('expires_at');
