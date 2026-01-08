@@ -9,6 +9,11 @@ class Kernel extends ConsoleKernel
 {
     protected function schedule(Schedule $schedule): void
     {
+        // Test task to verify scheduler is working
+        $schedule->call(function () {
+            \Log::info('Scheduler is working!');
+        })->everyMinute();
+
         $schedule->command('sms:send-expiry-notifications')->everyFiveMinutes();
 
         // Sync routers via RouterOS API polling every minute (prevent overlapping runs)
