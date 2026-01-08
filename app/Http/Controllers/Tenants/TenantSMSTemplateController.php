@@ -18,11 +18,11 @@ class TenantSMSTemplateController extends Controller
         $defaultTemplates = [
             [
                 'name' => 'Internet Expiry Warning',
-                'content' => 'Hello {full_name}, internet subscription for account {account_number} and package {package} will expire on {expiry_date}. Please renew to continue enjoying our service. Contact: {phone}',
+                'content' => 'Hello {full_name}, your internet (Account: {account_number}) expires on {expiry_date}. To renew, login to {portal_url} using Username: {username}, Password: {password}. Contact: {phone}',
             ],
             [
                 'name' => 'Internet Expiry',
-                'content' => 'Hello {full_name}, internet subscription for account {account_number} and package {package} has expired on {expiry_date}. Please renew to continue enjoying our service. Contact: {phone}',
+                'content' => 'Hello {full_name}, your internet (Account: {account_number}) has expired on {expiry_date}. To renew, login to {portal_url} using Username: {username}, Password: {password}. Contact: {phone}',
             ],
             [
                 'name' => 'Renewal Confirmation',
