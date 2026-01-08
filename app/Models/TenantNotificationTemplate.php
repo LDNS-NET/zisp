@@ -9,7 +9,17 @@ class TenantNotificationTemplate extends Model
 {
     use SoftDeletes;
     protected $fillable = [
-        'tenant_id', 'type', 'channel', 'channel_type', 'template_type', 'subject', 'message_template', 'variables', 'description', 'is_active', 'created_by'
+        'tenant_id',
+        'type',
+        'channel',
+        'channel_type',
+        'template_type',
+        'subject',
+        'message_template',
+        'variables',
+        'description',
+        'is_active',
+        'created_by'
     ];
     protected $casts = [
         'variables' => 'array',
