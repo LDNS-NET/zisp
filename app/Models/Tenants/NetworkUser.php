@@ -40,6 +40,7 @@ class NetworkUser extends Authenticatable
         'expiry_notified_at',
         'expiry_warning_sent_at',
         'online',
+        'expires_at',
         'created_by',
         'tenant_id',
     ];
@@ -186,10 +187,23 @@ class NetworkUser extends Authenticatable
             }
         });
 
-        /** Sync web_password when password changes */
+        /** Sync web_password when password changes and reset notifications if expiry extended */
         static::saving(function ($user) {
             if ($user->isDirty('password')) {
                 $user->web_password = \Illuminate\Support\Facades\Hash::make($user->password);
+            }
+
+            if ($user->isDirty('expires_at')) {
+                $newExpiry = $user->expires_at;
+                $oldExpiry = $user->getOriginal('expires_at');
+
+                // If expiry is extended or set for the first time to a future date, reset notification flags
+                if ($newExpiry && (!$oldExpiry || $newExpiry->gt($oldExpiry))) {
+                    if ($newExpiry->isFuture()) {
+                        $user->expiry_notified_at = null;
+                        $user->expiry_warning_sent_at = null;
+                    }
+                }
             }
         });
 
