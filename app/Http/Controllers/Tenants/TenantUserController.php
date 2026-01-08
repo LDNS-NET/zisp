@@ -36,27 +36,42 @@ class TenantUserController extends Controller
         $perPage = $request->get('per_page', 10);
         $users = $query->paginate($perPage);
 
-        // Determine currently online usernames from TenantActiveSession
-        $onlineUsernames = [];
+        // Determine current session statuses from TenantActiveSession
+        // Build a map: lower(trim(username)) => final status ('active' if any session active, otherwise the first non-empty status)
+        $sessionStatuses = [];
+        $activeUsernames = [];
+        $nonActiveUsernames = [];
+
         if (tenant()) {
-            $onlineUsernames = \App\Models\Tenants\TenantActiveSession::where('tenant_id', tenant()->id)
-                ->where('status', 'active')
+            $sessions = \App\Models\Tenants\TenantActiveSession::where('tenant_id', tenant()->id)
                 ->whereNotNull('username')
-                ->pluck('username')
-                ->map(fn($u) => strtolower(trim($u)))
-                ->unique()
-                ->toArray();
+                ->get(['username', 'status']);
 
-            // Sync 'online' column (0 = offline, 1 = online)
-            // Set online=1 for active usernames
-            NetworkUser::whereIn(\DB::raw('lower(trim(username))'), $onlineUsernames)
-                ->where('online', false)
-                ->update(['online' => true]);
+            $grouped = $sessions->groupBy(fn ($s) => strtolower(trim($s->username)));
 
-            // Set online=0 for others previously marked online but not in list
-            NetworkUser::whereNotIn(\DB::raw('lower(trim(username))'), $onlineUsernames)
-                ->where('online', true)
-                ->update(['online' => false]);
+            foreach ($grouped as $username => $group) {
+                $statuses = $group->pluck('status')->map(fn($st) => strtolower(trim((string)$st)));
+                $final = $statuses->contains('active') ? 'active' : ($statuses->first() ?? 'deactivated');
+                $sessionStatuses[$username] = $final;
+                if ($final === 'active') {
+                    $activeUsernames[] = $username;
+                } else {
+                    $nonActiveUsernames[] = $username;
+                }
+            }
+
+            // Sync 'online' column only for users present in session list
+            if (!empty($activeUsernames)) {
+                NetworkUser::whereIn(\DB::raw('lower(trim(username))'), $activeUsernames)
+                    ->where('online', false)
+                    ->update(['online' => true]);
+            }
+
+            if (!empty($nonActiveUsernames)) {
+                NetworkUser::whereIn(\DB::raw('lower(trim(username))'), $nonActiveUsernames)
+                    ->where('online', true)
+                    ->update(['online' => false]);
+            }
         }
 
         // Get available packages for the form
@@ -74,7 +89,7 @@ class TenantUserController extends Controller
             'static' => NetworkUser::where('type', 'static')->count(),
             'active' => NetworkUser::where('status', 'active')->count(),
             'inactive' => NetworkUser::where('status', 'inactive')->count(),
-            'online' => count($onlineUsernames),
+            'online' => count($activeUsernames),
             'expired' => NetworkUser::where('expires_at', '<', now())->count(),
         ];
 
@@ -88,7 +103,9 @@ class TenantUserController extends Controller
                 'email' => $user->email,
                 'location' => $user->location,
                 'type' => $user->type,
-                'is_online' => in_array(strtolower(trim($user->username)), $onlineUsernames),
+                'is_online' => isset($sessionStatuses[strtolower(trim($user->username))])
+                    ? ($sessionStatuses[strtolower(trim($user->username))] === 'active')
+                    : (bool) $user->online,
                 'expires_at' => $user->expires_at,
                 'expiry_human' => optional($user->expires_at)->diffForHumans(),
                 'package' => $user->package ? [
