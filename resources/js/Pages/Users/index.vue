@@ -39,6 +39,7 @@ const props = defineProps({
     filters: Object,
     counts: Object,
     packages: Object,
+    activeUsernames: Array,
 });
 
 const showModal = ref(false);
@@ -261,6 +262,10 @@ const openActions = (user) => {
                 </div>
             </div>
         </template>
+
+        <div v-if="false" class="bg-gray-100 p-2 text-xs font-mono mb-4">
+            Active Usernames: {{ activeUsernames }}
+        </div>
 
         <div class="space-y-6">
             <!-- Filters & Search -->

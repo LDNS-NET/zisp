@@ -89,28 +89,34 @@ class TenantUserController extends Controller
         ];
 
         return inertia('Users/index', [
-            'users' => $users->through(fn($user) => [
-                'id' => $user->id,
-                'full_name' => $user->full_name,
-                'username' => $user->username,
-                'account_number' => $user->account_number,
-                'phone' => $user->phone,
-                'email' => $user->email,
-                'location' => $user->location,
-                'type' => $user->type,
+            'users' => $users->through(function($user) use ($activeUsernames) {
                 // Check if user is in the active usernames list
-                'is_online' => in_array(strtolower(trim($user->username)), $activeUsernames),
-                'expires_at' => $user->expires_at,
-                'expiry_human' => optional($user->expires_at)->diffForHumans(),
-                'package' => $user->package ? [
-                    'id' => $user->package->id,
-                    'name' => $user->package->name,
-                ] : null,
-            ]),
+                $isOnline = in_array(strtolower(trim($user->username)), $activeUsernames);
+                \Log::debug("User: {$user->username}, Is Online: " . ($isOnline ? 'Yes' : 'No'));
+                
+                return [
+                    'id' => $user->id,
+                    'full_name' => $user->full_name,
+                    'username' => $user->username,
+                    'account_number' => $user->account_number,
+                    'phone' => $user->phone,
+                    'email' => $user->email,
+                    'location' => $user->location,
+                    'type' => $user->type,
+                    'is_online' => $isOnline,
+                    'expires_at' => $user->expires_at,
+                    'expiry_human' => optional($user->expires_at)->diffForHumans(),
+                    'package' => $user->package ? [
+                        'id' => $user->package->id,
+                        'name' => $user->package->name,
+                    ] : null,
+                ];
+            }),
             'filters' => [
                 'type' => $type,
                 'search' => $search,
             ],
+            'activeUsernames' => $activeUsernames,
             'counts' => $counts,
             'packages' => $packages,
         ]);
