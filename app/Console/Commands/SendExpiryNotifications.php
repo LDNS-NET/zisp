@@ -18,6 +18,7 @@ class SendExpiryNotifications extends Command
     public function handle()
     {
         $users = NetworkUser::withoutGlobalScopes()
+            ->with('tenant')
             ->whereNotNull('expires_at')
             ->where('expires_at', '<=', now())
             ->whereNull('expiry_notified_at')
@@ -27,6 +28,8 @@ class SendExpiryNotifications extends Command
             $this->info('No expired users to notify.');
             return 0;
         }
+
+        $this->info("Found {$users->count()} expired users to notify.");
 
         foreach ($users as $user) {
             // Get tenant-specific template

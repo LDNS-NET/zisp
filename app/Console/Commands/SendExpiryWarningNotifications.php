@@ -21,6 +21,7 @@ class SendExpiryWarningNotifications extends Command
         // Find users whose internet will expire between now and 3 days from now
         // and who haven't been warned yet
         $users = NetworkUser::withoutGlobalScopes()
+            ->with('tenant')
             ->whereNotNull('expires_at')
             ->where('expires_at', '>', now())
             ->where('expires_at', '<=', now()->addDays(3))

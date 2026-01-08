@@ -55,7 +55,7 @@ class TenantSMS extends Model
                     $model->tenant_id = tenant()->id;
                 } elseif (auth()->check() && auth()->user()->tenant_id) {
                     $model->tenant_id = auth()->user()->tenant_id;
-                } else {
+                } elseif (!app()->runningInConsole()) {
                     $host = request()->getHost();
                     $subdomain = explode('.', $host)[0];
                     $tenant = \App\Models\Tenant::where('subdomain', $subdomain)->first();

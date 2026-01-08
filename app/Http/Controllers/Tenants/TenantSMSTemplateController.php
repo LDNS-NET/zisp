@@ -34,10 +34,18 @@ class TenantSMSTemplateController extends Controller
             ],
         ];
 
-        foreach ($defaultTemplates as $tpl) {
-            $existing = TenantSMSTemplate::where('name', $tpl['name'])->first();
-            if (!$existing) {
-                TenantSMSTemplate::create($tpl);
+        $currentTenantId = tenant('id') ?? (auth()->check() ? auth()->user()->tenant_id : null);
+
+        if ($currentTenantId) {
+            foreach ($defaultTemplates as $tpl) {
+                $existing = TenantSMSTemplate::where('name', $tpl['name'])
+                    ->where('tenant_id', $currentTenantId)
+                    ->first();
+                    
+                if (!$existing) {
+                    $tpl['tenant_id'] = $currentTenantId;
+                    TenantSMSTemplate::create($tpl);
+                }
             }
         }
 
