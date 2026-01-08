@@ -96,7 +96,8 @@ class TenantUserController extends Controller
             'hotspot' => NetworkUser::where('type', 'hotspot')->count(),
             'pppoe' => NetworkUser::where('type', 'pppoe')->count(),
             'static' => NetworkUser::where('type', 'static')->count(),
-            'online' => count($activeUsernames),
+            // Use the persisted `online` boolean column as the source of truth for frontend counts
+            'online' => NetworkUser::where('online', true)->count(),
             'expired' => NetworkUser::where('expires_at', '<', now())->count(),
         ];
 
@@ -110,10 +111,8 @@ class TenantUserController extends Controller
                 'email' => $user->email,
                 'location' => $user->location,
                 'type' => $user->type,
-                // Prefer session-derived status; if no sessions exist for the user, treat as offline
-                'is_online' => isset($sessionStatuses[strtolower(trim($user->username))])
-                    ? ($sessionStatuses[strtolower(trim($user->username))] === 'active')
-                    : false,
+                // Use the persisted `online` boolean from the `network_users` table as source of truth
+                'is_online' => (bool) $user->online,
                 'expires_at' => $user->expires_at,
                 'expiry_human' => optional($user->expires_at)->diffForHumans(),
                 'package' => $user->package ? [
