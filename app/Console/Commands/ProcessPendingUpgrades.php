@@ -39,7 +39,7 @@ class ProcessPendingUpgrades extends Command
 
         if ($users->isEmpty()) {
             $this->info('No pending upgrades to process.');
-            return;
+            return 0;
         }
 
         foreach ($users as $user) {
