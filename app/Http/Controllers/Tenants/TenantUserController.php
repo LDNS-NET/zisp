@@ -38,6 +38,7 @@ class TenantUserController extends Controller
 
         // Determine current session statuses from TenantActiveUsers
         $activeUsernames = [];
+        $activeUserIds = [];
         $tenantId = null;
         $allActiveCountRaw = 0;
 
@@ -139,7 +140,7 @@ class TenantUserController extends Controller
         ];
 
         return inertia('Users/index', [
-            'users' => $users->through(function($user) use ($activeUsernames) {
+            'users' => $users->through(function($user) use ($activeUsernames, $activeUserIds) {
                 // Check if user is in the active usernames list
                 // Check by id first, then by normalized username
                 $normalized = strtolower(trim(explode('@', $user->username)[0] ?? $user->username));
