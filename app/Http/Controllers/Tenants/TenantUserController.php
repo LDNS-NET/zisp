@@ -88,7 +88,7 @@ class TenantUserController extends Controller
                 'email' => $user->email,
                 'location' => $user->location,
                 'type' => $user->type,
-                'is_online' => (bool) $user->online,
+                'is_online' => in_array(strtolower(trim($user->username)), $onlineUsernames),
                 'expires_at' => $user->expires_at,
                 'expiry_human' => optional($user->expires_at)->diffForHumans(),
                 'package' => $user->package ? [
