@@ -42,29 +42,29 @@ class TenantUserController extends Controller
         $activeUsernames = [];
 
         if (tenant()) {
-            // Debug: Count all active sessions for this tenant regardless of time
-            $allActiveCount = \App\Models\Tenants\TenantActiveUsers::where('tenant_id', tenant()->id)
-                ->where('status', 'active')
-                ->count();
-            
-            \Log::debug("Tenant ID: " . tenant()->id . ", Total Active Sessions: " . $allActiveCount);
+            $tenantId = tenant()->id;
+            \Log::debug("Tenant ID: {$tenantId} (Type: " . gettype($tenantId) . ")");
 
-            // Get all active usernames for this tenant (last seen within 24 hours)
-            // We'll be more lenient with the time for now to debug
-            $activeUsernames = \App\Models\Tenants\TenantActiveUsers::where('tenant_id', tenant()->id)
+            // Get all active usernames for this tenant without any time constraints for now
+            $activeUsernames = \App\Models\Tenants\TenantActiveUsers::withoutGlobalScopes()
+                ->where('tenant_id', $tenantId)
                 ->where('status', 'active')
-                ->where(function($q) {
-                    $q->where('last_seen_at', '>', now()->subHours(48)) // Increased to 48h for safety
-                      ->orWhereNull('last_seen_at');
-                })
-                ->whereNotNull('username')
                 ->pluck('username')
                 ->map(fn($u) => strtolower(trim($u)))
                 ->unique()
                 ->toArray();
             
-            \Log::debug("Active Usernames Count (48h): " . count($activeUsernames));
-            \Log::debug("Sample Active Usernames: " . implode(', ', array_slice($activeUsernames, 0, 5)));
+            $allActiveCountRaw = \DB::table('tenant_active_users')
+                ->where('tenant_id', $tenantId)
+                ->where('status', 'active')
+                ->count();
+
+            \Log::debug("Active Usernames Count: " . count($activeUsernames));
+            \Log::debug("Raw DB Count for Tenant: " . $allActiveCountRaw);
+            
+            if (!empty($activeUsernames)) {
+                \Log::debug("Sample Active Usernames: " . implode(', ', array_slice($activeUsernames, 0, 5)));
+            }
 
             // Sync 'online' column: Mark active users online
             if (!empty($activeUsernames)) {
@@ -132,8 +132,8 @@ class TenantUserController extends Controller
             ],
             'activeUsernames' => $activeUsernames,
             'debugInfo' => [
-                'tenant_id' => tenant() ? tenant()->id : 'null',
-                'all_active_count' => $allActiveCount ?? 0,
+                'tenant_id' => $tenantId,
+                'all_active_count' => $allActiveCountRaw ?? 0,
                 'filtered_active_count' => count($activeUsernames),
             ],
             'counts' => $counts,
