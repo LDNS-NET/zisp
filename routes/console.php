@@ -30,7 +30,7 @@ Schedule::command('winbox:sync')
 
 Schedule::command('app:cleanup-stale-sessions')->everyFiveMinutes();
 
-// Sync online flags from tenant_active_users to network_users
+// Sync online flags from tenant_active_sessions to network_users
 Schedule::command('app:sync-online-status')
     ->everyMinute()
     ->withoutOverlapping();

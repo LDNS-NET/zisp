@@ -36,86 +36,49 @@ class TenantUserController extends Controller
         $perPage = $request->get('per_page', 10);
         $users = $query->paginate($perPage);
 
-        // Determine current session statuses from TenantActiveUsers
+        // Determine current session statuses from TenantActiveSession
+        // Build a map: lower(trim(username)) => final status ('active' if any session active, otherwise the first non-empty status)
+        $sessionStatuses = [];
         $activeUsernames = [];
-        $activeUserIds = [];
-        $tenantId = null;
-        $allActiveCountRaw = 0;
+        $nonActiveUsernames = [];
 
         if (tenant()) {
-            $tenantId = tenant()->id;
-            \Log::debug("Tenant ID: {$tenantId} (Type: " . gettype($tenantId) . ")");
+            $sessions = \App\Models\Tenants\TenantActiveSession::where('tenant_id', tenant()->id)
+                ->whereNotNull('username')
+                ->get(['username', 'status']);
 
-            // Get all active sessions for this tenant. Prefer matching by user_id when available,
-            // otherwise fall back to normalized username (lowercase, trimmed, strip domain part)
-            $activeSessions = \App\Models\Tenants\TenantActiveUsers::withoutGlobalScopes()
-                ->where('tenant_id', $tenantId)
-                ->where('status', 'active')
-                ->get(['username', 'user_id']);
+            $grouped = $sessions->groupBy(fn ($s) => strtolower(trim($s->username)));
 
-            $activeUserIds = $activeSessions->pluck('user_id')->filter()->unique()->values()->toArray();
-
-            $activeUsernames = $activeSessions->pluck('username')
-                ->filter()
-                ->map(function($u) {
-                    $u = (string) $u;
-                    // strip domain parts if present (user@domain)
-                    if (strpos($u, '@') !== false) {
-                        $u = explode('@', $u)[0];
-                    }
-                    return strtolower(trim($u));
-                })
-                ->unique()
-                ->toArray();
-            
-            $allActiveCountRaw = \DB::table('tenant_active_users')
-                ->where('tenant_id', $tenantId)
-                ->where('status', 'active')
-                ->count();
-
-            \Log::debug("Active Usernames Count: " . count($activeUsernames));
-            \Log::debug("Raw DB Count for Tenant: " . $allActiveCountRaw);
-            
-            if (!empty($activeUsernames)) {
-                \Log::debug("Sample Active Usernames: " . implode(', ', array_slice($activeUsernames, 0, 10)));
-            } else {
-                \Log::debug("NO ACTIVE USERNAMES FOUND IN tenant_active_users FOR TENANT {$tenantId}");
-                // Check if there are ANY active users at all in the table
-                $globalActiveCount = \DB::table('tenant_active_users')->where('status', 'active')->count();
-                \Log::debug("Global Active Users Count (all tenants): " . $globalActiveCount);
+            foreach ($grouped as $username => $group) {
+                $statuses = $group->pluck('status')->map(fn($st) => strtolower(trim((string)$st)));
+                $final = $statuses->contains('active') ? 'active' : ($statuses->first() ?? 'deactivated');
+                $sessionStatuses[$username] = $final;
+                if ($final === 'active') {
+                    $activeUsernames[] = $username;
+                } else {
+                    $nonActiveUsernames[] = $username;
+                }
             }
 
-            // Sync 'online' column: Mark active users online
+            // Sync 'online' column for users present in session list
             if (!empty($activeUsernames)) {
-                // Mark DB users online either by matching user_id or normalized username
-                if (!empty($activeUserIds)) {
-                    NetworkUser::whereIn('id', $activeUserIds)
-                        ->where('online', false)
-                        ->update(['online' => true]);
-                }
-                if (!empty($activeUsernames)) {
-                    NetworkUser::whereIn(\DB::raw('lower(trim(username))'), $activeUsernames)
-                        ->where('online', false)
-                        ->update(['online' => true]);
-                }
+                NetworkUser::whereIn(\DB::raw('lower(trim(username))'), $activeUsernames)
+                    ->where('online', false)
+                    ->update(['online' => true]);
+            }
 
-                // Mark everyone else offline (who was online)
-                // Mark offline: for users present in sessions but not active, match by id or username
-                if (!empty($activeUserIds)) {
-                    NetworkUser::whereNotIn('id', $activeUserIds)
-                        ->where('tenant_id', $tenantId)
-                        ->where('online', true)
-                        ->update(['online' => false]);
-                }
-                if (!empty($activeUsernames)) {
-                    NetworkUser::whereNotIn(\DB::raw('lower(trim(username))'), $activeUsernames)
-                        ->where('tenant_id', $tenantId)
-                        ->where('online', true)
-                        ->update(['online' => false]);
-                }
-            } else {
-                // No active sessions at all -> mark all users offline
-                NetworkUser::where('online', true)
+            // Users present in sessions but not active -> offline
+            if (!empty($nonActiveUsernames)) {
+                NetworkUser::whereIn(\DB::raw('lower(trim(username))'), $nonActiveUsernames)
+                    ->where('online', true)
+                    ->update(['online' => false]);
+            }
+
+            // Users with NO session records should be considered offline in real-time
+            $sessionUsernames = array_keys($sessionStatuses);
+            if (!empty($sessionUsernames)) {
+                NetworkUser::whereNotIn(\DB::raw('lower(trim(username))'), $sessionUsernames)
+                    ->where('online', true)
                     ->update(['online' => false]);
             }
         }
@@ -140,40 +103,29 @@ class TenantUserController extends Controller
         ];
 
         return inertia('Users/index', [
-            'users' => $users->through(function($user) use ($activeUsernames, $activeUserIds) {
-                // Check if user is in the active usernames list
-                // Check by id first, then by normalized username
-                $normalized = strtolower(trim(explode('@', $user->username)[0] ?? $user->username));
-                $isOnline = in_array($user->id, $activeUserIds) || in_array($normalized, $activeUsernames);
-                \Log::debug("User: {$user->username}, Is Online: " . ($isOnline ? 'Yes' : 'No'));
-                
-                return [
-                    'id' => $user->id,
-                    'full_name' => $user->full_name,
-                    'username' => $user->username,
-                    'account_number' => $user->account_number,
-                    'phone' => $user->phone,
-                    'email' => $user->email,
-                    'location' => $user->location,
-                    'type' => $user->type,
-                    'is_online' => $isOnline,
-                    'expires_at' => $user->expires_at,
-                    'expiry_human' => optional($user->expires_at)->diffForHumans(),
-                    'package' => $user->package ? [
-                        'id' => $user->package->id,
-                        'name' => $user->package->name,
-                    ] : null,
-                ];
-            }),
+            'users' => $users->through(fn($user) => [
+                'id' => $user->id,
+                'full_name' => $user->full_name,
+                'username' => $user->username,
+                'account_number' => $user->account_number,
+                'phone' => $user->phone,
+                'email' => $user->email,
+                'location' => $user->location,
+                'type' => $user->type,
+                // Prefer session-derived status; if no sessions exist for the user, treat as offline
+                'is_online' => isset($sessionStatuses[strtolower(trim($user->username))])
+                    ? ($sessionStatuses[strtolower(trim($user->username))] === 'active')
+                    : false,
+                'expires_at' => $user->expires_at,
+                'expiry_human' => optional($user->expires_at)->diffForHumans(),
+                'package' => $user->package ? [
+                    'id' => $user->package->id,
+                    'name' => $user->package->name,
+                ] : null,
+            ]),
             'filters' => [
                 'type' => $type,
                 'search' => $search,
-            ],
-            'activeUsernames' => $activeUsernames,
-            'debugInfo' => [
-                'tenant_id' => $tenantId,
-                'all_active_count' => $allActiveCountRaw ?? 0,
-                'filtered_active_count' => count($activeUsernames),
             ],
             'counts' => $counts,
             'packages' => $packages,
