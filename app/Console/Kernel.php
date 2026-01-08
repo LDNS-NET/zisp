@@ -24,6 +24,9 @@ class Kernel extends ConsoleKernel
         // Disconnect expired users who are still active (every minute)
         $schedule->command('users:disconnect-expired')->everyMinute();
 
+        // Cleanup stale sessions (every 5 minutes)
+        $schedule->command('app:cleanup-stale-sessions')->everyFiveMinutes();
+
         // Process pending package upgrades every minute
         $schedule->command('network:process-upgrades')->everyMinute()->withoutOverlapping();
     }
