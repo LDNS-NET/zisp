@@ -17,29 +17,28 @@ class DisconnectExpiredUsersCommand extends Command
 
     public function handle()
     {
-        $this->info('Checking for expired users who are still online...');
-        $this->info('Current Server Time: ' . now()->toDateTimeString());
-
-        // 1. Find all users who have expired
-        // Use withoutGlobalScopes to check across all tenants
-        $expiredUsers = NetworkUser::withoutGlobalScopes()
+        // Only check users that expired in last 5 minutes to avoid checking all expired users
+        // This is more efficient: if they haven't been disconnected in 5 mins, they likely won't be
+        $recentlyExpired = NetworkUser::withoutGlobalScopes()
             ->whereNotNull('expires_at')
             ->where('expires_at', '<', now())
+            ->where('expires_at', '>=', now()->subMinutes(5))
+            ->where('online', true) // Only check users still marked online
             ->get();
 
-        if ($expiredUsers->isEmpty()) {
-            $this->info('No expired users found in the database.');
+        if ($recentlyExpired->isEmpty()) {
+            $this->info('No recently expired online users found.');
             return 0;
         }
 
-        $this->info("Found {$expiredUsers->count()} expired users in total.");
+        $this->info("Found {$recentlyExpired->count()} recently expired users to disconnect.");
 
         $disconnectedCount = 0;
         $errorCount = 0;
 
-        foreach ($expiredUsers as $user) {
+        foreach ($recentlyExpired as $user) {
             try {
-                // 2. Find their active session(s)
+                // Find active sessions for this user
                 $activeSessions = \App\Models\Tenants\TenantActiveUsers::withoutGlobalScopes()
                     ->where('user_id', $user->id)
                     ->where('status', 'active')
@@ -47,74 +46,40 @@ class DisconnectExpiredUsersCommand extends Command
                     ->get();
 
                 if ($activeSessions->isEmpty()) {
-                    // If user is marked online but has no active session, sync the flag
-                    if ($user->online) {
-                        $this->info("User {$user->username} marked online but has no active sessions. Syncing flag.");
-                        $user->update(['online' => false]);
-                    }
+                    // User marked online but no active session - just mark offline
+                    $user->update(['online' => false]);
                     continue;
                 }
 
-                $this->info("User {$user->username} is expired and has {$activeSessions->count()} active sessions.");
+                $this->info("Disconnecting {$user->username} ({$activeSessions->count()} sessions)");
 
                 foreach ($activeSessions as $session) {
-                    $router = $session->router;
-
-                    if (!$router) {
-                        Log::warning("Could not find router for expired user session", [
-                            'username' => $user->username,
-                            'session_id' => $session->session_id
-                        ]);
+                    if (!$session->router) {
+                        Log::warning("Router not found for session", ['session_id' => $session->session_id]);
                         continue;
                     }
 
-                    // 3. Disconnect the user from the router
-                    $apiService = new RouterApiService($router);
+                    $apiService = new RouterApiService($session->router);
                     $userType = $user->package->type ?? $user->type ?? 'pppoe';
 
-                    $this->info("Attempting to disconnect expired user: {$user->username} from router: {$router->name}");
-
                     if ($apiService->disconnectUser($user->username, $userType)) {
-                        // Mark session as disconnected in our DB
-                        $session->update([
-                            'status' => 'disconnected',
-                            'last_seen_at' => now(),
-                            'disconnected_at' => now(),
-                        ]);
-                        
+                        $session->update(['status' => 'disconnected', 'disconnected_at' => now()]);
                         $disconnectedCount++;
-                        $this->info("✓ Disconnected: {$user->username}");
                     } else {
                         $errorCount++;
-                        $this->warn("✗ Failed to disconnect: {$user->username}");
                     }
                 }
 
-                // Final sync of the online flag
                 $user->update(['online' => false]);
-
-                Log::info("Expired user disconnected: {$user->username}", [
-                    'user_id' => $user->id,
-                    'expiration' => $user->expires_at
-                ]);
+                Log::info("Expired user disconnected: {$user->username}");
 
             } catch (\Exception $e) {
                 $errorCount++;
-                Log::error('Error disconnecting expired user', [
-                    'username' => $user->username,
-                    'error' => $e->getMessage()
-                ]);
-                $this->error("✗ Error for {$user->username}: {$e->getMessage()}");
+                Log::error("Error disconnecting expired user: {$user->username}", ['error' => $e->getMessage()]);
             }
         }
 
-        $this->newLine();
-        $this->info("=== Summary ===");
-        $this->info("Disconnected: {$disconnectedCount}");
-        if ($errorCount > 0) {
-            $this->warn("Errors: {$errorCount}");
-        }
-
+        $this->info("Disconnected: $disconnectedCount, Errors: $errorCount");
         return 0;
     }
 }

@@ -27,7 +27,8 @@ class ProcessPendingUpgrades extends Command
      */
     public function handle()
     {
-        $this->info('Checking for pending package upgrades...');
+        // Only process upgrades activated in the last 10 minutes (skip old pending)
+        $recentActivation = now()->subMinutes(10);
 
         $users = NetworkUser::withoutGlobalScopes()
             ->where(function($q) {
@@ -35,6 +36,7 @@ class ProcessPendingUpgrades extends Command
                   ->orWhereNotNull('pending_hotspot_package_id');
             })
             ->where('pending_package_activation_at', '<=', now())
+            ->where('pending_package_activation_at', '>=', $recentActivation)
             ->get();
 
         if ($users->isEmpty()) {
@@ -42,40 +44,30 @@ class ProcessPendingUpgrades extends Command
             return 0;
         }
 
+        $processed = 0;
         foreach ($users as $user) {
             try {
-                Log::info('Processing pending upgrade for user', [
-                    'user_id' => $user->id,
-                    'username' => $user->username,
-                    'pending_package_id' => $user->pending_package_id,
-                    'pending_hotspot_package_id' => $user->pending_hotspot_package_id
-                ]);
-
                 if ($user->pending_package_id) {
                     $user->package_id = $user->pending_package_id;
                 }
-                
                 if ($user->pending_hotspot_package_id) {
                     $user->hotspot_package_id = $user->pending_hotspot_package_id;
                 }
 
-                // Clear pending fields
-                $user->pending_package_id = null;
-                $user->pending_hotspot_package_id = null;
-                $user->pending_package_activation_at = null;
-                
-                $user->save();
-
-                $this->info("Successfully upgraded user: {$user->username}");
-            } catch (\Exception $e) {
-                Log::error('Failed to process pending upgrade', [
-                    'user_id' => $user->id,
-                    'error' => $e->getMessage()
+                $user->update([
+                    'pending_package_id' => null,
+                    'pending_hotspot_package_id' => null,
+                    'pending_package_activation_at' => null,
                 ]);
-                $this->error("Failed to upgrade user: {$user->username}");
+
+                $processed++;
+                Log::info("Upgrade processed: {$user->username}");
+            } catch (\Exception $e) {
+                Log::error("Upgrade failed: {$user->username}", ['error' => $e->getMessage()]);
             }
         }
 
-        $this->info('Finished processing pending upgrades.');
+        $this->info("Processed $processed pending upgrades.");
+        return 0;
     }
 }

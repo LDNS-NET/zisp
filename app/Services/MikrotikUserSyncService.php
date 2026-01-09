@@ -11,46 +11,67 @@ use Illuminate\Support\Facades\Log;
 class MikrotikUserSyncService
 {
     /**
-     * Fetch active users from Mikrotik and update tenant_active_users and network_users.online
+     * Fetch active users from Mikrotik and sync only changed users
+     * Only updates DB for users whose status actually changed (login/logout)
      * @param TenantMikrotik $router
-     * @return array
+     * @return array ['online' => [...], 'offline' => [...]]
      */
     public function syncActiveUsers(TenantMikrotik $router)
     {
-        $activeUsernames = $this->fetchActiveUsernamesFromMikrotik($router);
         $tenantId = $router->tenant_id;
-
-        // Mark all users offline first
-        NetworkUser::where('tenant_id', $tenantId)->update(['online' => false]);
-        TenantActiveUsers::where('tenant_id', $tenantId)->update(['status' => 'deactivated']);
-
-        $updated = [];
-        foreach ($activeUsernames as $username) {
-            // Update or create active session
-            TenantActiveUsers::updateOrCreate(
-                [
-                    'tenant_id' => $tenantId,
-                    'username' => $username,
-                ],
-                [
-                    'router_id' => $router->id,
-                    'status' => 'active',
-                    'last_seen_at' => now(),
-                ]
-            );
-            // Mark user online
-            NetworkUser::where('tenant_id', $tenantId)
-                ->where('username', $username)
-                ->update(['online' => true]);
-            $updated[] = $username;
+        $activeUsernames = $this->fetchActiveUsernamesFromMikrotik($router);
+        
+        if ($activeUsernames === false) {
+            // Router unreachable, skip this router
+            Log::warning("Router unreachable, skipping sync", ['router_id' => $router->id]);
+            return ['online' => [], 'offline' => []];
         }
-        Log::info("Mikrotik sync complete for tenant $tenantId. Online users: " . count($updated));
-        return $updated;
+
+        // Get current online users for this tenant from DB
+        $currentlyOnline = NetworkUser::where('tenant_id', $tenantId)
+            ->where('online', true)
+            ->pluck('username')
+            ->map(fn($u) => strtolower(trim($u)))
+            ->toArray();
+
+        $activeUsernamesLower = array_map(fn($u) => strtolower(trim($u)), $activeUsernames);
+
+        // Determine who went online and who went offline
+        $newlyOnline = array_diff($activeUsernamesLower, $currentlyOnline);
+        $newlyOffline = array_diff($currentlyOnline, $activeUsernamesLower);
+
+        // Only update users whose status changed
+        if (!empty($newlyOnline)) {
+            foreach ($newlyOnline as $username) {
+                TenantActiveUsers::updateOrCreate(
+                    ['tenant_id' => $tenantId, 'username' => $username],
+                    ['router_id' => $router->id, 'status' => 'active', 'last_seen_at' => now()]
+                );
+                NetworkUser::where('tenant_id', $tenantId)
+                    ->where(fn($q) => $q->whereRaw('lower(trim(username)) = ?', [$username]))
+                    ->update(['online' => true]);
+            }
+            Log::info("Mikrotik sync: Users went online", ['router_id' => $router->id, 'count' => count($newlyOnline)]);
+        }
+
+        if (!empty($newlyOffline)) {
+            foreach ($newlyOffline as $username) {
+                TenantActiveUsers::where('tenant_id', $tenantId)
+                    ->where(fn($q) => $q->whereRaw('lower(trim(username)) = ?', [$username]))
+                    ->update(['status' => 'deactivated', 'last_seen_at' => now()]);
+                NetworkUser::where('tenant_id', $tenantId)
+                    ->where(fn($q) => $q->whereRaw('lower(trim(username)) = ?', [$username]))
+                    ->update(['online' => false]);
+            }
+            Log::info("Mikrotik sync: Users went offline", ['router_id' => $router->id, 'count' => count($newlyOffline)]);
+        }
+
+        return ['online' => $newlyOnline, 'offline' => $newlyOffline];
     }
 
     /**
      * Fetch active user usernames from Mikrotik router in real time
-     * Connects to router and fetches from hotspot and PPPoE active sessions
+     * Returns false if router is unreachable, empty array if no users
      */
     protected function fetchActiveUsernamesFromMikrotik(TenantMikrotik $router)
     {
@@ -59,8 +80,7 @@ class MikrotikUserSyncService
             
             // Check if router is reachable
             if (!$apiService->isOnline()) {
-                Log::warning("Mikrotik router offline", ['router_id' => $router->id]);
-                return [];
+                return false;
             }
 
             $usernames = [];
@@ -88,7 +108,7 @@ class MikrotikUserSyncService
                 'router_id' => $router->id,
                 'error' => $e->getMessage(),
             ]);
-            return [];
+            return false;
         }
     }
 }

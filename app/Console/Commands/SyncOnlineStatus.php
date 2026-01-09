@@ -10,86 +10,60 @@ use Illuminate\Support\Facades\DB;
 class SyncOnlineStatus extends Command
 {
     protected $signature = 'app:sync-online-status';
-    protected $description = 'Sync NetworkUser.online flag from tenant_active_sessions (real-time)';
+    protected $description = 'Sync NetworkUser.online flag from tenant_active_users (only changed users)';
 
     public function handle()
     {
-        $this->info('Starting sync of online status from tenant_active_sessions...');
-
-        // Load all sessions centralised (no tenant scope)
+        // Only get sessions updated in last 5 minutes (skip older sessions)
+        $recentTimestamp = now()->subMinutes(5);
+        
         $sessions = TenantActiveUsers::withoutGlobalScopes()
             ->whereNotNull('username')
+            ->where('updated_at', '>=', $recentTimestamp)
             ->get(['tenant_id', 'username', 'status']);
 
-        // Build grouping by tenant
+        if ($sessions->isEmpty()) {
+            $this->info('No recent session changes detected, skipping sync.');
+            return 0;
+        }
+
         $sessionsByTenant = $sessions->groupBy('tenant_id');
+        $totalUpdates = 0;
 
-        // Get list of all tenant IDs that have network users
-        $tenantIds = NetworkUser::withoutGlobalScopes()->distinct()->pluck('tenant_id')->filter()->unique()->values();
-
-        foreach ($tenantIds as $tenantId) {
-            $this->info("Processing tenant: {$tenantId}");
-
-            $tenantSessions = $sessionsByTenant->get($tenantId, collect());
-
-            $sessionStatuses = [];
+        foreach ($sessionsByTenant as $tenantId => $tenantSessions) {
             $activeUsernames = [];
-            $nonActiveUsernames = [];
+            $inactiveUsernames = [];
 
-            if ($tenantSessions->isNotEmpty()) {
-                $grouped = $tenantSessions->groupBy(fn ($s) => strtolower(trim($s->username)));
-
-                foreach ($grouped as $username => $group) {
-                    $statuses = $group->pluck('status')->map(fn($st) => strtolower(trim((string)$st)));
-                    $final = $statuses->contains('active') ? 'active' : ($statuses->first() ?? 'deactivated');
-                    $sessionStatuses[$username] = $final;
-                    if ($final === 'active') {
-                        $activeUsernames[] = $username;
-                    } else {
-                        $nonActiveUsernames[] = $username;
-                    }
+            foreach ($tenantSessions as $session) {
+                $username = strtolower(trim($session->username));
+                if (strtolower(trim($session->status)) === 'active') {
+                    $activeUsernames[] = $username;
+                } else {
+                    $inactiveUsernames[] = $username;
                 }
             }
 
-            // Sync DB
-            // Mark active users online
+            // Only update users whose status changed
             if (!empty($activeUsernames)) {
-                NetworkUser::withoutGlobalScopes()
+                $updated = NetworkUser::withoutGlobalScopes()
                     ->where('tenant_id', $tenantId)
                     ->whereIn(DB::raw('lower(trim(username))'), $activeUsernames)
                     ->where('online', false)
                     ->update(['online' => true]);
+                $totalUpdates += $updated;
             }
 
-            // Users present in sessions but not active -> offline
-            if (!empty($nonActiveUsernames)) {
-                NetworkUser::withoutGlobalScopes()
+            if (!empty($inactiveUsernames)) {
+                $updated = NetworkUser::withoutGlobalScopes()
                     ->where('tenant_id', $tenantId)
-                    ->whereIn(DB::raw('lower(trim(username))'), $nonActiveUsernames)
+                    ->whereIn(DB::raw('lower(trim(username))'), $inactiveUsernames)
                     ->where('online', true)
                     ->update(['online' => false]);
+                $totalUpdates += $updated;
             }
-
-            // Users with NO session records should be offline
-            $sessionUsernames = array_keys($sessionStatuses);
-            if (!empty($sessionUsernames)) {
-                NetworkUser::withoutGlobalScopes()
-                    ->where('tenant_id', $tenantId)
-                    ->whereNotIn(DB::raw('lower(trim(username))'), $sessionUsernames)
-                    ->where('online', true)
-                    ->update(['online' => false]);
-            } else {
-                // No sessions at all for this tenant => mark all users offline
-                NetworkUser::withoutGlobalScopes()
-                    ->where('tenant_id', $tenantId)
-                    ->where('online', true)
-                    ->update(['online' => false]);
-            }
-
-            $this->info("Tenant {$tenantId} sync complete: active=" . count($activeUsernames) . ", non_active=" . count($nonActiveUsernames));
         }
 
-        $this->info('Online status sync finished.');
+        $this->info("Online status sync complete. Updated $totalUpdates users.");
         return 0;
     }
 }
