@@ -37,7 +37,7 @@ const toast = useToast();
 const props = defineProps({
     users: Object,
     filters: Object,
-    counts: Object,
+    counts: { type: Object, default: () => ({ all: 0, hotspot: 0, pppoe: 0, static: 0, online: 0, expired: 0 }) },
     packages: Object,
     activeUsernames: Array,
     debugInfo: Object,
