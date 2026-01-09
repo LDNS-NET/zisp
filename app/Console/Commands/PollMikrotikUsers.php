@@ -16,8 +16,15 @@ class PollMikrotikUsers extends Command
         $routers = TenantMikrotik::all();
         foreach ($routers as $router) {
             $this->info("Polling Mikrotik router: {$router->id}");
-            $updated = $syncService->syncActiveUsers($router);
-            $this->info("Online users: " . implode(', ', $updated));
+            $result = $syncService->syncActiveUsers($router);
+            $onlineUsers = implode(', ', $result['online'] ?? []);
+            $offlineUsers = implode(', ', $result['offline'] ?? []);
+            if (!empty($result['online'])) {
+                $this->info("Online: " . $onlineUsers);
+            }
+            if (!empty($result['offline'])) {
+                $this->warn("Offline: " . $offlineUsers);
+            }
         }
         $this->info('Polling complete.');
         return 0;
