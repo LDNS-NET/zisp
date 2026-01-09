@@ -12,40 +12,72 @@ class MikrotikUserSyncService
 {
     /**
      * Fetch active users from Mikrotik and update tenant_active_users and network_users.online
+     * Only updates records that changed since last sync (optimized for large deployments)
+     * 
      * @param TenantMikrotik $router
-     * @return array
+     * @return array ['synced' => count, 'online' => usernames, 'offline' => usernames]
      */
     public function syncActiveUsers(TenantMikrotik $router)
     {
         $activeUsernames = $this->fetchActiveUsernamesFromMikrotik($router);
         $tenantId = $router->tenant_id;
+        
+        // Get previously known online users
+        $previouslyOnline = NetworkUser::where('tenant_id', $tenantId)
+            ->where('online', true)
+            ->pluck('username')
+            ->map(fn($u) => strtolower(trim($u)))
+            ->toArray();
 
-        // Mark all users offline first
-        NetworkUser::where('tenant_id', $tenantId)->update(['online' => false]);
-        TenantActiveUsers::where('tenant_id', $tenantId)->update(['status' => 'deactivated']);
+        $currentOnline = array_map(fn($u) => strtolower(trim($u)), $activeUsernames);
 
-        $updated = [];
-        foreach ($activeUsernames as $username) {
-            // Update or create active session
-            TenantActiveUsers::updateOrCreate(
-                [
-                    'tenant_id' => $tenantId,
-                    'username' => $username,
-                ],
-                [
-                    'router_id' => $router->id,
-                    'status' => 'active',
-                    'last_seen_at' => now(),
-                ]
-            );
-            // Mark user online
-            NetworkUser::where('tenant_id', $tenantId)
-                ->where('username', $username)
+        // Find changes
+        $usersToMarkOnline = array_diff($currentOnline, $previouslyOnline);
+        $usersToMarkOffline = array_diff($previouslyOnline, $currentOnline);
+
+        // Only update changed records
+        $updated = 0;
+        
+        if (!empty($usersToMarkOnline)) {
+            $count = NetworkUser::where('tenant_id', $tenantId)
+                ->whereIn(\DB::raw('lower(trim(username))'), $usersToMarkOnline)
+                ->where('online', false)
                 ->update(['online' => true]);
-            $updated[] = $username;
+            $updated += $count;
+
+            // Update session records
+            foreach ($usersToMarkOnline as $username) {
+                TenantActiveUsers::updateOrCreate(
+                    ['tenant_id' => $tenantId, 'username' => $username],
+                    ['router_id' => $router->id, 'status' => 'active', 'last_seen_at' => now()]
+                );
+            }
         }
-        Log::info("Mikrotik sync complete for tenant $tenantId. Online users: " . count($updated));
-        return $updated;
+
+        if (!empty($usersToMarkOffline)) {
+            $count = NetworkUser::where('tenant_id', $tenantId)
+                ->whereIn(\DB::raw('lower(trim(username))'), $usersToMarkOffline)
+                ->where('online', true)
+                ->update(['online' => false]);
+            $updated += $count;
+
+            // Update session records
+            TenantActiveUsers::where('tenant_id', $tenantId)
+                ->whereIn(\DB::raw('lower(trim(username))'), $usersToMarkOffline)
+                ->update(['status' => 'deactivated', 'last_seen_at' => now()]);
+        }
+
+        Log::info("Mikrotik sync optimized for router {$router->id}: {$updated} changes", [
+            'online_count' => count($currentOnline),
+            'marked_online' => count($usersToMarkOnline),
+            'marked_offline' => count($usersToMarkOffline),
+        ]);
+
+        return [
+            'synced' => $updated,
+            'online' => array_values($usersToMarkOnline),
+            'offline' => array_values($usersToMarkOffline),
+        ];
     }
 
     /**
