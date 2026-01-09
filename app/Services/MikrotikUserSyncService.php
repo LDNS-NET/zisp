@@ -80,6 +80,7 @@ class MikrotikUserSyncService
             
             // Check if router is reachable
             if (!$apiService->isOnline()) {
+                Log::warning("Mikrotik router unreachable", ['router_id' => $router->id, 'router_name' => $router->name]);
                 return false;
             }
 
@@ -87,6 +88,7 @@ class MikrotikUserSyncService
 
             // Fetch active hotspot users
             $hotspotUsers = $apiService->getHotspotActiveUsers();
+            Log::debug("Hotspot active users", ['router_id' => $router->id, 'count' => count($hotspotUsers ?? []), 'users' => $hotspotUsers]);
             foreach ($hotspotUsers as $user) {
                 if (isset($user['name'])) {
                     $usernames[] = $user['name'];
@@ -95,14 +97,17 @@ class MikrotikUserSyncService
 
             // Fetch active PPPoE users
             $pppoeUsers = $apiService->getPppoeActiveUsers();
+            Log::debug("PPPoE active users", ['router_id' => $router->id, 'count' => count($pppoeUsers ?? []), 'users' => $pppoeUsers]);
             foreach ($pppoeUsers as $user) {
                 if (isset($user['name'])) {
                     $usernames[] = $user['name'];
                 }
             }
 
-            // Remove duplicates and return
-            return array_unique($usernames);
+            // Remove duplicates
+            $unique = array_unique($usernames);
+            Log::info("Total active users fetched from Mikrotik", ['router_id' => $router->id, 'count' => count($unique), 'usernames' => $unique]);
+            return $unique;
         } catch (\Exception $e) {
             Log::error("Failed to fetch active users from Mikrotik", [
                 'router_id' => $router->id,
