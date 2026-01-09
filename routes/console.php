@@ -1,3 +1,7 @@
+// Poll Mikrotik routers for active users and sync every minute
+Schedule::command('app:poll-mikrotik-users')
+    ->everyMinute()
+    ->withoutOverlapping();
 <?php
 
 use Illuminate\Foundation\Inspiring;
