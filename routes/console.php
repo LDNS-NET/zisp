@@ -23,9 +23,9 @@ Schedule::command('sms:send-expiry-warnings')
     ->withoutOverlapping()
     ->runInBackground();
 
-// Router Management (every 10 min instead of 4 to reduce API load)
+// Router Management (every 4 min instead of 4 to reduce API load)
 Schedule::command('routers:sync')
-    ->everyTenMinutes()
+    ->everyFourMinutes()
     ->withoutOverlapping()
     ->runInBackground();
 
