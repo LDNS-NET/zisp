@@ -13,44 +13,13 @@ class PollMikrotikUsers extends Command
 
     public function handle(MikrotikUserSyncService $syncService)
     {
-        // Only poll routers that are currently online
-        $routers = TenantMikrotik::where('status', 'online')->get();
-        
-        if ($routers->isEmpty()) {
-            $this->info('No online routers to poll.');
-            return 0;
-        }
-
-        $totalOnline = 0;
-        $totalOffline = 0;
-
+        $routers = TenantMikrotik::all();
         foreach ($routers as $router) {
-            $this->info("Polling Mikrotik router: {$router->id} ({$router->name})");
-            
-            try {
-                $result = $syncService->syncActiveUsers($router);
-                
-                $onlineCount = count($result['online'] ?? []);
-                $offlineCount = count($result['offline'] ?? []);
-                $totalOnline += $onlineCount;
-                $totalOffline += $offlineCount;
-                
-                if ($onlineCount > 0) {
-                    $this->info("  ✓ Online: " . implode(', ', $result['online']));
-                }
-                if ($offlineCount > 0) {
-                    $this->warn("  ✗ Offline: " . implode(', ', $result['offline']));
-                }
-                if ($onlineCount === 0 && $offlineCount === 0) {
-                    $this->line("  - No status changes detected");
-                }
-            } catch (\Exception $e) {
-                $this->error("  Error polling router: " . $e->getMessage());
-            }
+            $this->info("Polling Mikrotik router: {$router->id}");
+            $updated = $syncService->syncActiveUsers($router);
+            $this->info("Online users: " . implode(', ', $updated));
         }
-        
-        $this->newLine();
-        $this->info("Polling complete. Total changes: $totalOnline online, $totalOffline offline");
+        $this->info('Polling complete.');
         return 0;
     }
 }
