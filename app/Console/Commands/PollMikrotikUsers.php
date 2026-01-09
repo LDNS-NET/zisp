@@ -21,19 +21,36 @@ class PollMikrotikUsers extends Command
             return 0;
         }
 
+        $totalOnline = 0;
+        $totalOffline = 0;
+
         foreach ($routers as $router) {
-            $this->info("Polling Mikrotik router: {$router->id}");
-            $result = $syncService->syncActiveUsers($router);
-            $onlineUsers = implode(', ', $result['online'] ?? []);
-            $offlineUsers = implode(', ', $result['offline'] ?? []);
-            if (!empty($result['online'])) {
-                $this->info("Online: " . $onlineUsers);
-            }
-            if (!empty($result['offline'])) {
-                $this->warn("Offline: " . $offlineUsers);
+            $this->info("Polling Mikrotik router: {$router->id} ({$router->name})");
+            
+            try {
+                $result = $syncService->syncActiveUsers($router);
+                
+                $onlineCount = count($result['online'] ?? []);
+                $offlineCount = count($result['offline'] ?? []);
+                $totalOnline += $onlineCount;
+                $totalOffline += $offlineCount;
+                
+                if ($onlineCount > 0) {
+                    $this->info("  ✓ Online: " . implode(', ', $result['online']));
+                }
+                if ($offlineCount > 0) {
+                    $this->warn("  ✗ Offline: " . implode(', ', $result['offline']));
+                }
+                if ($onlineCount === 0 && $offlineCount === 0) {
+                    $this->line("  - No status changes detected");
+                }
+            } catch (\Exception $e) {
+                $this->error("  Error polling router: " . $e->getMessage());
             }
         }
-        $this->info('Polling complete.');
+        
+        $this->newLine();
+        $this->info("Polling complete. Total changes: $totalOnline online, $totalOffline offline");
         return 0;
     }
 }
