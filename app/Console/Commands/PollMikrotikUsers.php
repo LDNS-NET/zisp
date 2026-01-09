@@ -13,7 +13,14 @@ class PollMikrotikUsers extends Command
 
     public function handle(MikrotikUserSyncService $syncService)
     {
-        $routers = TenantMikrotik::all();
+        // Only poll routers marked as online
+        $routers = TenantMikrotik::where('online', true)->get();
+        
+        if ($routers->isEmpty()) {
+            $this->info('No online routers to poll.');
+            return 0;
+        }
+
         $totalChanges = 0;
 
         foreach ($routers as $router) {
