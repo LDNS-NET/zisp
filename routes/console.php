@@ -1,7 +1,3 @@
-// Poll Mikrotik routers for active users and sync every minute
-Schedule::command('app:poll-mikrotik-users')
-    ->everyMinute()
-    ->withoutOverlapping();
 <?php
 
 use Illuminate\Foundation\Inspiring;
@@ -13,32 +9,61 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 // Scheduled Tasks (Laravel 12 format)
-Schedule::command('sms:send-expiry-notifications')->everyFiveMinutes();
-Schedule::command('sms:send-expiry-warnings')->everySixHours();
+Schedule::command('sms:send-expiry-notifications')
+    ->everyFiveMinutes()
+    ->withoutOverlapping()
+    ->runInBackground();
 
+    // Send expiry warnings every 6 hours
+Schedule::command('sms:send-expiry-warnings')
+    ->everySixHours()
+    ->withoutOverlapping()
+    ->runInBackground();
+
+    // Sync Mikrotik active users every 4 minutes
 Schedule::command('routers:sync')
     ->everyFourMinutes()
     ->withoutOverlapping()
     ->runInBackground();
 
+    // Sync Wireguard peers every minute
 Schedule::command('wireguard:sync-peers')
     ->everyMinute()
     ->withoutOverlapping()
     ->runInBackground();
 
-Schedule::command('users:disconnect-expired')->everyMinute();
+    // Disconnect expired users every minute
+Schedule::command('users:disconnect-expired')
+    ->everyMinute()
+    ->withoutOverlapping()
+    ->runInBackground();
 
+// Sync Winbox sessions every 2 minutes
 Schedule::command('winbox:sync')
     ->everyTwoMinutes()
-    ->withoutOverlapping();
+    ->withoutOverlapping()
+    ->runInBackground();
 
-Schedule::command('app:cleanup-stale-sessions')->everyFiveMinutes();
+
+    // Clean up stale sessions every 5 minutes
+Schedule::command('app:cleanup-stale-sessions')
+    ->everyFiveMinutes()
+    ->withoutOverlapping()
+    ->runInBackground();
 
 // Sync online flags from tenant_active_sessions to network_users
 Schedule::command('app:sync-online-status')
     ->everyMinute()
-    ->withoutOverlapping();
+    ->withoutOverlapping()
+    ->runInBackground();  
 
+    // Process pending user upgrades every minute. this handles time-based upgrades for customers who upgrade their packages
 Schedule::command('network:process-upgrades')
     ->everyMinute()
     ->withoutOverlapping();
+
+// Poll Mikrotik routers for active users and sync every 5 minutes (reduces DB/API load for large deployments)
+Schedule::command('app:poll-mikrotik-users')
+    ->everyFiveMinutes()
+    ->withoutOverlapping()
+    ->runInBackground();
