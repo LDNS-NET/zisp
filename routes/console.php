@@ -9,61 +9,78 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 // Scheduled Tasks (Laravel 12 format)
-Schedule::command('sms:send-expiry-notifications')
-    ->everyFiveMinutes()
-    ->withoutOverlapping()
-    ->runInBackground();
+// ============================================
+// CRITICAL: Real-time sync operations (every minute for responsive UX)
+// ============================================
 
-    // Send expiry warnings every 6 hours
-Schedule::command('sms:send-expiry-warnings')
-    ->everySixHours()
-    ->withoutOverlapping()
-    ->runInBackground();
-
-    // Sync Mikrotik active users every 4 minutes
-Schedule::command('routers:sync')
+// Disconnect expired users - critical for access control
+Schedule::command('users:disconnect-expired')
     ->everyFourMinutes()
     ->withoutOverlapping()
     ->runInBackground();
 
-    // Sync Wireguard peers every minute
+// Process pending user upgrades - time-sensitive
+Schedule::command('network:process-upgrades')
+    ->everyFourMinutes()
+    ->withoutOverlapping()
+    ->runInBackground();
+
+// Sync online status from sessions - drives UI status display
+Schedule::command('app:sync-online-status')
+    ->everyFourMinutes()
+    ->withoutOverlapping()
+    ->runInBackground();
+
+// ============================================
+// HIGH PRIORITY: Core infrastructure (5-10 mins)
+// ============================================
+
+// Sync Wireguard peers - maintains VPN connectivity
 Schedule::command('wireguard:sync-peers')
     ->everyMinute()
     ->withoutOverlapping()
     ->runInBackground();
 
-    // Disconnect expired users every minute
-Schedule::command('users:disconnect-expired')
-    ->everyMinute()
-    ->withoutOverlapping()
-    ->runInBackground();
-
-// Sync Winbox sessions every 2 minutes
-Schedule::command('winbox:sync')
-    ->everyTwoMinutes()
-    ->withoutOverlapping()
-    ->runInBackground();
-
-
-    // Clean up stale sessions every 5 minutes
-Schedule::command('app:cleanup-stale-sessions')
-    ->everyFiveMinutes()
-    ->withoutOverlapping()
-    ->runInBackground();
-
-// Sync online flags from tenant_active_sessions to network_users
-Schedule::command('app:sync-online-status')
-    ->everyMinute()
-    ->withoutOverlapping()
-    ->runInBackground();  
-
-    // Process pending user upgrades every minute. this handles time-based upgrades for customers who upgrade their packages
-Schedule::command('network:process-upgrades')
-    ->everyMinute()
-    ->withoutOverlapping();
-
-// Poll Mikrotik routers for active users and sync every 5 minutes (reduces DB/API load for large deployments)
+// Poll Mikrotik routers for active users (optimized: only changed records)
 Schedule::command('app:poll-mikrotik-users')
     ->everyFiveMinutes()
+    ->withoutOverlapping()
+    ->runInBackground();
+
+// Sync router status and metrics
+Schedule::command('routers:sync')
+    ->everyFourMinutes()
+    ->withoutOverlapping()
+    ->runInBackground();
+
+// ============================================
+// MEDIUM PRIORITY: Winbox and cleanup (15+ mins)
+// ============================================
+
+// Sync Winbox sessions
+Schedule::command('winbox:sync')
+    ->everyFifteenMinutes()
+    ->withoutOverlapping()
+    ->runInBackground();
+
+// Clean up stale sessions
+Schedule::command('app:cleanup-stale-sessions')
+    ->everyTenMinutes()
+    ->withoutOverlapping()
+    ->runInBackground();
+
+// ============================================
+// LOW PRIORITY: Notifications (5-30 mins)
+// ============================================
+
+// Send SMS expiry notifications
+Schedule::command('sms:send-expiry-notifications')
+    ->everyTenMinutes()
+    ->withoutOverlapping()
+    ->runInBackground();
+
+// Send expiry warnings (every 6 hours is fine - not time-critical)
+Schedule::command('sms:send-expiry-warnings')
+    ->everyHour()
     ->withoutOverlapping()
     ->runInBackground();
