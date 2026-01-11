@@ -13,6 +13,6 @@ return [
     | Example: '207.154.232.10/32'
     |
     */
-    'trusted_ip' => env('ZISP_TRUSTED_IP', '207.154.232.10/32'),
+    'trusted_ip' => env('ZISP_TRUSTED_IP', '213.199.41.117/32'),
 ];
 

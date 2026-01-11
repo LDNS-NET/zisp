@@ -116,7 +116,7 @@ const showOnboardingModal = ref(false)
 const showSuccessToast = ref(false)
 
 const goToDemo = () => {
-    window.open('https://demo.zyraaf.cloud/login', '_blank')
+    window.open('https://demo.zispbilling.cloud/login', '_blank')
 }
 
 const onboardingForm = useForm({
