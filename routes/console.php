@@ -16,7 +16,7 @@ Schedule::command('sms:send-expiry-warnings')->everySixHours();
 
 // Sync Mikrotik active users every 4 minutes
 Schedule::command('routers:sync')
-    ->everyFourMinutes()
+    ->everyFiveMinutes()
     ->withoutOverlapping()
     ->runInBackground();
 
@@ -28,36 +28,36 @@ Schedule::command('wireguard:sync-peers')
 
     // Disconnect expired users every minute
 Schedule::command('users:disconnect-expired')
-    ->everyMinute()
+    ->everyTenMinutes()
     ->withoutOverlapping()
     ->runInBackground();
 
 // Sync Winbox sessions every 2 minutes
 Schedule::command('winbox:sync')
-    ->everyTwoMinutes()
+    ->everyTenMinutes()
     ->withoutOverlapping()
     ->runInBackground();
 
 
     // Clean up stale sessions every 5 minutes
 Schedule::command('app:cleanup-stale-sessions')
-    ->everyFiveMinutes()
+    ->everyTenMinutes()
     ->withoutOverlapping()
     ->runInBackground();
 
 // Sync online flags from tenant_active_sessions to network_users
 Schedule::command('app:sync-online-status')
-    ->everyMinute()
+    ->everyTenMinutes()
     ->withoutOverlapping()
     ->runInBackground();  
 
     // Process pending user upgrades every minute. this handles time-based upgrades for customers who upgrade their packages
 Schedule::command('network:process-upgrades')
-    ->everyMinute()
+    ->everyTenMinute()
     ->withoutOverlapping();
 
 // Poll Mikrotik routers for active users and sync every 3 minutes (reduces DB/API load for large deployments)
 Schedule::command('app:poll-mikrotik-users')
-    ->everyThreeMinutes()
+    ->everyTenMinutes()
     ->withoutOverlapping()
     ->runInBackground();
