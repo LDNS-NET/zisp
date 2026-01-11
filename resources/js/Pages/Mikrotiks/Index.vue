@@ -207,7 +207,7 @@ function stopStatusPolling() {
 }
 
 const copyHost = async (port) => {
-    const host = `zispbilling.cloud:${port || 'N/A'}`;
+    const host = `zyraaf.cloud:${port || 'N/A'}`;
     try {
         await navigator.clipboard.writeText(host);
         toast.success(`Copied to clipboard: ${host}`);
@@ -369,7 +369,7 @@ watch([routersList, search], () => {
                                             @click="copyHost(router.winbox_port)"
                                             title="Click to copy"
                                         >
-                                            <span>zispbilling.cloud:{{ router.winbox_port || 'N/A' }}</span>
+                                            <span>zyraaf.cloud:{{ router.winbox_port || 'N/A' }}</span>
                                         </div>
                                     </div>
                                 </td>

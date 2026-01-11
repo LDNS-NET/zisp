@@ -131,12 +131,6 @@ class WinboxPortService
      */
     protected function runIptables($table, array $args)
     {
-        // Skip iptables on Windows or if not available
-        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-            Log::debug("WinboxPortService: Skipping iptables rules on Windows system");
-            return;
-        }
-
         // Current user (www-data) needs sudo NOPASSWD for iptables in /etc/sudoers
         $command = array_merge(['sudo', 'iptables', '-t', $table], $args);
         
