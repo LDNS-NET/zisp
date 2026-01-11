@@ -548,88 +548,102 @@ class TenantMikrotikController extends Controller
      */
     public function store(Request $request, MikrotikScriptGenerator $scriptGenerator, WinboxPortService $winboxService)
     {
-        $data = $request->validate([
-            'name' => 'required|string|max:255',
-            'notes' => 'nullable|string',
-            'api_port' => 'nullable|integer|min:1|max:65535',
-        ]);
-
-        // Ensure API port is set (default 8728)
-        $apiPort = $data['api_port'] ?? 8728;
-
-        // Generate API credentials immediately
-        $apiUsername = 'zisp_user';
-        $apiPassword = Str::random(rand(18, 24));
-
-        // Use default router credentials (admin/blank) if not provided
-        $routerUsername = 'admin';
-        $routerPassword = '';
-
-        $router = TenantMikrotik::create([
-            'name' => $data['name'],
-            'router_username' => $routerUsername,
-            'router_password' => $routerPassword,
-            'api_username' => $apiUsername,
-            'api_password' => $apiPassword,
-            'api_port' => $apiPort,
-            'connection_type' => 'api',
-            'notes' => $data['notes'] ?? null,
-            'status' => 'pending',
-            'sync_token' => Str::random(40),
-        ]);
-
-        $caUrl = optional($router->openvpnProfile)->ca_cert_path
-            ? route('mikrotiks.downloadCACert', $router->id)
-            : null;
-
-        // Get server IP (trusted IP) - use config or request IP
-        $trustedIp = config('app.server_ip') ?? request()->server('SERVER_ADDR') ?? '213.199.41.117';
-
-        // Ensure API port is set (should already be set in create, but double-check)
-        $apiPort = $router->api_port ?? 8728;
-
-        // Pre-allocate WireGuard IP (first available)
         try {
-            $vpnIp = MikrotikService::assignNextAvailableWireguardIp($router);
-        } catch (\Exception $e) {
-            Log::error("Failed to assign WireGuard IP: " . $e->getMessage());
-            $vpnIp = null; // Fallback to old behavior (should check generator)
-        }
+            $data = $request->validate([
+                'name' => 'required|string|max:255',
+                'notes' => 'nullable|string',
+                'api_port' => 'nullable|integer|min:1|max:65535',
+            ]);
 
-        $script = $scriptGenerator->generate([
-            'name' => $router->name,
-            'username' => $router->router_username,
-            'router_password' => $router->router_password,
-            'api_username' => $router->api_username,
-            'api_password' => $router->api_password,
-            'router_id' => $router->id,
-            'sync_token' => $router->sync_token,
-            'ca_url' => $caUrl,
-            'api_port' => $apiPort, 
-            'trusted_ip' => $trustedIp,
-            'radius_ip' => '10.100.0.1', 
-            'radius_secret' => $router->api_password,
-            'wg_client_ip' => $vpnIp, // Explicitly pass the pre-allocated IP
-        ]);
+            // Ensure API port is set (default 8728)
+            $apiPort = $data['api_port'] ?? 8728;
 
-        // Attempt to assign Winbox port
-        // Now that we have a VPN IP ($vpnIp), we can technically create the rules immediately?
-        // But the router IS NOT CONNECTED yet.
-        // WinboxPortService::ensureMapping CHECKS if wireguard_address is set.
-        // If we set proper variable above, ensureMapping should work now!
-        
-        try {
-            Log::info("Attempting to pre-allocate Winbox port for router {$router->id}");
-            $winboxService->ensureMapping($router);
-            Log::info("Successfully called ensureMapping for router {$router->id}. Port: {$router->winbox_port}, Public IP: {$router->public_ip}");
+            // Generate API credentials immediately
+            $apiUsername = 'zisp_user';
+            $apiPassword = Str::random(rand(18, 24));
+
+            // Use default router credentials (admin/blank) if not provided
+            $routerUsername = 'admin';
+            $routerPassword = '';
+
+            $router = TenantMikrotik::create([
+                'name' => $data['name'],
+                'router_username' => $routerUsername,
+                'router_password' => $routerPassword,
+                'api_username' => $apiUsername,
+                'api_password' => $apiPassword,
+                'api_port' => $apiPort,
+                'connection_type' => 'api',
+                'notes' => $data['notes'] ?? null,
+                'status' => 'pending',
+                'sync_token' => Str::random(40),
+            ]);
+
+            $caUrl = optional($router->openvpnProfile)->ca_cert_path
+                ? route('mikrotiks.downloadCACert', $router->id)
+                : null;
+
+            // Get server IP (trusted IP) - use config or request IP
+            $trustedIp = config('app.server_ip') ?? request()->server('SERVER_ADDR') ?? '213.199.41.117';
+
+            // Ensure API port is set (should already be set in create, but double-check)
+            $apiPort = $router->api_port ?? 8728;
+
+            // Pre-allocate WireGuard IP (first available)
+            $vpnIp = null;
+            try {
+                $vpnIp = MikrotikService::assignNextAvailableWireguardIp($router);
+                // Refresh router to get the updated wireguard_address from DB
+                $router->refresh();
+                Log::info("Successfully assigned WireGuard IP {$vpnIp} to router {$router->id}");
+            } catch (\Exception $e) {
+                Log::error("Failed to assign WireGuard IP: " . $e->getMessage());
+                $vpnIp = null; // Fallback to old behavior (should check generator)
+            }
+
+            $script = $scriptGenerator->generate([
+                'name' => $router->name,
+                'username' => $router->router_username,
+                'router_password' => $router->router_password,
+                'api_username' => $router->api_username,
+                'api_password' => $router->api_password,
+                'router_id' => $router->id,
+                'sync_token' => $router->sync_token,
+                'ca_url' => $caUrl,
+                'api_port' => $apiPort, 
+                'trusted_ip' => $trustedIp,
+                'radius_ip' => '10.100.0.1', 
+                'radius_secret' => $router->api_password,
+                'wg_client_ip' => $vpnIp, // Explicitly pass the pre-allocated IP
+            ]);
+
+            // Attempt to assign Winbox port
+            // Now that we have a VPN IP ($vpnIp), we can technically create the rules immediately?
+            // But the router IS NOT CONNECTED yet.
+            // WinboxPortService::ensureMapping CHECKS if wireguard_address is set.
+            // If we set proper variable above, ensureMapping should work now!
+            
+            try {
+                Log::info("Attempting to pre-allocate Winbox port for router {$router->id}");
+                $winboxService->ensureMapping($router);
+                Log::info("Successfully called ensureMapping for router {$router->id}. Port: {$router->winbox_port}, Public IP: {$router->public_ip}");
+            } catch (\Exception $e) {
+                Log::error('Failed to assign Winbox port on create', ['error' => $e->getMessage()]);
+            }
+            
+            return Inertia::render('Mikrotiks/SetupScript', [
+                'router' => $router,
+                'script' => $script,
+            ]);
         } catch (\Exception $e) {
-            Log::error('Failed to assign Winbox port on create', ['error' => $e->getMessage()]);
+            Log::error('Failed to create Mikrotik router', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'input' => $request->all(),
+            ]);
+            
+            return back()->with('error', 'Failed to create router: ' . $e->getMessage());
         }
-        
-        return Inertia::render('Mikrotiks/SetupScript', [
-            'router' => $router,
-            'script' => $script,
-        ]);
     }
 
     /**
