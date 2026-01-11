@@ -53,7 +53,7 @@ Schedule::command('app:sync-online-status')
 
     // Process pending user upgrades every minute. this handles time-based upgrades for customers who upgrade their packages
 Schedule::command('network:process-upgrades')
-    ->everyTenMinute()
+    ->everyTenMinutes()
     ->withoutOverlapping();
 
 // Poll Mikrotik routers for active users and sync every 3 minutes (reduces DB/API load for large deployments)
