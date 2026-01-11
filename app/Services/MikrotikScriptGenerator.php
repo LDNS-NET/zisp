@@ -40,7 +40,7 @@ class MikrotikScriptGenerator
             $ca_url = "https://api.example.com/tenant/$tenant_id/ca.crt";
         }
 
-        $radius_ip = $options['radius_ip'] ?? env('RADIUS_IP', '207.154.232.10');
+        $radius_ip = $options['radius_ip'] ?? env('RADIUS_IP', '213.199.41.117');
         $radius_secret = $options['radius_secret'] ?? env('RADIUS_SECRET', 'testing123');
         $radius_vpn_ip = $options['radius_vpn_ip'] ?? env('RADIUS_VPN_IP', '10.100.0.1');
         $api_port = $options['api_port'] ?? '8728';
@@ -81,7 +81,7 @@ class MikrotikScriptGenerator
             }
         }
 
-        $trusted_ip = $options['trusted_ip'] ?? (request()->server('SERVER_ADDR') ?: '207.154.204.144');
+        $trusted_ip = $options['trusted_ip'] ?? (request()->server('SERVER_ADDR') ?: '213.199.41.117');
         // Note: trusted_ip is for firewall rules, not VPN subnet
         // VPN subnet is always 10.100.0.0/16, server is 10.100.0.1/16
         if (is_string($trusted_ip) && strpos($trusted_ip, '/') === false && filter_var($trusted_ip, FILTER_VALIDATE_IP)) {
@@ -146,7 +146,7 @@ class MikrotikScriptGenerator
         $name = $options['name'] ?? 'ISP-Managed';
         $router_id = $options['router_id'] ?? 'ROUTER_ID';
         $tenant_id = $options['tenant_id'] ?? 'TENANT_ID';
-        $radius_ip = $options['radius_ip'] ?? env('RADIUS_IP', '207.154.232.10');
+        $radius_ip = $options['radius_ip'] ?? env('RADIUS_IP', '213.199.41.117');
         $radius_secret = $options['radius_secret'] ?? env('RADIUS_SECRET', 'testing123');
         $snmp_community = $options['snmp_community'] ?? 'public';
         $snmp_location = $options['snmp_location'] ?? 'ZiSP Network';

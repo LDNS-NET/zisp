@@ -583,7 +583,7 @@ class TenantMikrotikController extends Controller
             : null;
 
         // Get server IP (trusted IP) - use config or request IP
-        $trustedIp = config('app.server_ip') ?? request()->server('SERVER_ADDR') ?? '159.89.111.189';
+        $trustedIp = config('app.server_ip') ?? request()->server('SERVER_ADDR') ?? '213.199.41.117';
 
         // Ensure API port is set (should already be set in create, but double-check)
         $apiPort = $router->api_port ?? 8728;
@@ -888,7 +888,7 @@ class TenantMikrotikController extends Controller
             : null;
 
         // Get server IP (trusted IP) - use config or request IP
-        $trustedIp = config('app.server_ip') ?? request()->server('SERVER_ADDR') ?? '159.89.111.189';
+        $trustedIp = config('app.server_ip') ?? request()->server('SERVER_ADDR') ?? '213.199.41.117';
 
         $script = $scriptGenerator->generate([
             'name' => $router->name,
@@ -939,7 +939,7 @@ class TenantMikrotikController extends Controller
             ? route('mikrotiks.downloadCACert', $router->id)
             : null;
 
-        $trustedIp = config('app.server_ip') ?? request()->server('SERVER_ADDR') ?? '159.89.111.189';
+        $trustedIp = config('app.server_ip') ?? request()->server('SERVER_ADDR') ?? '213.199.41.117';
 
         $script = $scriptGenerator->generate([
             'name' => $router->name,
@@ -979,7 +979,7 @@ class TenantMikrotikController extends Controller
             : null;
 
         // Get server IP (trusted IP) - use config or request IP
-        $trustedIp = config('app.server_ip') ?? request()->server('SERVER_ADDR') ?? '159.89.111.189';
+        $trustedIp = config('app.server_ip') ?? request()->server('SERVER_ADDR') ?? '213.199.41.117';
 
         $script = $scriptGenerator->generate([
             'name' => $router->name,
