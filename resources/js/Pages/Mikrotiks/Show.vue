@@ -292,9 +292,9 @@ const updateIdentity = () => {
                                             </span>
                                         </dt>
                                         <dd class="text-sm text-gray-900 dark:text-gray-100 flex items-center bg-gray-50 dark:bg-gray-700 px-2 py-1 rounded">
-                                            <span class="mr-2 font-mono">zyraaf.cloud:{{ mikrotik.winbox_port }}</span>
+                                            <span class="mr-2 font-mono">zispbilling.cloud:{{ mikrotik.winbox_port }}</span>
                                             <button 
-                                                @click="copyToClipboard(`zyraaf.cloud:${mikrotik.winbox_port}`)"
+                                                @click="copyToClipboard(`zispbilling.cloud:${mikrotik.winbox_port}`)"
                                                 class="text-gray-400 hover:text-blue-500 transition-colors bg:dark:bg-gray-600 p-1 rounded shadow-sm border border-gray-200 dark:border-gray-500"
                                                 title="Copy to Clipboard"
                                             >

@@ -185,7 +185,7 @@ onMounted(() => {
                             <Globe class="w-3 h-3" />
                             Your subdomain: 
                             <span class="font-bold text-indigo-600 dark:text-indigo-400">
-                                {{ form.username.toLowerCase().replace(/[^a-z0-9]/g, '') }}.zyraaf.cloud
+                                {{ form.username.toLowerCase().replace(/[^a-z0-9]/g, '') }}.zispbilling.cloud
                             </span>
                         </p>
                     </div>
