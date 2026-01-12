@@ -25,7 +25,7 @@
 # RADIUS reachable via VPN tunnel (10.100.0.1)
 :local radiusIp $radiusServerIp
 :local trustedIp "{{trusted_ip}}"
-:local wgServerEndpoint "{{trusted_ip}}"
+:local wgServerEndpoint "{{wg_server_endpoint}}"
 :local wgServerPubKey "{{wg_server_pubkey}}"
 :local wgSubnet "{{wg_subnet}}"
 :local wgPort "{{wg_port}}"
