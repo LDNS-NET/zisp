@@ -747,17 +747,6 @@ class MikrotikService
             ->whereNotNull('wireguard_address')
             ->pluck('wireguard_address')
             ->toArray();
-        
-        // Also check legacy ip_address if it's in the subnet
-        $legacyIps = TenantMikrotik::withoutGlobalScopes()
-            ->whereNotNull('ip_address')
-            ->pluck('ip_address')
-            ->filter(function($ip) {
-                return str_starts_with($ip, '10.100.');
-            })
-            ->toArray();
-            
-        $allUsed = array_merge($usedIps, $legacyIps);
 
         // Start from 10.100.0.2 (.1 is gateway)
         $startLong = ip2long('10.100.0.2');
@@ -765,7 +754,7 @@ class MikrotikService
 
         for ($i = $startLong; $i <= $endLong; $i++) {
             $currentIp = long2ip($i);
-            if (!in_array($currentIp, $allUsed)) {
+            if (!in_array($currentIp, $usedIps)) {
                 $router->wireguard_address = $currentIp;
                 $router->save();
                 Log::info("Assigned WireGuard IP {$currentIp} to router {$router->id}");

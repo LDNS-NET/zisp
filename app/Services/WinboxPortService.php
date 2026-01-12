@@ -20,25 +20,40 @@ class WinboxPortService
      */
     public function ensureMapping(TenantMikrotik $router)
     {
-        // Assign port if missing
+        // STEP 1: Always assign port and public IP first (database operations)
+        // This ensures the router record is complete even if firewall fails
         if (!$router->winbox_port) {
             $this->assignPort($router);
         }
         
         // Ensure server IP is set (entry point)
-        // We use the configured server IP from env
         $serverIp = env('WG_SERVER_PUBLIC_IP') ?? config('app.server_ip') ?? request()->server('SERVER_ADDR');
         if ($router->public_ip !== $serverIp) {
             $router->public_ip = $serverIp;
             $router->save();
+            Log::info("WinboxPortService: Set public IP {$serverIp} for router {$router->id}");
         }
 
+        // STEP 2: Apply firewall rules (can fail without breaking port/IP assignment)
+        // Only attempt if router has VPN IP configured
         if (!$router->wireguard_address) {
-            Log::warning("WinboxPortService: Router {$router->id} has no VPN IP. Assigned port {$router->winbox_port} but skipping firewall rules.");
+            Log::warning("WinboxPortService: Router {$router->id} has no VPN IP. Port {$router->winbox_port} assigned but skipping firewall rules.");
             return;
         }
 
-        $this->applyFirewallRules($router);
+        // Apply iptables rules - wrapped in try-catch to prevent failures from breaking the process
+        try {
+            $this->applyFirewallRules($router);
+            Log::info("WinboxPortService: Successfully applied firewall rules for router {$router->id}");
+        } catch (\Exception $e) {
+            // Log error but don't throw - port and IP are already assigned
+            // Firewall rules can be manually added later if needed
+            Log::error("WinboxPortService: Failed to apply firewall rules for router {$router->id}", [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'note' => 'Port and IP were assigned successfully. Firewall rules need manual configuration.',
+            ]);
+        }
     }
 
     /**

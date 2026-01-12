@@ -612,18 +612,35 @@ class TenantMikrotikController extends Controller
             'wg_client_ip' => $vpnIp, // Explicitly pass the pre-allocated IP
         ]);
 
-        // Attempt to assign Winbox port
-        // Now that we have a VPN IP ($vpnIp), we can technically create the rules immediately?
-        // But the router IS NOT CONNECTED yet.
-        // WinboxPortService::ensureMapping CHECKS if wireguard_address is set.
-        // If we set proper variable above, ensureMapping should work now!
-        
+        // Attempt to assign Winbox port and public IP
+        // This is critical for remote access via public domain
         try {
-            Log::info("Attempting to pre-allocate Winbox port for router {$router->id}");
+            Log::info("Attempting Winbox port allocation for router {$router->id}", [
+                'router_id' => $router->id,
+                'has_vpn_ip' => !empty($vpnIp),
+                'vpn_ip' => $vpnIp,
+            ]);
+            
             $winboxService->ensureMapping($router);
-            Log::info("Successfully called ensureMapping for router {$router->id}. Port: {$router->winbox_port}, Public IP: {$router->public_ip}");
+            
+            // Reload router from database to get updated values
+            $router->refresh();
+            
+            Log::info("Winbox port allocation completed for router {$router->id}", [
+                'router_id' => $router->id,
+                'winbox_port' => $router->winbox_port,
+                'public_ip' => $router->public_ip,
+                'has_vpn_ip' => !empty($router->wireguard_address),
+                'vpn_ip' => $router->wireguard_address,
+            ]);
         } catch (\Exception $e) {
-            Log::error('Failed to assign Winbox port on create', ['error' => $e->getMessage()]);
+            Log::error('Critical error in Winbox port assignment', [
+                'router_id' => $router->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            // Re-throw to prevent silent failures
+            throw $e;
         }
         
         return Inertia::render('Mikrotiks/SetupScript', [
