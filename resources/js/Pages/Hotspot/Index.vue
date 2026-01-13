@@ -18,8 +18,6 @@ const pollingInterval = ref(null);
 const paymentAttempts = ref(0);
 const maxPollingAttempts = 30; // 30 * 3s = 90 seconds
 const paystackPublicKey = ref(null);
-const paystackReference = ref(null);
-const paystackAccessCode = ref(null);
 
 import { countries } from '@/Data/countries';
 const props = defineProps(['tenant', 'packages', 'country', 'paymentMethods']);
@@ -493,69 +491,6 @@ async function processFlutterwavePayment() {
     }
 }
 
-function openPaystackPopup() {
-    if (!window.PaystackPop) {
-        paymentError.value = 'Paystack library not loaded. Please refresh the page.';
-        showToast('Paystack not loaded', 'error');
-        isProcessing.value = false;
-        return;
-    }
-
-    try {
-        const handler = window.PaystackPop.setup({
-            key: paystackPublicKey.value,
-            access_code: paystackAccessCode.value,
-            onClose: function() {
-                isProcessing.value = false;
-                paymentError.value = 'Payment cancelled';
-                showToast('Payment cancelled', 'error');
-            },
-            callback: function(response) {
-                verifyPaystackPayment(response.reference);
-            }
-        });
-        handler.openIframe();
-    } catch (error) {
-        console.error('Paystack popup error:', error);
-        paymentError.value = 'Failed to open payment popup: ' + error.message;
-        showToast('Popup error', 'error');
-        isProcessing.value = false;
-    }
-}
-
-async function verifyPaystackPayment(reference) {
-    isProcessing.value = true;
-    try {
-        const response = await fetch(`/customer/paystack/verify/${reference}`, {
-            method: 'GET',
-            headers: { 'Content-Type': 'application/json' }
-        });
-        
-        const data = await response.json();
-        
-        if (data.success && data.status === 'paid' && data.user) {
-            userCredentials.value = data.user;
-            paymentMessage.value = 'Payment received! Connecting you now...';
-            paymentError.value = '';
-            isProcessing.value = false;
-            showToast('Payment successful!', 'success');
-            
-            // Automatic login
-            setTimeout(() => {
-                loginToNetwork(data.user.username, data.user.password);
-            }, 1000);
-        } else {
-            paymentError.value = data.message || 'Payment verification failed.';
-            showToast('Payment verification failed', 'error');
-            isProcessing.value = false;
-        }
-    } catch (error) {
-        console.error('Paystack verification error:', error);
-        paymentError.value = 'Payment verification error: ' + error.message;
-        showToast('Verification error', 'error');
-        isProcessing.value = false;
-    }
-}
 
 function formatPhoneNumber(event) {
     let value = event.target.value.replace(/\D/g, '');

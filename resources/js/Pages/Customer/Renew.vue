@@ -31,8 +31,6 @@ const isProcessing = ref(false);
 const paymentMessage = ref('');
 const paymentError = ref('');
 const showSuccess = ref(false);
-const paystackPublicKey = ref(null);
-const paystackAccessCode = ref(null);
 
 const totalPrice = computed(() => {
     return (props.package?.price || 0) * form.months;
@@ -108,36 +106,6 @@ const initiateFlutterwavePayment = async () => {
     }
 };
 
-const openPaystackPopup = (reference) => {
-    const handler = window.PaystackPop.setup({
-        key: paystackPublicKey.value,
-        access_code: paystackAccessCode.value,
-        onClose: function() {
-            isProcessing.value = false;
-            paymentError.value = 'Payment cancelled';
-        },
-        callback: function(response) {
-            verifyPaystackPayment(response.reference);
-        }
-    });
-    handler.openIframe();
-};
-
-const verifyPaystackPayment = async (reference) => {
-    try {
-        const res = await axios.get(route('customer.renew.status', reference));
-        if (res.data.status === 'paid') {
-            isProcessing.value = false;
-            showSuccess.value = true;
-        } else {
-            paymentError.value = 'Payment verification failed.';
-            isProcessing.value = false;
-        }
-    } catch (error) {
-        paymentError.value = 'Payment verification error.';
-        isProcessing.value = false;
-    }
-};
 
 const startPolling = (referenceId) => {
     let attempts = 0;
