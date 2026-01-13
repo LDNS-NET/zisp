@@ -11,10 +11,14 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__ . '/../routes/console.php',
         health: '/up',
     )
-    ->withMiddleware(function (Middleware $middleware): void {
+    ->withMiddleware(function (Middleware $middleware) {
         $middleware->web(append: [
             \App\Http\Middleware\HandleInertiaRequests::class,
-            \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
+            \Illuminate\Http\Middleware\AddQueuedCookiesToResponse::class,
+        ]);
+
+        $middleware->api(append: [
+            //
         ]);
 
         // Exempt sync and WireGuard registration endpoints from CSRF (use token-based auth)

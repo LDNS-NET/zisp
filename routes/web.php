@@ -94,38 +94,49 @@ Route::get('/maintenance', function () {
 })->name('maintenance');
 
 // Onboarding Requests
-Route::post('/onboarding-requests', [OnboardingRequestController::class, 'store'])->name('onboarding-requests.store');
+Route::post('/onboarding-requests', [OnboardingRequestController::class, 'store'])
+    ->middleware('throttle:registration')
+    ->name('onboarding-requests.store');
 
 // Hotspot routes (protected by subscription check) replace subscription with a safer middleware for hotspot safe redirects
 
 Route::middleware(['check.subscription', 'maintenance.mode'])->group(function () {
 
-    Route::get('/hotspot/success', function () {
-        return view('hotspot.success');
-    })->name('hotspot.success');
+    Route::middleware('throttle:portal_login')->group(function () {
+        Route::get('/hotspot/success', function () {
+            return view('hotspot.success');
+        })->name('hotspot.success');
 
-    Route::get('/hotspot/suspended', [TenantHotspotController::class, 'suspended'])->name('hotspot.suspended');
-    
-    Route::resource('hotspot', TenantHotspotController::class)->except(['show']);
-    Route::post('/hotspot/purchase-stk-push', [TenantHotspotController::class, 'purchaseSTKPush'])->name('hotspot.purchase-stk-push');
-    Route::post('/hotspot/checkout', [TenantHotspotController::class, 'checkout'])->name('hotspot.checkout');
-    Route::post('/hotspot/callback', [TenantHotspotController::class, 'callback'])->name('hotspot.callback');
-    Route::get('/hotspot/payment-status/{identifier}', [TenantHotspotController::class, 'checkPaymentStatus'])->name('hotspot.check-status');
-    Route::post('/hotspot/voucher-auth', [VoucherController::class, 'authenticate'])->name('voucher.authenticate');
+        Route::get('/hotspot/suspended', [TenantHotspotController::class, 'suspended'])->name('hotspot.suspended');
+        
+        Route::resource('hotspot', TenantHotspotController::class)->except(['show']);
+        
+        Route::post('/hotspot/purchase-stk-push', [TenantHotspotController::class, 'purchaseSTKPush'])
+            ->middleware('throttle:stk_push')
+            ->name('hotspot.purchase-stk-push');
+            
+        Route::post('/hotspot/checkout', [TenantHotspotController::class, 'checkout'])->name('hotspot.checkout');
+        Route::post('/hotspot/callback', [TenantHotspotController::class, 'callback'])->name('hotspot.callback');
+        Route::get('/hotspot/payment-status/{identifier}', [TenantHotspotController::class, 'checkPaymentStatus'])->name('hotspot.check-status');
+        
+        Route::post('/hotspot/voucher-auth', [VoucherController::class, 'authenticate'])
+            ->middleware('throttle:voucher_auth')
+            ->name('voucher.authenticate');
 
-    // MoMo Routes
-    Route::post('/hotspot/momo/checkout', [MomoController::class, 'checkout'])->name('hotspot.momo.checkout');
-    Route::post('/hotspot/momo/callback', [MomoController::class, 'callback'])->name('hotspot.momo.callback');
+        // MoMo Routes
+        Route::post('/hotspot/momo/checkout', [MomoController::class, 'checkout'])->name('hotspot.momo.checkout');
+        Route::post('/hotspot/momo/callback', [MomoController::class, 'callback'])->name('hotspot.momo.callback');
 
-    // Paystack routes
-    Route::post('/paystack/webhook', [App\Http\Controllers\Tenants\PaystackController::class, 'webhook'])->name('paystack.webhook');
-    Route::get('/paystack/callback', [App\Http\Controllers\Tenants\PaystackController::class, 'handleCallback'])->name('paystack.callback');
-    
-    // Flutterwave routes
-    Route::post('/flutterwave/webhook', [App\Http\Controllers\Tenants\FlutterwaveController::class, 'webhook'])->name('flutterwave.webhook');
-    Route::get('/flutterwave/callback', [App\Http\Controllers\Tenants\FlutterwaveController::class, 'handleCallback'])->name('flutterwave.callback');
+        // Paystack routes
+        Route::post('/paystack/webhook', [App\Http\Controllers\Tenants\PaystackController::class, 'webhook'])->name('paystack.webhook');
+        Route::get('/paystack/callback', [App\Http\Controllers\Tenants\PaystackController::class, 'handleCallback'])->name('paystack.callback');
+        
+        // Flutterwave routes
+        Route::post('/flutterwave/webhook', [App\Http\Controllers\Tenants\FlutterwaveController::class, 'webhook'])->name('flutterwave.webhook');
+        Route::get('/flutterwave/callback', [App\Http\Controllers\Tenants\FlutterwaveController::class, 'handleCallback'])->name('flutterwave.callback');
 
-    Route::get('/hotspot/momo/status/{referenceId}', [MomoController::class, 'checkStatus'])->name('hotspot.momo.status');
+        Route::get('/hotspot/momo/status/{referenceId}', [MomoController::class, 'checkStatus'])->name('hotspot.momo.status');
+    });
 });
 
 
@@ -154,7 +165,9 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode'])
     ->group(function () {
         // Subscription & Renewal (Accessible even if expired)
         Route::get('/subscription/renew', [SubscriptionController::class, 'showRenewal'])->name('subscription.renew');
-        Route::post('/subscription/initialize-payment', [SubscriptionController::class, 'initializePayment'])->name('subscription.initialize-payment');
+        Route::post('/subscription/initialize-payment', [SubscriptionController::class, 'initializePayment'])
+            ->middleware('throttle:stk_push')
+            ->name('subscription.initialize-payment');
         Route::get('/subscription/callback', [SubscriptionController::class, 'handleCallback'])->name('subscription.callback');
 
         Route::middleware(['check.subscription'])->group(function () {
@@ -162,19 +175,34 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode'])
 
         // Dashboard
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-        Route::get('/dashboard/data', [DashboardController::class, 'data'])->name('dashboard.data');
+        Route::get('/dashboard/data', [DashboardController::class, 'data'])
+            ->middleware('throttle:api')
+            ->name('dashboard.data');
 
         //Active Users
-        Route::resource('activeusers', TenantActiveUsersController::class);
+        Route::resource('activeusers', TenantActiveUsersController::class)->middleware('throttle:online_users');
+
+        Route::middleware('throttle:bulk_actions')->group(function () {
+            Route::delete('/packages/bulk-delete', [PackageController::class, 'bulkDelete'])->name('packages.bulk-delete');
+            Route::delete('leads/bulk-delete', [TenantLeadController::class, 'bulkDelete'])->name('leads.bulk-delete');
+            Route::delete('tickets/bulk-delete', [TenantTicketController::class, 'bulkDelete'])->name('tickets.bulk-delete');
+            Route::delete('/equipment/bulk-delete', [TenantEquipmentController::class, 'bulkDelete'])->name('equipment.bulk-delete');
+            Route::delete('/vouchers/bulk-delete', [VoucherController::class, 'bulkDelete'])->name('vouchers.bulk-delete');
+            Route::delete('/payments/bulk-delete', [TenantPaymentController::class, 'bulkDelete'])->name('payments.bulk-delete');
+            Route::delete('/invoices/bulk-delete', [TenantInvoiceController::class, 'bulkDelete'])->name('invoices.bulk-delete');
+        });
 
         //tenants packages
         Route::resource('packages', PackageController::class)->except(['show']);
-        Route::delete('/packages/bulk-delete', [PackageController::class, 'bulkDelete'])->name('packages.bulk-delete');
 
         //network users( tenants )
-        Route::resource('users', TenantUserController::class);
-        Route::delete('/users/bulk-delete', [TenantUserController::class, 'bulkDelete'])->name('users.bulk-delete');
-        Route::post('/users/import', [TenantUserController::class, 'import'])->name('users.import');
+        Route::resource('users', TenantUserController::class)->middleware('throttle:user_crud');
+        Route::delete('/users/bulk-delete', [TenantUserController::class, 'bulkDelete'])
+            ->middleware('throttle:bulk_actions')
+            ->name('users.bulk-delete');
+        Route::post('/users/import', [TenantUserController::class, 'import'])
+            ->middleware('throttle:bulk_actions')
+            ->name('users.import');
         Route::post('users/details', [TenantUserController::class, 'update'])->name('users.details.update');
 
 
@@ -210,8 +238,12 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode'])
         Route::delete('/expenses/bulk-delete', [TenantExpensesController::class, 'bulkDelete'])->name('expenses.bulk-delete');
 
         //SMS
-        Route::resource('sms', TenantSMSController::class)->only(['index', 'create', 'store', 'destroy']);
-        Route::delete('/sms/bulk-delete', [TenantSMSController::class, 'bulkDelete'])->name('sms.bulk-delete');
+        Route::resource('sms', TenantSMSController::class)
+            ->only(['index', 'create', 'store', 'destroy'])
+            ->middleware('throttle:sms_sending');
+        Route::delete('/sms/bulk-delete', [TenantSMSController::class, 'bulkDelete'])
+            ->middleware('throttle:bulk_actions')
+            ->name('sms.bulk-delete');
 
         // SMS Templates
         Route::resource('smstemplates', TenantSMSTemplateController::class)->only(['index', 'create', 'update', 'store', 'destroy']);
@@ -219,7 +251,9 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode'])
 
         //Hotspot Settings
         Route::get('settings/hotspot', [TenantHotspotSettingsController::class, 'edit'])->name('settings.hotspot.edit');
-        Route::post('settings/hotspot', [TenantHotspotSettingsController::class, 'update'])->name('settings.hotspot.update');
+        Route::post('settings/hotspot', [TenantHotspotSettingsController::class, 'update'])
+            ->middleware('throttle:file_upload')
+            ->name('settings.hotspot.update');
 
         //payment gateways settings
         Route::get('settings/payment', [TenantPaymentGatewayController::class, 'edit'])->name('settings.payment.edit');
@@ -235,7 +269,9 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode'])
 
         //general settings
         Route::get('settings/general', [TenantGeneralSettingsController::class, 'edit'])->name('settings.general.edit');
-        Route::post('settings/general', [TenantGeneralSettingsController::class, 'update'])->name('settings.general.update');
+        Route::post('settings/general', [TenantGeneralSettingsController::class, 'update'])
+            ->middleware('throttle:file_upload')
+            ->name('settings.general.update');
 
         // Domain Requests
         Route::get('domain-requests', [App\Http\Controllers\Tenants\DomainRequestController::class, 'index'])->name('domain-requests.index');
@@ -246,26 +282,31 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode'])
 
 
         //mikrotiks
-        Route::post('mikrotiks/{mikrotik}/reboot', [TenantMikrotikController::class, 'reboot'])->name('mikrotiks.reboot');
-        Route::post('mikrotiks/{mikrotik}/identity', [TenantMikrotikController::class, 'updateIdentity'])->name('mikrotiks.updateIdentity');
-        Route::resource('mikrotiks', TenantMikrotikController::class);
-        Route::get('mikrotiks/{mikrotik}/test-connection', [TenantMikrotikController::class, 'testConnection'])->name('mikrotiks.testConnection');
-        Route::get('mikrotiks/{mikrotik}/ping', [TenantMikrotikController::class, 'pingRouter'])->name('mikrotiks.ping');
-        Route::get('mikrotiks/status', [TenantMikrotikController::class, 'getAllStatus'])->name('mikrotiks.statusAll');
-        Route::get('mikrotiks/{mikrotik}/status', [TenantMikrotikController::class, 'getStatus'])->name('mikrotiks.status');
-        Route::get('mikrotiks/{mikrotik}/resource', [TenantMikrotikController::class, 'getResource'])->name('mikrotiks.resource');
-        Route::get('mikrotiks/{mikrotik}/interfaces', [TenantMikrotikController::class, 'getInterfaces'])->name('mikrotiks.interfaces');
-        Route::get('mikrotiks/{mikrotik}/active-sessions', [TenantMikrotikController::class, 'getActiveSessions'])->name('mikrotiks.activeSessions');
-        Route::post('mikrotiks/{mikrotik}/set-ip', [TenantMikrotikController::class, 'setIp'])->name('mikrotiks.setIp');
-        Route::post('mikrotiks/validate', [TenantMikrotikController::class, 'validateRouter'])->name('mikrotiks.validate');
-        Route::get('mikrotiks/{mikrotik}/download-setup-script', [TenantMikrotikController::class, 'downloadSetupScript'])->name('mikrotiks.downloadSetupScript');
-        Route::get('mikrotiks/{mikrotik}/download-radius-script', [TenantMikrotikController::class, 'downloadRadiusScript'])->name('mikrotiks.downloadRadiusScript');
-        Route::get('mikrotiks/{mikrotik}/download-advanced-config', [TenantMikrotikController::class, 'downloadAdvancedConfig'])->name('mikrotiks.downloadAdvancedConfig');
-        Route::get('mikrotiks/{mikrotik}/download-hotspot-templates', [TenantMikrotikController::class, 'downloadHotspotTemplates'])->name('mikrotiks.downloadHotspotTemplates');
-        Route::get('mikrotiks/{mikrotik}/hotspot-upload-script', [TenantMikrotikController::class, 'getHotspotUploadScript'])->name('mikrotiks.hotspotUploadScript');
-        Route::get('mikrotiks/{mikrotik}/remote-management', [TenantMikrotikController::class, 'remoteManagement'])->name('mikrotiks.remoteManagement');
-        Route::get('mikrotiks/{mikrotik}/ca.crt', [TenantMikrotikController::class, 'downloadCACert'])->name('mikrotiks.downloadCACert');
-        Route::get('mikrotiks/{mikrotik}/reprovision', [TenantMikrotikController::class, 'reprovision'])->name('mikrotiks.reprovision');
+        Route::middleware('throttle:mikrotik_api')->group(function () {
+            Route::post('mikrotiks/{mikrotik}/reboot', [TenantMikrotikController::class, 'reboot'])->name('mikrotiks.reboot');
+            Route::post('mikrotiks/{mikrotik}/identity', [TenantMikrotikController::class, 'updateIdentity'])->name('mikrotiks.updateIdentity');
+            Route::resource('mikrotiks', TenantMikrotikController::class)->except(['destroy']);
+            Route::get('mikrotiks/{mikrotik}/test-connection', [TenantMikrotikController::class, 'testConnection'])->name('mikrotiks.testConnection');
+            Route::get('mikrotiks/{mikrotik}/ping', [TenantMikrotikController::class, 'pingRouter'])->name('mikrotiks.ping');
+            Route::get('mikrotiks/status', [TenantMikrotikController::class, 'getAllStatus'])->name('mikrotiks.statusAll');
+            Route::get('mikrotiks/{mikrotik}/status', [TenantMikrotikController::class, 'getStatus'])->name('mikrotiks.status');
+            Route::get('mikrotiks/{mikrotik}/resource', [TenantMikrotikController::class, 'getResource'])->name('mikrotiks.resource');
+            Route::get('mikrotiks/{mikrotik}/interfaces', [TenantMikrotikController::class, 'getInterfaces'])->name('mikrotiks.interfaces');
+            Route::get('mikrotiks/{mikrotik}/active-sessions', [TenantMikrotikController::class, 'getActiveSessions'])->name('mikrotiks.activeSessions');
+            Route::post('mikrotiks/{mikrotik}/set-ip', [TenantMikrotikController::class, 'setIp'])->name('mikrotiks.setIp');
+            Route::get('mikrotiks/{mikrotik}/download-setup-script', [TenantMikrotikController::class, 'downloadSetupScript'])->name('mikrotiks.downloadSetupScript');
+            Route::get('mikrotiks/{mikrotik}/download-radius-script', [TenantMikrotikController::class, 'downloadRadiusScript'])->name('mikrotiks.downloadRadiusScript');
+            Route::get('mikrotiks/{mikrotik}/download-advanced-config', [TenantMikrotikController::class, 'downloadAdvancedConfig'])->name('mikrotiks.downloadAdvancedConfig');
+            Route::get('mikrotiks/{mikrotik}/download-hotspot-templates', [TenantMikrotikController::class, 'downloadHotspotTemplates'])->name('mikrotiks.downloadHotspotTemplates');
+            Route::get('mikrotiks/{mikrotik}/hotspot-upload-script', [TenantMikrotikController::class, 'getHotspotUploadScript'])->name('mikrotiks.hotspotUploadScript');
+            Route::get('mikrotiks/{mikrotik}/remote-management', [TenantMikrotikController::class, 'remoteManagement'])->name('mikrotiks.remoteManagement');
+            Route::get('mikrotiks/{mikrotik}/ca.crt', [TenantMikrotikController::class, 'downloadCACert'])->name('mikrotiks.downloadCACert');
+        });
+
+        Route::get('mikrotiks/{mikrotik}/reprovision', [TenantMikrotikController::class, 'reprovision'])
+            ->middleware('throttle:wireguard_sync')
+            ->name('mikrotiks.reprovision');
+        
         Route::post('mikrotiks/{mikrotik}/provision-hotspot', [TenantMikrotikController::class, 'provisionHotspot'])->name('mikrotiks.provisionHotspot');
 
 
@@ -340,7 +381,8 @@ Route::middleware(['auth', 'tenant.domain'])->group(function () {
 // Admin Login Routes
 Route::middleware('guest')->group(function () {
     Route::get('admin/login', [App\Http\Controllers\Admin\AuthController::class, 'showLogin'])->name('admin.login');
-    Route::post('admin/login', [App\Http\Controllers\Admin\AuthController::class, 'login']);
+    Route::post('admin/login', [App\Http\Controllers\Admin\AuthController::class, 'login'])
+        ->middleware('throttle:login');
 });
 
 Route::post('admin/logout', [App\Http\Controllers\Admin\AuthController::class, 'logout'])->name('admin.logout');
@@ -357,8 +399,12 @@ Route::middleware(['auth', 'superadmin', 'throttle:120,1'])
         // User Management
         Route::prefix('users')->name('users.')->group(function () {
             Route::get('/', [UsersController::class, 'index'])->name('index');
-            Route::get('/export', [UsersController::class, 'export'])->name('export');
-            Route::post('/bulk-action', [UsersController::class, 'bulkAction'])->name('bulk-action');
+            Route::get('/export', [UsersController::class, 'export'])
+                ->middleware('throttle:bulk_actions')
+                ->name('export');
+            Route::post('/bulk-action', [UsersController::class, 'bulkAction'])
+                ->middleware('throttle:bulk_actions')
+                ->name('bulk-action');
             Route::get('/{user}', [UsersController::class, 'show'])->name('show');
             Route::put('/{user}', [UsersController::class, 'update'])->name('update');
             Route::delete('/{user}', [UsersController::class, 'destroy'])->name('destroy');
@@ -370,7 +416,9 @@ Route::middleware(['auth', 'superadmin', 'throttle:120,1'])
         // Payment Management
         Route::prefix('payments')->name('payments.')->group(function () {
             Route::get('/', [PaymentsController::class, 'index'])->name('index');
-            Route::get('/export', [PaymentsController::class, 'export'])->name('export');
+            Route::get('/export', [PaymentsController::class, 'export'])
+                ->middleware('throttle:bulk_actions')
+                ->name('export');
             Route::get('/{payment}', [PaymentsController::class, 'show'])->name('show');
             Route::delete('/{payment}', [PaymentsController::class, 'destroy'])->name('destroy');
             Route::post('/{payment}/disburse', [PaymentsController::class, 'disburse'])->name('disburse');
@@ -450,11 +498,12 @@ Route::middleware(['auth', 'superadmin', 'throttle:120,1'])
 | Customer Portal Routes
 |--------------------------------------------------------------------------
 */
-Route::prefix('customer')->name('customer.')->group(function () {
+Route::prefix('customer')->name('customer.')->middleware('throttle:api')->group(function () {
     // Guest routes
     Route::middleware('guest:customer')->group(function () {
         Route::get('login', [App\Http\Controllers\Customer\AuthController::class, 'showLogin'])->name('login');
-        Route::post('login', [App\Http\Controllers\Customer\AuthController::class, 'login']);
+        Route::post('login', [App\Http\Controllers\Customer\AuthController::class, 'login'])
+            ->middleware('throttle:login');
     });
     
     // Authenticated customer routes
