@@ -5,7 +5,15 @@ import SuperAdminLayout from '@/Layouts/SuperAdminLayout.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import TextInput from '@/Components/TextInput.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
-import { Settings } from 'lucide-vue-next';
+import { 
+    Settings, 
+    Shield, 
+    Globe, 
+    Mail, 
+    CreditCard, 
+    Gauge,
+    Save
+} from 'lucide-vue-next';
 
 const props = defineProps({
     settings: Object,
@@ -29,7 +37,18 @@ const save = () => {
 };
 
 const getGroupLabel = (group) => {
-    return group.charAt(0).toUpperCase() + group.slice(1) + ' Settings';
+    return group.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ') + ' Settings';
+};
+
+const getGroupIcon = (group) => {
+    switch (group) {
+        case 'general': return Globe;
+        case 'auth': return Shield;
+        case 'mail': return Mail;
+        case 'payment': return CreditCard;
+        case 'rate_limits': return Gauge;
+        default: return Settings;
+    }
 };
 </script>
 
@@ -45,10 +64,15 @@ const getGroupLabel = (group) => {
 
         <div class="space-y-6">
             <form @submit.prevent="save">
-                <div v-for="(groupSettings, groupName) in settings" :key="groupName" class="mb-8 rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-900/5 dark:bg-gray-800 dark:ring-gray-700">
-                    <h3 class="mb-4 text-lg font-medium text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
-                        {{ getGroupLabel(groupName) }}
-                    </h3>
+                <div v-for="(groupSettings, groupName) in settings" :key="groupName" class="mb-8 overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-900/5 dark:bg-gray-800 dark:ring-gray-700">
+                    <div class="flex items-center gap-3 border-b border-gray-200 bg-gray-50/50 px-6 py-4 dark:border-gray-700 dark:bg-gray-900/50">
+                        <component :is="getGroupIcon(groupName)" class="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                            {{ getGroupLabel(groupName) }}
+                        </h3>
+                    </div>
+                    
+                    <div class="p-6">
                     
                     <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                         <div v-for="setting in groupSettings" :key="setting.id">
@@ -76,10 +100,12 @@ const getGroupLabel = (group) => {
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <div class="flex justify-end">
-                    <PrimaryButton :disabled="form.processing">
-                        Save Changes
+            <div class="flex justify-end pt-4">
+                    <PrimaryButton :disabled="form.processing" class="flex items-center gap-2">
+                        <Save class="h-4 w-4" />
+                        Save All Changes
                     </PrimaryButton>
                 </div>
             </form>
