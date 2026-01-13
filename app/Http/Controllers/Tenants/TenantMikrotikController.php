@@ -985,6 +985,7 @@ class TenantMikrotikController extends Controller
             'trusted_ip' => $trustedIp,
             'radius_ip' => '10.100.0.1',
             'radius_secret' => $router->api_password,
+            'wg_client_ip' => $router->wireguard_address,
         ]);
 
         $router->logs()->create([
