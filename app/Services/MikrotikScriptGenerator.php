@@ -95,10 +95,9 @@ class MikrotikScriptGenerator
         $wg_port = $options['wg_port'] ?? config('wireguard.server_port') ?? env('WG_SERVER_PORT', 51820);
         $wg_client_ip = $options['wg_client_ip'] ?? '';
 
-        // If client IP not provided, deterministically derive one from subnet + router_id for automation
-        if (empty($wg_client_ip) && !empty($router_id) && is_numeric($router_id)) {
-            $wg_client_ip = $this->deriveClientIpFromSubnet($wg_subnet, (int) $router_id);
-        }
+        // IPs are now pre-assigned in database via MikrotikService::assignNextAvailableWireguardIp()
+        // No longer derive IPs here to avoid conflicts
+
 
         // Load stub template
         $templatePath = resource_path('scripts/mikrotik_onboarding.rsc.stub');
