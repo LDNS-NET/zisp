@@ -51,22 +51,7 @@ class RadiusAccountingController extends Controller
 
             Log::debug("RADIUS Parsed: Status=$statusType, User=$username, Session=$sessionId, NAS=$nasIp, In=$bytesIn, Out=$bytesOut");
 
-            if (!$statusType || !$sessionId || !$username) {
-                // Return received data to help debugging in FreeRADIUS logs
-                return response()->json([
-                    'message' => 'Missing required fields',
-                    'received' => $data,
-                    'parsed' => [
-                        'statusType' => $statusType,
-                        'username' => $username,
-                        'sessionId' => $sessionId
-                    ]
-                ], 400);
-            }
-
-            // Find Router and Tenant
-            // Use withoutGlobalScopes to ensure we find the router regardless of current context
-            // Match by any of the possible IP addresses the RADIUS server might report
+            // Find Router and Tenant first (needed for all packet types including Accounting-On)
             $router = TenantMikrotik::withoutGlobalScopes()
                 ->where(function($query) use ($nasIp) {
                     $query->where('wireguard_address', $nasIp)
@@ -77,6 +62,42 @@ class RadiusAccountingController extends Controller
             if (!$router) {
                 Log::warning("RADIUS Accounting: Unknown NAS IP $nasIp");
                 return response()->json(['message' => 'Unknown NAS IP'], 404);
+            }
+
+            // Handle NAS-wide events (Accounting-On/Off)
+            // These signify router reboot or shutdown and don't have username/session_id
+            if (in_array($statusType, ['Accounting-On', 'Accounting-Off', '7', 7, '8', 8])) {
+                Log::info("RADIUS Accounting: Router reboot/shutdown detected for router {$router->id}. Marking all sessions as disconnected.");
+                
+                \App\Models\Tenants\TenantActiveUsers::withoutGlobalScopes()
+                    ->where('router_id', $router->id)
+                    ->where('status', 'active')
+                    ->update([
+                        'status' => 'disconnected',
+                        'last_seen_at' => now(),
+                        'disconnected_at' => now(),
+                    ]);
+                
+                // Update all users of this router to offline (simplified)
+                NetworkUser::withoutGlobalScopes()
+                    ->where('tenant_id', $router->tenant_id)
+                    ->update(['online' => false]);
+
+                return response()->json(['status' => 'success', 'message' => 'NAS sessions cleared']);
+            }
+
+            // Normal session validation (Start/Interim/Stop)
+            if (!$statusType || !$sessionId || !$username) {
+                // Return received data to help debugging in FreeRADIUS logs
+                return response()->json([
+                    'message' => 'Missing required fields for session packet',
+                    'received' => $data,
+                    'parsed' => [
+                        'statusType' => $statusType,
+                        'username' => $username,
+                        'sessionId' => $sessionId
+                    ]
+                ], 400);
             }
 
             // Find User (Case-insensitive)
