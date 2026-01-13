@@ -29,7 +29,7 @@ Route::middleware([InitializeTenancyByDomain::class, PreventAccessFromCentralDom
     // Tenant info
 });
 
-Route::middleware('throttle:radius')->group(function () {
+Route::middleware('throttle:mikrotik_api')->group(function () {
     Route::post('/radius/auth', [TenantRadiusController::class, 'auth']);
     Route::post('/radius/accounting', [\App\Http\Controllers\Api\RadiusAccountingController::class, 'store']);
 });

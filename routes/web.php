@@ -176,7 +176,6 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode'])
         // Dashboard
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
         Route::get('/dashboard/data', [DashboardController::class, 'data'])
-            ->middleware('throttle:api')
             ->name('dashboard.data');
 
         //Active Users
@@ -382,7 +381,7 @@ Route::middleware(['auth', 'tenant.domain'])->group(function () {
 Route::middleware('guest')->group(function () {
     Route::get('admin/login', [App\Http\Controllers\Admin\AuthController::class, 'showLogin'])->name('admin.login');
     Route::post('admin/login', [App\Http\Controllers\Admin\AuthController::class, 'login'])
-        ->middleware('throttle:login');
+        ->middleware('throttle:tenant_login');
 });
 
 Route::post('admin/logout', [App\Http\Controllers\Admin\AuthController::class, 'logout'])->name('admin.logout');
@@ -498,12 +497,12 @@ Route::middleware(['auth', 'superadmin', 'throttle:120,1'])
 | Customer Portal Routes
 |--------------------------------------------------------------------------
 */
-Route::prefix('customer')->name('customer.')->middleware('throttle:api')->group(function () {
+Route::prefix('customer')->name('customer.')->group(function () {
     // Guest routes
     Route::middleware('guest:customer')->group(function () {
         Route::get('login', [App\Http\Controllers\Customer\AuthController::class, 'showLogin'])->name('login');
         Route::post('login', [App\Http\Controllers\Customer\AuthController::class, 'login'])
-            ->middleware('throttle:login');
+            ->middleware('throttle:tenant_login');
     });
     
     // Authenticated customer routes
