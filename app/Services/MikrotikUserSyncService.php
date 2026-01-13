@@ -19,9 +19,12 @@ class MikrotikUserSyncService
      */
     public function syncActiveUsers(TenantMikrotik $router)
     {
-        $activeUsernames = $this->fetchActiveUsernamesFromMikrotik($router);
+        $activeSessions = $this->fetchActiveSessionsFromMikrotik($router);
         $tenantId = $router->tenant_id;
         
+        // Extract usernames for the diff logic
+        $activeUsernames = array_keys($activeSessions);
+
         // Get previously known online users ON THIS SPECIFIC ROUTER
         $previouslyOnlineOnRouter = TenantActiveUsers::where('tenant_id', $tenantId)
             ->where('router_id', $router->id)
@@ -36,7 +39,22 @@ class MikrotikUserSyncService
         $usersToMarkOnline = array_diff($currentOnline, $previouslyOnlineOnRouter);
         $usersToMarkOffline = array_diff($previouslyOnlineOnRouter, $currentOnline);
 
-        // Only update changed records
+        // Update EXISTING online sessions (refresh MAC/IP even if already online)
+        $usersStillOnline = array_intersect($currentOnline, $previouslyOnlineOnRouter);
+        foreach ($usersStillOnline as $username) {
+            $data = $activeSessions[$username];
+            TenantActiveUsers::where('tenant_id', $tenantId)
+                ->where('router_id', $router->id)
+                ->where('username', $username)
+                ->where('status', 'active')
+                ->update([
+                    'mac_address' => $data['mac_address'] ?? null,
+                    'ip_address' => $data['ip_address'] ?? null,
+                    'last_seen_at' => now()
+                ]);
+        }
+
+        // Only update status changed records
         $updated = 0;
         
         if (!empty($usersToMarkOnline)) {
@@ -49,9 +67,15 @@ class MikrotikUserSyncService
 
             // Update session records for this router
             foreach ($usersToMarkOnline as $username) {
+                $data = $activeSessions[$username];
                 TenantActiveUsers::updateOrCreate(
                     ['tenant_id' => $tenantId, 'username' => $username, 'router_id' => $router->id],
-                    ['status' => 'active', 'last_seen_at' => now()]
+                    [
+                        'status' => 'active', 
+                        'mac_address' => $data['mac_address'] ?? null,
+                        'ip_address' => $data['ip_address'] ?? null,
+                        'last_seen_at' => now()
+                    ]
                 );
             }
         }
@@ -81,7 +105,7 @@ class MikrotikUserSyncService
             }
         }
 
-        Log::info("Mikrotik sync optimized for router {$router->id}: {$updated} changes", [
+        Log::info("Mikrotik sync optimized for router {$router->id}: {$updated} status changes", [
             'online_count' => count($currentOnline),
             'marked_online' => count($usersToMarkOnline),
             'marked_offline' => count($usersToMarkOffline),
@@ -95,10 +119,10 @@ class MikrotikUserSyncService
     }
 
     /**
-     * Fetch active user usernames from Mikrotik router in real time
-     * Connects to router and fetches from hotspot and PPPoE active sessions
+     * Fetch active session details from Mikrotik router in real time
+     * Returns map: username => [mac_address, ip_address]
      */
-    protected function fetchActiveUsernamesFromMikrotik(TenantMikrotik $router)
+    protected function fetchActiveSessionsFromMikrotik(TenantMikrotik $router)
     {
         try {
             $apiService = new RouterApiService($router);
@@ -109,13 +133,17 @@ class MikrotikUserSyncService
                 return [];
             }
 
-            $usernames = [];
+            $sessions = [];
 
             // Fetch active hotspot users
             $hotspotUsers = $apiService->getHotspotActiveUsers();
             foreach ($hotspotUsers as $user) {
-                if (isset($user['name'])) {
-                    $usernames[] = $user['name'];
+                $username = $user['user'] ?? ($user['name'] ?? null);
+                if ($username) {
+                    $sessions[strtolower(trim($username))] = [
+                        'mac_address' => $user['mac-address'] ?? null,
+                        'ip_address' => $user['address'] ?? null,
+                    ];
                 }
             }
 
@@ -123,14 +151,20 @@ class MikrotikUserSyncService
             $pppoeUsers = $apiService->getPppoeActiveUsers();
             foreach ($pppoeUsers as $user) {
                 if (isset($user['name'])) {
-                    $usernames[] = $user['name'];
+                    $username = strtolower(trim($user['name']));
+                    // Prefer existing hotspot session if present (dual login handling)
+                    if (!isset($sessions[$username])) {
+                        $sessions[$username] = [
+                            'mac_address' => $user['caller-id'] ?? null,
+                            'ip_address' => $user['address'] ?? null,
+                        ];
+                    }
                 }
             }
 
-            // Remove duplicates and return
-            return array_unique($usernames);
+            return $sessions;
         } catch (\Exception $e) {
-            Log::error("Failed to fetch active users from Mikrotik", [
+            Log::error("Failed to fetch active sessions from Mikrotik", [
                 'router_id' => $router->id,
                 'error' => $e->getMessage(),
             ]);
