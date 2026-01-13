@@ -152,6 +152,8 @@ class PaymentProcessingService
 
         $payment->update(['user_id' => $user->id]);
         
+        $this->unsuspendOnMikrotik($user);
+
         Log::info('New hotspot user created', ['username' => $username]);
     }
 

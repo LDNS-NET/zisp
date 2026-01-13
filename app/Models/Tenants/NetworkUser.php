@@ -251,8 +251,9 @@ class NetworkUser extends Authenticatable
                 'value' => $user->password,
             ]);
 
-            // Package handling
-            $package = $user->package;
+            // Package handling (Standard or Hotspot)
+            $package = $user->package ?: $user->hotspotPackage;
+            
             if ($package) {
                 // Rate limit
                 $rateValue = "{$package->upload_speed}M/{$package->download_speed}M";
@@ -276,8 +277,10 @@ class NetworkUser extends Authenticatable
                 if ($user->type === 'hotspot') {
                     // Session-Timeout (Duration in seconds)
                     $seconds = 0;
-                    $val = $package->duration_value;
-                    switch ($package->duration_unit) {
+                    $val = $package->duration_value ?? $package->duration ?? 1;
+                    $unit = $package->duration_unit ?? 'days';
+                    
+                    switch ($unit) {
                         case 'minutes': $seconds = $val * 60; break;
                         case 'hours':   $seconds = $val * 3600; break;
                         case 'days':    $seconds = $val * 86400; break;
@@ -326,8 +329,9 @@ class NetworkUser extends Authenticatable
                 ['op' => ':=', 'value' => $user->password]
             );
 
-            // Update package-related entries
-            $package = $user->package;
+            // Update package-related entries (Standard or Hotspot)
+            $package = $user->package ?: $user->hotspotPackage;
+            
             if ($package) {
                 $rateValue = "{$package->upload_speed}M/{$package->download_speed}M";
                 Radreply::updateOrCreate(
@@ -344,8 +348,10 @@ class NetworkUser extends Authenticatable
 
                 if ($user->type === 'hotspot') {
                     $seconds = 0;
-                    $val = $package->duration_value;
-                    switch ($package->duration_unit) {
+                    $val = $package->duration_value ?? $package->duration ?? 1;
+                    $unit = $package->duration_unit ?? 'days';
+                    
+                    switch ($unit) {
                         case 'minutes': $seconds = $val * 60; break;
                         case 'hours':   $seconds = $val * 3600; break;
                         case 'days':    $seconds = $val * 86400; break;
