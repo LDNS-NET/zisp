@@ -51,11 +51,11 @@ class TenantActiveUsersController extends Controller
                 'mac' => $session->mac_address,
                 'session_start' => $session->connected_at ? $session->connected_at->toDateTimeString() : $session->created_at->toDateTimeString(),
                 'session_end' => null,
-                'package_name' => $user->package->name ?? 'N/A',
+                'package_name' => $user?->package?->name ?? 'N/A',
                 'router_name' => $session->router->name ?? 'Unknown',
                 'last_seen' => $session->last_seen_at->diffForHumans(),
             ];
-        });
+        })->values();
 
         return Inertia::render('Activeusers/Index', [
             'activeUsers' => $activeUsers,
