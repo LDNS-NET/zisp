@@ -591,7 +591,19 @@ class TenantMikrotikController extends Controller
         // Pre-allocate WireGuard IP (first available)
         try {
             $vpnIp = MikrotikService::assignNextAvailableWireguardIp($router);
-            Log::info("Assigned WireGuard IP {$vpnIp} to router {$router->id}");
+            
+            // Refresh router to ensure wireguard_address is loaded
+            $router->refresh();
+            
+            // Double-check the IP was assigned
+            if (empty($vpnIp) || empty($router->wireguard_address)) {
+                throw new \Exception("WireGuard IP assignment failed - IP is empty");
+            }
+            
+            Log::info("Assigned WireGuard IP {$vpnIp} to router {$router->id}", [
+                'vpn_ip' => $vpnIp,
+                'router_wireguard_address' => $router->wireguard_address,
+            ]);
         } catch (\Exception $e) {
             Log::error("Failed to assign WireGuard IP: " . $e->getMessage());
             // Re-throw as this is critical for router operation
