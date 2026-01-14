@@ -206,13 +206,12 @@
 } on-error={}
 /ip hotspot walled-garden add action=allow dst-host=*.bunny.net comment="zisp-walled-garden"
 /ip hotspot walled-garden add action=allow dst-host=*.mikrotik.com comment="zisp-walled-garden"
+/ip hotspot walled-garden add action=allow dst-host=connectivitycheck.gstatic.com comment="zisp-walled-garden" 
+/ip hotspot walled-garden add action=allow dst-host=connectivitycheck.android.com comment="zisp-walled-garden"
 /ip hotspot walled-garden add action=allow dst-host=*.paystack.com comment="zisp-walled-garden"
 /ip hotspot walled-garden add action=allow dst-host=*.paystack.co comment="zisp-walled-garden"
 /ip hotspot walled-garden add action=allow dst-host=paystack.com comment="zisp-walled-garden"
-/ip hotspot walled-garden add action=allow dst-host=*.paystack.co comment="zisp-walled-garden"
-/ip hotspot walled-garden add action=allow dst-host=paystack.com comment="zisp-walled-garden"
 /ip hotspot walled-garden add action=allow dst-host=paystack.co comment="zisp-walled-garden"
-
 
 # Allow tenant domain
 :local tenantDomain "{{tenant_domain}}"
