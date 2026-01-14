@@ -763,38 +763,49 @@ class MikrotikService
     {
         try {
             $client = $this->getClient();
+            $mac = strtoupper($mac); // Normalize MAC
             
             // 1. Find the host entry to get the IP address
-            // We need the IP associated with this MAC in the host table to perform a login
-            $hostQuery = (new \RouterOS\Query('/ip/hotspot/host/print'))
-                ->equal('mac-address', $mac);
+            Log::debug('Mikrotik: Searching for host IP', ['mac' => $mac]);
             
-            $hosts = $client->query($hostQuery)->read();
+            // We'll get all hosts and filter in PHP for case-insensitivity and better error tracing
+            $hosts = $client->query('/ip/hotspot/host/print')->read();
+            
+            $ipAddress = null;
+            $server = 'all';
 
-            // Safety check for empty or non-array result
-            if (!is_array($hosts) || empty($hosts)) {
-                Log::warning('Mikrotik: Host not found for direct login', ['mac' => $mac, 'result' => $hosts]);
-                return false;
-            }
-
-            // Ensure we have a valid first host
-            $host = null;
-            foreach ($hosts as $h) {
-                if (isset($h['address'])) {
-                    $host = $h;
-                    break;
+            if (is_array($hosts)) {
+                foreach ($hosts as $h) {
+                    if (isset($h['mac-address']) && strtoupper($h['mac-address']) === $mac && isset($h['address'])) {
+                        $ipAddress = $h['address'];
+                        $server = $h['server'] ?? 'all';
+                        Log::debug('Mikrotik: Found host IP in host table', ['mac' => $mac, 'ip' => $ipAddress]);
+                        break;
+                    }
                 }
             }
 
-            if (!$host) {
-                Log::warning('Mikrotik: No valid host entry with IP found', ['mac' => $mac]);
+            // 2. Fallback to ARP table if not in hotspot host table
+            if (!$ipAddress) {
+                Log::debug('Mikrotik: Host not found in hotspot table, checking ARP table', ['mac' => $mac]);
+                $arpEntries = $client->query('/ip/arp/print')->read();
+                if (is_array($arpEntries)) {
+                    foreach ($arpEntries as $entry) {
+                        if (isset($entry['mac-address']) && strtoupper($entry['mac-address']) === $mac && isset($entry['address'])) {
+                            $ipAddress = $entry['address'];
+                            Log::debug('Mikrotik: Found host IP in ARP table', ['mac' => $mac, 'ip' => $ipAddress]);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (!$ipAddress) {
+                Log::warning('Mikrotik: No valid host entry or ARP entry with IP found', ['mac' => $mac]);
                 return false;
             }
 
-            $ipAddress = $host['address'];
-            $server = $host['server'] ?? 'all';
-
-            // 2. Perform the login
+            // 3. Perform the login
             $loginQuery = (new \RouterOS\Query('/ip/hotspot/active/login'))
                 ->add('user', $username)
                 ->add('password', $password)
