@@ -23,6 +23,7 @@ class TenantPayment extends Model
         "intasend_reference",
         "intasend_checkout_id",
         "transaction_id",
+        "mac_address",
         "response",
         "currency",
         "payment_method",
