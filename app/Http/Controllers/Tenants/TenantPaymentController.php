@@ -335,6 +335,7 @@ class TenantPaymentController extends Controller
                     'shortcode' => $gateway->mpesa_shortcode,
                     'passkey' => $gateway->mpesa_passkey,
                     'environment' => $gateway->mpesa_env,
+                    'callback_url' => route('hotspot.callback'),
                 ]);
             } elseif ($tenant->country_code !== 'KE') {
                 // Enforce custom API for non-Kenyan tenants

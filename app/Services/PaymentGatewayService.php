@@ -126,6 +126,7 @@ class PaymentGatewayService
                 'shortcode' => $gateway->mpesa_shortcode,
                 'passkey' => $gateway->mpesa_passkey,
                 'environment' => $gateway->mpesa_env,
+                'callback_url' => route('hotspot.callback'),
             ]);
         } elseif ($user->tenant->country_code !== 'KE') {
              return ['success' => false, 'message' => 'M-Pesa is not configured for this provider.'];

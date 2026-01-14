@@ -66,6 +66,7 @@ class CheckMpesaPaymentStatusJob implements ShouldQueue
                     'shortcode' => $gateway->mpesa_shortcode,
                     'passkey' => $gateway->mpesa_passkey,
                     'environment' => $gateway->mpesa_env,
+                    'callback_url' => route('hotspot.callback'),
                 ]);
             }
 
