@@ -18,6 +18,7 @@ const pollingInterval = ref(null);
 const paymentAttempts = ref(0);
 const paystackPublicKey = ref(null);
 const deviceMac = ref('');
+const maxPollingAttempts = 40; // 40 * 3s = 120s (2 minutes)
 
 import { countries } from '@/Data/countries';
 const props = defineProps(['tenant', 'packages', 'country', 'paymentMethods']);
@@ -285,20 +286,22 @@ function startPaymentPolling() {
     
     // Define polling logic
     const poll = async () => {
+        if (!currentPaymentId.value) return;
+        
         paymentAttempts.value++;
+        
+        // Stop polling if we reached max attempts
         if (paymentAttempts.value >= maxPollingAttempts) {
-            if (pollingInterval.value) clearInterval(pollingInterval.value);
-            // Don't show error, just stop auto-polling. User can click "Check Status"
+            if (pollingInterval.value) {
+                clearInterval(pollingInterval.value);
+                pollingInterval.value = null;
+            }
+            isCheckingPayment.value = false;
+            paymentMessage.value = 'Auto-check completed. If you have paid, please click the button below.';
             return;
         }
         
-        if (!currentPaymentId.value) return;
-
-        // Visual feedback
-        if (!userCredentials.value && !paymentMessage.value.includes('confirmed')) {
-             const methodName = paymentMethod.value === 'momo' ? 'MoMo' : 'M-Pesa';
-             paymentMessage.value = `Waiting for ${methodName}... (Attempt ${paymentAttempts.value})`;
-        }
+        isCheckingPayment.value = true;
 
         try {
             const url = paymentMethod.value === 'momo' 
@@ -316,18 +319,29 @@ function startPaymentPolling() {
                 paymentMessage.value = 'Payment received! Connecting you now...';
                 paymentError.value = '';
                 showToast('Payment received!', 'success');
-                if (pollingInterval.value) clearInterval(pollingInterval.value);
+                
+                if (pollingInterval.value) {
+                    clearInterval(pollingInterval.value);
+                    pollingInterval.value = null;
+                }
+                isCheckingPayment.value = false;
                 
                 // Automatic login
                 setTimeout(() => {
                     loginToNetwork(data.user.username, data.user.password);
-                }, 1000);
+                }, 1500);
             } else {
-                 if (data.status === 'pending') {
-                     // Keep waiting
-                 } else if (data.status === 'failed') {
+                 if (data.status === 'failed') {
                      paymentError.value = 'Payment failed or was cancelled.';
-                     if (pollingInterval.value) clearInterval(pollingInterval.value);
+                     if (pollingInterval.value) {
+                         clearInterval(pollingInterval.value);
+                         pollingInterval.value = null;
+                     }
+                     isCheckingPayment.value = false;
+                 } else {
+                     // Still pending, update message occasionally
+                     const methodName = paymentMethod.value === 'momo' ? 'MoMo' : 'M-Pesa';
+                     paymentMessage.value = `Waiting for ${methodName} payment...`;
                  }
             }
         } catch (error) {
@@ -816,11 +830,21 @@ function formatPhoneNumber(event) {
                             <p class="text-xs text-gray-500 mt-2">Format: {{ currentCountry.code === 'KE' ? '07XXXXXXXX or 01XXXXXXXX' : 'e.g. ' + currentCountry.dial_code + 'XXXXXXXX' }}</p>
                         </div>
 
-                        <div v-if="paymentMessage" class="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-xl flex items-start gap-3">
-                            <svg class="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                        <div v-if="paymentMessage" class="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-xl flex items-start gap-3 relative overflow-hidden">
+                            <div v-if="isCheckingPayment && !userCredentials" class="absolute bottom-0 left-0 h-1 bg-green-500/30 animate-pulse w-full"></div>
+                            
+                            <div v-if="isCheckingPayment && !userCredentials" class="mt-0.5 flex-shrink-0">
+                                <svg class="animate-spin h-5 w-5 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            </div>
+                            <svg v-else class="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                            
                             <div class="flex-1 text-sm">
                                 <p class="font-semibold">{{ paymentMessage }}</p>
-                                <p v-if="!userCredentials" class="mt-1 text-green-700">Check your phone for the payment prompt.</p>
+                                <p v-if="!userCredentials && isCheckingPayment" class="mt-1 text-green-700 text-xs">Waiting for carrier confirmation. Please keep this window open.</p>
+                                <p v-else-if="!userCredentials" class="mt-1 text-green-700">Check your phone for the payment prompt.</p>
                             </div>
                         </div>
 
