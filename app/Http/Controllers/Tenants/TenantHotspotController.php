@@ -137,6 +137,7 @@ class TenantHotspotController extends Controller
                 'phone' => 'required|string',
                 'email' => 'nullable|email',
                 'payment_method' => 'nullable|string|in:mpesa,momo,paystack,flutterwave',
+                'mac' => 'nullable|string',
             ]);
 
 
@@ -164,6 +165,7 @@ class TenantHotspotController extends Controller
             $metadata = [
                 'hotspot_package_id' => $package->id,
                 'type' => 'hotspot',
+                'mac_address' => $request->mac,
             ];
 
             // Use PaymentGatewayService to initiate payment

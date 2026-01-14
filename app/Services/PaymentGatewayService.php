@@ -96,6 +96,7 @@ class PaymentGatewayService
                 'checkout_request_id' => $response['reference_id'],
                 'package_id' => $metadata['package_id'] ?? ($metadata['new_package_id'] ?? null),
                 'hotspot_package_id' => $metadata['hotspot_package_id'] ?? null,
+                'mac_address' => $metadata['mac_address'] ?? null,
                 'response' => array_merge($response, ['metadata' => $metadata]),
             ]);
 
@@ -154,6 +155,7 @@ class PaymentGatewayService
                     'merchant_request_id' => $response['merchant_request_id'] ?? null,
                     'package_id' => $metadata['package_id'] ?? ($metadata['new_package_id'] ?? null),
                     'hotspot_package_id' => $metadata['hotspot_package_id'] ?? null,
+                    'mac_address' => $metadata['mac_address'] ?? null,
                     'response' => array_merge($response, ['metadata' => $metadata]),
                     'disbursement_status' => $gateway 
                         ? ($gateway->mpesa_env === 'sandbox' ? 'testing' : 'completed') 
@@ -245,6 +247,7 @@ class PaymentGatewayService
                 'checkout_request_id' => $response['access_code'],
                 'package_id' => $metadata['package_id'] ?? ($metadata['new_package_id'] ?? null),
                 'hotspot_package_id' => $metadata['hotspot_package_id'] ?? null,
+                'mac_address' => $metadata['mac_address'] ?? null,
                 'response' => array_merge($response, ['metadata' => $metadata]),
             ]);
 
@@ -320,6 +323,7 @@ class PaymentGatewayService
                 'checkout_request_id' => $reference, // Use reference as checkout ID
                 'package_id' => $metadata['package_id'] ?? ($metadata['new_package_id'] ?? null),
                 'hotspot_package_id' => $metadata['hotspot_package_id'] ?? null,
+                'mac_address' => $metadata['mac_address'] ?? null,
                 'response' => array_merge($response, ['metadata' => $metadata]),
             ]);
 

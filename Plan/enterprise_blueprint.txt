@@ -1,0 +1,36 @@
+ENTERPRISE SCALING BLUEPRINT
+-----------------------------
+1. Scaling Philosophy:
+   - Queue everything heavy
+   - Cache everything static
+   - Rate limit everything external
+   - Batch operations to reduce DB load
+
+2. Cache Strategy:
+   - Redis primary cache
+   - Versioned cache keys for invalidation
+   - Stale-while-revalidate for router data
+   - Hotspot/PPPoE/Static sessions cached
+
+3. Router Load Protection:
+   - Fetch online users every 15 seconds only
+   - Fallback to cached router API responses
+   - Hotspot login throttling
+   - Precompute heavy router stats
+
+4. Queue Offloading:
+   - SMS sending → queued
+   - Router sync → queued
+   - WireGuard key generation → queued
+   - Payment reconciliation → queued
+
+5. Horizontal Scaling Ready:
+   - Stateless Laravel
+   - Redis session store
+   - Redis cache store
+   - Shared storage for tenant files
+
+6. Traffic Load Handling:
+   - Nginx rate limiting
+   - Micro-cache for public endpoints
+   - Offload static content to CDN

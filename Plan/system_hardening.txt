@@ -1,0 +1,17 @@
+SYSTEM HARDENING PLAN
+----------------------
+1. Enforce HTTPS and HSTS
+2. Implement request signature verification (HMAC)
+3. Sanctum token rotation + IP restriction
+4. Brute-force protection (login, API, routers)
+5. Admin activity audit logging
+6. Webhook integrity enforcement
+7. Router identity verification and IP whitelisting
+8. Cache poisoning protection
+9. Secure queue workers (supervisor + horizon)
+10. Database hardening (indexes, slow query logs)
+11. Disable directory listing + secure Nginx headers
+12. Daily malware scan + file integrity checking
+13. Automatic blocking of suspicious IPs
+14. Centralized authentication failure tracking
+15. Strict CORS rules

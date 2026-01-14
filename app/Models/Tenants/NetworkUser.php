@@ -41,6 +41,7 @@ class NetworkUser extends Authenticatable
         'expiry_warning_sent_at',
         'online',
         'expires_at',
+        'mac_address',
         'created_by',
         'tenant_id',
     ];
@@ -308,6 +309,14 @@ class NetworkUser extends Authenticatable
                     ]);
                 }
 
+                // MAC-Auth synchronization
+                if ($user->type === 'hotspot' && !empty($user->mac_address)) {
+                    Radcheck::updateOrCreate(
+                        ['username' => $user->mac_address, 'attribute' => 'Cleartext-Password'],
+                        ['op' => ':=', 'value' => $user->mac_address]
+                    );
+                }
+
                 // Group (Only for non-hotspot or if specifically needed)
                 if ($user->type !== 'hotspot') {
                     Radusergroup::create([
@@ -385,6 +394,14 @@ class NetworkUser extends Authenticatable
                     );
                 } else {
                     Radcheck::where('username', $user->username)->where('attribute', 'Expiration')->delete();
+                }
+
+                // MAC-Auth synchronization
+                if ($user->type === 'hotspot' && !empty($user->mac_address)) {
+                    Radcheck::updateOrCreate(
+                        ['username' => $user->mac_address, 'attribute' => 'Cleartext-Password'],
+                        ['op' => ':=', 'value' => $user->mac_address]
+                    );
                 }
 
                 // Cleanup old Access-Period if it exists

@@ -16,8 +16,8 @@ const userCredentials = ref(null);
 const isCheckingPayment = ref(false);
 const pollingInterval = ref(null);
 const paymentAttempts = ref(0);
-const maxPollingAttempts = 30; // 30 * 3s = 90 seconds
 const paystackPublicKey = ref(null);
+const deviceMac = ref('');
 
 import { countries } from '@/Data/countries';
 const props = defineProps(['tenant', 'packages', 'country', 'paymentMethods']);
@@ -65,6 +65,10 @@ const hotspots = computed(() => {
 });
 
 onMounted(() => {
+    // Capture MAC address from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    deviceMac.value = urlParams.get('mac') || '';
+
     // Lazy load the logo to prioritize page rendering
     if (page.props.tenant?.logo) {
         setTimeout(() => {
@@ -370,7 +374,8 @@ async function processPayment() {
             body: JSON.stringify({ 
                 hotspot_package_id: selectedHotspot.value.id, 
                 phone: phoneNumber.value, 
-                email: 'customer@example.com' 
+                email: 'customer@example.com',
+                mac: deviceMac.value
             })
         });
         
@@ -419,7 +424,8 @@ async function processPaystackPayment() {
                 hotspot_package_id: selectedHotspot.value.id, 
                 phone: phoneNumber.value, 
                 email: props.tenant.email || 'billing@' + props.tenant.subdomain + '.com',
-                payment_method: 'paystack'
+                payment_method: 'paystack',
+                mac: deviceMac.value
             })
         });
         
@@ -463,7 +469,8 @@ async function processFlutterwavePayment() {
                 hotspot_package_id: selectedHotspot.value.id, 
                 phone: phoneNumber.value, 
                 email: props.tenant.email || 'billing@' + props.tenant.subdomain + '.com',
-                payment_method: 'flutterwave'
+                payment_method: 'flutterwave',
+                mac: deviceMac.value
             })
         });
         

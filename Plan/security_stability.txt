@@ -1,0 +1,32 @@
+SECURITY & STABILITY CHECKLIST
+-------------------------------
+1. Queue System:
+   - Supervisor auto-restart
+   - Horizon dashboard
+   - Retry strategies + dead-letter queue
+
+2. Database:
+   - Indexes on tenant_id, mac, online, router_id
+   - Slow query logs enabled
+   - Query caching with Redis
+   - Scheduled DB cleanup
+
+3. Caching:
+   - Redis for all high-load reads
+   - Tenant, router, SMS, package caching
+   - Cache invalidation rules
+
+4. Observability:
+   - Sentry for frontend errors
+   - Logtail/CloudWatch for backend logs
+   - Router latency metrics collected hourly
+
+5. Backups:
+   - Weekly full DB backup
+   - Daily incremental backups
+   - Offsite storage retention 30 days
+
+6. Alerts:
+   - job failures
+   - router offline notifications
+   - spike in API load

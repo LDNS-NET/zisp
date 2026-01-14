@@ -123,6 +123,10 @@ class PaymentProcessingService
             $user->expires_at = $this->calculateExpiry($package, $baseDate, $months);
         }
 
+        if ($payment->mac_address) {
+            $user->mac_address = $payment->mac_address;
+        }
+
         $user->status = 'active';
         $user->save();
 
@@ -148,6 +152,7 @@ class PaymentProcessingService
             'expires_at' => $this->calculateExpiry($package),
             'registered_at' => now(),
             'status' => 'active',
+            'mac_address' => $payment->mac_address,
         ]);
 
         $payment->update(['user_id' => $user->id]);
@@ -180,6 +185,11 @@ class PaymentProcessingService
             if ($tenantMikrotik) {
                 $mikrotik = new \App\Services\MikrotikService($tenantMikrotik);
                 $mikrotik->unsuspendUser($user->type, $user->mikrotik_id ?? $user->username);
+
+                // For hotspot users with a MAC address, kick them to trigger immediate MAC-Auth
+                if ($user->type === 'hotspot' && $user->mac_address) {
+                    $mikrotik->kickHotspotUserByMac($user->mac_address);
+                }
             }
         } catch (\Exception $e) {
             Log::error('Mikrotik unsuspend failed', ['user' => $user->username, 'error' => $e->getMessage()]);

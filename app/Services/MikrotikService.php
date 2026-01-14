@@ -732,6 +732,32 @@ class MikrotikService
         }
     }
 
+    /**
+     * Kick a hotspot user by MAC address.
+     * Finds the active session and removes it.
+     */
+    public function kickHotspotUserByMac(string $mac): bool
+    {
+        try {
+            $client = $this->getClient();
+            $activeSessions = $client->query('/ip/hotspot/active/print')->read();
+            
+            $found = false;
+            foreach ($activeSessions as $session) {
+                if (isset($session['mac-address']) && strtolower($session['mac-address']) === strtolower($mac)) {
+                    $client->query('/ip/hotspot/active/remove', ['.id' => $session['.id']])->read();
+                    $found = true;
+                    Log::info('Hotspot user kicked by MAC', ['mac' => $mac, 'session_id' => $session['.id']]);
+                }
+            }
+            
+            return $found;
+        } catch (Exception $e) {
+            Log::error('Mikrotik kickHotspotUserByMac error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
     // ...other methods to be implemented...
 
     /**
