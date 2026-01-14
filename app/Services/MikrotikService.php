@@ -810,7 +810,7 @@ class MikrotikService
                 ->add('user', $username)
                 ->add('password', $password)
                 ->add('mac-address', $mac)
-                ->add('ip-address', $ipAddress)
+                ->add('ip', $ipAddress)
                 ->add('server', $server);
                 
             $result = $client->query($loginQuery)->read();
@@ -821,6 +821,20 @@ class MikrotikService
                 'user' => $username,
                 'result' => $result
             ]);
+
+            // Check for errors in result (e.g. !trap or message)
+            if (is_array($result)) {
+                foreach ($result as $item) {
+                    if (isset($item['!trap']) || isset($item['message'])) {
+                        Log::warning('Mikrotik: Direct login failed with error', ['error' => $item]);
+                        return false;
+                    }
+                    if (isset($item['after']) && isset($item['after']['message'])) {
+                         Log::warning('Mikrotik: Direct login failed with after-message', ['error' => $item['after']['message']]);
+                         return false;
+                    }
+                }
+            }
 
             return true;
         } catch (Exception $e) {
