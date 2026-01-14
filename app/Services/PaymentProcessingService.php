@@ -186,9 +186,20 @@ class PaymentProcessingService
                 $mikrotik = new \App\Services\MikrotikService($tenantMikrotik);
                 $mikrotik->unsuspendUser($user->type, $user->mikrotik_id ?? $user->username);
 
-                // For hotspot users with a MAC address, kick them to trigger immediate MAC-Auth
+                // For hotspot users with a MAC address, attempt direct login
                 if ($user->type === 'hotspot' && $user->mac_address) {
-                    $mikrotik->kickHotspotUserByMac($user->mac_address);
+                    // Try direct API login first (immediate, removes exclamation mark delay)
+                    // We use the MAC address as both username and password for MAC-Auth consistency
+                    $loggedIn = $mikrotik->loginHotspotUserByMac(
+                        $user->mac_address,
+                        $user->mac_address,
+                        $user->mac_address
+                    );
+
+                    // If direct login failed (host not found etc), fall back to kick to trigger standard MAC-Auth
+                    if (!$loggedIn) {
+                        $mikrotik->kickHotspotUserByMac($user->mac_address);
+                    }
                 }
             }
         } catch (\Exception $e) {

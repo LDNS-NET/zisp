@@ -733,6 +733,56 @@ class MikrotikService
     }
 
     /**
+     * Authenticate a hotspot user directly via API.
+     * This is much faster than kicking and waiting for re-association.
+     */
+    public function loginHotspotUserByMac(string $mac, string $username, string $password): bool
+    {
+        try {
+            $client = $this->getClient();
+            
+            // 1. Find the host entry to get the IP address
+            $hosts = $client->query('/ip/hotspot/host/print', [
+                ['mac-address', '=', $mac]
+            ])->read();
+
+            if (empty($hosts)) {
+                Log::warning('Mikrotik: Host not found for login', ['mac' => $mac]);
+                return false;
+            }
+
+            $host = $hosts[0];
+            $ipAddress = $host['address'] ?? null;
+            $server = $host['server'] ?? 'all';
+
+            if (!$ipAddress) {
+                Log::warning('Mikrotik: IP address not found for host', ['mac' => $mac]);
+                return false;
+            }
+
+            // 2. Perform the login
+            $result = $client->query('/ip/hotspot/active/login', [
+                'user' => $username,
+                'password' => $password,
+                'mac-address' => $mac,
+                'ip-address' => $ipAddress,
+                'server' => $server
+            ])->read();
+
+            Log::info('Mikrotik: Active login successful', [
+                'mac' => $mac,
+                'ip' => $ipAddress,
+                'user' => $username
+            ]);
+
+            return true;
+        } catch (Exception $e) {
+            Log::error('Mikrotik loginHotspotUserByMac error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
      * Kick a hotspot user by MAC address.
      * Finds the active session and removes it.
      */
