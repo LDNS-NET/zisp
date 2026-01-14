@@ -810,8 +810,7 @@ class MikrotikService
                 ->equal('user', $username)
                 ->equal('password', $password)
                 ->equal('mac-address', $mac)
-                ->equal('ip', $ipAddress)
-                ->equal('server', $server);
+                ->equal('ip', $ipAddress);
                 
             $result = $client->query($loginQuery)->read();
 
