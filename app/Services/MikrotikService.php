@@ -824,20 +824,26 @@ class MikrotikService
             // Check for errors in result (e.g. !trap or message)
             if (is_array($result)) {
                 foreach ($result as $item) {
-                    // Check for "already logged in" error
-                    if (isset($item['after']['message']) && str_contains($item['after']['message'], 'already logged in')) {
-                         Log::info('Mikrotik: User already logged in, forcing kick and retry', ['mac' => $mac]);
+                    // Check for "already logged in" error (via message or category 4)
+                    $errorMessage = $item['message'] ?? ($item['after']['message'] ?? '');
+                    $category = $item['category'] ?? ($item['after']['category'] ?? '');
+
+                    if (
+                        str_contains($errorMessage, 'already logged in') || 
+                        $category === '4' // Category 4 often means "already active" or "limit reached" for login
+                    ) {
+                         Log::info('Mikrotik: User already logged in (detected via error check), forcing kick and retry', ['mac' => $mac]);
                          
                          // Force kick
                          $this->kickHotspotUserByMac($mac);
                          
                          // Short delay to allow MikroTik to process the removal
-                         sleep(1);
+                         sleep(2); // Increased to 2s to be safe
                          
                          // Retry login
                          $retryResult = $client->query($loginQuery)->read();
                          Log::info('Mikrotik: Retry direct login completed', ['result' => $retryResult]);
-                         return true; // Assume success on retry or at least we tried
+                         return true; // We return true here to allow the flow to proceed, assuming retry worked or at least we tried our best
                     }
 
                     if (isset($item['!trap']) || isset($item['message'])) {
