@@ -593,45 +593,22 @@ class MikrotikService
     {
         try {
             $client = $this->getClient();
-
-            // Resolve ID if it's likely a name (IDs start with *)
-            if (substr($id, 0, 1) !== '*') {
-                $path = ($type === 'pppoe') ? '/ppp/secret' : '/ip/hotspot/user';
-                
-                $resQuery = (new \RouterOS\Query($path . '/print'))
-                    ->equal('name', $id);
-                
-                $existing = $client->query($resQuery)->read();
-
-                if (is_array($existing) && !empty($existing) && isset($existing[0]['.id'])) {
-                    $id = $existing[0]['.id'];
-                } else {
-                    Log::info('Mikrotik: Skipping unsuspend, username not found locally', ['username' => $id, 'type' => $type]);
-                    // For hotspot users in a RADIUS setup, they don't always exist locally
-                    return true;
-                }
-            }
-
             if ($type === 'pppoe') {
-                $setQuery = (new \RouterOS\Query('/ppp/secret/set'))
-                    ->equal('.id', $id)
-                    ->equal('profile', $activeProfile);
-                $client->query($setQuery)->read();
+                $client->query('/ppp/secret/set', [
+                    '.id' => $id,
+                    'profile' => $activeProfile,
+                ])->read();
             } elseif ($type === 'hotspot') {
-                $setQuery = (new \RouterOS\Query('/ip/hotspot/user/set'))
-                    ->equal('.id', $id)
-                    ->equal('profile', $activeProfile);
-                $client->query($setQuery)->read();
+                $client->query('/ip/hotspot/user/set', [
+                    '.id' => $id,
+                    'profile' => $activeProfile,
+                ])->read();
             } else {
                 throw new Exception('Unsupported type: ' . $type);
             }
             return true;
         } catch (Exception $e) {
-            Log::error('Mikrotik unsuspendUser error: ' . $e->getMessage(), [
-                'type' => $type,
-                'id' => $id,
-                'profile' => $activeProfile
-            ]);
+            Log::error('Mikrotik unsuspendUser error: ' . $e->getMessage());
             return false;
         }
     }
@@ -756,118 +733,6 @@ class MikrotikService
     }
 
     /**
-     * Authenticate a hotspot user directly via API.
-     * This is much faster than kicking and waiting for re-association.
-     */
-    public function loginHotspotUserByMac(string $mac, string $username, string $password): bool
-    {
-        try {
-            $client = $this->getClient();
-            $mac = strtoupper($mac); // Normalize MAC
-            
-            // 1. Find the host entry to get the IP address
-            Log::debug('Mikrotik: Searching for host IP', ['mac' => $mac]);
-            
-            // We'll get all hosts and filter in PHP for case-insensitivity and better error tracing
-            $hosts = $client->query('/ip/hotspot/host/print')->read();
-            
-            $ipAddress = null;
-            $server = 'all';
-
-            if (is_array($hosts)) {
-                foreach ($hosts as $h) {
-                    if (isset($h['mac-address']) && strtoupper($h['mac-address']) === $mac && isset($h['address'])) {
-                        $ipAddress = $h['address'];
-                        $server = $h['server'] ?? 'all';
-                        Log::debug('Mikrotik: Found host IP in host table', ['mac' => $mac, 'ip' => $ipAddress]);
-                        break;
-                    }
-                }
-            }
-
-            // 2. Fallback to ARP table if not in hotspot host table
-            if (!$ipAddress) {
-                Log::debug('Mikrotik: Host not found in hotspot table, checking ARP table', ['mac' => $mac]);
-                $arpEntries = $client->query('/ip/arp/print')->read();
-                if (is_array($arpEntries)) {
-                    foreach ($arpEntries as $entry) {
-                        if (isset($entry['mac-address']) && strtoupper($entry['mac-address']) === $mac && isset($entry['address'])) {
-                            $ipAddress = $entry['address'];
-                            Log::debug('Mikrotik: Found host IP in ARP table', ['mac' => $mac, 'ip' => $ipAddress]);
-                            break;
-                        }
-                    }
-                }
-            }
-
-            if (!$ipAddress) {
-                Log::warning('Mikrotik: No valid host entry or ARP entry with IP found', ['mac' => $mac]);
-                return false;
-            }
-
-            // 3. Perform the login
-            $loginQuery = (new \RouterOS\Query('/ip/hotspot/active/login'))
-                ->equal('user', $username)
-                ->equal('password', $password)
-                ->equal('mac-address', $mac)
-                ->equal('ip', $ipAddress);
-                
-            $result = $client->query($loginQuery)->read();
-
-            Log::info('Mikrotik: Direct login attempt completed', [
-                'mac' => $mac,
-                'ip' => $ipAddress,
-                'user' => $username,
-                'result' => $result
-            ]);
-
-            // Check for errors in result (e.g. !trap or message)
-            if (is_array($result)) {
-                foreach ($result as $item) {
-                    // Check for "already logged in" error (via message or category 4)
-                    $errorMessage = $item['message'] ?? ($item['after']['message'] ?? '');
-                    $category = $item['category'] ?? ($item['after']['category'] ?? '');
-
-                    if (
-                        str_contains($errorMessage, 'already logged in') || 
-                        $category === '4' // Category 4 often means "already active" or "limit reached" for login
-                    ) {
-                         Log::info('Mikrotik: User already logged in (detected via error check), forcing kick and retry', ['mac' => $mac]);
-                         
-                         // Force kick
-                         $this->kickHotspotUserByMac($mac);
-                         
-                         // Short delay to allow MikroTik to process the removal
-                         sleep(2); // Increased to 2s to be safe
-                         
-                         // Retry login
-                         $retryResult = $client->query($loginQuery)->read();
-                         Log::info('Mikrotik: Retry direct login completed', ['result' => $retryResult]);
-                         return true; // We return true here to allow the flow to proceed, assuming retry worked or at least we tried our best
-                    }
-
-                    if (isset($item['!trap']) || isset($item['message'])) {
-                        Log::warning('Mikrotik: Direct login failed with error', ['error' => $item]);
-                        return false;
-                    }
-                    if (isset($item['after']) && isset($item['after']['message'])) {
-                         Log::warning('Mikrotik: Direct login failed with after-message', ['error' => $item['after']['message']]);
-                         return false;
-                    }
-                }
-            }
-
-            return true;
-        } catch (Exception $e) {
-            Log::error('Mikrotik loginHotspotUserByMac error: ' . $e->getMessage(), [
-                'mac' => $mac,
-                'user' => $username
-            ]);
-            return false;
-        }
-    }
-
-    /**
      * Kick a hotspot user by MAC address.
      * Finds the active session and removes it.
      */
@@ -880,9 +745,7 @@ class MikrotikService
             $found = false;
             foreach ($activeSessions as $session) {
                 if (isset($session['mac-address']) && strtolower($session['mac-address']) === strtolower($mac)) {
-                    $removeQuery = (new \RouterOS\Query('/ip/hotspot/active/remove'))
-                        ->equal('.id', $session['.id']);
-                    $client->query($removeQuery)->read();
+                    $client->query('/ip/hotspot/active/remove', ['.id' => $session['.id']])->read();
                     $found = true;
                     Log::info('Hotspot user kicked by MAC', ['mac' => $mac, 'session_id' => $session['.id']]);
                 }

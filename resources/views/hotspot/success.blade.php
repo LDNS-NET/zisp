@@ -83,25 +83,7 @@
         </div>
         @endif
 
-        <a href="https://www.google.com" id="browse-btn" class="btn">Start Browsing</a>
+        <a href="https://www.google.com" class="btn">Start Browsing</a>
     </div>
-
-    <script>
-        // CNA Clearance Logic
-        // 1. Logic to auto-close or redirect after a short delay
-        setTimeout(function() {
-            // Some mobile OSes will close the CNA if we redirect to a known public site
-            window.location.href = "https://www.google.com";
-        }, 5000);
-
-        // 2. Background check to ensure internet is REALLY working
-        // This can help the OS re-probe connectivity faster
-        var img = new Image();
-        img.src = "https://www.google.com/favicon.ico?t=" + new Date().getTime();
-        img.onload = function() {
-            console.log("Internet access confirmed");
-            document.getElementById('browse-btn').innerText = "Internet Active - Start Browsing";
-        };
-    </script>
 </body>
 </html>

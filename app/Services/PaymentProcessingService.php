@@ -181,53 +181,18 @@ class PaymentProcessingService
     protected function unsuspendOnMikrotik(NetworkUser $user)
     {
         try {
-            Log::info('Mikrotik unsuspend triggered for user', [
-                'username' => $user->username,
-                'type' => $user->type,
-                'mac' => $user->mac_address
-            ]);
-
             $tenantMikrotik = \App\Models\Tenants\TenantMikrotik::where('tenant_id', $user->tenant_id)->first();
             if ($tenantMikrotik) {
                 $mikrotik = new \App\Services\MikrotikService($tenantMikrotik);
-                
-                Log::debug('Calling Mikrotik unsuspendUser', ['user' => $user->username]);
                 $mikrotik->unsuspendUser($user->type, $user->mikrotik_id ?? $user->username);
 
-                // For hotspot users with a MAC address, attempt direct login
+                // For hotspot users with a MAC address, kick them to trigger immediate MAC-Auth
                 if ($user->type === 'hotspot' && $user->mac_address) {
-                    Log::info('Attempting direct Mikrotik login for MAC', ['mac' => $user->mac_address]);
-                    
-                    // Try direct API login first (immediate, removes exclamation mark delay)
-                    // We use the MAC address as both username and password for MAC-Auth consistency
-                    $loggedIn = $mikrotik->loginHotspotUserByMac(
-                        $user->mac_address,
-                        $user->mac_address,
-                        $user->mac_address
-                    );
-
-                    Log::info('Mikrotik direct login result', ['success' => $loggedIn]);
-
-                    // If direct login failed (host not found etc), fall back to kick to trigger standard MAC-Auth
-                    if (!$loggedIn) {
-                        Log::info('Falling back to kickHotspotUserByMac', ['mac' => $user->mac_address]);
-                        $mikrotik->kickHotspotUserByMac($user->mac_address);
-                    }
-                } else {
-                    Log::warning('Skipping direct login: Empty MAC address or wrong user type', [
-                        'type' => $user->type,
-                        'has_mac' => !empty($user->mac_address)
-                    ]);
+                    $mikrotik->kickHotspotUserByMac($user->mac_address);
                 }
-            } else {
-                Log::warning('No Mikrotik found for tenant', ['tenant_id' => $user->tenant_id]);
             }
         } catch (\Exception $e) {
-            Log::error('Mikrotik unsuspend failed', [
-                'user' => $user->username,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
+            Log::error('Mikrotik unsuspend failed', ['user' => $user->username, 'error' => $e->getMessage()]);
         }
     }
 }

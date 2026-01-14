@@ -110,21 +110,18 @@ function loginToNetwork(username, password) {
         showToast('Authenticating with network...', 'info');
         
         const targetUrl = new URL(loginLink);
-        targetUrl.searchParams.set('username', username);
-        targetUrl.searchParams.set('password', password);
+        targetUrl.searchParams.append('username', username);
+        targetUrl.searchParams.append('password', password);
         
         // Force redirect to system success page to clear Captive Portal reliably
-        // We use the current origin to ensure we stay within the tenant context
-        const successUrl = new URL(window.location.origin + '/hotspot/success');
-        successUrl.searchParams.set('u', username);
-        successUrl.searchParams.set('p', password);
+        // Pass credentials as query parameters for user reference on the success page
+        const successUrl = new URL('https://' + window.location.host + '/hotspot/success');
+        successUrl.searchParams.append('u', username);
+        successUrl.searchParams.append('p', password);
         
-        targetUrl.searchParams.set('dst', successUrl.toString());
+        targetUrl.searchParams.append('dst', successUrl.toString());
         
-        // Short delay to allow backend API login to propagate fully
-        setTimeout(() => {
-            window.location.href = targetUrl.toString();
-        }, 1000);
+        window.location.href = targetUrl.toString();
         return true;
     }
     
