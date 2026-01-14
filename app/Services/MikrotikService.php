@@ -824,6 +824,22 @@ class MikrotikService
             // Check for errors in result (e.g. !trap or message)
             if (is_array($result)) {
                 foreach ($result as $item) {
+                    // Check for "already logged in" error
+                    if (isset($item['after']['message']) && str_contains($item['after']['message'], 'already logged in')) {
+                         Log::info('Mikrotik: User already logged in, forcing kick and retry', ['mac' => $mac]);
+                         
+                         // Force kick
+                         $this->kickHotspotUserByMac($mac);
+                         
+                         // Short delay to allow MikroTik to process the removal
+                         sleep(1);
+                         
+                         // Retry login
+                         $retryResult = $client->query($loginQuery)->read();
+                         Log::info('Mikrotik: Retry direct login completed', ['result' => $retryResult]);
+                         return true; // Assume success on retry or at least we tried
+                    }
+
                     if (isset($item['!trap']) || isset($item['message'])) {
                         Log::warning('Mikrotik: Direct login failed with error', ['error' => $item]);
                         return false;
