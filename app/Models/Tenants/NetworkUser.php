@@ -315,6 +315,13 @@ class NetworkUser extends Authenticatable
                         ['username' => $user->mac_address, 'attribute' => 'Cleartext-Password'],
                         ['op' => ':=', 'value' => $user->mac_address]
                     );
+
+                    if ($user->expires_at) {
+                        Radcheck::updateOrCreate(
+                            ['username' => $user->mac_address, 'attribute' => 'Expiration'],
+                            ['op' => ':=', 'value' => $user->expires_at->format('d M Y H:i:s')]
+                        );
+                    }
                 }
 
                 // Group (Only for non-hotspot or if specifically needed)
@@ -402,6 +409,13 @@ class NetworkUser extends Authenticatable
                         ['username' => $user->mac_address, 'attribute' => 'Cleartext-Password'],
                         ['op' => ':=', 'value' => $user->mac_address]
                     );
+
+                    if ($user->expires_at) {
+                        Radcheck::updateOrCreate(
+                            ['username' => $user->mac_address, 'attribute' => 'Expiration'],
+                            ['op' => ':=', 'value' => $user->expires_at->format('d M Y H:i:s')]
+                        );
+                    }
                 }
 
                 // Cleanup old Access-Period if it exists
@@ -417,6 +431,13 @@ class NetworkUser extends Authenticatable
             Radcheck::where('username', $user->username)->delete();
             Radreply::where('username', $user->username)->delete();
             Radusergroup::where('username', $user->username)->delete();
+
+            // Cleanup MAC-based entries if they exist
+            if ($user->mac_address) {
+                Radcheck::where('username', $user->mac_address)->delete();
+                Radreply::where('username', $user->mac_address)->delete();
+                Radusergroup::where('username', $user->mac_address)->delete();
+            }
         });
     }
 }

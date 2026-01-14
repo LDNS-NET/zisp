@@ -593,6 +593,22 @@ class MikrotikService
     {
         try {
             $client = $this->getClient();
+
+            // Resolve ID if it's likely a name (IDs start with *)
+            if (substr($id, 0, 1) !== '*') {
+                $path = ($type === 'pppoe') ? '/ppp/secret' : '/ip/hotspot/user';
+                $existing = $client->query($path . '/print', [
+                    ['name', '=', $id]
+                ])->read();
+
+                if (!empty($existing) && isset($existing[0]['.id'])) {
+                    $id = $existing[0]['.id'];
+                } else {
+                    Log::warning('Mikrotik: Could not resolve ID for username', ['username' => $id, 'type' => $type]);
+                    // Continue anyway, MikroTik might accept the name in some versions/cases
+                }
+            }
+
             if ($type === 'pppoe') {
                 $client->query('/ppp/secret/set', [
                     '.id' => $id,
@@ -608,7 +624,11 @@ class MikrotikService
             }
             return true;
         } catch (Exception $e) {
-            Log::error('Mikrotik unsuspendUser error: ' . $e->getMessage());
+            Log::error('Mikrotik unsuspendUser error: ' . $e->getMessage(), [
+                'type' => $type,
+                'id' => $id,
+                'profile' => $activeProfile
+            ]);
             return false;
         }
     }
@@ -742,23 +762,33 @@ class MikrotikService
             $client = $this->getClient();
             
             // 1. Find the host entry to get the IP address
+            // We need the IP associated with this MAC in the host table to perform a login
             $hosts = $client->query('/ip/hotspot/host/print', [
                 ['mac-address', '=', $mac]
             ])->read();
 
-            if (empty($hosts)) {
-                Log::warning('Mikrotik: Host not found for login', ['mac' => $mac]);
+            // Safety check for empty or non-array result
+            if (!is_array($hosts) || empty($hosts)) {
+                Log::warning('Mikrotik: Host not found for direct login', ['mac' => $mac, 'result' => $hosts]);
                 return false;
             }
 
-            $host = $hosts[0];
-            $ipAddress = $host['address'] ?? null;
+            // Ensure we have a valid first host
+            $host = null;
+            foreach ($hosts as $h) {
+                if (isset($h['address'])) {
+                    $host = $h;
+                    break;
+                }
+            }
+
+            if (!$host) {
+                Log::warning('Mikrotik: No valid host entry with IP found', ['mac' => $mac]);
+                return false;
+            }
+
+            $ipAddress = $host['address'];
             $server = $host['server'] ?? 'all';
-
-            if (!$ipAddress) {
-                Log::warning('Mikrotik: IP address not found for host', ['mac' => $mac]);
-                return false;
-            }
 
             // 2. Perform the login
             $result = $client->query('/ip/hotspot/active/login', [
@@ -769,15 +799,19 @@ class MikrotikService
                 'server' => $server
             ])->read();
 
-            Log::info('Mikrotik: Active login successful', [
+            Log::info('Mikrotik: Direct login attempt completed', [
                 'mac' => $mac,
                 'ip' => $ipAddress,
-                'user' => $username
+                'user' => $username,
+                'result' => $result
             ]);
 
             return true;
         } catch (Exception $e) {
-            Log::error('Mikrotik loginHotspotUserByMac error: ' . $e->getMessage());
+            Log::error('Mikrotik loginHotspotUserByMac error: ' . $e->getMessage(), [
+                'mac' => $mac,
+                'user' => $username
+            ]);
             return false;
         }
     }

@@ -86,7 +86,7 @@
 
 
 :put " =================== Creating hotspot profile =================== "
-/ip hotspot profile add hotspot-address=172.20.0.1 dns-name=hotspot.zisp.cloud login-by=cookie,http-chap,http-pap,mac-cookie name=$hotspotProfile use-radius=yes radius-interim-update=00:10:00
+/ip hotspot profile add hotspot-address=172.20.0.1 dns-name=hotspot.zisp.cloud login-by=cookie,http-chap,http-pap,mac-cookie,mac name=$hotspotProfile use-radius=yes radius-interim-update=00:10:00
 :put " =================== Hotspot profile created =================== "
 
 
