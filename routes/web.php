@@ -104,7 +104,7 @@ Route::middleware(['check.subscription', 'maintenance.mode'])->group(function ()
 
     Route::middleware('throttle:portal_login')->group(function () {
         Route::get('/hotspot/success', function () {
-            return view('hotspot.success');
+            return response()->noContent();
         })->name('hotspot.success');
 
         Route::get('/hotspot/suspended', [TenantHotspotController::class, 'suspended'])->name('hotspot.suspended');
