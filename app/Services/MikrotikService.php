@@ -807,11 +807,11 @@ class MikrotikService
 
             // 3. Perform the login
             $loginQuery = (new \RouterOS\Query('/ip/hotspot/active/login'))
-                ->add('user', $username)
-                ->add('password', $password)
-                ->add('mac-address', $mac)
-                ->add('ip', $ipAddress)
-                ->add('server', $server);
+                ->equal('user', $username)
+                ->equal('password', $password)
+                ->equal('mac-address', $mac)
+                ->equal('ip', $ipAddress)
+                ->equal('server', $server);
                 
             $result = $client->query($loginQuery)->read();
 
