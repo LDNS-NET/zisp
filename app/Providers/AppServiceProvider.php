@@ -67,9 +67,9 @@ class AppServiceProvider extends ServiceProvider
                     config(['app.name' => $settings['app_name']]);
                 }
                 
-                if ($settings->has('support_email')) {
-                    config(['mail.from.address' => $settings['support_email']]);
-                }
+                // if ($settings->has('support_email')) {
+                //     config(['mail.from.address' => $settings['support_email']]);
+                // }
 
                 // Share settings globally via config for easy access
                 config(['settings' => $settings->toArray()]);
