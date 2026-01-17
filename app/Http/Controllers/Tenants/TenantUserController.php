@@ -18,10 +18,9 @@ class TenantUserController extends Controller
         $search = $request->get('search');
 
         // Real-time Sync: Update 'online' status based on TenantActiveUsers BEFORE fetching users
-        // This ensures the list exactly matches the "Active Users" page logic.
+        $activeUsernames = []; // Initialize default
+        
         if (tenant()) {
-            // clear old statuses first? No, clearer to just set based on active list.
-
             // Get list of currently active usernames (matching Active Users page logic)
             // Logic: status = 'active' AND last_seen_at > 24 hours ago
             $activeUsernames = \App\Models\Tenants\TenantActiveUsers::where('tenant_id', tenant()->id)
@@ -41,7 +40,6 @@ class TenantUserController extends Controller
             }
 
             // 2. Mark everyone else as offline
-            // If activeUsernames is empty, EVERYONE goes offline.
             if (!empty($activeUsernames)) {
                 NetworkUser::whereNotIn(\DB::raw('lower(trim(username))'), $activeUsernames)
                     ->where('online', true)
@@ -100,8 +98,8 @@ class TenantUserController extends Controller
                 'email' => $user->email,
                 'location' => $user->location,
                 'type' => $user->type,
-                // Use the persisted `online` boolean from the `network_users` table as source of truth
-                'is_online' => (bool) $user->online,
+                // Use the activeUsernames array as source of truth for display
+                'is_online' => in_array(strtolower(trim($user->username ?? '')), $activeUsernames),
                 'expires_at' => $user->expires_at,
                 'expiry_human' => optional($user->expires_at)->diffForHumans(),
                 'package' => $user->package ? [
