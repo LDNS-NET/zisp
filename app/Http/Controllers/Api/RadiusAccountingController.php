@@ -32,7 +32,7 @@ class RadiusAccountingController extends Controller
             };
 
             $statusType = $extract($data['Acct-Status-Type'] ?? null);
-            $username = $extract($data['User-Name'] ?? null);
+            $username = strtolower($extract($data['User-Name'] ?? null));
             $sessionId = $extract($data['Acct-Session-Id'] ?? null);
             $nasIp = $extract($data['NAS-IP-Address'] ?? null);
             $framedIp = $extract($data['Framed-IP-Address'] ?? null);
