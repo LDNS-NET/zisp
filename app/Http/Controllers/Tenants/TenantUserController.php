@@ -18,36 +18,38 @@ class TenantUserController extends Controller
         $search = $request->get('search');
 
         // Real-time Sync: Update 'online' status based on TenantActiveUsers BEFORE fetching users
-        $activeUserIds = []; // Initialize default
-        
+        // This ensures the list exactly matches the "Active Users" page logic.
         if (tenant()) {
-            // Get list of currently active user IDs
-            // Logic: status = 'active' AND last_seen_at > 24 hours ago AND has user_id
-            $activeUserIds = \App\Models\Tenants\TenantActiveUsers::where('tenant_id', tenant()->id)
+            // clear old statuses first? No, clearer to just set based on active list.
+
+            // Get list of currently active usernames (matching Active Users page logic)
+            // Logic: status = 'active' AND last_seen_at > 24 hours ago
+            $activeUsernames = \App\Models\Tenants\TenantActiveUsers::where('tenant_id', tenant()->id)
                 ->where('status', 'active')
                 ->where('last_seen_at', '>', now()->subHours(24))
-                ->whereNotNull('user_id')
-                ->pluck('user_id')
-                ->unique() 
+                ->pluck('username')
+                ->map(fn($u) => strtolower(trim($u)))
+                ->unique() // Deduplicate
+                ->filter() // Remove empty
                 ->toArray();
 
             // 1. Mark active users as online
-            if (!empty($activeUserIds)) {
-                NetworkUser::whereIn('id', $activeUserIds)
+            if (!empty($activeUsernames)) {
+                NetworkUser::whereIn(\DB::raw('lower(trim(username))'), $activeUsernames)
                     ->where('online', false)
                     ->update(['online' => true]);
             }
 
             // 2. Mark everyone else as offline
-            if (!empty($activeUserIds)) {
-                NetworkUser::whereNotIn('id', $activeUserIds)
+            // If activeUsernames is empty, EVERYONE goes offline.
+            if (!empty($activeUsernames)) {
+                NetworkUser::whereNotIn(\DB::raw('lower(trim(username))'), $activeUsernames)
                     ->where('online', true)
                     ->update(['online' => false]);
             } else {
                  NetworkUser::where('online', true)->update(['online' => false]);
             }
         }
-
 
         $query = NetworkUser::query()
             ->with('package')
@@ -98,8 +100,8 @@ class TenantUserController extends Controller
                 'email' => $user->email,
                 'location' => $user->location,
                 'type' => $user->type,
-                // Use the activeUserIds array as source of truth for display
-                'is_online' => in_array($user->id, $activeUserIds),
+                // Use the persisted `online` boolean from the `network_users` table as source of truth
+                'is_online' => (bool) $user->online,
                 'expires_at' => $user->expires_at,
                 'expiry_human' => optional($user->expires_at)->diffForHumans(),
                 'package' => $user->package ? [
