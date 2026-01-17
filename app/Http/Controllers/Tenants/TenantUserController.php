@@ -149,6 +149,9 @@ class TenantUserController extends Controller
             'expires_at' => 'nullable|date',
         ]);
 
+        // Force lowercase username
+        $validated['username'] = strtolower($validated['username']);
+
         // Custom username uniqueness check within tenant database
         $existingUser = NetworkUser::where('username', $validated['username'])->first();
         if ($existingUser) {
@@ -333,6 +336,9 @@ class TenantUserController extends Controller
             'package_id' => 'nullable|exists:packages,id',
             'expires_at' => 'nullable|date',
         ]);
+
+        // Force lowercase username
+        $validated['username'] = strtolower($validated['username']);
 
         // Custom username uniqueness check within tenant database (excluding current user)
         $existingUser = NetworkUser::where('username', $validated['username'])
