@@ -28,9 +28,7 @@ class TenantActiveUsersController extends Controller
             $query->where('router_id', $request->input('router_id'));
         }
 
-        $activeUsersData = $query->limit($maxUsers)->get()->unique(function ($item) {
-            return $item->username . $item->mac_address;
-        });
+        $activeUsersData = $query->limit($maxUsers)->get()->unique('username');
 
         $activeUsers = $activeUsersData->map(function ($session) {
             $user = $session->user;
