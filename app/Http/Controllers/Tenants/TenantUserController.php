@@ -17,6 +17,40 @@ class TenantUserController extends Controller
         $type = $request->get('type', 'all');
         $search = $request->get('search');
 
+        // Real-time Sync: Update 'online' status based on TenantActiveUsers BEFORE fetching users
+        // This ensures the list exactly matches the "Active Users" page logic.
+        if (tenant()) {
+            // clear old statuses first? No, clearer to just set based on active list.
+
+            // Get list of currently active usernames (matching Active Users page logic)
+            // Logic: status = 'active' AND last_seen_at > 24 hours ago
+            $activeUsernames = \App\Models\Tenants\TenantActiveUsers::where('tenant_id', tenant()->id)
+                ->where('status', 'active')
+                ->where('last_seen_at', '>', now()->subHours(24))
+                ->pluck('username')
+                ->map(fn($u) => strtolower(trim($u)))
+                ->unique() // Deduplicate
+                ->filter() // Remove empty
+                ->toArray();
+
+            // 1. Mark active users as online
+            if (!empty($activeUsernames)) {
+                NetworkUser::whereIn(\DB::raw('lower(trim(username))'), $activeUsernames)
+                    ->where('online', false)
+                    ->update(['online' => true]);
+            }
+
+            // 2. Mark everyone else as offline
+            // If activeUsernames is empty, EVERYONE goes offline.
+            if (!empty($activeUsernames)) {
+                NetworkUser::whereNotIn(\DB::raw('lower(trim(username))'), $activeUsernames)
+                    ->where('online', true)
+                    ->update(['online' => false]);
+            } else {
+                 NetworkUser::where('online', true)->update(['online' => false]);
+            }
+        }
+
         $query = NetworkUser::query()
             ->with('package')
             ->when($type !== 'all', function ($q) use ($type) {
@@ -36,52 +70,7 @@ class TenantUserController extends Controller
         $perPage = $request->get('per_page', 10);
         $users = $query->paginate($perPage);
 
-        // Determine current session statuses from TenantActiveUsers
-        // Build a map: lower(trim(username)) => final status ('active' if any session active, otherwise the first non-empty status)
-        $sessionStatuses = [];
-        $activeUsernames = [];
-        $nonActiveUsernames = [];
-
-        if (tenant()) {
-            $sessions = \App\Models\Tenants\TenantActiveUsers::where('tenant_id', tenant()->id)
-                ->whereNotNull('username')
-                ->get(['username', 'status']);
-
-            $grouped = $sessions->groupBy(fn ($s) => strtolower(trim($s->username)));
-
-            foreach ($grouped as $username => $group) {
-                $statuses = $group->pluck('status')->map(fn($st) => strtolower(trim((string)$st)));
-                $final = $statuses->contains('active') ? 'active' : ($statuses->first() ?? 'deactivated');
-                $sessionStatuses[$username] = $final;
-                if ($final === 'active') {
-                    $activeUsernames[] = $username;
-                } else {
-                    $nonActiveUsernames[] = $username;
-                }
-            }
-
-            // Sync 'online' column for users present in session list
-            if (!empty($activeUsernames)) {
-                NetworkUser::whereIn(\DB::raw('lower(trim(username))'), $activeUsernames)
-                    ->where('online', false)
-                    ->update(['online' => true]);
-            }
-
-            // Users present in sessions but not active -> offline
-            if (!empty($nonActiveUsernames)) {
-                NetworkUser::whereIn(\DB::raw('lower(trim(username))'), $nonActiveUsernames)
-                    ->where('online', true)
-                    ->update(['online' => false]);
-            }
-
-            // Users with NO session records should be considered offline in real-time
-            $sessionUsernames = array_keys($sessionStatuses);
-            if (!empty($sessionUsernames)) {
-                NetworkUser::whereNotIn(\DB::raw('lower(trim(username))'), $sessionUsernames)
-                    ->where('online', true)
-                    ->update(['online' => false]);
-            }
-        }
+        // ... sync logic moved to top ...
 
         // Get available packages for the form
         $packages = [
