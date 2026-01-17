@@ -40,13 +40,7 @@ class TenantUserController extends Controller
             }
 
             // 2. Mark everyone else as offline
-            if (!empty($activeUsernames)) {
-                NetworkUser::whereNotIn(\DB::raw('lower(trim(username))'), $activeUsernames)
-                    ->where('online', true)
-                    ->update(['online' => false]);
-            } else {
-                 NetworkUser::where('online', true)->update(['online' => false]);
-            }
+            
         }
 
         $query = NetworkUser::query()
