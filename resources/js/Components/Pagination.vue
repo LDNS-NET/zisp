@@ -74,7 +74,7 @@ function navigate(url) {
         <select
           id="perPage"
           v-model="selectedPerPage"
-          class="bg-transparent border-none text-sm font-bold text-gray-700 dark:text-gray-200 focus:ring-0 cursor-pointer min-w-[60px]"
+          class="bg-transparent border-none text-sm font-bold text-gray-700 dark:text-gray-200 focus:ring-0 cursor-pointer min-w-[60px] [&>option]:bg-white [&>option]:text-gray-900 dark:[&>option]:bg-slate-800 dark:[&>option]:text-gray-100"
         >
           <option v-for="option in perPageOptions" :key="option" :value="option">
             {{ option }}
