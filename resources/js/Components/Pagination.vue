@@ -1,7 +1,7 @@
 <script setup>
 import { ref, watch } from 'vue'
 import { router } from '@inertiajs/vue3'
-import { ChevronLeft, ChevronRight, MoreHorizontal } from 'lucide-vue-next'
+import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
 
 const props = defineProps({
   links: Array,
@@ -26,7 +26,6 @@ const props = defineProps({
 const perPageOptions = [10, 25, 50, 100]
 const selectedPerPage = ref(props.perPage)
 
-// Handle changes in selected per-page
 watch(selectedPerPage, (value) => {
   const url = new URL(window.location.href)
   url.searchParams.set('per_page', value)
@@ -39,25 +38,29 @@ watch(selectedPerPage, (value) => {
   })
 })
 
-// Sync selectedPerPage when props change
 watch(() => props.perPage, (val) => {
   selectedPerPage.value = val
 })
 
 function navigate(url) {
-    if (!url) return;
-    router.visit(url, {
-        preserveScroll: true,
-        preserveState: true,
-    })
+  if (!url) return
+  router.visit(url, {
+    preserveScroll: true,
+    preserveState: true,
+  })
 }
 </script>
 
 <template>
-  <div class="flex flex-col md:flex-row justify-between items-center mt-8 py-4 px-2 gap-6 bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 shadow-sm transition-all duration-300">
-    <!-- Meta Info & Per Page -->
+  <div class="flex flex-col md:flex-row justify-between items-center mt-8 py-4 px-2 gap-6 
+              bg-white dark:bg-slate-900 
+              border border-gray-200 dark:border-slate-700 
+              rounded-xl shadow-sm transition-all duration-200">
+
+    <!-- Left: Meta Info + Per Page -->
     <div class="flex flex-col sm:flex-row items-center gap-6 w-full md:w-auto">
-      <div v-if="total > 0" class="text-sm text-gray-500 dark:text-gray-400 font-medium">
+      
+      <div v-if="total > 0" class="text-sm text-gray-600 dark:text-gray-300 font-medium">
         Showing 
         <span class="text-gray-900 dark:text-white font-bold">{{ from }}</span> 
         to 
@@ -67,51 +70,74 @@ function navigate(url) {
         results
       </div>
 
-      <div class="flex items-center gap-3 bg-gray-50 dark:bg-slate-900/50 p-1.5 rounded-lg border border-gray-200 dark:border-slate-700 dark:bg-slate-900/50">
-        <label for="perPage" class="text-[11px] uppercase tracking-wider font-bold text-gray-400 dark:text-gray-500 ml-2">
-            Show
+      <div class="flex items-center gap-3 
+                  bg-gray-50 dark:bg-slate-800 
+                  p-1.5 rounded-lg 
+                  border border-gray-200 dark:border-slate-700">
+
+        <label class="text-[11px] uppercase tracking-wider font-bold text-gray-500 dark:text-gray-400 ml-2">
+          Show
         </label>
+
         <select
-          id="perPage"
           v-model="selectedPerPage"
-          class="bg-transparent border-none text-sm font-bold text-gray-700 dark:text-gray-200 focus:ring-0 cursor-pointer min-w-[60px]"
+          class="bg-transparent border-none text-sm font-bold 
+                 text-gray-700 dark:text-gray-200 
+                 focus:ring-0 cursor-pointer min-w-[60px]"
         >
-          <option v-for="option in perPageOptions" :key="option" :value="option">
+          <option 
+            v-for="option in perPageOptions" 
+            :key="option" 
+            :value="option"
+            class="text-gray-900 dark:text-white bg-white dark:bg-slate-800"
+          >
             {{ option }}
           </option>
         </select>
+
       </div>
     </div>
 
-    <!-- Pagination Links -->
+    <!-- Right: Pagination -->
     <nav v-if="links.length > 3" class="flex items-center" aria-label="Pagination">
       <ul class="flex items-center gap-1.5">
         <li v-for="(link, key) in links" :key="key">
-          <!-- Disabled / Non-link -->
+
+          <!-- Disabled -->
           <div
             v-if="!link.url"
-            class="w-10 h-10 flex items-center justify-center rounded-xl text-gray-300 dark:text-gray-600 dark:bg-slate-900/50 transition-colors"
+            class="w-10 h-10 flex items-center justify-center rounded-xl 
+                   text-gray-300 dark:text-gray-600"
           >
             <ChevronLeft v-if="link.label.includes('Previous')" class="w-5 h-5" />
             <ChevronRight v-else-if="link.label.includes('Next')" class="w-5 h-5" />
             <span v-else class="text-sm font-semibold">{{ link.label }}</span>
           </div>
 
-          <!-- Active Link -->
-          <button
-            v-else
-            @click="navigate(link.url)"
-            class="w-10 h-10 flex items-center justify-center rounded-xl text-sm font-bold transition-all duration-300 shadow-sm"
-            :class="[
-              link.active
-                ? 'bg-blue-600 text-white shadow-blue-200 dark:shadow-none dark:bg-blue-600 scale-105'
-                : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-700 hover:border-blue-300 dark:bg-black dark:hover:border-blue-500'
-            ]"
-          >
-            <ChevronLeft v-if="link.label.includes('Previous')" class="w-5 h-5" />
-            <ChevronRight v-else-if="link.label.includes('Next')" class="w-5 h-5" />
-            <span v-else v-html="link.label"></span>
-          </button>
+          <!-- Buttons -->
+<button
+  v-else
+  @click="navigate(link.url)"
+  class="w-10 h-10 flex items-center justify-center rounded-xl text-sm font-bold 
+         transition-all duration-200 border"
+  :class="link.active
+    ? 'bg-blue-600 text-white border-blue-600 scale-105'
+    : 'bg-white dark:bg-slate-900 text-gray-700 dark:text-gray-300 
+       border-gray-200 dark:border-slate-700 
+       hover:bg-gray-100 dark:hover:bg-slate-700'"
+>
+  <ChevronLeft
+    v-if="link.label.includes('Previous')"
+    class="w-5 h-5"
+  />
+  <ChevronRight
+    v-else-if="link.label.includes('Next')"
+    class="w-5 h-5"
+  />
+  <span v-else v-html="link.label"></span>
+</button>
+
+
         </li>
       </ul>
     </nav>
