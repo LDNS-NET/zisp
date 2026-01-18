@@ -153,7 +153,7 @@ const incomeChartOptions = computed(() => ({
 const incomeChartSeries = computed(() => {
     const paymentsData = props.stats?.payments_chart || Array(12).fill(0);
     
-    console.log('Payments Chart Data:', paymentsData);
+    //console.log('Payments Chart Data:', paymentsData);
     
     return [{
         name: 'Revenue',
@@ -220,8 +220,8 @@ const userGrowthSeries = computed(() => {
     // Use real data from backend based on actual created_at dates
     const typesData = props.stats?.user_types_chart;
     
-    console.log('User Types Chart Data from Backend:', typesData);
-    console.log('Props Stats:', props.stats);
+    //console.log('User Types Chart Data from Backend:', typesData);
+    //console.log('Props Stats:', props.stats);
     
     if (!typesData) {
         console.warn('No user_types_chart data available');
@@ -248,7 +248,7 @@ const userGrowthSeries = computed(() => {
         },
     ];
     
-    console.log('Chart Series Being Passed:', chartSeries);
+    //console.log('Chart Series Being Passed:', chartSeries);
     
     return chartSeries;
 });

@@ -194,7 +194,7 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode'])
         //tenants packages
         Route::resource('packages', PackageController::class)->except(['show']);
 
-        //network users( tenants )
+        //network users( wifi users )
         Route::resource('users', TenantUserController::class)->middleware('throttle:user_crud');
         Route::delete('/users/bulk-delete', [TenantUserController::class, 'bulkDelete'])
             ->middleware('throttle:bulk_actions')
