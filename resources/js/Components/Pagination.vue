@@ -115,28 +115,24 @@ function navigate(url) {
           </div>
 
           <!-- Buttons -->
-<button
-  v-else
-  @click="navigate(link.url)"
-  class="w-10 h-10 flex items-center justify-center rounded-xl text-sm font-bold 
-         transition-all duration-200 border"
-  :class="link.active
-    ? 'bg-blue-600 text-white border-blue-600 scale-105'
-    : 'bg-white dark:bg-slate-900 text-gray-700 dark:text-gray-300 
-       border-gray-200 dark:border-slate-700 
-       hover:bg-gray-100 dark:hover:bg-slate-700'"
->
-  <ChevronLeft
-    v-if="link.label.includes('Previous')"
-    class="w-5 h-5"
-  />
-  <ChevronRight
-    v-else-if="link.label.includes('Next')"
-    class="w-5 h-5"
-  />
-  <span v-else v-html="link.label"></span>
-</button>
-
+          <button
+            v-else
+            @click="navigate(link.url)"
+            class="w-10 h-10 flex items-center justify-center rounded-xl text-sm font-bold 
+                   transition-all duration-200 border"
+            :class="[
+              link.active
+                ? 'bg-blue-600 text-white border-blue-600 scale-105'
+                : 'bg-white dark:bg-slate-900 
+                   text-gray-700 dark:text-gray-300 
+                   border-gray-200 dark:border-slate-700 
+                   hover:bg-gray-100 dark:hover:bg-slate-700'
+            ]"
+          >
+            <ChevronLeft v-if="link.label.includes('Previous')" class="w-5 h-5" />
+            <ChevronRight v-else-if="link.label.includes('Next')" class="w-5 h-5" />
+            <span v-else v-html="link.label"></span>
+          </button>
 
         </li>
       </ul>
