@@ -105,7 +105,7 @@ function navigate(url) {
             :class="[
               link.active
                 ? 'bg-blue-600 text-white shadow-blue-200 dark:shadow-none scale-105'
-                : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-500'
+                : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-700 hover:border-blue-300 dark:bg-black dark:hover:border-blue-500'
             ]"
           >
             <ChevronLeft v-if="link.label.includes('Previous')" class="w-5 h-5" />
