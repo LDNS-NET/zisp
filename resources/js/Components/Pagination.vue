@@ -7,7 +7,7 @@ const props = defineProps({
   links: Array,
   perPage: {
     type: [Number, String],
-    default: 10,
+    default: 20,
   },
   total: {
     type: Number,
@@ -23,7 +23,7 @@ const props = defineProps({
   }
 })
 
-const perPageOptions = [10, 25, 50, 100]
+const perPageOptions = [10, 20, 50, 100]
 const selectedPerPage = ref(props.perPage)
 
 // Handle changes in selected per-page
