@@ -26,7 +26,8 @@ import {
     AlertCircle,
     PieChart,
     LineChart,
-    UserCheck
+    UserCheck,
+    EyeOff
 } from 'lucide-vue-next';
 
 const props = defineProps(['stats', 'currency']);
@@ -742,7 +743,7 @@ const packageChartSeries = computed(() =>
                                     Most Active Users
                                 </h3>
                                 <div class="rounded-2xl border-2 border-gray-200 dark:border-gray-700 p-8 text-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-slate-700 dark:to-slate-800 hover:shadow-lg transition-all">
-                                    <div class="text-6xl mb-3">🚀</div>
+                                    <div class="text-6xl mb-3"><EyeOff class="h-12 w-12 text-gray-500 dark:text-gray-400" /></div>
                                     <p class="text-xl font-bold text-gray-900 dark:text-white mb-2">Coming Soon!</p>
                                     <p class="text-gray-600 dark:text-gray-400">Advanced user analytics and activity tracking</p>
                                 </div>
