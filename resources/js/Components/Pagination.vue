@@ -104,7 +104,7 @@ function navigate(url) {
             class="w-10 h-10 flex items-center justify-center rounded-xl text-sm font-bold transition-all duration-300 shadow-sm"
             :class="[
               link.active
-                ? 'bg-blue-600 text-white shadow-blue-200 dark:shadow-none scale-105'
+                ? 'bg-blue-600 text-white shadow-blue-200 dark:shadow-none dark:bg-blue-600 scale-105'
                 : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-700 hover:border-blue-300 dark:bg-black dark:hover:border-blue-500'
             ]"
           >
