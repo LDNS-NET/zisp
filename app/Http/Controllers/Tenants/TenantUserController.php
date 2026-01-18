@@ -211,7 +211,7 @@ class TenantUserController extends Controller
             ->get();
 
         // Lifetime Total
-        $lifetimeTotal = $userPayments->sum('amount')->where('status', 'paid');
+        $lifetimeTotal = $userPayments->sum('amount');
 
         // Payment Reliability Score
         $now = now();
