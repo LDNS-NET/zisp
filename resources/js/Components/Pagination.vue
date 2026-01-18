@@ -90,7 +90,7 @@ function navigate(url) {
           <!-- Disabled / Non-link -->
           <div
             v-if="!link.url"
-            class="w-10 h-10 flex items-center justify-center rounded-xl text-gray-300 dark:text-gray-600 transition-colors"
+            class="w-10 h-10 flex items-center justify-center rounded-xl text-gray-300 dark:text-gray-600 dark:bg-slate-900/50 transition-colors"
           >
             <ChevronLeft v-if="link.label.includes('Previous')" class="w-5 h-5" />
             <ChevronRight v-else-if="link.label.includes('Next')" class="w-5 h-5" />
