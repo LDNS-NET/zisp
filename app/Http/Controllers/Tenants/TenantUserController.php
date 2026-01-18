@@ -33,7 +33,7 @@ class TenantUserController extends Controller
             })
             ->latest();
 
-        $perPage = $request->get('per_page', 20);
+        $perPage = $request->get('per_page', 25);
         $users = $query->paginate($perPage);
 
         // Determine current session statuses from TenantActiveUsers

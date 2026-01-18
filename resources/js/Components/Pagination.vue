@@ -67,7 +67,7 @@ function navigate(url) {
         results
       </div>
 
-      <div class="flex items-center gap-3 bg-gray-50 dark:bg-slate-900/50 p-1.5 rounded-lg border border-gray-200 dark:border-slate-700">
+      <div class="flex items-center gap-3 bg-gray-50 dark:bg-slate-900/50 p-1.5 rounded-lg border border-gray-200 dark:border-slate-700 dark:bg-slate-900/50">
         <label for="perPage" class="text-[11px] uppercase tracking-wider font-bold text-gray-400 dark:text-gray-500 ml-2">
             Show
         </label>
