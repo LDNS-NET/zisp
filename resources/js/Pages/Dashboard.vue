@@ -32,7 +32,12 @@ import {
     Gauge,
     ArrowUpDown,
     Wifi,
-    Phone
+    Phone,
+    ServerCrash,
+    WifiOff,
+    AlertTriangle,
+    CloudOff,
+    ZapOff
 } from 'lucide-vue-next';
 
 const props = defineProps(['stats', 'currency']);
@@ -584,6 +589,85 @@ const packageChartSeries = computed(() =>
                             </div>
                         </div>
                     </div>
+                    
+                    <!-- Smart Network & User Insights -->
+                    <div class="rounded-3xl bg-white/80 backdrop-blur-xl p-6 shadow-2xl dark:bg-slate-800/80 border border-white/50 dark:border-slate-700/50">
+                         <div class="flex items-center justify-between mb-6">
+                            <h3 class="flex items-center gap-3 text-lg font-bold text-gray-900 dark:text-white">
+                                <div class="rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 p-2">
+                                    <CloudOff class="h-5 w-5 text-white" />
+                                </div>
+                                Smart Network & User Insights
+                            </h3>
+                            <span class="rounded-full bg-amber-100 dark:bg-amber-900/30 px-3 py-1 text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-700">
+                                AI Risk Analysis
+                            </span>
+                        </div>
+
+                        <div class="grid gap-6 md:grid-cols-2">
+                            <!-- Infrastructure Risks -->
+                            <div class="rounded-2xl border border-gray-200 dark:border-gray-700 p-5 bg-white/50 dark:bg-slate-700/30">
+                                <h4 class="mb-4 flex items-center gap-2 font-bold text-gray-900 dark:text-white">
+                                    <ServerCrash class="h-4 w-4 text-red-500" />
+                                    Infrastructure Risks
+                                </h4>
+                                
+                                <div v-if="stats.smart_insights?.router_risks?.length > 0" class="space-y-3">
+                                    <div v-for="risk in stats.smart_insights.router_risks" :key="risk.name" 
+                                        class="flex items-start gap-3 rounded-xl bg-red-50 p-3 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30">
+                                        <AlertTriangle class="h-5 w-5 flex-shrink-0 text-red-600 dark:text-red-400 mt-0.5" />
+                                        <div class="flex-1 min-w-0">
+                                            <p class="text-sm font-bold text-gray-900 dark:text-white">{{ risk.name }}</p>
+                                            <p class="text-xs text-gray-600 dark:text-gray-300">{{ risk.ip }}</p>
+                                            <div class="mt-2 flex flex-wrap gap-2">
+                                                <span v-for="issue in risk.issues" :key="issue" class="inline-flex items-center rounded-md bg-red-100 px-2 py-1 text-xs font-medium text-red-700 dark:bg-red-900/40 dark:text-red-300">
+                                                    {{ issue }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div v-else class="flex flex-col items-center justify-center py-6 text-center">
+                                    <div class="mb-2 rounded-full bg-green-100 p-3 dark:bg-green-900/20">
+                                        <Wifi class="h-6 w-6 text-green-600 dark:text-green-400" />
+                                    </div>
+                                    <p class="text-sm font-medium text-gray-900 dark:text-white">All Systems Normal</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">No critical infrastructure risks detected.</p>
+                                </div>
+                            </div>
+
+                            <!-- User Experience Risks -->
+                            <div class="rounded-2xl border border-gray-200 dark:border-gray-700 p-5 bg-white/50 dark:bg-slate-700/30">
+                                <h4 class="mb-4 flex items-center gap-2 font-bold text-gray-900 dark:text-white">
+                                    <ZapOff class="h-4 w-4 text-orange-500" />
+                                    User Experience Alerts
+                                </h4>
+                                
+                                <div v-if="stats.smart_insights?.user_risks?.length > 0" class="space-y-3">
+                                    <div v-for="userRisk in stats.smart_insights.user_risks" :key="userRisk.username"
+                                        class="flex items-start gap-3 rounded-xl bg-orange-50 p-3 dark:bg-orange-900/20 border border-orange-100 dark:border-orange-900/30">
+                                        <WifiOff class="h-5 w-5 flex-shrink-0 text-orange-600 dark:text-orange-400 mt-0.5" />
+                                        <div class="flex-1 min-w-0">
+                                            <div class="flex items-center justify-between">
+                                                <p class="text-sm font-bold text-gray-900 dark:text-white">{{ userRisk.username }}</p>
+                                                <span class="text-xs font-mono text-gray-500 dark:text-gray-400">{{ userRisk.phone }}</span>
+                                            </div>
+                                            <p class="mt-1 text-xs font-medium text-orange-700 dark:text-orange-300">{{ userRisk.issue }}</p>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400">{{ userRisk.detail }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div v-else class="flex flex-col items-center justify-center py-6 text-center">
+                                    <div class="mb-2 rounded-full bg-green-100 p-3 dark:bg-green-900/20">
+                                        <UserCheck class="h-6 w-6 text-green-600 dark:text-green-400" />
+                                    </div>
+                                    <p class="text-sm font-medium text-gray-900 dark:text-white">Excellent Experience</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">No users flagged with connectivity issues.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="grid gap-8 lg:grid-cols-2">
                         <!-- Network Users -->
                         <div class="rounded-3xl bg-white/80 backdrop-blur-xl p-8 shadow-2xl dark:bg-slate-800/80 border border-white/50 dark:border-slate-700/50">

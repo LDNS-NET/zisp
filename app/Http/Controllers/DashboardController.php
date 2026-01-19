@@ -135,6 +135,31 @@ class DashboardController extends Controller
                         ];
                     }),
 
+                // Smart AI Insights
+                'smart_insights' => [
+                    'router_risks' => TenantMikrotik::where(function ($query) {
+                            $query->where('status', 'offline')
+                                  ->orWhere('cpu_usage', '>', 80)
+                                  ->orWhere('memory_usage', '>', 85);
+                        })
+                        ->get()
+                        ->map(function ($router) {
+                            $issues = [];
+                            if ($router->status === 'offline') $issues[] = 'Router Offline';
+                            if ($router->cpu_usage > 80) $issues[] = 'High CPU Load (' . $router->cpu_usage . '%)';
+                            if ($router->memory_usage > 85) $issues[] = 'Memory Critical (' . $router->memory_usage . '%)';
+                            
+                            return [
+                                'name' => $router->name,
+                                'ip' => $router->ip_address ?? $router->public_ip, 
+                                'issues' => $issues,
+                                'severity' => $router->status === 'offline' ? 'critical' : 'warning',
+                            ];
+                        }),
+                    
+                    'user_risks' => $this->getUserRisks(),
+                ],
+
                 // Trial Info (used for access suspension logic)
                 'trial_info' => $tenant ? [
                     'trial_ends_at' => $tenant->created_at->addDays(18)->toFormattedDateString(),
@@ -285,6 +310,45 @@ class DashboardController extends Controller
             'pppoe' => $this->fillMissingMonths($pppoeUsers),
             'static' => $this->fillMissingMonths($staticUsers),
         ];
+    }
+
+    protected function getUserRisks()
+    {
+        // 1. Identify Frequent Disconnections (only if Radacct is used)
+        // We look for users with > 10 sessions in the last 24 hours
+        $tenantUsernames = NetworkUser::pluck('username')->toArray();
+        
+        $riskyUsers = [];
+        
+        try {
+            $frequentDisconnects = \App\Models\Radius\Radacct::whereIn('username', $tenantUsernames)
+                ->where('acctstarttime', '>=', now()->subDay())
+                ->select('username', DB::raw('count(*) as session_count'))
+                ->groupBy('username')
+                ->having('session_count', '>', 10)
+                ->orderByDesc('session_count')
+                ->limit(5)
+                ->get();
+                
+            foreach ($frequentDisconnects as $record) {
+                $user = NetworkUser::where('username', $record->username)->first();
+                $riskyUsers[] = [
+                    'username' => $record->username,
+                    'phone' => $user->phone ?? 'N/A',
+                    'issue' => 'Frequent Disconnections',
+                    'detail' => $record->session_count . ' sessions in 24h',
+                    'severity' => 'warning',
+                ];
+            }
+        } catch (\Exception $e) {
+            // Radacct table might not exist or connection failed, skip
+        }
+        
+        // 2. Identify Potential "Plan Limits" / Heavy Users (Churn Risk or Upsell)
+        // Users who downloaded > 50GB today (Example threshold)
+        // Note: This data usually comes from Radacct too.
+        
+        return $riskyUsers;
     }
 
     protected function formatBytes($bytes, $precision = 2)
