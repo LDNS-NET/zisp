@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\Tenants\TenantActiveUsers;
 use App\Models\Tenants\NetworkUser;
 use App\Models\Tenants\TenantLeads;
 use App\Models\Tenants\TenantTickets;
