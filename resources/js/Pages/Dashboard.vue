@@ -6,7 +6,6 @@ import VueApexCharts from 'vue3-apexcharts';
 import {
     Users,
     User,
-    Ticket,
     Inbox,
     RadioTower,
     DollarSign,
@@ -39,7 +38,13 @@ import {
     CloudOff,
     ZapOff,
     MapPin,
-    Ticket
+    Ticket,
+    TrendingUp,
+    TrendingDown,
+    DollarSign,
+    Briefcase,
+    Activity,
+    Radio
 } from 'lucide-vue-next';
 
 const props = defineProps(['stats', 'currency']);
@@ -393,6 +398,76 @@ const packageChartSeries = computed(() =>
                 </div>
             </div>
 
+            <!-- Network Pulse Section -->
+            <div class="relative -mt-8 px-4 sm:px-6 lg:px-8 z-10 mb-8">
+                <div class="mx-auto max-w-7xl">
+                    <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                        <!-- Network Health Score -->
+                        <div class="rounded-2xl bg-white p-6 shadow-xl dark:bg-slate-800 border border-white/50 dark:border-slate-700/50 relative overflow-hidden group">
+                            <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                                <Activity class="h-24 w-24 text-blue-500" />
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <div class="relative h-20 w-20 flex-shrink-0">
+                                    <svg class="h-full w-full transform -rotate-90" viewBox="0 0 36 36">
+                                        <!-- Background Circle -->
+                                        <path class="text-gray-100 dark:text-slate-700" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3" />
+                                        <!-- Value Circle -->
+                                        <path :class="[
+                                            'transition-all duration-1000 ease-out',
+                                            (stats.network_health || 100) > 80 ? 'text-green-500' :
+                                            (stats.network_health || 100) > 60 ? 'text-yellow-500' : 'text-red-500'
+                                        ]"
+                                        :stroke-dasharray="(stats.network_health || 100) + ', 100'"
+                                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3" />
+                                    </svg>
+                                    <div class="absolute inset-0 flex items-center justify-center flex-col">
+                                        <span class="text-xl font-bold text-gray-900 dark:text-white">{{ stats.network_health || 100 }}</span>
+                                        <span class="text-[0.6rem] font-bold uppercase text-gray-500">SQI</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">Network Health</h3>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">Service Quality Index</p>
+                                    <div class="mt-2 inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10 dark:bg-blue-400/10 dark:text-blue-400 dark:ring-blue-400/30">
+                                        {{ (stats.network_health || 100) > 80 ? 'Excellent' : (stats.network_health || 100) > 60 ? 'Fair' : 'Critical' }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Live Events Ticker -->
+                        <div class="md:col-span-1 lg:col-span-2 rounded-2xl bg-white p-6 shadow-xl dark:bg-slate-800 border border-white/50 dark:border-slate-700/50 relative overflow-hidden">
+                            <h3 class="flex items-center gap-2 text-sm font-bold text-gray-900 dark:text-white mb-4 uppercase tracking-wider">
+                                <Radio class="h-4 w-4 text-red-500 animate-pulse" />
+                                Live Network Activity
+                            </h3>
+                            <div class="space-y-3 relative">
+                                <!-- Gradient fade for list -->
+                                <div class="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white dark:from-slate-800 to-transparent pointer-events-none z-10"></div>
+                                
+                                <div v-if="stats.live_events && stats.live_events.length > 0">
+                                    <div v-for="(event, index) in stats.live_events" :key="index" class="flex items-center gap-3 animate-fade-in-up" :style="{ animationDelay: index * 100 + 'ms' }">
+                                        <div :class="[
+                                            'h-2 w-2 rounded-full flex-shrink-0',
+                                            event.severity === 'critical' ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]' :
+                                            event.severity === 'warning' ? 'bg-orange-500' : 'bg-blue-500'
+                                        ]"></div>
+                                        <p class="flex-1 text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
+                                            {{ event.message }}
+                                        </p>
+                                        <span class="text-xs text-gray-400 font-mono whitespace-nowrap">{{ event.time }}</span>
+                                    </div>
+                                </div>
+                                <div v-else class="flex items-center justify-center py-4 text-gray-500 text-sm">
+                                    <Activity class="h-4 w-4 mr-2 opacity-50" /> No recent events
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Main Content -->
             <div class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
                 <div class="space-y-10">
@@ -606,7 +681,48 @@ const packageChartSeries = computed(() =>
                             </span>
                         </div>
 
-                        <div class="grid gap-6 md:grid-cols-2">
+                        <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+                            <!-- Infrastructure Risks -->
+                            <div class="rounded-2xl border border-gray-200 dark:border-gray-700 p-5 bg-white/50 dark:bg-slate-700/30">
+                                <h4 class="mb-4 flex items-center gap-2 font-bold text-gray-900 dark:text-white">
+                                    <ServerCrash class="h-4 w-4 text-red-500" />
+                                    Infrastructure Risks
+                                </h4>
+                                
+                                <div v-if="stats.smart_insights?.router_risks?.length > 0" class="space-y-3">
+                                    <div v-for="risk in stats.smart_insights.router_risks" :key="risk.name" 
+                                        class="flex items-start gap-3 rounded-xl bg-red-50 p-3 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30">
+                                        <AlertTriangle class="h-5 w-5 flex-shrink-0 text-red-600 dark:text-red-400 mt-0.5" />
+                                        <div class="flex-1 min-w-0">
+                                            <p class="text-sm font-bold text-gray-900 dark:text-white">{{ risk.name }}</p>
+                                            <p class="text-xs text-gray-600 dark:text-gray-300">{{ risk.ip }}</p>
+                                            <div class="mt-2 flex flex-wrap gap-2">
+                                                <span v-for="issue in risk.issues" :key="issue" class="inline-flex items-center rounded-md bg-red-100 px-2 py-1 text-xs font-medium text-red-700 dark:bg-red-900/40 dark:text-red-300">
+                                                    {{ issue }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div v-else class="flex flex-col items-center justify-center py-6 text-center">
+                                    <div class="mb-2 rounded-full bg-green-100 p-3 dark:bg-green-900/20">
+                                        <Wifi class="h-6 w-6 text-green-600 dark:text-green-400" />
+                                    </div>
+                                    <p class="text-sm font-medium text-gray-900 dark:text-white">All Systems Normal</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">No critical infrastructure risks detected.</p>
+                                </div>
+                            </div>
+                                            <TrendingDown class="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                                        </div>
+                                        <div class="flex items-end gap-1">
+                                            <span class="text-2xl font-bold text-gray-900 dark:text-white">{{ currency }} {{ stats.smart_insights?.business_insights?.missed_revenue }}</span>
+                                        </div>
+                                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                            Uncollected from {{ stats.smart_insights?.business_insights?.churn_candidates }} expired users.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
                             <!-- Infrastructure Risks -->
                             <div class="rounded-2xl border border-gray-200 dark:border-gray-700 p-5 bg-white/50 dark:bg-slate-700/30">
                                 <h4 class="mb-4 flex items-center gap-2 font-bold text-gray-900 dark:text-white">
@@ -685,10 +801,7 @@ const packageChartSeries = computed(() =>
                                     <p class="text-xs text-gray-500 dark:text-gray-400">No users flagged with connectivity issues.</p>
                                 </div>
                             </div>
-                        </div>
-                    </div>
 
-                    <div class="grid gap-8 lg:grid-cols-2">
                         <!-- Network Users -->
                         <div class="rounded-3xl bg-white/80 backdrop-blur-xl p-8 shadow-2xl dark:bg-slate-800/80 border border-white/50 dark:border-slate-700/50">
                             <h3 class="mb-8 flex items-center gap-3 text-xl font-bold text-gray-900 dark:text-white">
@@ -804,7 +917,6 @@ const packageChartSeries = computed(() =>
                                 </div>
                             </div>
                         </div>
-                    </div>
 
                     <!-- Analytics & Charts Section -->
                     <div class="space-y-8">
@@ -1049,8 +1161,6 @@ const packageChartSeries = computed(() =>
                             Export to PDF
                         </a>
                     </div>
-                </div>
-            </div>
     </AuthenticatedLayout>
 </template>
 

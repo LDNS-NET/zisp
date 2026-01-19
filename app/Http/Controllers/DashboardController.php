@@ -158,8 +158,16 @@ class DashboardController extends Controller
                         }),
                     
                     'user_risks' => $this->getUserRisks(),
-                ],
 
+                    'business_insights' => $this->getBusinessInsights(),
+                ],
+                
+                // Network Health Score (SQI)
+                'network_health' => $this->getNetworkHealth(),
+
+                // Live Events Ticker
+                'live_events' => $this->getLiveEvents(),
+                
                 // Trial Info (used for access suspension logic)
                 'trial_info' => $tenant ? [
                     'trial_ends_at' => $tenant->created_at->addDays(18)->toFormattedDateString(),
@@ -382,6 +390,102 @@ class DashboardController extends Controller
         }
         
         return $riskyUsers;
+    }
+
+    protected function getBusinessInsights()
+    {
+        // 1. Forecast Revenue (Expiring in next 7 days)
+        $expiringUsers = NetworkUser::with(['package', 'hotspotPackage'])
+            ->whereBetween('expires_at', [now(), now()->addDays(7)])
+            ->get();
+
+        $forecastRevenue = 0;
+        foreach ($expiringUsers as $user) {
+            $price = $user->package?->price ?? $user->hotspotPackage?->price ?? 0;
+            $forecastRevenue += $price;
+        }
+
+        // 2. Critical Expiries (Next 3 days) - Urgency
+        $criticalCount = $expiringUsers->where('expires_at', '<', now()->addDays(3))->count();
+
+        // 3. Recently Churned / Missed Revenue (Expired 1-7 days ago)
+        $churnedUsers = NetworkUser::with(['package', 'hotspotPackage'])
+            ->whereBetween('expires_at', [now()->subDays(7), now()->subDay()])
+            ->get();
+            
+        $missedRevenue = 0;
+        foreach ($churnedUsers as $user) {
+            $price = $user->package?->price ?? $user->hotspotPackage?->price ?? 0;
+            $missedRevenue += $price;
+        }
+
+        return [
+            'forecast_revenue' => $forecastRevenue,
+            'critical_expiries' => $criticalCount,
+            'missed_revenue' => $missedRevenue,
+            'churn_candidates' => $churnedUsers->count(),
+        ];
+    }
+
+    protected function getNetworkHealth()
+    {
+        $score = 100;
+        
+        // Deduct for Infrastructure Risks
+        $offlineRouters = TenantMikrotik::where('status', 'offline')->count();
+        $stressedRouters = TenantMikrotik::where('status', 'online')
+            ->where(function ($q) {
+                $q->where('cpu_usage', '>', 80)->orWhere('memory_usage', '>', 85);
+            })->count();
+            
+        $score -= ($offlineRouters * 15); // Critical penalty
+        $score -= ($stressedRouters * 5); // Warning penalty
+        
+        // Deduct for User Experience Risks
+        $riskyUsersCount = count($this->getUserRisks());
+        $score -= ($riskyUsersCount * 2);
+
+        return max(0, $score); // Min score 0
+    }
+
+    protected function getLiveEvents()
+    {
+        $events = collect();
+
+        // 1. Recent Connections
+        $recentLogins = TenantActiveUsers::with('user:id,username')
+            ->orderBy('connected_at', 'desc')
+            ->take(5)
+            ->get();
+            
+        foreach ($recentLogins as $login) {
+            $events->push([
+                'type' => 'connection',
+                'message' => "{$login->username} connected",
+                'time' => $login->connected_at ? $login->connected_at->diffForHumans() : 'Just now',
+                'timestamp' => $login->connected_at ? $login->connected_at->timestamp : now()->timestamp,
+                'severity' => 'info'
+            ]);
+        }
+
+        // 2. Risk Events (Router Issues)
+        // Since router stats are snapshot-based, we assume current critical stats are 'now' events
+        $routerRisks = TenantMikrotik::where('status', 'offline')
+            ->orWhere('cpu_usage', '>', 80)
+            ->get();
+            
+        foreach ($routerRisks as $router) {
+            $msg = $router->status === 'offline' ? "{$router->name} is Offline" : "High Load on {$router->name}";
+            $events->push([
+                'type' => 'alert',
+                'message' => $msg,
+                'time' => 'Active Alert',
+                'timestamp' => now()->timestamp, // Prioritize active alerts
+                'severity' => 'critical'
+            ]);
+        }
+        
+        return $events->sortByDesc('timestamp')->values()->take(5);
     }
 
     protected function formatBytes($bytes, $precision = 2)
