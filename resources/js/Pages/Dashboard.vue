@@ -27,7 +27,12 @@ import {
     PieChart,
     LineChart,
     UserCheck,
-    EyeOff
+    EyeOff,
+    Cpu,
+    Thermometer,
+    Gauge,
+    ArrowUpDown,
+    Wifi
 } from 'lucide-vue-next';
 
 const props = defineProps(['stats', 'currency']);
@@ -517,8 +522,88 @@ const packageChartSeries = computed(() =>
                             </div>
                         </div>
                     </div>
+                    </div>
+                    
+                    <!-- System Health & Performance -->
+                    <div class="rounded-3xl bg-white/80 backdrop-blur-xl p-6 shadow-2xl dark:bg-slate-800/80 border border-white/50 dark:border-slate-700/50">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="flex items-center gap-3 text-lg font-bold text-gray-900 dark:text-white">
+                                <div class="rounded-lg bg-gradient-to-br from-teal-500 to-emerald-600 p-2">
+                                    <Activity class="h-5 w-5 text-white" />
+                                </div>
+                                System Health & Performance
+                            </h3>
+                            <div class="flex items-center gap-2">
+                                <span class="flex h-3 w-3 relative">
+                                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                    <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                                </span>
+                                <span class="text-xs font-semibold text-green-600 dark:text-green-400">Live Monitoring</span>
+                            </div>
+                        </div>
 
-                    <!-- Detailed Stats Sections -->
+                        <div class="grid gap-6 md:grid-cols-3">
+                            <!-- CPU Load -->
+                            <div class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100 p-5 dark:from-slate-700/50 dark:to-slate-800/50 border border-slate-200 dark:border-slate-600 hover:shadow-lg transition-all">
+                                <div class="absolute right-0 top-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                                    <Cpu class="h-16 w-16 text-blue-600 dark:text-blue-400 transform rotate-12" />
+                                </div>
+                                <div class="flex items-center gap-3 mb-4">
+                                    <div class="rounded-lg bg-blue-500/10 p-2 text-blue-600 dark:text-blue-400">
+                                        <Cpu class="h-5 w-5" />
+                                    </div>
+                                    <span class="text-sm font-semibold text-gray-600 dark:text-gray-300">Avg CPU Load</span>
+                                </div>
+                                <div class="flex items-end gap-2 mb-2">
+                                    <span class="text-3xl font-bold text-gray-900 dark:text-white">{{ stats.system_health?.cpu_avg || 0 }}%</span>
+                                </div>
+                                <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+                                    <div class="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-500"
+                                         :style="{ width: (stats.system_health?.cpu_avg || 0) + '%' }"></div>
+                                </div>
+                            </div>
+
+                            <!-- Memory Usage -->
+                            <div class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100 p-5 dark:from-slate-700/50 dark:to-slate-800/50 border border-slate-200 dark:border-slate-600 hover:shadow-lg transition-all">
+                                <div class="absolute right-0 top-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                                    <Gauge class="h-16 w-16 text-purple-600 dark:text-purple-400 transform -rotate-12" />
+                                </div>
+                                <div class="flex items-center gap-3 mb-4">
+                                    <div class="rounded-lg bg-purple-500/10 p-2 text-purple-600 dark:text-purple-400">
+                                        <Gauge class="h-5 w-5" />
+                                    </div>
+                                    <span class="text-sm font-semibold text-gray-600 dark:text-gray-300">Avg Memory</span>
+                                </div>
+                                <div class="flex items-end gap-2 mb-2">
+                                    <span class="text-3xl font-bold text-gray-900 dark:text-white">{{ stats.system_health?.memory_avg || 0 }}%</span>
+                                </div>
+                                <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+                                    <div class="bg-gradient-to-r from-purple-500 to-purple-600 h-2 rounded-full transition-all duration-500"
+                                         :style="{ width: (stats.system_health?.memory_avg || 0) + '%' }"></div>
+                                </div>
+                            </div>
+
+                            <!-- Temperature -->
+                            <div class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100 p-5 dark:from-slate-700/50 dark:to-slate-800/50 border border-slate-200 dark:border-slate-600 hover:shadow-lg transition-all">
+                                <div class="absolute right-0 top-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                                    <Thermometer class="h-16 w-16 text-red-600 dark:text-red-400" />
+                                </div>
+                                <div class="flex items-center gap-3 mb-4">
+                                    <div class="rounded-lg bg-red-500/10 p-2 text-red-600 dark:text-red-400">
+                                        <Thermometer class="h-5 w-5" />
+                                    </div>
+                                    <span class="text-sm font-semibold text-gray-600 dark:text-gray-300">Avg Temp</span>
+                                </div>
+                                <div class="flex items-end gap-2 mb-2">
+                                    <span class="text-3xl font-bold text-gray-900 dark:text-white">{{ stats.system_health?.temp_avg || 0 }}°C</span>
+                                </div>
+                                <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+                                    <div class="bg-gradient-to-r from-red-500 to-red-600 h-2 rounded-full transition-all duration-500"
+                                         :style="{ width: Math.min(((stats.system_health?.temp_avg || 0) / 80) * 100, 100) + '%' }"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <div class="grid gap-8 lg:grid-cols-2">
                         <!-- Network Users -->
                         <div class="rounded-3xl bg-white/80 backdrop-blur-xl p-8 shadow-2xl dark:bg-slate-800/80 border border-white/50 dark:border-slate-700/50">
@@ -742,10 +827,46 @@ const packageChartSeries = computed(() =>
                                     </div>
                                     Most Active Users
                                 </h3>
-                                <div class="rounded-2xl border-2 border-gray-200 dark:border-gray-700 p-8 text-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-slate-700 dark:to-slate-800 hover:shadow-lg transition-all">
-                                    <div><EyeOff class="h-12 w-12 text-gray-600 dark:text-gray-400" /></div>
-                                    <p class="text-xl font-bold text-gray-900 dark:text-white mb-2">Coming Soon!</p>
-                                    <p class="text-gray-600 dark:text-gray-400">Advanced user analytics and activity tracking</p>
+                                <div class="overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-700">
+                                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                        <thead class="bg-gray-50 dark:bg-slate-700/50">
+                                            <tr>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">User</th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Usage</th>
+                                                <th scope="col" class="px-6 py-3 text-right text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Uptime</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700 bg-white/50 dark:bg-slate-800/50">
+                                            <tr v-for="consumer in stats.top_consumers" :key="consumer.username" class="hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                                                <td class="px-6 py-4 whitespace-nowrap">
+                                                    <div class="flex items-center">
+                                                        <div class="h-8 w-8 rounded-full bg-gradient-to-r from-green-400 to-green-600 flex items-center justify-center text-white font-bold text-xs ring-2 ring-white dark:ring-slate-800">
+                                                            {{ consumer.username.substring(0, 2).toUpperCase() }}
+                                                        </div>
+                                                        <div class="ml-4">
+                                                            <div class="text-sm font-bold text-gray-900 dark:text-white">{{ consumer.username }}</div>
+                                                            <div class="text-xs text-gray-500 dark:text-gray-400 font-mono">{{ consumer.ip }}</div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td class="px-6 py-4 whitespace-nowrap">
+                                                    <div class="flex items-center gap-2">
+                                                        <ArrowUpDown class="h-4 w-4 text-blue-500" />
+                                                        <span class="text-sm font-bold text-gray-900 dark:text-white">{{ consumer.usage_formatted }}</span>
+                                                    </div>
+                                                </td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-500 dark:text-gray-400">
+                                                    {{ consumer.uptime }}
+                                                </td>
+                                            </tr>
+                                            <tr v-if="!stats.top_consumers || stats.top_consumers.length === 0">
+                                                <td colspan="3" class="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+                                                    <Wifi class="h-8 w-8 mx-auto mb-2 opacity-50" />
+                                                    <p>No active sessions found</p>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
                             </div>

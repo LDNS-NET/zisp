@@ -110,6 +110,30 @@ class DashboardController extends Controller
                         ->get(['name', 'status', 'created_at']),
                 ],
 
+                // System Health (Tenant Specific via Global Scope)
+                'system_health' => [
+                    'cpu_avg' => round(TenantMikrotik::where('status', 'online')->avg('cpu_usage') ?? 0, 1),
+                    'memory_avg' => round(TenantMikrotik::where('status', 'online')->avg('memory_usage') ?? 0, 1),
+                    'temp_avg' => round(TenantMikrotik::where('status', 'online')->avg('temperature') ?? 0, 1),
+                    'routers_online' => TenantMikrotik::where('status', 'online')->count(),
+                    'routers_total' => TenantMikrotik::count(),
+                ],
+
+                // Top Consumers (Tenant Specific via Global Scope)
+                'top_consumers' => TenantActiveUsers::with('user:id,username,type') // Eager load minimal user data
+                    ->orderByRaw('(bytes_in + bytes_out) DESC')
+                    ->take(5)
+                    ->get()
+                    ->map(function ($session) {
+                        return [
+                            'username' => $session->username,
+                            'usage' => $session->bytes_in + $session->bytes_out,
+                            'usage_formatted' => $this->formatBytes($session->bytes_in + $session->bytes_out),
+                            'ip' => $session->ip_address,
+                            'uptime' => $session->connected_at ? $session->connected_at->diffForHumans(null, true) : 'N/A',
+                        ];
+                    }),
+
                 // Trial Info (used for access suspension logic)
                 'trial_info' => $tenant ? [
                     'trial_ends_at' => $tenant->created_at->addDays(18)->toFormattedDateString(),
@@ -260,5 +284,15 @@ class DashboardController extends Controller
             'pppoe' => $this->fillMissingMonths($pppoeUsers),
             'static' => $this->fillMissingMonths($staticUsers),
         ];
+    }
+
+    protected function formatBytes($bytes, $precision = 2)
+    {
+        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+        $bytes = max($bytes, 0);
+        $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
+        $pow = min($pow, count($units) - 1);
+        $bytes /= pow(1024, $pow);
+        return round($bytes, $precision) . ' ' . $units[$pow];
     }
 }
