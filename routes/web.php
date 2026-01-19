@@ -284,7 +284,9 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode'])
         Route::middleware('throttle:mikrotik_api')->group(function () {
             Route::post('mikrotiks/{mikrotik}/reboot', [TenantMikrotikController::class, 'reboot'])->name('mikrotiks.reboot');
             Route::post('mikrotiks/{mikrotik}/identity', [TenantMikrotikController::class, 'updateIdentity'])->name('mikrotiks.updateIdentity');
-            Route::resource('mikrotiks', TenantMikrotikController::class)->except(['destroy']);
+            Route::post('mikrotiks/{mikrotik}/restore', [TenantMikrotikController::class, 'restore'])->name('mikrotiks.restore');
+            Route::delete('mikrotiks/{mikrotik}/force-delete', [TenantMikrotikController::class, 'forceDelete'])->name('mikrotiks.forceDelete');
+            Route::resource('mikrotiks', TenantMikrotikController::class);
             Route::get('mikrotiks/{mikrotik}/test-connection', [TenantMikrotikController::class, 'testConnection'])->name('mikrotiks.testConnection');
             Route::get('mikrotiks/{mikrotik}/ping', [TenantMikrotikController::class, 'pingRouter'])->name('mikrotiks.ping');
             Route::get('mikrotiks/status', [TenantMikrotikController::class, 'getAllStatus'])->name('mikrotiks.statusAll');
