@@ -164,6 +164,7 @@ function confirmPasswordAction() {
     const { type, router: targetRouter } = pendingAction.value;
     let routeName = '';
     let successMessage = '';
+    let method = 'delete';
 
     if (type === 'delete') {
         routeName = 'mikrotiks.destroy';
@@ -171,12 +172,13 @@ function confirmPasswordAction() {
     } else if (type === 'restore') {
         routeName = 'mikrotiks.restore';
         successMessage = 'Router restored successfully';
+        method = 'post';
     } else if (type === 'forceDelete') {
         routeName = 'mikrotiks.forceDelete';
         successMessage = 'Router permanently deleted';
     }
 
-    passwordForm.delete(route(routeName, targetRouter.id), {
+    passwordForm.submit(method, route(routeName, targetRouter.id), {
         onSuccess: () => {
             toast.success(successMessage);
             routersList.value = routersList.value.filter(r => r.id !== targetRouter.id);
