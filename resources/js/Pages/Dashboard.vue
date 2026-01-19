@@ -467,9 +467,9 @@ const packageChartSeries = computed(() =>
 
             <!-- Main Content -->
             <div class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-                <div class="space-y-24">
+                <div class="space-y-10">
                     <!-- Quick Stats Grid - Premium Design -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="py-10 mb-10 mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         <!-- Online Users Card -->
                         <div class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-green-500 to-teal-600 p-4 shadow-xl transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:-translate-y-1 dark:from-green-600 dark:to-teal-700 border border-green-400/30">
                             <div class="absolute top-0 right-0 w-32 h-32 opacity-20">
@@ -604,7 +604,7 @@ const packageChartSeries = computed(() =>
                     </div>
                     
                     <!-- System Health & Performance -->
-                    <div class="rounded-3xl bg-white/80 backdrop-blur-xl p-6 shadow-2xl dark:bg-slate-800/80 border border-white/50 dark:border-slate-700/50">
+                    <div class="py-10 mb-10 mt-10 rounded-3xl bg-white/80 backdrop-blur-xl p-6 shadow-2xl dark:bg-slate-800/80 border border-white/50 dark:border-slate-700/50">
                         <div class="flex items-center justify-between mb-6">
                             <h3 class="flex items-center gap-3 text-lg font-bold text-gray-900 dark:text-white">
                                 <div class="rounded-lg bg-gradient-to-br from-teal-500 to-emerald-600 p-2">
@@ -665,7 +665,7 @@ const packageChartSeries = computed(() =>
                     </div>
                     
                     <!-- Smart Network & User Insights -->
-                    <div class="rounded-3xl bg-white/80 backdrop-blur-xl p-6 shadow-2xl dark:bg-slate-800/80 border border-white/50 dark:border-slate-700/50">
+                    <div class="py-10 mb-10 mt-10 rounded-3xl bg-white/80 backdrop-blur-xl p-6 shadow-2xl dark:bg-slate-800/80 border border-white/50 dark:border-slate-700/50">
                          <div class="flex items-center justify-between mb-6">
                             <h3 class="flex items-center gap-3 text-lg font-bold text-gray-900 dark:text-white">
                                 <div class="rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 p-2">
@@ -680,7 +680,7 @@ const packageChartSeries = computed(() =>
 
                         <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
                             <!-- Infrastructure Risks -->
-                            <div class="rounded-2xl border border-gray-200 dark:border-gray-700 p-5 bg-white/50 dark:bg-slate-700/30">
+                            <div class="py-10 mb-10 mt-10 rounded-2xl border border-gray-200 dark:border-gray-700 p-5 bg-white/50 dark:bg-slate-700/30">
                                 <h4 class="mb-4 flex items-center gap-2 font-bold text-gray-900 dark:text-white">
                                     <ServerCrash class="h-4 w-4 text-red-500" />
                                     Infrastructure Risks
@@ -711,7 +711,7 @@ const packageChartSeries = computed(() =>
                             </div>
 
                             <!-- Revenue Intelligence -->
-                            <div class="rounded-2xl border border-gray-200 dark:border-gray-700 p-5 bg-white/50 dark:bg-slate-700/30">
+                            <div class="py-10 mb-10 mt-10 rounded-2xl border border-gray-200 dark:border-gray-700 p-5 bg-white/50 dark:bg-slate-700/30">
                                 <h4 class="mb-4 flex items-center gap-2 font-bold text-gray-900 dark:text-white">
                                     <Briefcase class="h-4 w-4 text-emerald-500" />
                                     Revenue Intelligence
@@ -749,7 +749,7 @@ const packageChartSeries = computed(() =>
                             </div>
 
                             <!-- User Experience Risks -->
-                            <div class="rounded-2xl border border-gray-200 dark:border-gray-700 p-5 bg-white/50 dark:bg-slate-700/30">
+                            <div class="py-10 mb-10 mt-10 rounded-2xl border border-gray-200 dark:border-gray-700 p-5 bg-white/50 dark:bg-slate-700/30">
                                 <h4 class="mb-4 flex items-center gap-2 font-bold text-gray-900 dark:text-white">
                                     <ZapOff class="h-4 w-4 text-orange-500" />
                                     User Experience Alerts
@@ -799,7 +799,7 @@ const packageChartSeries = computed(() =>
                     </div>
 
                         <!-- Network Users -->
-                        <div class="rounded-3xl bg-white/80 backdrop-blur-xl p-8 shadow-2xl dark:bg-slate-800/80 border border-white/50 dark:border-slate-700/50">
+                        <div class="rounded-3xl py-10 mb-10 mt-10 bg-white/80 backdrop-blur-xl p-8 shadow-2xl dark:bg-slate-800/80 border border-white/50 dark:border-slate-700/50">
                             <h3 class="mb-8 flex items-center gap-3 text-xl font-bold text-gray-900 dark:text-white">
                                 <div class="rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 p-2">
                                     <Users class="h-5 w-5 text-white" />
@@ -915,7 +915,7 @@ const packageChartSeries = computed(() =>
                         </div>
 
                     <!-- Phase 2: Geographic & Traffic Intelligence -->
-                    <div class="rounded-3xl bg-white/80 backdrop-blur-xl p-8 shadow-2xl dark:bg-slate-800/80 border border-white/50 dark:border-slate-700/50">
+                    <div class="mt-10 gap-8 mb-10 rounded-3xl bg-white/80 backdrop-blur-xl p-8 shadow-2xl dark:bg-slate-800/80 border border-white/50 dark:border-slate-700/50">
                         <div class="flex items-center justify-between mb-6">
                             <h3 class="flex items-center gap-3 text-xl font-bold text-gray-900 dark:text-white">
                                 <div class="rounded-xl bg-gradient-to-br from-pink-500 to-rose-600 p-2">
@@ -1144,7 +1144,7 @@ const packageChartSeries = computed(() =>
                     </div>
 
                     <!-- Recent Activity -->
-                    <div class="rounded-3xl bg-white/80 backdrop-blur-xl p-8 shadow-2xl dark:bg-slate-800/80 border border-white/50 dark:border-slate-700/50">
+                    <div class="py-10 mb-10 mt-10 rounded-3xl bg-white/80 backdrop-blur-xl p-8 shadow-2xl dark:bg-slate-800/80 border border-white/50 dark:border-slate-700/50">
                         <h3 class="mb-8 flex items-center gap-3 text-2xl font-bold text-gray-900 dark:text-white">
                             <div class="rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 p-2.5">
                                 <Activity class="h-6 w-6 text-white" />
