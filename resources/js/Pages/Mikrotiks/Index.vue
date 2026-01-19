@@ -184,8 +184,13 @@ function confirmPasswordAction() {
             passwordForm.reset();
             pendingAction.value = null;
         },
-        onError: () => {
-             passwordForm.reset();
+        onError: (errors) => {
+            if (errors.password) {
+                toast.error(errors.password);
+            } else {
+                toast.error('An error occurred. Please try again.');
+            }
+            passwordForm.reset();
         }
     });
 }
@@ -652,6 +657,7 @@ watch([routersList, search], () => {
                             class="mt-1 block w-full"
                             placeholder="Your login password"
                             ref="passwordInput"
+                            autocomplete="current-password"
                             required
                         />
                         <InputError :message="passwordForm.errors.password" class="mt-2" />
