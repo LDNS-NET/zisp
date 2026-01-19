@@ -41,6 +41,12 @@ const settingsTabs = [
         icon: CreditCard,
         route: 'settings.payment.edit',
     },
+    {
+        key: 'system',
+        label: 'System',
+        icon: Cog,
+        route: 'settings.system.edit',
+    },
     /*{
         key: 'whatsapp',
         label: 'WhatsApp Gateway',
@@ -58,12 +64,6 @@ const settingsTabs = [
         label: 'Notifications',
         icon: Bell,
         route: 'settings.notifications.edit',
-    },
-    {
-        key: 'system',
-        label: 'System Settings',
-        icon: Cog,
-        route: 'settings.index',
     },
     {
         key: 'mikrotik',
