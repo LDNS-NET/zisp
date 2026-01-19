@@ -467,7 +467,7 @@ const packageChartSeries = computed(() =>
 
             <!-- Main Content -->
             <div class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-                <div class="space-y-10">
+                <div class="space-y-4">
                     <!-- Quick Stats Grid - Premium Design -->
                     <div class="py-10 mb-10 mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         <!-- Online Users Card -->
