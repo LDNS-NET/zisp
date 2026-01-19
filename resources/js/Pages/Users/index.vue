@@ -237,7 +237,7 @@ const openActions = (user) => {
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-200 dark:divide-slate-700">
-                            <tr v-for="user in users.data" :key="user.id" class="hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer" @click="$inertia.visit(route('users.show', user.id))">
+                            <tr v-for="user in users?.data" :key="user.id" class="hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer" @click="$inertia.visit(route('users.show', user.id))">
                                 <td class="px-6 py-4 whitespace-nowrap" @click.stop>
                                     <input
                                         type="checkbox"
@@ -290,7 +290,7 @@ const openActions = (user) => {
                                     </button>
                                 </td>
                             </tr>
-                            <tr v-if="users.data.length === 0">
+                            <tr v-if="users?.data?.length === 0">
                                 <td colspan="6" class="px-6 py-10 text-center text-gray-500 dark:text-gray-400">
                                     <div class="flex flex-col items-center justify-center">
                                         <UserCheck class="w-12 h-12 text-gray-300 dark:text-gray-600 mb-3" />
@@ -316,7 +316,7 @@ const openActions = (user) => {
                         </label>
 
                     <div class="divide-y divide-gray-200 dark:divide-slate-700">
-                        <div v-for="user in users.data" :key="user.id" 
+                        <div v-for="user in users?.data" :key="user.id" 
                             class="p-3 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer"
                             @click="$inertia.visit(route('users.show', user.id))">
                             <div class="flex items-center gap-3">
@@ -364,7 +364,7 @@ const openActions = (user) => {
                             </div>
                         </div>
                         
-                        <div v-if="users.data.length === 0" class="p-6 text-center text-gray-500 dark:text-gray-400">
+                        <div v-if="users?.data?.length === 0" class="p-6 text-center text-gray-500 dark:text-gray-400">
                             <div class="flex flex-col items-center justify-center">
                                 <UserCheck class="w-10 h-10 text-gray-300 dark:text-gray-600 mb-2" />
                                 <p class="text-sm font-medium">No users found</p>
