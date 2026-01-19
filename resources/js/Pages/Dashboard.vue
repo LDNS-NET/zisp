@@ -469,7 +469,7 @@ const packageChartSeries = computed(() =>
             <div class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
                 <div class="space-y-4">
                     <!-- Quick Stats Grid - Premium Design -->
-                    <div class="py-10 mb-10 mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         <!-- Online Users Card -->
                         <div class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-green-500 to-teal-600 p-4 shadow-xl transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:-translate-y-1 dark:from-green-600 dark:to-teal-700 border border-green-400/30">
                             <div class="absolute top-0 right-0 w-32 h-32 opacity-20">
