@@ -498,4 +498,84 @@ class DashboardController extends Controller
         $bytes /= pow(1024, $pow);
         return round($bytes, $precision) . ' ' . $units[$pow];
     }
+    protected function getZoneAnalytics()
+    {
+        // Group users by location (Zone Analysis)
+        // We assume 'location' field stores the Zone or Tower name
+        $zones = NetworkUser::select('location', DB::raw('count(*) as total_users'))
+            ->whereNotNull('location')
+            ->where('location', '!=', '')
+            ->groupBy('location')
+            ->orderByDesc('total_users')
+            ->take(5)
+            ->get();
+            
+        $zoneStats = [];
+        foreach ($zones as $zone) {
+            // Calculate Revenue for this zone
+            // This is an estimation based on active packages of users in this zone
+            $usersInZone = NetworkUser::where('location', $zone->location)->with(['package', 'hotspotPackage'])->get();
+            $revenue = 0;
+            foreach ($usersInZone as $u) {
+                 $revenue += $u->package?->price ?? $u->hotspotPackage?->price ?? 0;
+            }
+    
+            $zoneStats[] = [
+                'name' => $zone->location,
+                'users' => $zone->total_users,
+                'revenue' => $revenue,
+                'efficiency' => $zone->total_users > 0 ? round($revenue / $zone->total_users) : 0, // ARPU per zone
+            ];
+        }
+        
+        return $zoneStats;
+    }
+    
+    protected function getTrafficPatterns()
+    {
+        // Identify Peak Usage Hours
+        try {
+            $peakHours = \App\Models\Radius\Radacct::select(DB::raw('HOUR(acctstarttime) as hour'), DB::raw('count(*) as sessions'))
+                ->where('acctstarttime', '>=', now()->subWeek()) // Last 7 days sample
+                ->groupBy('hour')
+                ->orderByDesc('sessions')
+                ->take(3)
+                ->get();
+                
+            if ($peakHours->isEmpty()) {
+                return ['peak_period' => 'Determining...', 'load_level' => 'Normal'];
+            }
+            
+            $mainPeak = $peakHours->first();
+            $start = $mainPeak->hour;
+            $end = ($start + 2) % 24; // Assume 2-hour window
+            
+            return [
+                'peak_period' => sprintf("%02d:00 - %02d:00", $start, $end),
+                'load_level' => $mainPeak->sessions > 100 ? 'High' : 'Moderate', // Threshold can be tuned
+                'busiest_hour' => $start,
+            ];
+        } catch (\Exception $e) {
+            return ['peak_period' => 'N/A', 'load_level' => 'Unknown'];
+        }
+    }
+    
+    protected function getFinancialHealth()
+    {
+        $totalUsers = NetworkUser::count();
+        $activePaidUsers = NetworkUser::where('status', 'active')->count(); // Assuming 'active' status implies payment
+        
+        // Total Expected Monthly Revenue
+        $users = NetworkUser::with(['package', 'hotspotPackage'])->get();
+        $totalRevenue = 0;
+        foreach ($users as $u) {
+            $totalRevenue += $u->package?->price ?? $u->hotspotPackage?->price ?? 0;
+        }
+        
+        return [
+            'arpu' => $totalUsers > 0 ? round($totalRevenue / $totalUsers) : 0,
+            'active_yield' => $activePaidUsers > 0 ? round($totalRevenue / $activePaidUsers) : 0,
+            'gross_potential' => $totalRevenue,
+        ];
+    }
 }
