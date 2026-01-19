@@ -16,7 +16,6 @@ import {
     FileText,
     Smile,
     BarChart2,
-    TrendingUp,
     Activity,
     Check,
     X,
