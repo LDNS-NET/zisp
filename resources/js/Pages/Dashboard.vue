@@ -964,7 +964,6 @@ const packageChartSeries = computed(() =>
                     </div>
                 </div>
             </div>
-        </div>
     </AuthenticatedLayout>
 </template>
 
