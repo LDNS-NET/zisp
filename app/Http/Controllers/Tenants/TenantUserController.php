@@ -37,50 +37,29 @@ class TenantUserController extends Controller
         $users = $query->paginate($perPage);
 
         // Determine current session statuses from TenantActiveUsers
-        // Build a map: lower(trim(username)) => final status ('active' if any session active, otherwise the first non-empty status)
-        $sessionStatuses = [];
-        $activeUsernames = [];
-        $nonActiveUsernames = [];
 
-        if (tenant()) {
-            $sessions = \App\Models\Tenants\TenantActiveUsers::where('tenant_id', tenant()->id)
-                ->whereNotNull('username')
-                ->get(['username', 'status']);
+        // Fetch active/online usernames directly using the same logic as Active Users page
+        $activeUsernames = \App\Models\Tenants\TenantActiveUsers::where('status', 'active')
+            ->where('last_seen_at', '>', now()->subHours(24))
+            ->whereNotNull('username')
+            ->pluck('username')
+            ->map(fn($u) => strtolower(trim($u)))
+            ->unique()
+            ->values()
+            ->all();
 
-            $grouped = $sessions->groupBy(fn ($s) => strtolower(trim($s->username)));
-
-            foreach ($grouped as $username => $group) {
-                $statuses = $group->pluck('status')->map(fn($st) => strtolower(trim((string)$st)));
-                $final = $statuses->contains('active') ? 'active' : ($statuses->first() ?? 'deactivated');
-                $sessionStatuses[$username] = $final;
-                if ($final === 'active') {
-                    $activeUsernames[] = $username;
-                } else {
-                    $nonActiveUsernames[] = $username;
-                }
-            }
-
-            // Sync 'online' column for users present in session list
-            if (!empty($activeUsernames)) {
-                NetworkUser::whereIn(\DB::raw('lower(trim(username))'), $activeUsernames)
-                    ->where('online', false)
-                    ->update(['online' => true]);
-            }
-
-            // Users present in sessions but not active -> offline
-            if (!empty($nonActiveUsernames)) {
-                NetworkUser::whereIn(\DB::raw('lower(trim(username))'), $nonActiveUsernames)
-                    ->where('online', true)
-                    ->update(['online' => false]);
-            }
-
-            // Users with NO session records should be considered offline in real-time
-            $sessionUsernames = array_keys($sessionStatuses);
-            if (!empty($sessionUsernames)) {
-                NetworkUser::whereNotIn(\DB::raw('lower(trim(username))'), $sessionUsernames)
-                    ->where('online', true)
-                    ->update(['online' => false]);
-            }
+        // Sync 'online' column based on this source of truth
+        if (!empty($activeUsernames)) {
+             NetworkUser::whereIn(\DB::raw('lower(trim(username))'), $activeUsernames)
+                 ->where('online', false)
+                 ->update(['online' => true]);
+                 
+             NetworkUser::whereNotIn(\DB::raw('lower(trim(username))'), $activeUsernames)
+                 ->where('online', true)
+                 ->update(['online' => false]);
+        } else {
+             // If no active users found, mark all as offline
+             NetworkUser::where('online', true)->update(['online' => false]);
         }
 
         // Get available packages for the form
