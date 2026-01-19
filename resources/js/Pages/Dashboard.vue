@@ -40,9 +40,7 @@ import {
     Ticket,
     TrendingUp,
     TrendingDown,
-    DollarSign,
     Briefcase,
-    Activity,
     Radio
 } from 'lucide-vue-next';
 
