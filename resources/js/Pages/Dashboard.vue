@@ -709,6 +709,33 @@ const packageChartSeries = computed(() =>
                                     <p class="text-xs text-gray-500 dark:text-gray-400">No critical infrastructure risks detected.</p>
                                 </div>
                             </div>
+
+                            <!-- Revenue Intelligence -->
+                            <div class="rounded-2xl border border-gray-200 dark:border-gray-700 p-5 bg-white/50 dark:bg-slate-700/30">
+                                <h4 class="mb-4 flex items-center gap-2 font-bold text-gray-900 dark:text-white">
+                                    <Briefcase class="h-4 w-4 text-emerald-500" />
+                                    Revenue Intelligence
+                                </h4>
+                                
+                                <div class="space-y-4">
+                                    <!-- Forecast -->
+                                    <div class="rounded-xl bg-emerald-50 p-4 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-900/30">
+                                        <div class="flex items-center justify-between mb-2">
+                                            <span class="text-xs font-semibold text-emerald-700 dark:text-emerald-300 uppercase">Forecast (7 Days)</span>
+                                            <TrendingUp class="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                                        </div>
+                                        <div class="flex items-end gap-1">
+                                            <span class="text-2xl font-bold text-gray-900 dark:text-white">{{ currency }} {{ stats.smart_insights?.business_insights?.forecast_revenue }}</span>
+                                        </div>
+                                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                            From {{ stats.smart_insights?.business_insights?.critical_expiries }} renewals due in 3 days.
+                                        </p>
+                                    </div>
+
+                                    <!-- Missed Opportunity -->
+                                    <div class="rounded-xl bg-purple-50 p-4 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-900/30">
+                                        <div class="flex items-center justify-between mb-2">
+                                            <span class="text-xs font-semibold text-purple-700 dark:text-purple-300 uppercase">Missed (Last 7 Days)</span>
                                             <TrendingDown class="h-4 w-4 text-purple-600 dark:text-purple-400" />
                                         </div>
                                         <div class="flex items-end gap-1">
@@ -718,36 +745,6 @@ const packageChartSeries = computed(() =>
                                             Uncollected from {{ stats.smart_insights?.business_insights?.churn_candidates }} expired users.
                                         </p>
                                     </div>
-                                </div>
-                            </div>
-                            <!-- Infrastructure Risks -->
-                            <div class="rounded-2xl border border-gray-200 dark:border-gray-700 p-5 bg-white/50 dark:bg-slate-700/30">
-                                <h4 class="mb-4 flex items-center gap-2 font-bold text-gray-900 dark:text-white">
-                                    <ServerCrash class="h-4 w-4 text-red-500" />
-                                    Infrastructure Risks
-                                </h4>
-                                
-                                <div v-if="stats.smart_insights?.router_risks?.length > 0" class="space-y-3">
-                                    <div v-for="risk in stats.smart_insights.router_risks" :key="risk.name" 
-                                        class="flex items-start gap-3 rounded-xl bg-red-50 p-3 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30">
-                                        <AlertTriangle class="h-5 w-5 flex-shrink-0 text-red-600 dark:text-red-400 mt-0.5" />
-                                        <div class="flex-1 min-w-0">
-                                            <p class="text-sm font-bold text-gray-900 dark:text-white">{{ risk.name }}</p>
-                                            <p class="text-xs text-gray-600 dark:text-gray-300">{{ risk.ip }}</p>
-                                            <div class="mt-2 flex flex-wrap gap-2">
-                                                <span v-for="issue in risk.issues" :key="issue" class="inline-flex items-center rounded-md bg-red-100 px-2 py-1 text-xs font-medium text-red-700 dark:bg-red-900/40 dark:text-red-300">
-                                                    {{ issue }}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div v-else class="flex flex-col items-center justify-center py-6 text-center">
-                                    <div class="mb-2 rounded-full bg-green-100 p-3 dark:bg-green-900/20">
-                                        <Wifi class="h-6 w-6 text-green-600 dark:text-green-400" />
-                                    </div>
-                                    <p class="text-sm font-medium text-gray-900 dark:text-white">All Systems Normal</p>
-                                    <p class="text-xs text-gray-500 dark:text-gray-400">No critical infrastructure risks detected.</p>
                                 </div>
                             </div>
 
@@ -798,6 +795,8 @@ const packageChartSeries = computed(() =>
                                     <p class="text-xs text-gray-500 dark:text-gray-400">No users flagged with connectivity issues.</p>
                                 </div>
                             </div>
+                        </div>
+                    </div>
 
                         <!-- Network Users -->
                         <div class="rounded-3xl bg-white/80 backdrop-blur-xl p-8 shadow-2xl dark:bg-slate-800/80 border border-white/50 dark:border-slate-700/50">
@@ -1158,6 +1157,8 @@ const packageChartSeries = computed(() =>
                             Export to PDF
                         </a>
                     </div>
+                </div>
+        </div>
     </AuthenticatedLayout>
 </template>
 
