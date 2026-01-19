@@ -29,10 +29,10 @@ import {
     UserCheck,
     EyeOff,
     Cpu,
-    Thermometer,
     Gauge,
     ArrowUpDown,
-    Wifi
+    Wifi,
+    Phone
 } from 'lucide-vue-next';
 
 const props = defineProps(['stats', 'currency']);
@@ -542,7 +542,7 @@ const packageChartSeries = computed(() =>
                             </div>
                         </div>
 
-                        <div class="grid gap-6 md:grid-cols-3">
+                        <div class="grid gap-6 md:grid-cols-2">
                             <!-- CPU Load -->
                             <div class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100 p-5 dark:from-slate-700/50 dark:to-slate-800/50 border border-slate-200 dark:border-slate-600 hover:shadow-lg transition-all">
                                 <div class="absolute right-0 top-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
@@ -580,26 +580,6 @@ const packageChartSeries = computed(() =>
                                 <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
                                     <div class="bg-gradient-to-r from-purple-500 to-purple-600 h-2 rounded-full transition-all duration-500"
                                          :style="{ width: (stats.system_health?.memory_avg || 0) + '%' }"></div>
-                                </div>
-                            </div>
-
-                            <!-- Temperature -->
-                            <div class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100 p-5 dark:from-slate-700/50 dark:to-slate-800/50 border border-slate-200 dark:border-slate-600 hover:shadow-lg transition-all">
-                                <div class="absolute right-0 top-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-                                    <Thermometer class="h-16 w-16 text-red-600 dark:text-red-400" />
-                                </div>
-                                <div class="flex items-center gap-3 mb-4">
-                                    <div class="rounded-lg bg-red-500/10 p-2 text-red-600 dark:text-red-400">
-                                        <Thermometer class="h-5 w-5" />
-                                    </div>
-                                    <span class="text-sm font-semibold text-gray-600 dark:text-gray-300">Avg Temp</span>
-                                </div>
-                                <div class="flex items-end gap-2 mb-2">
-                                    <span class="text-3xl font-bold text-gray-900 dark:text-white">{{ stats.system_health?.temp_avg || 0 }}°C</span>
-                                </div>
-                                <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
-                                    <div class="bg-gradient-to-r from-red-500 to-red-600 h-2 rounded-full transition-all duration-500"
-                                         :style="{ width: Math.min(((stats.system_health?.temp_avg || 0) / 80) * 100, 100) + '%' }"></div>
                                 </div>
                             </div>
                         </div>
@@ -833,7 +813,7 @@ const packageChartSeries = computed(() =>
                                             <tr>
                                                 <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">User</th>
                                                 <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Usage</th>
-                                                <th scope="col" class="px-6 py-3 text-right text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Uptime</th>
+                                                <th scope="col" class="px-6 py-3 text-right text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Phone</th>
                                             </tr>
                                         </thead>
                                         <tbody class="divide-y divide-gray-200 dark:divide-gray-700 bg-white/50 dark:bg-slate-800/50">
@@ -855,8 +835,11 @@ const packageChartSeries = computed(() =>
                                                         <span class="text-sm font-bold text-gray-900 dark:text-white">{{ consumer.usage_formatted }}</span>
                                                     </div>
                                                 </td>
-                                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-500 dark:text-gray-400">
-                                                    {{ consumer.uptime }}
+                                                <td class="px-6 py-4 whitespace-nowrap text-right">
+                                                    <div class="flex items-center justify-end gap-2 text-sm text-gray-500 dark:text-gray-400">
+                                                        <Phone class="h-3 w-3" />
+                                                        <span>{{ consumer.phone }}</span>
+                                                    </div>
                                                 </td>
                                             </tr>
                                             <tr v-if="!stats.top_consumers || stats.top_consumers.length === 0">
