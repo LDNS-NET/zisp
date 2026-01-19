@@ -396,7 +396,7 @@ const packageChartSeries = computed(() =>
             </div>
 
             <!-- Network Pulse Section -->
-            <div class="relative -mt-8 px-4 sm:px-6 lg:px-8 z-10 mb-8">
+            <div class="relative mt-6 px-4 sm:px-6 lg:px-8 mb-8">
                 <div class="mx-auto max-w-7xl">
                     <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                         <!-- Network Health Score -->
