@@ -51,9 +51,10 @@ class DashboardController extends Controller
                     'hotspot' => NetworkUser::where('type', 'hotspot')->count(),
                     'pppoe' => NetworkUser::where('type', 'pppoe')->count(),
                     'static' => NetworkUser::where('type', 'static')->count(),
-                    'activeUsers' => NetworkUser::where('online', true)
-                        ->where('created_by', $userId)
-                        ->count(),
+                    'activeUsers' => \App\Models\Tenants\TenantActiveUsers::where('status', 'active')
+                        ->where('last_seen_at', '>', now()->subHours(24))
+                        ->distinct('username')
+                        ->count('username'),
                     'expired' => NetworkUser::whereDate('expires_at', '<', now())->count(),
                 ],
 
