@@ -11,6 +11,7 @@ import {
     Wallet,
     Cog,
     Server,
+    Shield,
 } from 'lucide-vue-next';
 
 const page = usePage();
@@ -40,6 +41,12 @@ const settingsTabs = [
         label: 'Payment Gateway',
         icon: CreditCard,
         route: 'settings.payment.edit',
+    },
+    {
+        key: 'system',
+        label: 'System Settings',
+        icon: Shield,
+        route: 'settings.system.edit',
     },
     /*{
         key: 'whatsapp',

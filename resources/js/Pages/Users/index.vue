@@ -41,6 +41,7 @@ const props = defineProps({
     packages: Object,
     activeUsernames: Array,
     debugInfo: Object,
+    securitySettings: { type: Object, default: () => ({ require_password_for_user_management: true }) },
 });
 
 const showModal = ref(false);
@@ -51,149 +52,23 @@ const viewing = ref(null);
 const selectedFilter = ref(props.filters?.type || 'all');
 const search = ref(props.filters?.search || '');
 
-const form = useForm({
-    full_name: '',
-    username: '',
-    password: '',
-    phone: '',
-    // email: '',
-    location: '',
-    package_id: '',
-    type: 'hotspot',
-    expires_at: '',
-    admin_password: '', // For validation
-});
-
-const passwordForm = useForm({
-    password: '',
-});
-
-const importForm = useForm({
-    file: null,
-});
-
-// Watchers for filters
-watch(selectedFilter, (value) => {
-    router.get(
-        route('users.index'), 
-        { type: value, search: search.value }, 
-        { preserveScroll: true }
-    );
-});
-
-let searchTimeout;
-watch(search, (value) => {
-    clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(() => {
-        router.get(
-            route('users.index'),
-            { type: selectedFilter.value, search: value },
-            { preserveScroll: true }
-        );
-    }, 300);
-});
-
-onMounted(() => {
-    // Poll for real-time status updates every 5 seconds
-    const interval = setInterval(() => {
-        router.reload({
-            only: ['users', 'counts'],
-            preserveScroll: true,
-            preserveState: true,
-        });
-    }, 5000);
-
-    // Clean up interval on unmount
-    return () => clearInterval(interval);
-});
-
-function openCreate() {
-    editing.value = null;
-    form.reset();
-    form.type = 'hotspot';
-    showModal.value = true;
-}
-
-function openImport() {
-    importForm.reset();
-    showImportModal.value = true;
-}
-
-function submitImport() {
-    importForm.post(route('users.import'), {
-        onSuccess: (page) => {
-            showImportModal.value = false;
-            importForm.reset();
-            toast.success('Import process completed');
-            
-            // Check for import errors in session (passed from backend)
-            // Ideally backend returns them in flash props or errors bag.
-            // Our backend puts 'import_errors' in session flash. 
-            // Inertia props should update automatically.
-            if (page.props.flash?.import_errors && page.props.flash.import_errors.length > 0) {
-                // We might want to show a toast or a modal with errors.
-                // For now, let's just toast a warning or rely on the user checking the success message which mentions errors.
-                 toast.warning(`Some rows were skipped. Check the success message.`);
-            }
-        },
-        onError: () => {
-            toast.error('Failed to import file.');
-        },
-        forceFormData: true,
-    });
-}
-
-function downloadSample() {
-    // Generate a simple CSV content
-    const csvContent = "username,phone,full_name,location,type,package,password\njohn_doe,0712345678,John Doe,Nairobi,hotspot,Weekly Bundle,secret123\njane_smith,0723456789,Jane Smith,Mombasa,pppoe,Home Fiber,securePass";
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    if (link.download !== undefined) {
-        const url = URL.createObjectURL(blob);
-        link.setAttribute("href", url);
-        link.setAttribute("download", "users_import_sample.csv");
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    }
-}
-
-const selectedUsers = ref([]);
-
-const bulkDelete = () => {
-    if (selectedUsers.value.length && confirm(`Are you sure you want to delete ${selectedUsers.value.length} users?`)) {
-        router.delete(route('users.bulk-delete'), {
-            data: { ids: selectedUsers.value },
-            onSuccess: () => {
-                selectedUsers.value = [];
-                toast.success('Users successfully deleted');
-            },
-        });
-    }
-};
-
-function openEdit(user) {
-    editing.value = user.id;
-    form.full_name = user.full_name ?? '';
-    form.username = user.username ?? '';
-    form.password = ''; // Don't show current password
-    form.phone = user.phone ?? '';
-    // form.email = user.email ?? '';
-    form.location = user.location ?? '';
-    form.package_id = user.package_id ?? '';
-    form.type = user.type ?? 'hotspot';
-    form.expires_at = user.expires_at ? user.expires_at.slice(0, 16) : '';
-    showModal.value = true;
-}
+// ... (existing code)
 
 function initiateSubmit() {
-    passwordForm.reset();
-    showPasswordModal.value = true;
+    if (props.securitySettings.require_password_for_user_management) {
+        passwordForm.reset();
+        showPasswordModal.value = true;
+    } else {
+        // If password requirement is disabled, submit directly without admin_password
+        confirmSubmit();
+    }
 }
 
 function confirmSubmit() {
-    form.admin_password = passwordForm.password;
+    // Only attach admin password if we have collected it
+    if (props.securitySettings.require_password_for_user_management) {
+        form.admin_password = passwordForm.password;
+    }
     
     const options = {
         onSuccess: () => {
@@ -206,13 +81,8 @@ function confirmSubmit() {
         onError: (errors) => {
             if (errors.admin_password) {
                 toast.error(errors.admin_password);
-                passwordForm.setError('password', errors.admin_password); // key might be admin_password, but we show on password field
-                // actually we can just show toast and keep password modal open?
-                // If it's a password error, we keep password modal open.
-                // If it's a form error (e.g. username taken), we should close password modal?
-                // If admin_password error, keep password modal open.
+                passwordForm.setError('password', errors.admin_password); 
             } else {
-                // If other errors, close password modal to show form errors
                 showPasswordModal.value = false;
                 toast.error('Please check the form for errors.');
             }
