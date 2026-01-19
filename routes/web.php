@@ -272,10 +272,6 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode'])
             ->middleware('throttle:file_upload')
             ->name('settings.general.update');
 
-        //system settings
-        Route::get('settings/system', [App\Http\Controllers\Tenants\TenantSystemSettingsController::class, 'edit'])->name('settings.system.edit');
-        Route::post('settings/system', [App\Http\Controllers\Tenants\TenantSystemSettingsController::class, 'update'])->name('settings.system.update');
-
         // Domain Requests
         Route::get('domain-requests', [App\Http\Controllers\Tenants\DomainRequestController::class, 'index'])->name('domain-requests.index');
         Route::post('domain-requests', [App\Http\Controllers\Tenants\DomainRequestController::class, 'store'])->name('domain-requests.store');

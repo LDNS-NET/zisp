@@ -10,8 +10,6 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Radius\Radacct;
-use App\Models\TenantSetting;
-
 class TenantUserController extends Controller
 {
     public function index(Request $request)
@@ -82,12 +80,6 @@ class TenantUserController extends Controller
             'expired' => NetworkUser::where('expires_at', '<', now())->count(),
         ];
 
-        // Security Settings
-        $systemSettings = TenantSetting::forTenant(tenant('id'), 'system')?->settings ?? [];
-        $securitySettings = [
-            'require_password_for_user_management' => $systemSettings['require_password_for_user_management'] ?? true,
-        ];
-
         return inertia('Users/index', [
             'users' => $users->through(fn($user) => [
                 'id' => $user->id,
@@ -113,21 +105,14 @@ class TenantUserController extends Controller
             ],
             'counts' => $counts,
             'packages' => $packages,
-            'activeUsernames' => $activeUsernames, 
-            'securitySettings' => $securitySettings,
         ]);
     }
 
     public function store(Request $request)
     {
-        // Check system settings for password requirement
-        $systemSettings = TenantSetting::forTenant(tenant('id'), 'system')?->settings ?? [];
-        $requirePassword = $systemSettings['require_password_for_user_management'] ?? true;
-        $adminPasswordRule = $requirePassword ? 'required|current_password' : 'nullable';
-
         // Validate the request
         $validated = $request->validate([
-            'admin_password' => $adminPasswordRule,
+            'admin_password' => 'required|current_password',
             'full_name' => 'nullable|string|max:255',
             'username' => 'required|string|max:255',
             'password' => 'nullable|string|min:3',
@@ -314,14 +299,9 @@ class TenantUserController extends Controller
 
     public function update(Request $request, NetworkUser $user)
     {
-        // Check system settings for password requirement
-        $systemSettings = TenantSetting::forTenant(tenant('id'), 'system')?->settings ?? [];
-        $requirePassword = $systemSettings['require_password_for_user_management'] ?? true;
-        $adminPasswordRule = $requirePassword ? 'required|current_password' : 'nullable';
-
         // Validate the request
         $validated = $request->validate([
-            'admin_password' => $adminPasswordRule,
+            'admin_password' => 'required|current_password',
             'full_name' => 'nullable|string|max:255',
             'username' => 'required|string|max:255',
             'password' => 'nullable|string|min:4',
