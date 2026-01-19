@@ -914,6 +914,82 @@ const packageChartSeries = computed(() =>
                             </div>
                         </div>
 
+                    <!-- Phase 2: Geographic & Traffic Intelligence -->
+                    <div class="rounded-3xl bg-white/80 backdrop-blur-xl p-8 shadow-2xl dark:bg-slate-800/80 border border-white/50 dark:border-slate-700/50">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="flex items-center gap-3 text-xl font-bold text-gray-900 dark:text-white">
+                                <div class="rounded-xl bg-gradient-to-br from-pink-500 to-rose-600 p-2">
+                                    <MapPin class="h-5 w-5 text-white" />
+                                </div>
+                                Geographic & Traffic Intelligence
+                            </h3>
+                            <span class="rounded-full bg-pink-100 dark:bg-pink-900/30 px-3 py-1 text-xs font-bold uppercase tracking-wider text-pink-600 dark:text-pink-400 border border-pink-200 dark:border-pink-700">
+                                Location AI
+                            </span>
+                        </div>
+
+                        <div class="grid gap-8 lg:grid-cols-2">
+                            <!-- Zone Performance -->
+                            <div class="rounded-2xl border border-gray-200 dark:border-gray-700 p-6 bg-white/50 dark:bg-slate-700/30">
+                                <h4 class="mb-4 flex items-center gap-2 font-bold text-gray-900 dark:text-white">
+                                    <RadioTower class="h-4 w-4 text-gray-500" />
+                                    Top Network Zones
+                                </h4>
+                                <div v-if="stats.zone_analytics && stats.zone_analytics.length > 0" class="space-y-4">
+                                    <div v-for="(zone, index) in stats.zone_analytics" :key="zone.name" class="flex items-center justify-between">
+                                        <div class="flex items-center gap-3">
+                                            <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100 font-bold text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                                                {{ index + 1 }}
+                                            </div>
+                                            <div>
+                                                <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ zone.name }}</p>
+                                                <p class="text-xs text-gray-500 dark:text-gray-400">{{ zone.users }} active users</p>
+                                            </div>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-sm font-bold text-gray-900 dark:text-white">{{ currency }} {{ zone.revenue.toLocaleString() }}</p>
+                                            <p class="text-[10px] uppercase tracking-wider text-gray-400">Yield: {{ currency }} {{ zone.efficiency }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div v-else class="py-8 text-center text-sm text-gray-500 text-gray-400">
+                                    No location data available yet.
+                                </div>
+                            </div>
+
+                            <div class="space-y-6">
+                                <!-- Traffic AI -->
+                                <div class="rounded-2xl border border-gray-200 dark:border-gray-700 p-6 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 text-center relative overflow-hidden">
+                                     <div class="absolute top-0 right-0 p-4 opacity-10">
+                                        <Clock class="h-24 w-24 text-indigo-500" />
+                                    </div>
+                                    <p class="text-xs font-bold uppercase tracking-widest text-indigo-500 mb-2">Predicted Peak Traffic</p>
+                                    <h3 class="text-3xl font-black text-indigo-900 dark:text-indigo-100 mb-1">
+                                        {{ stats.traffic_ai?.peak_period || 'Analyzing...' }}
+                                    </h3>
+                                    <p class="text-sm text-indigo-600 dark:text-indigo-300 flex items-center justify-center gap-2">
+                                        <Activity class="h-4 w-4" />
+                                        Network Load: <span class="font-bold">{{ stats.traffic_ai?.load_level || 'Normal' }}</span>
+                                    </p>
+                                </div>
+
+                                <!-- Financial Health (ARPU) -->
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="rounded-2xl border border-gray-200 dark:border-gray-700 p-4 bg-white/50 dark:bg-slate-700/30">
+                                        <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">ARPU</p>
+                                        <p class="text-xl font-bold text-gray-900 dark:text-white">{{ currency }} {{ stats.financial_health?.arpu || 0 }}</p>
+                                        <p class="text-[10px] text-green-500 font-medium">Avg Revenue / User</p>
+                                    </div>
+                                    <div class="rounded-2xl border border-gray-200 dark:border-gray-700 p-4 bg-white/50 dark:bg-slate-700/30">
+                                        <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Active Yield</p>
+                                        <p class="text-xl font-bold text-gray-900 dark:text-white">{{ currency }} {{ stats.financial_health?.active_yield || 0 }}</p>
+                                        <p class="text-[10px] text-blue-500 font-medium">Revenue / Online</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Analytics & Charts Section -->
                     <div class="space-y-8">
                         <div class="flex items-center justify-between">

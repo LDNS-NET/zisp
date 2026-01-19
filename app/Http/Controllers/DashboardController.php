@@ -161,21 +161,22 @@ class DashboardController extends Controller
 
                     'business_insights' => $this->getBusinessInsights(),
                 ],
-                
+
                 // Network Health Score (SQI)
                 'network_health' => $this->getNetworkHealth(),
 
                 // Live Events Ticker
                 'live_events' => $this->getLiveEvents(),
                 
-                // Trial Info (used for access suspension logic)
+                // Phase 2: Advanced Analytics
+                'zone_analytics' => $this->getZoneAnalytics(),
+                'traffic_ai' => $this->getTrafficPatterns(),
+                'financial_health' => $this->getFinancialHealth(),
+
+                // Trial Info
                 'trial_info' => $tenant ? [
                     'trial_ends_at' => $tenant->created_at->addDays(18)->toFormattedDateString(),
-                    'is_suspended' => $this->isTenantSuspended($tenant),
-                ] : [
-                    'trial_ends_at' => 'N/A',
-                    'is_suspended' => true,
-                ],
+                ] : null,
             ],
             'currency' => $tenant?->currency ?? 'KES',
         ]);
