@@ -799,7 +799,7 @@ const packageChartSeries = computed(() =>
                     </div>
 
                         <!-- Network Users -->
-                        <div class="rounded-3xl bg-white/80 backdrop-blur-xl p-8 shadow-2xl dark:bg-slate-800/80 border border-white/50 dark:border-slate-700/50">
+                        <div class="rounded-3xl py-10 mb-10 mt-10 bg-white/80 backdrop-blur-xl p-8 shadow-2xl dark:bg-slate-800/80 border border-white/50 dark:border-slate-700/50">
                             <h3 class="mb-8 flex items-center gap-3 text-xl font-bold text-gray-900 dark:text-white">
                                 <div class="rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 p-2">
                                     <Users class="h-5 w-5 text-white" />
@@ -915,7 +915,7 @@ const packageChartSeries = computed(() =>
                         </div>
 
                     <!-- Phase 2: Geographic & Traffic Intelligence -->
-                    <div class="mt-10 mb-10 rounded-3xl bg-white/80 backdrop-blur-xl p-8 shadow-2xl dark:bg-slate-800/80 border border-white/50 dark:border-slate-700/50">
+                    <div class="mt-10 gap-8 mb-10 rounded-3xl bg-white/80 backdrop-blur-xl p-8 shadow-2xl dark:bg-slate-800/80 border border-white/50 dark:border-slate-700/50">
                         <div class="flex items-center justify-between mb-6">
                             <h3 class="flex items-center gap-3 text-xl font-bold text-gray-900 dark:text-white">
                                 <div class="rounded-xl bg-gradient-to-br from-pink-500 to-rose-600 p-2">
