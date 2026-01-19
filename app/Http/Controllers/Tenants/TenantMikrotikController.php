@@ -12,6 +12,7 @@ use App\Models\Radius\Radacct;
 use App\Services\Mikrotik\RouterApiService;
 use App\Services\WinboxPortService;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use App\Models\Tenant;
 use Illuminate\Support\Str;
@@ -25,12 +26,18 @@ class TenantMikrotikController extends Controller
     /**
      * List all Mikrotiks for tenant.
      */
-    public function index()
+    public function index(Request $request)
     {
         $tenants = Tenant::orderBy('name')->get();
-        $routers = TenantMikrotik::with(['openvpnProfile', 'logs', 'bandwidthUsage', 'alerts'])
-            ->orderByDesc('last_seen_at')
-            ->get();
+
+        $query = TenantMikrotik::with(['openvpnProfile', 'logs', 'bandwidthUsage', 'alerts'])
+            ->orderByDesc('last_seen_at');
+
+        if ($request->query('tab') === 'deleted') {
+            $query->onlyTrashed();
+        }
+
+        $routers = $query->get();
 
         // Mark stale routers as offline (> 4 minutes since last_seen_at)
         foreach ($routers as $router) {
@@ -715,10 +722,14 @@ class TenantMikrotikController extends Controller
         return redirect()->route('mikrotiks.index')->with('success', 'Router updated!');
     }
 
-    public function destroy($id, WinboxPortService $winboxService)
+    public function destroy(Request $request, $id, WinboxPortService $winboxService)
     {
-        $router = TenantMikrotik::findOrFail($id);
+        $request->validate([
+            'password' => 'required|current_password',
+        ]);
         
+        $router = TenantMikrotik::findOrFail($id);
+
         try {
             $winboxService->removeMapping($router);
         } catch (\Exception $e) {
@@ -726,7 +737,31 @@ class TenantMikrotikController extends Controller
         }
         
         $router->delete();
-        return redirect()->route('mikrotiks.index')->with('success', 'Router deleted!');
+        return redirect()->route('mikrotiks.index')->with('success', 'Router moved to Recycle Bin.');
+    }
+
+    public function restore(Request $request, $id)
+    {
+        $request->validate([
+            'password' => 'required|current_password',
+        ]);
+        
+        $router = TenantMikrotik::withTrashed()->findOrFail($id);
+        $router->restore();
+
+        return redirect()->route('mikrotiks.index', ['tab' => 'deleted'])->with('success', 'Router restored successfully.');
+    }
+
+    public function forceDelete(Request $request, $id)
+    {
+        $request->validate([
+            'password' => 'required|current_password',
+        ]);
+
+        $router = TenantMikrotik::withTrashed()->findOrFail($id);
+        $router->forceDelete();
+
+        return redirect()->route('mikrotiks.index', ['tab' => 'deleted'])->with('success', 'Router permanently deleted.');
     }
 
     /*

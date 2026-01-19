@@ -28,7 +28,9 @@ import {
     XCircle,
     Cpu,
     HardDrive,
-    Terminal
+    Terminal,
+    Trash, // New icon for Recycle Bin
+    RefreshCcw, // New icon for Restore
 } from 'lucide-vue-next';
 
 const toast = useToast();
@@ -47,6 +49,7 @@ const showEditModal = ref(false);
 const showDetails = ref(false);
 const showRemoteModal = ref(false);
 const showActionsModal = ref(false);
+const showPasswordModal = ref(false); // Password confirmation modal
 const selectedRouter = ref(null);
 const remoteLinks = ref({});
 const pinging = ref({});
@@ -54,6 +57,16 @@ const formError = ref('');
 const routersList = ref(props.routers || []);
 const search = ref('');
 let statusPollInterval = null;
+
+// Tab State
+const urlParams = new URLSearchParams(window.location.search);
+const activeTab = ref(urlParams.get('tab') || 'active');
+
+// Password Confirmation State
+const passwordForm = useForm({
+    password: '',
+});
+const pendingAction = ref(null); // { type: 'delete'|'restore'|'forceDelete', router: Object }
 
 // Watch for props changes
 watch(() => props.routers, (newRouters) => {
@@ -115,15 +128,66 @@ function openActions(router) {
     showActionsModal.value = true;
 }
 
-function deleteRouter(mikrotik) {
-    if (confirm('Are you sure you want to delete this router?')) {
-        router.delete(route('mikrotiks.destroy', mikrotik.id), {
-            onSuccess: () => {
-                toast.success('Router deleted successfully');
-                routersList.value = routersList.value.filter(r => r.id !== mikrotik.id);
-            },
-        });
+function changeTab(tab) {
+    activeTab.value = tab;
+    router.visit(route('mikrotiks.index', { tab: tab }), {
+        preserveState: true,
+        preserveScroll: true,
+        only: ['routers'],
+    });
+}
+
+function initiateDelete(mikrotik) {
+    selectedRouter.value = mikrotik;
+    pendingAction.value = { type: 'delete', router: mikrotik };
+    passwordForm.reset();
+    showPasswordModal.value = true;
+}
+
+function initiateRestore(mikrotik) {
+    selectedRouter.value = mikrotik;
+    pendingAction.value = { type: 'restore', router: mikrotik };
+    passwordForm.reset();
+    showPasswordModal.value = true;
+}
+
+function initiateForceDelete(mikrotik) {
+    selectedRouter.value = mikrotik;
+    pendingAction.value = { type: 'forceDelete', router: mikrotik };
+    passwordForm.reset();
+    showPasswordModal.value = true;
+}
+
+function confirmPasswordAction() {
+    if (!pendingAction.value) return;
+
+    const { type, router: targetRouter } = pendingAction.value;
+    let routeName = '';
+    let successMessage = '';
+
+    if (type === 'delete') {
+        routeName = 'mikrotiks.destroy';
+        successMessage = 'Router moved to Recycle Bin';
+    } else if (type === 'restore') {
+        routeName = 'mikrotiks.restore';
+        successMessage = 'Router restored successfully';
+    } else if (type === 'forceDelete') {
+        routeName = 'mikrotiks.forceDelete';
+        successMessage = 'Router permanently deleted';
     }
+
+    passwordForm.delete(route(routeName, targetRouter.id), {
+        onSuccess: () => {
+            toast.success(successMessage);
+            routersList.value = routersList.value.filter(r => r.id !== targetRouter.id);
+            showPasswordModal.value = false;
+            passwordForm.reset();
+            pendingAction.value = null;
+        },
+        onError: () => {
+             passwordForm.reset();
+        }
+    });
 }
 
 async function pingRouter(router) {
@@ -289,6 +353,36 @@ watch([routersList, search], () => {
         </template>
 
         <div class="space-y-6">
+            <!-- Tabs -->
+            <div class="border-b border-gray-200 dark:border-slate-700">
+                <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                    <button
+                        @click="changeTab('active')"
+                        :class="[
+                            activeTab === 'active'
+                                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300',
+                            'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2'
+                        ]"
+                    >
+                        <Server class="w-4 h-4" />
+                        Active Routers
+                    </button>
+                    <button
+                        @click="changeTab('deleted')"
+                        :class="[
+                            activeTab === 'deleted'
+                                ? 'border-red-500 text-red-600 dark:text-red-400'
+                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300',
+                            'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2'
+                        ]"
+                    >
+                        <Trash class="w-4 h-4" />
+                        Recycle Bin
+                    </button>
+                </nav>
+            </div>
+
             <!-- Search -->
             <div class="flex flex-col sm:flex-row gap-4 justify-between items-center bg-white dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm">
                 <div class="relative w-full sm:w-72">
@@ -480,43 +574,99 @@ watch([routersList, search], () => {
                 </div>
 
                 <div class="space-y-1">
-                    <button @click="router.visit(route('mikrotiks.show', selectedRouter.id)); showActionsModal = false" class="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-left group">
-                        <div class="p-1.5 rounded-md bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/40">
-                            <Eye class="w-4 h-4" />
-                        </div>
-                        <span class="text-sm font-medium text-gray-700 dark:text-gray-200">View Details</span>
-                    </button>
+                    <template v-if="activeTab === 'active'">
+                        <button @click="router.visit(route('mikrotiks.show', selectedRouter.id)); showActionsModal = false" class="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-left group">
+                            <div class="p-1.5 rounded-md bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/40">
+                                <Eye class="w-4 h-4" />
+                            </div>
+                            <span class="text-sm font-medium text-gray-700 dark:text-gray-200">View Details</span>
+                        </button>
 
-                    <button @click="pingRouter(selectedRouter); showActionsModal = false" :disabled="pinging[selectedRouter.id]" class="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-left group disabled:opacity-50">
-                        <div class="p-1.5 rounded-md bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400 group-hover:bg-green-100 dark:group-hover:bg-green-900/40">
-                            <Activity class="w-4 h-4" />
-                        </div>
-                        <span class="text-sm font-medium text-gray-700 dark:text-gray-200">Ping Router</span>
-                    </button>
+                        <button @click="pingRouter(selectedRouter); showActionsModal = false" :disabled="pinging[selectedRouter.id]" class="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-left group disabled:opacity-50">
+                            <div class="p-1.5 rounded-md bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400 group-hover:bg-green-100 dark:group-hover:bg-green-900/40">
+                                <Activity class="w-4 h-4" />
+                            </div>
+                            <span class="text-sm font-medium text-gray-700 dark:text-gray-200">Ping Router</span>
+                        </button>
 
-                    <button @click="router.visit(route('mikrotiks.reprovision', selectedRouter.id)); showActionsModal = false" class="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-left group">
-                        <div class="p-1.5 rounded-md bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/40">
-                            <RotateCcw class="w-4 h-4" />
-                        </div>
-                        <span class="text-sm font-medium text-gray-700 dark:text-gray-200">Reprovision</span>
-                    </button>
+                        <button @click="router.visit(route('mikrotiks.reprovision', selectedRouter.id)); showActionsModal = false" class="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-left group">
+                            <div class="p-1.5 rounded-md bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/40">
+                                <RotateCcw class="w-4 h-4" />
+                            </div>
+                            <span class="text-sm font-medium text-gray-700 dark:text-gray-200">Reprovision</span>
+                        </button>
 
-                    <button @click="downloadAdvancedConfig(selectedRouter); showActionsModal = false" class="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-left group">
-                        <div class="p-1.5 rounded-md bg-cyan-50 text-cyan-600 dark:bg-cyan-900/20 dark:text-cyan-400 group-hover:bg-cyan-100 dark:group-hover:bg-cyan-900/40">
-                            <Download class="w-4 h-4" />
-                        </div>
-                        <span class="text-sm font-medium text-gray-700 dark:text-gray-200">Download Config</span>
-                    </button>
+                        <button @click="downloadAdvancedConfig(selectedRouter); showActionsModal = false" class="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-left group">
+                            <div class="p-1.5 rounded-md bg-cyan-50 text-cyan-600 dark:bg-cyan-900/20 dark:text-cyan-400 group-hover:bg-cyan-100 dark:group-hover:bg-cyan-900/40">
+                                <Download class="w-4 h-4" />
+                            </div>
+                            <span class="text-sm font-medium text-gray-700 dark:text-gray-200">Download Config</span>
+                        </button>
 
-                    <div class="border-t border-gray-100 dark:border-slate-700 my-1"></div>
+                        <div class="border-t border-gray-100 dark:border-slate-700 my-1"></div>
 
-                    <button @click="deleteRouter(selectedRouter); showActionsModal = false" class="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-left group">
-                        <div class="p-1.5 rounded-md bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 group-hover:bg-red-100 dark:group-hover:bg-red-900/40">
-                            <Trash2 class="w-4 h-4" />
-                        </div>
-                        <span class="text-sm font-medium text-red-600 dark:text-red-400">Delete Router</span>
-                    </button>
+                        <button @click="initiateDelete(selectedRouter); showActionsModal = false" class="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-left group">
+                            <div class="p-1.5 rounded-md bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 group-hover:bg-red-100 dark:group-hover:bg-red-900/40">
+                                <Trash2 class="w-4 h-4" />
+                            </div>
+                            <span class="text-sm font-medium text-red-600 dark:text-red-400">Delete Router</span>
+                        </button>
+                    </template>
+
+                    <template v-else>
+                        <button @click="initiateRestore(selectedRouter); showActionsModal = false" class="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors text-left group">
+                            <div class="p-1.5 rounded-md bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400 group-hover:bg-green-100 dark:group-hover:bg-green-900/40">
+                                <RefreshCcw class="w-4 h-4" />
+                            </div>
+                            <span class="text-sm font-medium text-gray-700 dark:text-gray-200">Restore Router</span>
+                        </button>
+
+                        <button @click="initiateForceDelete(selectedRouter); showActionsModal = false" class="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-left group">
+                            <div class="p-1.5 rounded-md bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 group-hover:bg-red-100 dark:group-hover:bg-red-900/40">
+                                <Trash2 class="w-4 h-4" />
+                            </div>
+                            <span class="text-sm font-medium text-red-600 dark:text-red-400">Delete Permanently</span>
+                        </button>
+                    </template>
                 </div>
+            </div>
+        </Modal>
+
+        <!-- Password Confirmation Modal -->
+        <Modal :show="showPasswordModal" @close="showPasswordModal = false">
+            <div class="p-6 dark:bg-slate-800 dark:text-white">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                    Confirm Action
+                </h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                    Please enter your password to confirm this action.
+                </p>
+                
+                <form @submit.prevent="confirmPasswordAction">
+                    <div>
+                        <InputLabel for="password" value="Password" />
+                        <TextInput
+                            id="password"
+                            type="password"
+                            v-model="passwordForm.password"
+                            class="mt-1 block w-full"
+                            placeholder="Your login password"
+                            ref="passwordInput"
+                            required
+                        />
+                        <InputError :message="passwordForm.errors.password" class="mt-2" />
+                    </div>
+
+                    <div class="mt-6 flex justify-end gap-3">
+                        <DangerButton type="button" @click="showPasswordModal = false">Cancel</DangerButton>
+                        <PrimaryButton 
+                            :disabled="passwordForm.processing"
+                            :class="{ 'opacity-25': passwordForm.processing }"
+                        >
+                            Confirm
+                        </PrimaryButton>
+                    </div>
+                </form>
             </div>
         </Modal>
     </AuthenticatedLayout>

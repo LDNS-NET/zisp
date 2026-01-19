@@ -61,3 +61,10 @@ Schedule::command('app:poll-mikrotik-users')
     ->everyTenMinutes()
     ->withoutOverlapping()
     ->runInBackground();
+
+// Prune deleted routers older than 5 days
+Schedule::call(function () {
+    \App\Models\Tenants\TenantMikrotik::onlyTrashed()
+        ->where('deleted_at', '<', now()->subDays(5))
+        ->forceDelete();
+})->daily();

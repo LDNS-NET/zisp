@@ -5,10 +5,13 @@ namespace App\Models\Tenants;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Crypt;
 
 class TenantMikrotik extends Model
 {
+    use SoftDeletes;
+
     protected $fillable = [
         'name',
         // 'ip_address', // Legacy field - removed
