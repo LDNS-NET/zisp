@@ -112,6 +112,7 @@ class TenantUserController extends Controller
     {
         // Validate the request
         $validated = $request->validate([
+            'admin_password' => 'required|current_password',
             'full_name' => 'nullable|string|max:255',
             'username' => 'required|string|max:255',
             'password' => 'nullable|string|min:3',
@@ -300,6 +301,7 @@ class TenantUserController extends Controller
     {
         // Validate the request
         $validated = $request->validate([
+            'admin_password' => 'required|current_password',
             'full_name' => 'nullable|string|max:255',
             'username' => 'required|string|max:255',
             'password' => 'nullable|string|min:4',

@@ -45,6 +45,7 @@ const props = defineProps({
 
 const showModal = ref(false);
 const showImportModal = ref(false);
+const showPasswordModal = ref(false); // Password confirmation modal
 const editing = ref(null);
 const viewing = ref(null);
 const selectedFilter = ref(props.filters?.type || 'all');
@@ -60,6 +61,11 @@ const form = useForm({
     package_id: '',
     type: 'hotspot',
     expires_at: '',
+    admin_password: '', // For validation
+});
+
+const passwordForm = useForm({
+    password: '',
 });
 
 const importForm = useForm({
@@ -181,14 +187,35 @@ function openEdit(user) {
     showModal.value = true;
 }
 
-function submit() {
+function initiateSubmit() {
+    passwordForm.reset();
+    showPasswordModal.value = true;
+}
+
+function confirmSubmit() {
+    form.admin_password = passwordForm.password;
+    
     const options = {
         onSuccess: () => {
             showModal.value = false;
+            showPasswordModal.value = false;
             toast.success(editing.value ? 'User updated successfully' : 'User created successfully');
+            passwordForm.reset();
+            form.reset();
         },
-        onError: () => {
-            toast.error('Please check the form for errors.');
+        onError: (errors) => {
+            if (errors.admin_password) {
+                toast.error(errors.admin_password);
+                passwordForm.setError('password', errors.admin_password); // key might be admin_password, but we show on password field
+                // actually we can just show toast and keep password modal open?
+                // If it's a password error, we keep password modal open.
+                // If it's a form error (e.g. username taken), we should close password modal?
+                // If admin_password error, keep password modal open.
+            } else {
+                // If other errors, close password modal to show form errors
+                showPasswordModal.value = false;
+                toast.error('Please check the form for errors.');
+            }
         },
     };
 
@@ -495,7 +522,7 @@ const openActions = (user) => {
                 <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
                     {{ editing ? 'Edit User' : 'Create New User' }}
                 </h3>
-                <form @submit.prevent="submit" class="space-y-4">
+                <form @submit.prevent="initiateSubmit" class="space-y-4">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <InputLabel for="full_name" value="Full Name" />
@@ -689,6 +716,44 @@ const openActions = (user) => {
                         >
                             <span v-if="importForm.processing">Importing...</span>
                             <span v-else>Start Import</span>
+                        </PrimaryButton>
+                    </div>
+                </form>
+            </div>
+        </Modal>
+        <!-- Password Confirmation Modal -->
+        <Modal :show="showPasswordModal" @close="showPasswordModal = false">
+            <div class="p-6 dark:bg-slate-800 dark:text-white">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                    Confirm Action
+                </h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                    Please enter your admin password to confirm this action.
+                </p>
+                
+                <form @submit.prevent="confirmSubmit">
+                    <div>
+                        <InputLabel for="admin_password" value="Admin Password" />
+                        <TextInput
+                            id="admin_password"
+                            type="password"
+                            v-model="passwordForm.password"
+                            class="mt-1 block w-full"
+                            placeholder="Your login password"
+                            ref="passwordInput"
+                            autocomplete="current-password"
+                            required
+                        />
+                        <InputError :message="passwordForm.errors.password" class="mt-2" />
+                    </div>
+
+                    <div class="mt-6 flex justify-end gap-3">
+                        <DangerButton type="button" @click="showPasswordModal = false">Cancel</DangerButton>
+                        <PrimaryButton 
+                            :disabled="form.processing"
+                            :class="{ 'opacity-25': form.processing }"
+                        >
+                            Confirm
                         </PrimaryButton>
                     </div>
                 </form>
