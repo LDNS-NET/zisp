@@ -224,7 +224,7 @@ const openActions = (user) => {
                                 <th scope="col" class="px-6 py-3 text-left">
                                     <input
                                         type="checkbox"
-                                        :checked="selectedUsers.length === users.data.length && users.data.length > 0"
+                                        :checked="selectedUsers.length === users?.data?.length && users?.data?.length > 0"
                                         @change="toggleSelectAll"
                                         class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 dark:bg-slate-800 dark:border-slate-600"
                                     />
@@ -305,17 +305,15 @@ const openActions = (user) => {
 
                 <!-- Mobile Cards -->
                 <div class="md:hidden">
-                    <div v-if="selectedUsers.length > 0" class="p-4 bg-gray-50 dark:bg-slate-700/50 border-b border-gray-200 dark:border-slate-700">
                         <label class="flex items-center">
                             <input 
                                 type="checkbox"
-                                :checked="selectedUsers.length === users.data.length && users.data.length > 0"
+                                :checked="selectedUsers.length === users?.data?.length && users?.data?.length > 0"
                                 @change="toggleSelectAll"
                                 class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 dark:bg-slate-800 dark:border-slate-600"
                             />
                             <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Select All</span>
                         </label>
-                    </div>
 
                     <div class="divide-y divide-gray-200 dark:divide-slate-700">
                         <div v-for="user in users.data" :key="user.id" 

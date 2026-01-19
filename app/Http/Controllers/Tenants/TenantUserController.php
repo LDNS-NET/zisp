@@ -113,6 +113,7 @@ class TenantUserController extends Controller
             ],
             'counts' => $counts,
             'packages' => $packages,
+            'activeUsernames' => $activeUsernames, 
             'securitySettings' => $securitySettings,
         ]);
     }
