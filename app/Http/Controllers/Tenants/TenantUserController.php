@@ -111,8 +111,8 @@ class TenantUserController extends Controller
                 'email' => $user->email,
                 'location' => $user->location,
                 'type' => $user->type,
-                // Use the persisted `online` boolean from the `network_users` table as source of truth
-                'is_online' => (bool) $user->online,
+                // Use real-time check against active session list for accuracy
+                'is_online' => in_array(strtolower($user->username), $activeUsernames),
                 'expires_at' => $user->expires_at,
                 'expiry_human' => optional($user->expires_at)->diffForHumans(),
                 'package' => $user->package ? [
