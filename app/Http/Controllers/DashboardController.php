@@ -315,38 +315,71 @@ class DashboardController extends Controller
     protected function getUserRisks()
     {
         // 1. Identify Frequent Disconnections (only if Radacct is used)
-        // We look for users with > 10 sessions in the last 24 hours
-        $tenantUsernames = NetworkUser::pluck('username')->toArray();
+        $tenantUsernames = NetworkUser::where(function ($query) {
+                $query->whereNull('expires_at')
+                      ->orWhere('expires_at', '>', now());
+            })
+            ->pluck('username')
+            ->toArray();
         
         $riskyUsers = [];
         
         try {
+            if (empty($tenantUsernames)) {
+                return [];
+            }
+
             $frequentDisconnects = \App\Models\Radius\Radacct::whereIn('username', $tenantUsernames)
                 ->where('acctstarttime', '>=', now()->subDay())
                 ->select('username', DB::raw('count(*) as session_count'))
                 ->groupBy('username')
-                ->having('session_count', '>', 10)
+                ->having('session_count', '>', 5) // Lowered threshold to 5 for testing/sensitivity
                 ->orderByDesc('session_count')
                 ->limit(5)
                 ->get();
                 
             foreach ($frequentDisconnects as $record) {
                 $user = NetworkUser::where('username', $record->username)->first();
+                
+                if (!$user) continue;
+
+                // Auto-Open Ticket Logic
+                $ticketStatus = 'Existing Ticket';
+                $existingTicket = TenantTickets::where('client_type', NetworkUser::class)
+                    ->where('client_id', $user->id)
+                    ->where('status', 'open')
+                    ->where('description', 'LIKE', '%Auto-detected frequent disconnections%') // Prevent dups for same issue
+                    ->first();
+
+                if (!$existingTicket) {
+                    try {
+                        TenantTickets::create([
+                            'client_type' => NetworkUser::class,
+                            'client_id' => $user->id,
+                            'priority' => 'high',
+                            'status' => 'open',
+                            'description' => "Auto-detected frequent disconnections: User has had {$record->session_count} sessions in the last 24 hours. Please check signal levels and router logs.",
+                            // ticket_number, created_by, tenant_id handled by model events
+                        ]);
+                        $ticketStatus = 'Ticket Auto-Opened';
+                    } catch (\Exception $e) {
+                        $ticketStatus = 'Ticket Creation Failed';
+                    }
+                }
+
                 $riskyUsers[] = [
                     'username' => $record->username,
                     'phone' => $user->phone ?? 'N/A',
-                    'issue' => 'Frequent Disconnections',
-                    'detail' => $record->session_count . ' sessions in 24h',
+                    'location' => $user->location ?? 'Unknown',
+                    'issue' => 'Frequent Connection Drops',
+                    'detail' => $record->session_count . ' drops in 24h',
                     'severity' => 'warning',
+                    'ticket_status' => $ticketStatus
                 ];
             }
         } catch (\Exception $e) {
             // Radacct table might not exist or connection failed, skip
         }
-        
-        // 2. Identify Potential "Plan Limits" / Heavy Users (Churn Risk or Upsell)
-        // Users who downloaded > 50GB today (Example threshold)
-        // Note: This data usually comes from Radacct too.
         
         return $riskyUsers;
     }

@@ -37,7 +37,9 @@ import {
     WifiOff,
     AlertTriangle,
     CloudOff,
-    ZapOff
+    ZapOff,
+    MapPin,
+    Ticket
 } from 'lucide-vue-next';
 
 const props = defineProps(['stats', 'currency']);
@@ -648,12 +650,30 @@ const packageChartSeries = computed(() =>
                                         class="flex items-start gap-3 rounded-xl bg-orange-50 p-3 dark:bg-orange-900/20 border border-orange-100 dark:border-orange-900/30">
                                         <WifiOff class="h-5 w-5 flex-shrink-0 text-orange-600 dark:text-orange-400 mt-0.5" />
                                         <div class="flex-1 min-w-0">
-                                            <div class="flex items-center justify-between">
+                                            <div class="flex items-center justify-between mb-1">
                                                 <p class="text-sm font-bold text-gray-900 dark:text-white">{{ userRisk.username }}</p>
-                                                <span class="text-xs font-mono text-gray-500 dark:text-gray-400">{{ userRisk.phone }}</span>
+                                                <div class="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                                                    <MapPin class="h-3 w-3" />
+                                                    <span>{{ userRisk.location }}</span>
+                                                </div>
                                             </div>
-                                            <p class="mt-1 text-xs font-medium text-orange-700 dark:text-orange-300">{{ userRisk.issue }}</p>
-                                            <p class="text-xs text-gray-500 dark:text-gray-400">{{ userRisk.detail }}</p>
+                                            
+                                            <div class="flex items-center gap-2 text-xs font-mono text-gray-500 dark:text-gray-400 mb-2">
+                                                <Phone class="h-3 w-3" />
+                                                {{ userRisk.phone }}
+                                            </div>
+
+                                            <p class="text-xs font-medium text-orange-700 dark:text-orange-300 mb-1">{{ userRisk.issue }}</p>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">{{ userRisk.detail }}</p>
+
+                                            <!-- Ticket Status Badge -->
+                                            <div class="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium border"
+                                                :class="userRisk.ticket_status === 'Ticket Auto-Opened' 
+                                                    ? 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800' 
+                                                    : 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800'">
+                                                <Ticket class="h-3 w-3" />
+                                                {{ userRisk.ticket_status }}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
