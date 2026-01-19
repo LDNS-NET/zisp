@@ -6,12 +6,25 @@ use App\Http\Controllers\Controller;
 use App\Models\Tenants\NetworkUser;
 use App\Models\Package;
 use App\Models\Tenants\TenantPayment;
+use App\Models\TenantSetting;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Radius\Radacct;
 class TenantUserController extends Controller
 {
+    /**
+     * Check if password is required for user management
+     */
+    private function isPasswordRequired()
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $systemSettings = TenantSetting::where('tenant_id', $tenantId)
+            ->where('category', 'system')
+            ->first();
+        
+        return $systemSettings?->settings['require_password_for_user_management'] ?? true;
+    }
     public function index(Request $request)
     {
         $type = $request->get('type', 'all');
@@ -105,14 +118,14 @@ class TenantUserController extends Controller
             ],
             'counts' => $counts,
             'packages' => $packages,
+            'requirePasswordForUserManagement' => $this->isPasswordRequired(),
         ]);
     }
 
     public function store(Request $request)
     {
         // Validate the request
-        $validated = $request->validate([
-            'admin_password' => 'required|current_password',
+        $rules = [
             'full_name' => 'nullable|string|max:255',
             'username' => 'required|string|max:255',
             'password' => 'nullable|string|min:3',
@@ -127,7 +140,14 @@ class TenantUserController extends Controller
             'type' => 'required|in:hotspot,pppoe,static',
             'package_id' => 'nullable|exists:packages,id',
             'expires_at' => 'nullable|date',
-        ]);
+        ];
+
+        // Conditionally add password requirement
+        if ($this->isPasswordRequired()) {
+            $rules['admin_password'] = 'required|current_password';
+        }
+
+        $validated = $request->validate($rules);
 
         // Force lowercase username
         $validated['username'] = strtolower($validated['username']);
@@ -300,8 +320,7 @@ class TenantUserController extends Controller
     public function update(Request $request, NetworkUser $user)
     {
         // Validate the request
-        $validated = $request->validate([
-            'admin_password' => 'required|current_password',
+        $rules = [
             'full_name' => 'nullable|string|max:255',
             'username' => 'required|string|max:255',
             'password' => 'nullable|string|min:4',
@@ -316,7 +335,14 @@ class TenantUserController extends Controller
             'type' => ['required', Rule::in(['hotspot', 'pppoe', 'static'])],
             'package_id' => 'nullable|exists:packages,id',
             'expires_at' => 'nullable|date',
-        ]);
+        ];
+
+        // Conditionally add password requirement
+        if ($this->isPasswordRequired()) {
+            $rules['admin_password'] = 'required|current_password';
+        }
+
+        $validated = $request->validate($rules);
 
         // Force lowercase username
         $validated['username'] = strtolower($validated['username']);

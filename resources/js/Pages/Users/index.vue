@@ -41,6 +41,7 @@ const props = defineProps({
     packages: Object,
     activeUsernames: Array,
     debugInfo: Object,
+    requirePasswordForUserManagement: { type: Boolean, default: true },
 });
 
 const showModal = ref(false);
@@ -188,8 +189,34 @@ function openEdit(user) {
 }
 
 function initiateSubmit() {
+    // If password is not required, submit directly
+    if (!props.requirePasswordForUserManagement) {
+        submitWithoutPassword();
+        return;
+    }
+    
+    // Otherwise, show password modal
     passwordForm.reset();
     showPasswordModal.value = true;
+}
+
+function submitWithoutPassword() {
+    const options = {
+        onSuccess: () => {
+            showModal.value = false;
+            toast.success(editing.value ? 'User updated successfully' : 'User created successfully');
+            form.reset();
+        },
+        onError: () => {
+            toast.error('Please check the form for errors.');
+        },
+    };
+
+    if (editing.value) {
+        form.put(route('users.update', editing.value), options);
+    } else {
+        form.post(route('users.store'), options);
+    }
 }
 
 function confirmSubmit() {
