@@ -12,7 +12,9 @@ import {
     User,
     ChevronRight,
     Wifi,
-    CreditCard
+    CreditCard,
+    Clock,
+    MessagesSquare
 } from 'lucide-vue-next';
 
 const page = usePage();

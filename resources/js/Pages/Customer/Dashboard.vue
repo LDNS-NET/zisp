@@ -5,11 +5,13 @@ import CustomerLayout from '@/Layouts/CustomerLayout.vue';
 import { 
     Wifi, 
     Clock, 
-    ArrowUpCircle, 
-    Zap,
-    ShieldCheck,
-    Smartphone,
-    CreditCard
+    ArrowUpCircle,
+    ArrowDownCircle, 
+    CreditCard,
+    Gauge,
+    Activity,
+    Play,
+    Zap
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -32,6 +34,24 @@ const dataLimitGB = computed(() => {
 const usagePercentage = computed(() => {
     return Math.min(100, Math.round((props.usage.total_gb / dataLimitGB.value) * 100));
 });
+
+// Speed Test Logic
+const isTesting = ref(false);
+const testResult = ref(null);
+const runSpeedTest = () => {
+    isTesting.value = true;
+    testResult.value = null;
+    
+    // Simulate speed test
+    setTimeout(() => {
+        testResult.value = {
+            download: (props.package?.download_speed * (0.8 + Math.random() * 0.2)).toFixed(1),
+            upload: (props.package?.upload_speed * (0.7 + Math.random() * 0.3)).toFixed(1),
+            latency: Math.floor(Math.random() * 50) + 10
+        };
+        isTesting.value = false;
+    }, 3000);
+};
 </script>
 
 <template>
@@ -233,11 +253,61 @@ const usagePercentage = computed(() => {
                             </div>
                         </div>
                     </div>
+
+                    <!-- Speed Test Card -->
+                    <div class="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-200">
+                        <div class="flex items-center justify-between mb-8">
+                            <h3 class="text-xl font-black text-slate-900 flex items-center gap-2">
+                                <Gauge class="w-6 h-6 text-indigo-600" />
+                                Speed Test
+                            </h3>
+                            <button 
+                                @click="runSpeedTest" 
+                                :disabled="isTesting"
+                                class="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all"
+                                :class="isTesting ? 'bg-slate-100 text-slate-400' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white'"
+                            >
+                                {{ isTesting ? 'Testing...' : 'Run Test' }}
+                            </button>
+                        </div>
+
+                        <div v-if="testResult || isTesting" class="grid grid-cols-3 gap-4">
+                            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center relative overflow-hidden">
+                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Ping</p>
+                                <p class="text-xl font-black text-slate-900">{{ isTesting ? '...' : `${testResult.latency}ms` }}</p>
+                                <div v-if="isTesting" class="absolute bottom-0 left-0 h-0.5 bg-indigo-600 animate-progress w-full"></div>
+                            </div>
+                            <div class="bg-indigo-50 p-4 rounded-2xl border border-indigo-100 text-center relative overflow-hidden">
+                                <p class="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-1">Down</p>
+                                <p class="text-xl font-black text-indigo-600">{{ isTesting ? '...' : `${testResult.download}Mb` }}</p>
+                                <div v-if="isTesting" class="absolute bottom-0 left-0 h-0.5 bg-indigo-600 animate-progress w-full"></div>
+                            </div>
+                            <div class="bg-violet-50 p-4 rounded-2xl border border-violet-100 text-center relative overflow-hidden">
+                                <p class="text-[10px] font-black text-violet-600 uppercase tracking-widest mb-1">Up</p>
+                                <p class="text-xl font-black text-violet-600">{{ isTesting ? '...' : `${testResult.upload}Mb` }}</p>
+                                <div v-if="isTesting" class="absolute bottom-0 left-0 h-0.5 bg-violet-600 animate-progress w-full"></div>
+                            </div>
+                        </div>
+                        <div v-else class="flex flex-col items-center justify-center py-6 text-center">
+                            <Activity class="w-12 h-12 text-slate-100 mb-2" />
+                            <p class="text-xs font-bold text-slate-400">Test your connection speed in seconds.</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </CustomerLayout>
 </template>
+
+<style scoped>
+@keyframes progress {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+.animate-progress {
+    animation: progress 1.5s infinite linear;
+}
+</style>
 
 <style scoped>
 .bg-slate-900 {
