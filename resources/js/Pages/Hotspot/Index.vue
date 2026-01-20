@@ -66,9 +66,23 @@ const hotspots = computed(() => {
 });
 
 onMounted(() => {
-    // Capture MAC address from URL
+    // Capture MAC address and login URL from URL
     const urlParams = new URLSearchParams(window.location.search);
-    deviceMac.value = urlParams.get('mac') || '';
+    const mac = urlParams.get('mac') || '';
+    const loginUrl = urlParams.get('login_url') || urlParams.get('link-login') || urlParams.get('link-login-only') || '';
+    
+    // Store in sessionStorage for use after payment redirect
+    if (mac) {
+        deviceMac.value = mac;
+        sessionStorage.setItem('hotspot_mac', mac);
+    } else {
+        // Try to restore from sessionStorage
+        deviceMac.value = sessionStorage.getItem('hotspot_mac') || '';
+    }
+    
+    if (loginUrl) {
+        sessionStorage.setItem('hotspot_login_url', loginUrl);
+    }
 
     // Check for payment callback with credentials
     const username = urlParams.get('u');
@@ -85,7 +99,18 @@ onMounted(() => {
         
         // Clean URL (remove credentials from address bar for security)
         const cleanUrl = window.location.origin + window.location.pathname;
-        window.history.replaceState({}, document.title, cleanUrl);
+        
+        // Restore MAC parameter if available
+        const storedMac = sessionStorage.getItem('hotspot_mac');
+        const storedLoginUrl = sessionStorage.getItem('hotspot_login_url');
+        if (storedMac || storedLoginUrl) {
+            const params = new URLSearchParams();
+            if (storedMac) params.set('mac', storedMac);
+            if (storedLoginUrl) params.set('login_url', storedLoginUrl);
+            window.history.replaceState({}, document.title, cleanUrl + '?' + params.toString());
+        } else {
+            window.history.replaceState({}, document.title, cleanUrl);
+        }
         
         // Focus the login button after a short delay
         setTimeout(() => {
