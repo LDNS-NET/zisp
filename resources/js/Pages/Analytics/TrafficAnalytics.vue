@@ -55,7 +55,6 @@ const periodOptions = [
 function changePeriod(period) {
     selectedPeriod.value = period;
     router.visit(route('analytics.traffic', { period }), {
-        preserveState: true,
         preserveScroll: true,
     });
 }
