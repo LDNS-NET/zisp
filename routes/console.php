@@ -68,3 +68,9 @@ Schedule::call(function () {
         ->where('deleted_at', '<', now()->subDays(5))
         ->forceDelete();
 })->daily();
+
+// Aggregate traffic data hourly for analytics
+Schedule::command('analytics:aggregate-traffic --hours=1')
+    ->hourly()
+    ->withoutOverlapping()
+    ->runInBackground();

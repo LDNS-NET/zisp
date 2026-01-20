@@ -28,7 +28,8 @@ import {
     ChevronLeft,
     Globe,
     Bell,
-    Shield
+    Shield,
+    BarChart3
 } from 'lucide-vue-next';
 
 const { theme, setTheme } = useTheme();
@@ -50,6 +51,9 @@ watch(collapsed, (val) => {
 
 const navigation = [
     { name: 'Dashboard', href: route('dashboard'), icon: LayoutDashboard, active: 'dashboard' },
+    
+    { header: 'Analytics' },
+    { name: 'Traffic Analytics', href: route('analytics.traffic'), icon: BarChart3, active: 'analytics.*' },
     
     { header: 'User Management' },
     { name: 'Online Users', href: route('activeusers.index'), icon: Activity, active: 'activeusers.*', countKey: 'online_users' },

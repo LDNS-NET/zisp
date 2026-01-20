@@ -314,6 +314,11 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode'])
         
         Route::post('mikrotiks/{mikrotik}/provision-hotspot', [TenantMikrotikController::class, 'provisionHotspot'])->name('mikrotiks.provisionHotspot');
 
+        // Analytics routes
+        Route::prefix('analytics')->name('analytics.')->group(function () {
+            Route::get('/traffic', [App\Http\Controllers\Tenants\TrafficAnalyticsController::class, 'index'])->name('traffic');
+            Route::get('/traffic/user/{userId}', [App\Http\Controllers\Tenants\TrafficAnalyticsController::class, 'getUserBandwidth'])->name('traffic.user');
+        });
 
         //captive portal
     
