@@ -307,9 +307,12 @@ const getRiskLabel = (score) => {
                         <p class="text-sm text-purple-100 mb-4" v-else>
                             Great job! Customer retention looks strong. Your network capacity is currently sufficient for the projected growth over the next 3 months.
                         </p>
-                        <button class="w-full bg-white text-purple-600 font-bold py-2 rounded-lg hover:bg-purple-50 transition-colors flex items-center justify-center gap-2">
+                        <Link 
+                            :href="route('users.index', { status: 'active' })"
+                            class="w-full bg-white text-purple-600 font-bold py-2 rounded-lg hover:bg-purple-50 transition-colors flex items-center justify-center gap-2"
+                        >
                             View Retention Tools <ExternalLink class="w-4 h-4" />
-                        </button>
+                        </Link>
                     </div>
                     <div class="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-purple-500 rounded-full opacity-50"></div>
                     <div class="absolute bottom-0 left-0 -ml-4 -mb-4 w-16 h-16 bg-purple-700 rounded-full opacity-50"></div>
