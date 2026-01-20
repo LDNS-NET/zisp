@@ -40,32 +40,38 @@ class NetworkTopologyController extends Controller
         $edges = [];
 
         foreach ($routers as $router) {
-            // Determine status based on last_seen
+            // Determine status based on 'online' column and last_seen_at
             $status = 'offline';
-            if ($router->last_seen) {
-                $minutesSinceLastSeen = now()->diffInMinutes($router->last_seen);
-                if ($minutesSinceLastSeen < 5) {
-                    $status = 'online';
-                } elseif ($minutesSinceLastSeen < 15) {
+            
+            if ($router->online) {
+                $status = 'online';
+            } elseif ($router->last_seen_at) {
+                $minutesSinceLastSeen = now()->diffInMinutes($router->last_seen_at);
+                if ($minutesSinceLastSeen < 15) {
                     $status = 'warning';
                 }
             }
 
             // Get resource usage if available
-            $cpu = null;
-            $memory = null;
-            $uptime = null;
+            $cpu = $router->cpu ?? null;
+            $memory = $router->memory ?? null;
+            $uptime = $router->uptime ?? null;
 
+            // If resource_data exists, try to extract from there too
             if ($router->resource_data) {
                 $resourceData = is_string($router->resource_data) 
                     ? json_decode($router->resource_data, true) 
                     : $router->resource_data;
 
-                $cpu = $resourceData['cpu-load'] ?? null;
-                $memory = isset($resourceData['free-memory'], $resourceData['total-memory']) 
-                    ? round((1 - ($resourceData['free-memory'] / $resourceData['total-memory'])) * 100, 1)
-                    : null;
-                $uptime = $resourceData['uptime'] ?? null;
+                if (!$cpu && isset($resourceData['cpu-load'])) {
+                    $cpu = $resourceData['cpu-load'];
+                }
+                if (!$memory && isset($resourceData['free-memory'], $resourceData['total-memory'])) {
+                    $memory = round((1 - ($resourceData['free-memory'] / $resourceData['total-memory'])) * 100, 1);
+                }
+                if (!$uptime && isset($resourceData['uptime'])) {
+                    $uptime = $resourceData['uptime'];
+                }
             }
 
             $nodes[] = [
@@ -77,7 +83,7 @@ class NetworkTopologyController extends Controller
                 'cpu' => $cpu,
                 'memory' => $memory,
                 'uptime' => $uptime,
-                'last_seen' => $router->last_seen?->diffForHumans(),
+                'last_seen' => $router->last_seen_at?->diffForHumans(),
                 'active_users' => $router->active_users_count ?? 0,
                 'location' => $router->location,
             ];
