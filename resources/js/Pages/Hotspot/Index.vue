@@ -66,64 +66,9 @@ const hotspots = computed(() => {
 });
 
 onMounted(() => {
-    // Capture MAC address and login URL from URL
+    // Capture MAC address from URL
     const urlParams = new URLSearchParams(window.location.search);
-    const mac = urlParams.get('mac') || '';
-    const loginUrl = urlParams.get('login_url') || urlParams.get('link-login') || urlParams.get('link-login-only') || '';
-    
-    // Store in sessionStorage for use after payment redirect
-    if (mac) {
-        deviceMac.value = mac;
-        sessionStorage.setItem('hotspot_mac', mac);
-    } else {
-        // Try to restore from sessionStorage
-        deviceMac.value = sessionStorage.getItem('hotspot_mac') || '';
-    }
-    
-    if (loginUrl) {
-        sessionStorage.setItem('hotspot_login_url', loginUrl);
-    }
-
-    // Check for payment callback with credentials
-    const username = urlParams.get('u');
-    const password = urlParams.get('p');
-    
-    if (username && password) {
-        // Auto-fill member login
-        memberUsername.value = username;
-        memberPassword.value = password;
-        activeTab.value = 'member';
-        
-        // Show success message
-        showToast('Payment successful! Click Login to connect', 'success');
-        
-        // Clean URL (remove credentials from address bar for security)
-        const cleanUrl = window.location.origin + window.location.pathname;
-        
-        // Restore MAC parameter if available
-        const storedMac = sessionStorage.getItem('hotspot_mac');
-        const storedLoginUrl = sessionStorage.getItem('hotspot_login_url');
-        if (storedMac || storedLoginUrl) {
-            const params = new URLSearchParams();
-            if (storedMac) params.set('mac', storedMac);
-            if (storedLoginUrl) params.set('login_url', storedLoginUrl);
-            window.history.replaceState({}, document.title, cleanUrl + '?' + params.toString());
-        } else {
-            window.history.replaceState({}, document.title, cleanUrl);
-        }
-        
-        // Focus the login button after a short delay
-        setTimeout(() => {
-            const loginButton = document.querySelector('button[type="button"]');
-            if (loginButton) {
-                loginButton.focus();
-                loginButton.classList.add('ring-4', 'ring-blue-300', 'animate-pulse');
-                setTimeout(() => {
-                    loginButton.classList.remove('animate-pulse');
-                }, 2000);
-            }
-        }, 500);
-    }
+    deviceMac.value = urlParams.get('mac') || '';
 
     // Lazy load the logo to prioritize page rendering
     if (page.props.tenant?.logo) {
