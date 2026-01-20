@@ -10,7 +10,7 @@ use App\Models\TenantPaymentGateway;
 use Illuminate\Support\Facades\Log;
 use App\Models\Tenants\TenantHotspot;
 use App\Models\Tenants\TenantPackage;
-use App\Models\NetworkUser;
+use App\Models\Tenants\NetworkUser;
 use Carbon\Carbon;
 use Inertia\Inertia;
 

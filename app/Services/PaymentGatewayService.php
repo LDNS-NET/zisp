@@ -28,8 +28,8 @@ class PaymentGatewayService
 
     public function initiatePayment($user, $amount, $phone, $type, $metadata, $method)
     {
-        $tenantId = $user->tenant_id;
-        $tenant = $user->tenant;
+        $tenantId = $user->tenant_id ?? (tenant() ? tenant()->id : null);
+        $tenant = $user->tenant ?? (tenant() ?: \App\Models\Tenant::find($tenantId));
         $countryCode = $tenant->country_code ?? 'KE';
         $countryData = CountryService::getCountryData($countryCode);
         $currency = $countryData['currency'] ?? 'KES';
@@ -128,7 +128,7 @@ class PaymentGatewayService
                 'environment' => $gateway->mpesa_env,
                 'callback_url' => route('hotspot.callback'),
             ]);
-        } elseif ($user->tenant->country_code !== 'KE') {
+        } elseif ($tenant && $tenant->country_code !== 'KE') {
              return ['success' => false, 'message' => 'M-Pesa is not configured for this provider.'];
         }
 
@@ -217,9 +217,13 @@ class PaymentGatewayService
             'public_key' => $gateway->paystack_public_key,
         ]);
 
-        $tenant = $user->tenant;
+        $tenant = $user->tenant ?? tenant();
+        if (!$tenant && $user->tenant_id) {
+            $tenant = \App\Models\Tenant::find($user->tenant_id);
+        }
+        
         // Use tenant billing email if no user email provided (matches system renewal logic)
-        $email = $user->email ?: ($tenant->email ?: 'billing@' . $tenant->subdomain . '.com');
+        $email = $user->email ?: ($tenant ? ($tenant->email ?: 'billing@' . $tenant->subdomain . '.com') : 'billing@system.com');
         $reference = $this->paystackService->generateReference(strtoupper($type));
         
         $response = $this->paystackService->initializeTransaction(
@@ -227,7 +231,7 @@ class PaymentGatewayService
             $amount,
             $reference,
             $currency,
-            array_merge($metadata, [
+            array_merge(array_filter($metadata), [
                 'user_id' => $user->id,
                 'username' => $user->username,
                 'phone' => $phone,
@@ -288,8 +292,12 @@ class PaymentGatewayService
             'encryption_key' => $gateway->flutterwave_encryption_key ?? null,
         ]);
 
-        $tenant = $user->tenant;
-        $email = $user->email ?: ($tenant->email ?: 'billing@' . $tenant->subdomain . '.com');
+        $tenant = $user->tenant ?? tenant();
+        if (!$tenant && $user->tenant_id) {
+            $tenant = \App\Models\Tenant::find($user->tenant_id);
+        }
+
+        $email = $user->email ?: ($tenant ? ($tenant->email ?: 'billing@' . $tenant->subdomain . '.com') : 'billing@system.com');
         $reference = $this->flutterwaveService->generateReference(strtoupper($type));
         
         $response = $this->flutterwaveService->initializeTransaction(
@@ -297,13 +305,13 @@ class PaymentGatewayService
             $amount,
             $reference,
             $currency,
-            array_merge($metadata, [
+            array_merge(array_filter($metadata), [
                 'user_id' => $user->id,
                 'username' => $user->username,
                 'phone' => $phone,
                 'callback_url' => route('flutterwave.callback'),
                 'site_name' => $tenant->name ?? 'Internet Service',
-                'logo' => $tenant->logo ? asset('storage/' . $tenant->logo) : null,
+                'logo' => ($tenant && $tenant->logo) ? asset('storage/' . $tenant->logo) : null,
             ]),
             [
                 'phone_number' => $phone,
