@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('tenant_predictions', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('tenant_id');
+            $table->uuid('tenant_id');
             $table->string('prediction_type', 50); // 'churn', 'revenue', 'capacity'
             $table->unsignedBigInteger('entity_id')->nullable(); // user_id or null for tenant-wide
             $table->decimal('prediction_value', 10, 2);

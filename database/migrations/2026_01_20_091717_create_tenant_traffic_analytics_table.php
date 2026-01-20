@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('tenant_traffic_analytics', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('tenant_id');
+            $table->uuid('tenant_id');
             $table->unsignedBigInteger('user_id')->nullable();
             $table->date('date');
             $table->tinyInteger('hour'); // 0-23

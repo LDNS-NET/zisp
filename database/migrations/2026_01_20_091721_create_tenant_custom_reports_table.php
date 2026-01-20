@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('tenant_custom_reports', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('tenant_id');
+            $table->uuid('tenant_id');
             $table->string('name');
             $table->json('config'); // Report configuration
             $table->json('schedule')->nullable(); // Scheduling config
