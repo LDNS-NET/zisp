@@ -168,6 +168,7 @@ const deleteAdmin = (id) => {
                             type="password"
                             class="mt-1 block w-full"
                             :required="!editingAdmin"
+                            autocomplete="new-password"
                         />
                         <div v-if="form.errors.password" class="mt-1 text-sm text-red-600">{{ form.errors.password }}</div>
                     </div>
@@ -180,6 +181,7 @@ const deleteAdmin = (id) => {
                             type="password"
                             class="mt-1 block w-full"
                             :required="!editingAdmin"
+                            autocomplete="new-password"
                         />
                     </div>
                 </div>

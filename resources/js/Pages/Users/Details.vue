@@ -564,7 +564,7 @@ function submit() {
 
                 <div>
                     <label class="block text-sm font-medium">Password</label>
-                    <TextInput v-model="form.password" type="password" />
+                    <TextInput v-model="form.password" type="password" autocomplete="new-password" />
                     <InputError :message="form.errors.password" />
                 </div>
 

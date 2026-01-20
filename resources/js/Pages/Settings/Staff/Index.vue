@@ -197,19 +197,19 @@ const toggleStatus = (user) => {
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <InputLabel for="name" value="Full Name" />
-                            <TextInput id="name" v-model="staffForm.name" type="text" class="mt-1 block w-full" />
+                            <TextInput id="name" v-model="staffForm.name" type="text" class="mt-1 block w-full" autocomplete="name" />
                             <InputError :message="staffForm.errors.name" class="mt-2" />
                         </div>
                         <div>
                             <InputLabel for="username" value="Username" />
-                            <TextInput id="username" v-model="staffForm.username" type="text" class="mt-1 block w-full" />
+                            <TextInput id="username" v-model="staffForm.username" type="text" class="mt-1 block w-full" autocomplete="username" />
                             <InputError :message="staffForm.errors.username" class="mt-2" />
                         </div>
                     </div>
 
                     <div>
                         <InputLabel for="email" value="Email Address" />
-                        <TextInput id="email" v-model="staffForm.email" type="email" class="mt-1 block w-full" />
+                        <TextInput id="email" v-model="staffForm.email" type="email" class="mt-1 block w-full" autocomplete="email" />
                         <InputError :message="staffForm.errors.email" class="mt-2" />
                     </div>
 
@@ -227,12 +227,12 @@ const toggleStatus = (user) => {
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <InputLabel for="password" :value="editingUser ? 'New Password (Optional)' : 'Password'" />
-                            <TextInput id="password" v-model="staffForm.password" type="password" class="mt-1 block w-full" />
+                            <TextInput id="password" v-model="staffForm.password" type="password" class="mt-1 block w-full" autocomplete="new-password" />
                             <InputError :message="staffForm.errors.password" class="mt-2" />
                         </div>
                         <div>
                             <InputLabel for="password_confirmation" value="Confirm Password" />
-                            <TextInput id="password_confirmation" v-model="staffForm.password_confirmation" type="password" class="mt-1 block w-full" />
+                            <TextInput id="password_confirmation" v-model="staffForm.password_confirmation" type="password" class="mt-1 block w-full" autocomplete="new-password" />
                             <InputError :message="staffForm.errors.password_confirmation" class="mt-2" />
                         </div>
                     </div>

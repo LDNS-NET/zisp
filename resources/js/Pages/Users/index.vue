@@ -563,7 +563,7 @@ const openActions = (user) => {
                         </div>
                         <div>
                             <InputLabel for="password" value="Password" />
-                            <TextInput v-model="form.password" id="password" type="text" class="mt-1 block w-full" placeholder="Leave empty to keep current" />
+                            <TextInput v-model="form.password" id="password" type="password" class="mt-1 block w-full" placeholder="Leave empty to keep current" autocomplete="new-password" />
                             <InputError :message="form.errors.password" />
                         </div>
                         <div>
