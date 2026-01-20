@@ -104,19 +104,31 @@ class AggregateTrafficData extends Command
         $this->info("Inserting aggregated data...");
         
         foreach ($aggregated as $data) {
-            TenantTrafficAnalytics::updateOrCreate(
-                [
+            $existing = TenantTrafficAnalytics::where([
+                'tenant_id' => $data['tenant_id'],
+                'user_id' => $data['user_id'],
+                'date' => $data['date'],
+                'hour' => $data['hour'],
+            ])->first();
+
+            if ($existing) {
+                // Update existing record by incrementing
+                $existing->increment('bytes_in', $data['bytes_in']);
+                $existing->increment('bytes_out', $data['bytes_out']);
+                $existing->increment('total_bytes', $data['total_bytes']);
+            } else {
+                // Create new record
+                TenantTrafficAnalytics::create([
                     'tenant_id' => $data['tenant_id'],
                     'user_id' => $data['user_id'],
                     'date' => $data['date'],
                     'hour' => $data['hour'],
-                ],
-                [
-                    'bytes_in' => DB::raw("bytes_in + {$data['bytes_in']}"),
-                    'bytes_out' => DB::raw("bytes_out + {$data['bytes_out']}"),
-                    'total_bytes' => DB::raw("total_bytes + {$data['total_bytes']}"),
-                ]
-            );
+                    'bytes_in' => $data['bytes_in'],
+                    'bytes_out' => $data['bytes_out'],
+                    'total_bytes' => $data['total_bytes'],
+                    'protocol' => $data['protocol'],
+                ]);
+            }
         }
 
         $this->info("✓ Aggregation complete! Processed " . count($aggregated) . " hourly records.");

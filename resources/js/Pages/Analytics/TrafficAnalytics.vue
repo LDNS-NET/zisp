@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { Head } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import { router } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { BarChart3, TrendingUp, Activity, AlertTriangle, Download, Users } from 'lucide-vue-next';
@@ -240,7 +240,10 @@ function exportData() {
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div :class="[
+            'grid gap-6 mb-6',
+            protocolBreakdown.length > 0 ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'
+        ]">
             <!-- Top Consumers -->
             <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm p-6">
                 <div class="flex items-center gap-2 mb-4">
@@ -293,7 +296,7 @@ function exportData() {
             </div>
 
             <!-- Protocol Breakdown -->
-            <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm p-6">
+            <div v-if="protocolBreakdown.length > 0" class="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm p-6">
                 <div class="flex items-center gap-2 mb-4">
                     <Activity class="w-5 h-5 text-blue-600 dark:text-blue-400" />
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
@@ -340,9 +343,12 @@ function exportData() {
                             Recent avg: {{ formatBytes(anomaly.recent_avg) }} | Historical avg: {{ formatBytes(anomaly.historical_avg) }}
                         </div>
                     </div>
-                    <button class="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                    <Link 
+                        :href="route('users.index', { search: anomaly.username })"
+                        class="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
                         Investigate
-                    </button>
+                    </Link>
                 </div>
             </div>
         </div>
