@@ -36,6 +36,12 @@ class NetworkTopologyController extends Controller
             ->whereNull('deleted_at')
             ->get();
 
+        // Get active users count per router
+        $activeUsersCounts = \App\Models\Tenants\NetworkUser::where('online', true)
+            ->selectRaw('mikrotik_id, COUNT(*) as count')
+            ->groupBy('mikrotik_id')
+            ->pluck('count', 'mikrotik_id');
+
         $nodes = [];
         $edges = [];
 
@@ -74,17 +80,20 @@ class NetworkTopologyController extends Controller
                 }
             }
 
+            // Use wireguard_address as primary IP, fallback to host
+            $ipAddress = $router->wireguard_address ?? $router->host;
+
             $nodes[] = [
                 'id' => $router->id,
                 'name' => $router->identity ?? $router->name,
                 'type' => 'router',
                 'status' => $status,
-                'ip' => $router->host,
+                'ip' => $ipAddress,
                 'cpu' => $cpu,
                 'memory' => $memory,
                 'uptime' => $uptime,
                 'last_seen' => $router->last_seen_at?->diffForHumans(),
-                'active_users' => $router->active_users_count ?? 0,
+                'active_users' => $activeUsersCounts[$router->id] ?? 0,
                 'location' => $router->location,
             ];
         }
