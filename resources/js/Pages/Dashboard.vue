@@ -420,7 +420,13 @@ const packageChartSeries = computed(() =>
                                     </svg>
                                     <div class="absolute inset-0 flex items-center justify-center flex-col">
                                         <span class="text-xl font-bold text-gray-900 dark:text-white">{{ stats.network_health || 100 }}</span>
-                                        <span class="text-[0.6rem] font-bold uppercase text-gray-500">SQI</span>
+                                        <div class="flex items-center gap-0.5 group/sqi relative">
+                                            <span class="text-[0.6rem] font-bold uppercase text-gray-500">SQI</span>
+                                            <Info class="h-2 w-2 text-gray-400 cursor-help" />
+                                            <div class="absolute left-1/2 bottom-full mb-1 -translate-x-1/2 hidden group-hover/sqi:block w-32 rounded bg-slate-900 p-1 text-[0.5rem] text-white shadow-xl z-50 text-center">
+                                                Service Quality Index: A score of network stability and user experience.
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                                 <div>
@@ -721,7 +727,15 @@ const packageChartSeries = computed(() =>
                                     <!-- Forecast -->
                                     <div class="rounded-xl bg-emerald-50 p-4 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-900/30">
                                         <div class="flex items-center justify-between mb-2">
-                                            <span class="text-xs font-semibold text-emerald-700 dark:text-emerald-300 uppercase">Forecast (7 Days)</span>
+                                            <div class="flex items-center gap-1.5">
+                                                <span class="text-xs font-semibold text-emerald-700 dark:text-emerald-300 uppercase">Forecast (7 Days)</span>
+                                                <div class="group/hint relative">
+                                                    <Info class="h-3 w-3 text-emerald-400 cursor-help" />
+                                                    <div class="absolute left-0 bottom-full mb-1 hidden group-hover/hint:block w-40 rounded bg-slate-900 p-1.5 text-[0.6rem] text-white z-50 shadow-2xl">
+                                                        Total expected revenue from users whose subscriptions expire in the next 7 days.
+                                                    </div>
+                                                </div>
+                                            </div>
                                             <TrendingUp class="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                                         </div>
                                         <div class="flex items-end gap-1">
@@ -735,7 +749,15 @@ const packageChartSeries = computed(() =>
                                     <!-- Missed Opportunity -->
                                     <div class="rounded-xl bg-purple-50 p-4 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-900/30">
                                         <div class="flex items-center justify-between mb-2">
-                                            <span class="text-xs font-semibold text-purple-700 dark:text-purple-300 uppercase">Missed (Last 7 Days)</span>
+                                            <div class="flex items-center gap-1.5">
+                                                <span class="text-xs font-semibold text-purple-700 dark:text-purple-300 uppercase">Missed (Last 7 Days)</span>
+                                                <div class="group/hint relative">
+                                                    <Info class="h-3 w-3 text-purple-400 cursor-help" />
+                                                    <div class="absolute left-0 bottom-full mb-1 hidden group-hover/hint:block w-40 rounded bg-slate-900 p-1.5 text-[0.6rem] text-white z-50 shadow-2xl">
+                                                        Revenue lost from users who expired in the last 7 days and haven't renewed.
+                                                    </div>
+                                                </div>
+                                            </div>
                                             <TrendingDown class="h-4 w-4 text-purple-600 dark:text-purple-400" />
                                         </div>
                                         <div class="flex items-end gap-1">

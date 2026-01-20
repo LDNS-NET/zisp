@@ -123,17 +123,80 @@ const zoneRevenueSeries = computed(() => props.metrics.zone_revenue.map(z => z.r
 
                 <!-- Core Metrics Grid -->
                 <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4 mb-10">
-                    <div v-for="(val, key) in metrics.financial_health" :key="key" 
-                        class="relative overflow-hidden rounded-3xl bg-white p-6 shadow-xl dark:bg-slate-900 border border-slate-100 dark:border-slate-800 group hover:-translate-y-1 transition-transform"
-                    >
+                    <div class="relative overflow-hidden rounded-3xl bg-white p-6 shadow-xl dark:bg-slate-900 border border-slate-100 dark:border-slate-800 group hover:-translate-y-1 transition-transform">
                         <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                             <DollarSign class="h-20 w-20 text-slate-900 dark:text-white" />
                         </div>
-                        <p class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">{{ key.replace('_', ' ') }}</p>
+                        <div class="flex items-center gap-2 mb-2">
+                            <p class="text-xs font-bold uppercase tracking-widest text-slate-400">ARPU</p>
+                            <div class="group/info relative">
+                                <Info class="h-3.5 w-3.5 text-slate-300 cursor-help" />
+                                <div class="absolute left-0 bottom-full mb-2 hidden group-hover/info:block w-48 rounded-lg bg-slate-900 p-2 text-[0.65rem] text-white shadow-xl z-50">
+                                    Average Revenue Per User: Total potential revenue divided by total user count.
+                                </div>
+                            </div>
+                        </div>
                         <h3 class="text-3xl font-black text-slate-900 dark:text-white">
-                            <span v-if="key !== 'active_count'">{{ currency }}</span>
-                            {{ val.toLocaleString() }}
+                            {{ currency }} {{ metrics.financial_health.arpu.toLocaleString() }}
                         </h3>
+                        <div class="mt-4 flex items-center gap-2 text-xs font-bold text-emerald-500">
+                            <ArrowUpRight class="h-3 w-3" />
+                            <span>PER USER</span>
+                        </div>
+                    </div>
+
+                    <div class="relative overflow-hidden rounded-3xl bg-white p-6 shadow-xl dark:bg-slate-900 border border-slate-100 dark:border-slate-800 group hover:-translate-y-1 transition-transform">
+                        <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                            <TrendingUp class="h-20 w-20 text-slate-900 dark:text-white" />
+                        </div>
+                        <div class="flex items-center gap-2 mb-2">
+                            <p class="text-xs font-bold uppercase tracking-widest text-slate-400">MRR</p>
+                            <div class="group/info relative">
+                                <Info class="h-3.5 w-3.5 text-slate-300 cursor-help" />
+                                <div class="absolute left-0 bottom-full mb-2 hidden group-hover/info:block w-48 rounded-lg bg-slate-900 p-2 text-[0.65rem] text-white shadow-xl z-50">
+                                    Monthly Recurring Revenue: Expected income from all active subscriptions per month.
+                                </div>
+                            </div>
+                        </div>
+                        <h3 class="text-3xl font-black text-slate-900 dark:text-white">
+                            {{ currency }} {{ metrics.financial_health.mrr.toLocaleString() }}
+                        </h3>
+                        <div class="mt-4 flex items-center gap-2 text-xs font-bold text-emerald-500">
+                            <ArrowUpRight class="h-3 w-3" />
+                            <span>MONTHLY</span>
+                        </div>
+                    </div>
+
+                    <div class="relative overflow-hidden rounded-3xl bg-white p-6 shadow-xl dark:bg-slate-900 border border-slate-100 dark:border-slate-800 group hover:-translate-y-1 transition-transform">
+                        <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                            <Activity class="h-20 w-20 text-slate-900 dark:text-white" />
+                        </div>
+                        <div class="flex items-center gap-2 mb-2">
+                            <p class="text-xs font-bold uppercase tracking-widest text-slate-400">Active Yield</p>
+                            <div class="group/info relative">
+                                <Info class="h-3.5 w-3.5 text-slate-300 cursor-help" />
+                                <div class="absolute left-0 bottom-full mb-2 hidden group-hover/info:block w-48 rounded-lg bg-slate-900 p-2 text-[0.65rem] text-white shadow-xl z-50">
+                                    The average revenue specifically from your active, paying customers.
+                                </div>
+                            </div>
+                        </div>
+                        <h3 class="text-3xl font-black text-slate-900 dark:text-white">
+                            {{ currency }} {{ metrics.financial_health.active_yield.toLocaleString() }}
+                        </h3>
+                        <div class="mt-4 flex items-center gap-2 text-xs font-bold text-emerald-500">
+                            <ArrowUpRight class="h-3 w-3" />
+                            <span>PER ACTIVE</span>
+                        </div>
+                    </div>
+
+                    <div class="relative overflow-hidden rounded-3xl bg-white p-6 shadow-xl dark:bg-slate-900 border border-slate-100 dark:border-slate-800 group hover:-translate-y-1 transition-transform">
+                        <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                            <Users class="h-20 w-20 text-slate-900 dark:text-white" />
+                        </div>
+                        <div class="flex items-center gap-2 mb-2">
+                            <p class="text-xs font-bold uppercase tracking-widest text-slate-400">Status</p>
+                        </div>
+                        <h3 class="text-3xl font-black text-slate-900 dark:text-white">Healthy</h3>
                         <div class="mt-4 flex items-center gap-2 text-xs font-bold text-emerald-500">
                             <ArrowUpRight class="h-3 w-3" />
                             <span>STABLE GROWTH</span>
