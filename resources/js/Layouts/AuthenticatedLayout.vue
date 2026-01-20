@@ -81,6 +81,8 @@ const navigation = [
     { header: 'Communication', roles: ['tenant_admin', 'admin', 'marketing', 'customer_care'] },
     { name: 'SMS', href: route('sms.index'), icon: MessageSquare, active: 'sms.*', roles: ['tenant_admin', 'admin', 'marketing', 'customer_care'] },
     { name: 'Templates', href: route('smstemplates.index'), icon: Smartphone, active: 'smstemplates.*', roles: ['tenant_admin', 'admin', 'marketing', 'customer_care'] },
+];
+
 const page = usePage();
 const user = page.props.auth.user;
 const tenantLogo = page.props.tenant?.logo;
