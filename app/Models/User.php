@@ -8,9 +8,11 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 
 
+use Spatie\Permission\Traits\HasRoles;
+
 class User extends Authenticatable //implements MustVerifyEmail
 {
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, HasRoles;
 
     // NOTE: This model is used for super admins in the central DB and for tenant admins in tenant DBs only.
     // Do not use for WiFi users (network users), which are managed in the network_users table per tenant.

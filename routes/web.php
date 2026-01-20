@@ -37,6 +37,8 @@ use App\Http\Controllers\Tenants\TenantHotspotController;
 use App\Http\Controllers\Tenants\MikrotikDetailsController;
 use App\Http\Controllers\Tenants\SubscriptionController;
 use App\Http\Controllers\Tenants\MomoController;
+use App\Http\Controllers\Tenants\TenantSystemUserController;
+use App\Http\Controllers\Tenants\ContentFilterController;
 
 // SuperAdmin controllers
 use App\Http\Controllers\SuperAdmin\SuperAdminController;
@@ -179,74 +181,108 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode'])
             ->name('dashboard.data');
 
         //Active Users
-        Route::resource('activeusers', TenantActiveUsersController::class)->middleware('throttle:online_users');
+        Route::middleware(['role:tenant_admin|admin|customer_care|technical'])->group(function () {
+            Route::resource('activeusers', TenantActiveUsersController::class)->middleware('throttle:online_users');
+        });
 
         Route::middleware('throttle:bulk_actions')->group(function () {
-            Route::delete('/packages/bulk-delete', [PackageController::class, 'bulkDelete'])->name('packages.bulk-delete');
-            Route::delete('leads/bulk-delete', [TenantLeadController::class, 'bulkDelete'])->name('leads.bulk-delete');
-            Route::delete('tickets/bulk-delete', [TenantTicketController::class, 'bulkDelete'])->name('tickets.bulk-delete');
-            Route::delete('/equipment/bulk-delete', [TenantEquipmentController::class, 'bulkDelete'])->name('equipment.bulk-delete');
-            Route::delete('/vouchers/bulk-delete', [VoucherController::class, 'bulkDelete'])->name('vouchers.bulk-delete');
-            Route::delete('/payments/bulk-delete', [TenantPaymentController::class, 'bulkDelete'])->name('payments.bulk-delete');
-            Route::delete('/invoices/bulk-delete', [TenantInvoiceController::class, 'bulkDelete'])->name('invoices.bulk-delete');
+            Route::middleware(['role:tenant_admin|admin'])->group(function () {
+                Route::delete('/packages/bulk-delete', [PackageController::class, 'bulkDelete'])->name('packages.bulk-delete');
+                Route::delete('/vouchers/bulk-delete', [VoucherController::class, 'bulkDelete'])->name('vouchers.bulk-delete');
+                Route::delete('/payments/bulk-delete', [TenantPaymentController::class, 'bulkDelete'])->name('payments.bulk-delete');
+                Route::delete('/invoices/bulk-delete', [TenantInvoiceController::class, 'bulkDelete'])->name('invoices.bulk-delete');
+            });
+            
+            Route::middleware(['role:tenant_admin|admin|marketing'])->group(function () {
+                Route::delete('leads/bulk-delete', [TenantLeadController::class, 'bulkDelete'])->name('leads.bulk-delete');
+            });
+            
+            Route::middleware(['role:tenant_admin|admin|customer_care'])->group(function () {
+                Route::delete('tickets/bulk-delete', [TenantTicketController::class, 'bulkDelete'])->name('tickets.bulk-delete');
+            });
+
+            Route::middleware(['role:tenant_admin|admin|network_engineer|technical'])->group(function () {
+                Route::delete('/equipment/bulk-delete', [TenantEquipmentController::class, 'bulkDelete'])->name('equipment.bulk-delete');
+            });
         });
 
         //tenants packages
-        Route::resource('packages', PackageController::class)->except(['show']);
+        Route::middleware(['role:tenant_admin|admin|marketing'])->group(function () {
+            Route::resource('packages', PackageController::class)->except(['show']);
+        });
 
         //network users( wifi users )
-        Route::resource('users', TenantUserController::class)->middleware('throttle:user_crud');
-        Route::delete('/users/bulk-delete', [TenantUserController::class, 'bulkDelete'])
-            ->middleware('throttle:bulk_actions')
-            ->name('users.bulk-delete');
-        Route::post('/users/import', [TenantUserController::class, 'import'])
-            ->middleware('throttle:bulk_actions')
-            ->name('users.import');
-        Route::post('users/details', [TenantUserController::class, 'update'])->name('users.details.update');
+        Route::middleware(['role:tenant_admin|admin|customer_care|technical'])->group(function () {
+            Route::resource('users', TenantUserController::class)->middleware('throttle:user_crud');
+            Route::delete('/users/bulk-delete', [TenantUserController::class, 'bulkDelete'])
+                ->middleware('throttle:bulk_actions')
+                ->name('users.bulk-delete');
+            Route::post('/users/import', [TenantUserController::class, 'import'])
+                ->middleware('throttle:bulk_actions')
+                ->name('users.import');
+            Route::post('users/details', [TenantUserController::class, 'update'])->name('users.details.update');
+        });
 
 
         //Leads
-        Route::resource('leads', TenantLeadController::class)->only(['index', 'store', 'update', 'destroy']);
-        Route::delete('leads/bulk-delete', [TenantLeadController::class, 'bulkDelete'])->name('leads.bulk-delete');
+        Route::middleware(['role:tenant_admin|admin|marketing'])->group(function () {
+            Route::resource('leads', TenantLeadController::class)->only(['index', 'store', 'update', 'destroy']);
+            Route::delete('leads/bulk-delete', [TenantLeadController::class, 'bulkDelete'])->name('leads.bulk-delete');
+        });
 
         //tickets
-        Route::resource('tickets', TenantTicketController::class)->only(['index', 'store', 'update', 'destroy']);
-        Route::delete('tickets/bulk-delete', [TenantTicketController::class, 'bulkDelete'])->name('tickets.bulk-delete');
-        Route::put('/tickets/{ticket}/resolve', [TenantTicketController::class, 'resolve'])->name('tickets.resolve');
+        Route::middleware(['role:tenant_admin|admin|customer_care|technical'])->group(function () {
+            Route::resource('tickets', TenantTicketController::class)->only(['index', 'store', 'update', 'destroy']);
+            Route::delete('tickets/bulk-delete', [TenantTicketController::class, 'bulkDelete'])->name('tickets.bulk-delete');
+            Route::put('/tickets/{ticket}/resolve', [TenantTicketController::class, 'resolve'])->name('tickets.resolve');
+        });
 
         //Equipment
-        Route::resource('equipment', TenantEquipmentController::class)->only(['index', 'store', 'update', 'destroy']);
-        Route::delete('/equipment/bulk-delete', [TenantEquipmentController::class, 'bulkDelete'])->name('equipment.bulk-delete');
+        Route::middleware(['role:tenant_admin|admin|network_engineer|technical'])->group(function () {
+            Route::resource('equipment', TenantEquipmentController::class)->only(['index', 'store', 'update', 'destroy']);
+            Route::delete('/equipment/bulk-delete', [TenantEquipmentController::class, 'bulkDelete'])->name('equipment.bulk-delete');
+        });
 
         //vouchers
-        Route::get('/vouchers/print', [VoucherController::class, 'print'])->name('vouchers.print');
-        Route::delete('/vouchers/bulk-delete', [VoucherController::class, 'bulkDelete'])->name('vouchers.bulk-delete');
-        Route::resource('vouchers', VoucherController::class);
-        Route::post('/vouchers/{voucher}/send', [VoucherController::class, 'send'])->name('vouchers.send');
+        Route::middleware(['role:tenant_admin|admin|marketing|customer_care'])->group(function () {
+            Route::get('/vouchers/print', [VoucherController::class, 'print'])->name('vouchers.print');
+            Route::delete('/vouchers/bulk-delete', [VoucherController::class, 'bulkDelete'])->name('vouchers.bulk-delete');
+            Route::resource('vouchers', VoucherController::class);
+            Route::post('/vouchers/{voucher}/send', [VoucherController::class, 'send'])->name('vouchers.send');
+        });
 
         //Payments
-        Route::resource('payments', TenantPaymentController::class)->only(['index', 'store', 'update', 'destroy']);
-        Route::delete('/payments/bulk-delete', [TenantPaymentController::class, 'bulkDelete'])->name('payments.bulk-delete');
+        Route::middleware(['role:tenant_admin|admin'])->group(function () {
+            Route::resource('payments', TenantPaymentController::class)->only(['index', 'store', 'update', 'destroy']);
+            Route::delete('/payments/bulk-delete', [TenantPaymentController::class, 'bulkDelete'])->name('payments.bulk-delete');
+        });
 
         //Invoices
-        Route::resource('invoices', TenantInvoiceController::class)->only(['index', 'store', 'update', 'destroy']);
-        Route::delete('/invoices/bulk-delete', [TenantInvoiceController::class, 'bulkDelete'])->name('invoices.bulk-delete');
+        Route::middleware(['role:tenant_admin|admin|customer_care'])->group(function () {
+            Route::resource('invoices', TenantInvoiceController::class)->only(['index', 'store', 'update', 'destroy']);
+            Route::delete('/invoices/bulk-delete', [TenantInvoiceController::class, 'bulkDelete'])->name('invoices.bulk-delete');
+        });
 
         //Expenses
-        Route::resource('expenses', TenantExpensesController::class)->only(['index', 'store', 'update', 'destroy']);
-        Route::delete('/expenses/bulk-delete', [TenantExpensesController::class, 'bulkDelete'])->name('expenses.bulk-delete');
+        Route::middleware(['role:tenant_admin|admin'])->group(function () {
+            Route::resource('expenses', TenantExpensesController::class)->only(['index', 'store', 'update', 'destroy']);
+            Route::delete('/expenses/bulk-delete', [TenantExpensesController::class, 'bulkDelete'])->name('expenses.bulk-delete');
+        });
 
-        //SMS
-        Route::resource('sms', TenantSMSController::class)
-            ->only(['index', 'create', 'store', 'destroy'])
-            ->middleware('throttle:sms_sending');
-        Route::delete('/sms/bulk-delete', [TenantSMSController::class, 'bulkDelete'])
-            ->middleware('throttle:bulk_actions')
-            ->name('sms.bulk-delete');
+        //Communication
+        Route::middleware(['role:tenant_admin|admin|marketing|customer_care'])->group(function () {
+            //SMS
+            Route::resource('sms', TenantSMSController::class)
+                ->only(['index', 'create', 'store', 'destroy'])
+                ->middleware('throttle:sms_sending');
+            Route::delete('/sms/bulk-delete', [TenantSMSController::class, 'bulkDelete'])
+                ->middleware('throttle:bulk_actions')
+                ->name('sms.bulk-delete');
 
-        // SMS Templates
-        Route::resource('smstemplates', TenantSMSTemplateController::class)->only(['index', 'create', 'update', 'store', 'destroy']);
-        Route::delete('/smstemplates/bulk-delete', [TenantSMSTemplateController::class, 'bulkDelete'])->name('smstemplates.bulk-delete');
+            // SMS Templates
+            Route::resource('smstemplates', TenantSMSTemplateController::class)->only(['index', 'create', 'update', 'store', 'destroy']);
+            Route::delete('/smstemplates/bulk-delete', [TenantSMSTemplateController::class, 'bulkDelete'])->name('smstemplates.bulk-delete');
+        });
 
         //Hotspot Settings
         Route::get('settings/hotspot', [TenantHotspotSettingsController::class, 'edit'])->name('settings.hotspot.edit');
@@ -266,15 +302,63 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode'])
 
 
 
-        //general settings
-        Route::get('settings/general', [TenantGeneralSettingsController::class, 'edit'])->name('settings.general.edit');
-        Route::post('settings/general', [TenantGeneralSettingsController::class, 'update'])
-            ->middleware('throttle:file_upload')
-            ->name('settings.general.update');
+        // Analytics routes
+        Route::prefix('analytics')->name('analytics.')->group(function () {
+            Route::middleware(['role:tenant_admin|admin|network_engineer|technical'])->group(function () {
+                Route::get('/traffic', [App\Http\Controllers\Tenants\TrafficAnalyticsController::class, 'index'])->name('traffic');
+                Route::get('/traffic/user/{userId}', [App\Http\Controllers\Tenants\TrafficAnalyticsController::class, 'getUserBandwidth'])->name('traffic.user');
+            });
+            
+            Route::middleware(['role:tenant_admin|network_engineer|technical'])->group(function () {
+                Route::get('/topology', [App\Http\Controllers\Tenants\NetworkTopologyController::class, 'index'])->name('topology');
+                Route::get('/topology/updates', [App\Http\Controllers\Tenants\NetworkTopologyController::class, 'getTopologyUpdates'])->name('topology.updates');
+                Route::get('/topology/device/{id}', [App\Http\Controllers\Tenants\NetworkTopologyController::class, 'getDeviceDetails'])->name('topology.device');
+            });
 
-        //system settings
-        Route::get('settings/system', [App\Http\Controllers\Tenants\TenantSystemSettingsController::class, 'edit'])->name('settings.system.edit');
-        Route::post('settings/system', [App\Http\Controllers\Tenants\TenantSystemSettingsController::class, 'update'])->name('settings.system.update');
+            Route::middleware(['role:tenant_admin|admin|network_engineer'])->group(function () {
+                Route::get('/predictions', [App\Http\Controllers\Tenants\PredictiveAnalyticsController::class, 'index'])->name('predictions');
+                Route::post('/predictions/refresh', [App\Http\Controllers\Tenants\PredictiveAnalyticsController::class, 'refresh'])->name('predictions.refresh');
+            });
+
+            Route::middleware(['role:tenant_admin|admin|marketing'])->group(function () {
+                // Report Builder
+                Route::resource('reports', App\Http\Controllers\Tenants\ReportBuilderController::class)->only(['index', 'store', 'destroy']);
+                Route::post('/reports/{report}/generate', [App\Http\Controllers\Tenants\ReportBuilderController::class, 'generate'])->name('reports.generate');
+                
+                // Financial Intelligence
+                Route::get('/finance', [App\Http\Controllers\Tenants\FinancialAnalyticsController::class, 'index'])->name('finance');
+            });
+        });
+
+        // Staff Management (Tenant Admin only)
+        Route::middleware(['role:tenant_admin|admin'])->group(function () {
+            Route::prefix('settings/staff')->name('settings.staff.')->group(function () {
+                Route::get('/', [TenantSystemUserController::class, 'index'])->name('index');
+                Route::post('/', [TenantSystemUserController::class, 'store'])->name('store');
+                Route::put('/{user}', [TenantSystemUserController::class, 'update'])->name('update');
+                Route::delete('/{user}', [TenantSystemUserController::class, 'destroy'])->name('destroy');
+                Route::post('/{user}/toggle-status', [TenantSystemUserController::class, 'toggleStatus'])->name('toggle-status');
+            });
+            
+            Route::get('settings/general', [TenantGeneralSettingsController::class, 'edit'])->name('settings.general.edit');
+            Route::post('settings/general', [TenantGeneralSettingsController::class, 'update'])
+                ->middleware('throttle:file_upload')
+                ->name('settings.general.update');
+        });
+
+        // Network Management
+        Route::middleware(['role:tenant_admin|network_engineer|network_admin|technical'])->group(function () {
+            Route::middleware('throttle:mikrotik_api')->group(function () {
+                Route::post('mikrotiks/{mikrotik}/reboot', [TenantMikrotikController::class, 'reboot'])->name('mikrotiks.reboot');
+                Route::delete('mikrotiks/{mikrotik}/force-delete', [TenantMikrotikController::class, 'forceDelete'])->name('mikrotiks.forceDelete');
+                Route::resource('mikrotiks', TenantMikrotikController::class);
+                // ... other mikrotik routes ...
+            });
+            
+            Route::get('settings/content-filter', [ContentFilterController::class, 'index'])->name('settings.content-filter.index');
+            Route::post('settings/content-filter', [ContentFilterController::class, 'update'])->name('settings.content-filter.update');
+            Route::post('settings/content-filter/apply/{router}', [ContentFilterController::class, 'applyToRouter'])->name('settings.content-filter.apply');
+        });
 
         // Domain Requests
         Route::get('domain-requests', [App\Http\Controllers\Tenants\DomainRequestController::class, 'index'])->name('domain-requests.index');

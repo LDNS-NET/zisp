@@ -30,7 +30,9 @@ import {
     Bell,
     Shield,
     BarChart3,
-    BrainCircuit
+    BrainCircuit,
+    UserCog,
+    Lock
 } from 'lucide-vue-next';
 
 const { theme, setTheme } = useTheme();
@@ -54,36 +56,39 @@ const navigation = [
     { name: 'Dashboard', href: route('dashboard'), icon: LayoutDashboard, active: 'dashboard' },
     
     { header: 'Analytics' },
-    { name: 'Traffic Analytics', href: route('analytics.traffic'), icon: BarChart3, active: 'analytics.traffic' },
-    { name: 'Network Topology', href: route('analytics.topology'), icon: Network, active: 'analytics.topology' },
-    { name: 'Predictive Insights', href: route('analytics.predictions'), icon: BrainCircuit, active: 'analytics.predictions' },
-    { name: 'Financial Intelligence', href: route('analytics.finance'), icon: Banknote, active: 'analytics.finance' },
-    { name: 'Report Builder', href: route('analytics.reports.index'), icon: FileText, active: 'analytics.reports.*' },
+    { name: 'Traffic Analytics', href: route('analytics.traffic'), icon: BarChart3, active: 'analytics.traffic', roles: ['tenant_admin', 'admin', 'network_engineer', 'technical'] },
+    { name: 'Network Topology', href: route('analytics.topology'), icon: Network, active: 'analytics.topology', roles: ['tenant_admin', 'network_engineer', 'technical'] },
+    { name: 'Predictive Insights', href: route('analytics.predictions'), icon: BrainCircuit, active: 'analytics.predictions', roles: ['tenant_admin', 'admin', 'network_engineer'] },
+    { name: 'Financial Intelligence', href: route('analytics.finance'), icon: Banknote, active: 'analytics.finance', roles: ['tenant_admin', 'admin', 'marketing'] },
+    { name: 'Report Builder', href: route('analytics.reports.index'), icon: FileText, active: 'analytics.reports.*', roles: ['tenant_admin', 'admin', 'marketing'] },
     
     { header: 'User Management' },
-    { name: 'Online Users', href: route('activeusers.index'), icon: Activity, active: 'activeusers.*', countKey: 'online_users' },
-    { name: 'All Users', href: route('users.index'), icon: Users, active: 'users.*', countKey: 'all_users' },
-    { name: 'Leads', href: route('leads.index'), icon: Layers, active: 'leads.*', countKey: 'leads' },
-    { name: 'Tickets', href: route('tickets.index'), icon: HelpCircle, active: 'tickets.*', countKey: 'tickets' },
+    { name: 'Online Users', href: route('activeusers.index'), icon: Activity, active: 'activeusers.*', countKey: 'online_users', roles: ['tenant_admin', 'admin', 'customer_care', 'technical'] },
+    { name: 'All Users', href: route('users.index'), icon: Users, active: 'users.*', countKey: 'all_users', roles: ['tenant_admin', 'admin', 'customer_care', 'technical'] },
+    { name: 'Leads', href: route('leads.index'), icon: Layers, active: 'leads.*', countKey: 'leads', roles: ['tenant_admin', 'admin', 'marketing'] },
+    { name: 'Tickets', href: route('tickets.index'), icon: HelpCircle, active: 'tickets.*', countKey: 'tickets', roles: ['tenant_admin', 'admin', 'customer_care', 'technical'] },
     
     { header: 'Billing & Finance' },
-    { name: 'Packages', href: route('packages.index'), icon: Layers, active: 'packages.*', countKey: 'packages' },
-    { name: 'Vouchers', href: route('vouchers.index'), icon: Gift, active: 'vouchers.*', countKey: 'vouchers' },
-    { name: 'Payments', href: route('payments.index'), icon: Banknote, active: 'payments.*' },
-    { name: 'Invoices', href: route('invoices.index'), icon: FileText, active: 'invoices.*', countKey: 'invoices' },
+    { name: 'Packages', href: route('packages.index'), icon: Layers, active: 'packages.*', countKey: 'packages', roles: ['tenant_admin', 'admin', 'marketing'] },
+    { name: 'Vouchers', href: route('vouchers.index'), icon: Gift, active: 'vouchers.*', countKey: 'vouchers', roles: ['tenant_admin', 'admin', 'marketing', 'customer_care'] },
+    { name: 'Payments', href: route('payments.index'), icon: Banknote, active: 'payments.*', roles: ['tenant_admin', 'admin'] },
+    { name: 'Invoices', href: route('invoices.index'), icon: FileText, active: 'invoices.*', countKey: 'invoices', roles: ['tenant_admin', 'admin', 'customer_care'] },
 
-    { header: 'Network Management' },
-    { name: 'Mikrotiks', href: route('mikrotiks.index'), icon: Network, active: 'mikrotiks.*', countKey: 'mikrotiks' },
-    /*{ name: 'Hotspot', href: route('hotspot.index'), icon: Wifi, active: 'hotspot.*' },*/
+    { header: 'System & Security', roles: ['tenant_admin', 'admin', 'network_admin'] },
+    { name: 'Staff Management', href: route('settings.staff.index'), icon: UserCog, active: 'settings.staff.*', roles: ['tenant_admin', 'admin', 'network_admin'] },
+    { name: 'Content Filtering', href: route('settings.content-filter.index'), icon: Lock, active: 'settings.content-filter.*', roles: ['tenant_admin', 'network_engineer', 'network_admin'] },
     
-    { header: 'Communication' },
-    { name: 'SMS', href: route('sms.index'), icon: MessageSquare, active: 'sms.*' },
-    { name: 'Templates', href: route('smstemplates.index'), icon: Smartphone, active: 'smstemplates.*' },
-];
-
+    { header: 'Communication', roles: ['tenant_admin', 'admin', 'marketing', 'customer_care'] },
+    { name: 'SMS', href: route('sms.index'), icon: MessageSquare, active: 'sms.*', roles: ['tenant_admin', 'admin', 'marketing', 'customer_care'] },
+    { name: 'Templates', href: route('smstemplates.index'), icon: Smartphone, active: 'smstemplates.*', roles: ['tenant_admin', 'admin', 'marketing', 'customer_care'] },
 const page = usePage();
 const user = page.props.auth.user;
 const tenantLogo = page.props.tenant?.logo;
+
+const filteredNavigation = navigation.filter((item) => {
+    if (!item.roles) return true;
+    return item.roles.some((role) => user.roles.includes(role));
+});
 
 function toggleSidebar() {
     sidebarOpen.value = !sidebarOpen.value;
@@ -144,7 +149,7 @@ function toggleSidebar() {
 
             <!-- Navigation -->
             <div class="flex-1 overflow-y-auto py-4 px-3 space-y-1 custom-scrollbar">
-                <template v-for="(item, index) in navigation" :key="index">
+                <template v-for="(item, index) in filteredNavigation" :key="index">
                     <!-- Section Header -->
                     <div 
                         v-if="item.header" 

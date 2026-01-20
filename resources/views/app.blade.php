@@ -15,6 +15,20 @@
         @routes
         @vite(['resources/js/app.js'])
         @inertiaHead
+
+        @php
+            $tenant = tenant();
+            $settings = $tenant ? \App\Models\TenantGeneralSetting::where('tenant_id', $tenant->id)->first() : null;
+            $primaryColor = $settings->primary_color ?? '#3b82f6';
+            $secondaryColor = $settings->secondary_color ?? '#1e40af';
+        @endphp
+
+        <style>
+            :root {
+                --primary-color: {{ $primaryColor }};
+                --secondary-color: {{ $secondaryColor }};
+            }
+        </style>
     </head>
     <style>
         #app-loader {

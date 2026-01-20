@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use App\Models\Tenants\TenantMikrotik;
 use App\Services\MikrotikService;
+use App\Services\AutoRemediationService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 
@@ -145,6 +146,14 @@ class SyncRoutersCommand extends Command
                 $router->update($updateData);
                 
                 $this->error("Router {$router->id} ({$router->name}) sync failed: {$errorType} - " . substr($errorMessage, 0, 100));
+            }
+
+            // 🤖 Trigger Auto-Remediation Check
+            try {
+                $remediationService = new \App\Services\AutoRemediationService();
+                $remediationService->checkAndRemediate($router, is_array($resources ?? null) ? ($resources[0] ?? []) : []);
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error("Auto-remediation failure: " . $e->getMessage());
             }
         }
         

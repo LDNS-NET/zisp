@@ -80,6 +80,8 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user() ? array_merge($request->user()->toArray(), [
                     'unread_notifications_count' => $request->user()->unreadNotifications()->count(),
+                    'roles' => $request->user()->getRoleNames(),
+                    'permissions' => $request->user()->getAllPermissions()->pluck('name'),
                 ]) : ($request->user('customer') ? $request->user('customer')->toArray() : null),
                 'impersonated_by' => $request->session()->get('impersonated_by'),
             ],
@@ -90,6 +92,8 @@ class HandleInertiaRequests extends Middleware
                 'currency' => $tenant->currency,
                 'support_phone' => $settings?->support_phone,
                 'support_email' => $settings?->support_email,
+                'primary_color' => $settings?->primary_color ?? '#3b82f6',
+                'secondary_color' => $settings?->secondary_color ?? '#1e40af',
             ] : null,
             'sidebarCounts' => $counts,
             'superadminCounts' => [

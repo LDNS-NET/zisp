@@ -8,7 +8,7 @@ import TextInput from '@/Components/TextInput.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import TextArea from '@/Components/TextArea.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
-import { Building2, Phone, MapPin, Globe, Clock } from 'lucide-vue-next';
+import { Building2, Phone, MapPin, Globe, Clock, Palette } from 'lucide-vue-next';
 
 const page = usePage();
 const { setTheme } = useTheme();
@@ -34,6 +34,8 @@ const form = ref({
     timezone: 'Africa/Nairobi',
     currency: 'KES',
     language: 'en',
+    primary_color: '#3b82f6',
+    secondary_color: '#1e40af',
 });
 
 function setFormFromBackend(settings) {
@@ -119,6 +121,8 @@ function setFormFromBackend(settings) {
             typeof settings.language === 'number'
                 ? settings.language
                 : (settings.language ?? 'en'),
+        primary_color: settings.primary_color ?? '#3b82f6',
+        secondary_color: settings.secondary_color ?? '#1e40af',
     };
 }
 
@@ -299,7 +303,20 @@ function submit() {
                             <option value="dark">Dark</option>
                         </select>
                     </div>
-                    <!-- Primary Color section removed -->
+                    <div>
+                        <InputLabel for="primary_color" value="Primary Color" />
+                        <div class="mt-1 flex gap-2">
+                             <input type="color" id="primary_color" v-model="form.primary_color" class="h-10 w-20 rounded border-gray-300 dark:bg-black" />
+                             <TextInput v-model="form.primary_color" class="flex-1" />
+                        </div>
+                    </div>
+                    <div>
+                        <InputLabel for="secondary_color" value="Secondary Color" />
+                        <div class="mt-1 flex gap-2">
+                             <input type="color" id="secondary_color" v-model="form.secondary_color" class="h-10 w-20 rounded border-gray-300 dark:bg-black" />
+                             <TextInput v-model="form.secondary_color" class="flex-1" />
+                        </div>
+                    </div>
                 </div>
             </div>
 
