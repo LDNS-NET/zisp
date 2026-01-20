@@ -40,7 +40,6 @@ class TenantUserController extends Controller
                     $subQ->where('full_name', 'like', "%{$search}%")
                         ->orWhere('username', 'like', "%{$search}%")
                         ->orWhere('phone', 'like', "%{$search}%")
-                        ->orWhere('email', 'like', "%{$search}%")
                         ->orWhere('account_number', 'like', "%{$search}%");
                 });
             })
@@ -100,7 +99,6 @@ class TenantUserController extends Controller
                 'username' => $user->username,
                 'account_number' => $user->account_number,
                 'phone' => $user->phone,
-                'email' => $user->email,
                 'location' => $user->location,
                 'type' => $user->type,
                 // Use real-time check against active session list for accuracy
