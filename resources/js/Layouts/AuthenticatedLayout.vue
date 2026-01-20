@@ -71,14 +71,14 @@ const navigation = [
     { header: 'Billing & Finance' },
     { name: 'Packages', href: route('packages.index'), icon: Layers, active: 'packages.*', countKey: 'packages', roles: ['tenant_admin', 'admin', 'marketing'] },
     { name: 'Vouchers', href: route('vouchers.index'), icon: Gift, active: 'vouchers.*', countKey: 'vouchers', roles: ['tenant_admin', 'admin', 'marketing', 'customer_care'] },
-    { name: 'Payments', href: route('payments.index'), icon: Banknote, active: 'payments.*', roles: ['tenant_admin', 'admin'] },
+    { name: 'Payments', href: route('payments.index'), icon: Banknote, active: 'payments.*', roles: ['tenant_admin'] },
     { name: 'Invoices', href: route('invoices.index'), icon: FileText, active: 'invoices.*', countKey: 'invoices', roles: ['tenant_admin', 'admin', 'customer_care'] },
 
     { header: 'Network Management', roles: ['tenant_admin', 'network_engineer', 'technical', 'network_admin'] },
     { name: 'Mikrotiks', href: route('mikrotiks.index'), icon: Network, active: 'mikrotiks.*', countKey: 'mikrotiks', roles: ['tenant_admin', 'network_engineer', 'technical', 'network_admin'] },
 
-    { header: 'System & Security', roles: ['tenant_admin', 'admin', 'network_admin'] },
-    { name: 'Staff Management', href: route('settings.staff.index'), icon: UserCog, active: 'settings.staff.*', roles: ['tenant_admin', 'admin', 'network_admin'] },
+    { header: 'System & Security', roles: ['tenant_admin', 'network_admin'] },
+    { name: 'Staff Management', href: route('settings.staff.index'), icon: UserCog, active: 'settings.staff.*', roles: ['tenant_admin'] },
     { name: 'Content Filtering', href: route('settings.content-filter.index'), icon: Lock, active: 'settings.content-filter.*', roles: ['tenant_admin', 'network_engineer', 'network_admin'] },
     
     { header: 'Communication', roles: ['tenant_admin', 'admin', 'marketing', 'customer_care'] },

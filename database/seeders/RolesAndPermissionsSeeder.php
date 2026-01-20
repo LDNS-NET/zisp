@@ -48,7 +48,13 @@ class RolesAndPermissionsSeeder extends Seeder
         $tenantAdminRole->givePermissionTo(Permission::all());
 
         $adminRole = Role::findByName('admin', 'web');
-        $adminRole->givePermissionTo(Permission::all());
+        $adminRole->givePermissionTo([
+            'manage network',
+            'manage support',
+            'manage marketing',
+            'view analytics',
+            'configure network',
+        ]);
 
         Role::findByName('customer_care', 'web')->givePermissionTo(['manage support', 'view analytics']);
         Role::findByName('technical', 'web')->givePermissionTo(['manage network', 'manage support']);

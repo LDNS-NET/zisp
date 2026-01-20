@@ -22,30 +22,35 @@ const settingsTabs = [
         label: 'General',
         icon: Settings,
         route: 'settings.general.edit',
+        roles: ['tenant_admin'],
     },
     {
         key: 'hotspot',
         label: 'Hotspot',
         icon: Wifi,
         route: 'settings.hotspot.edit',
+        roles: ['tenant_admin', 'admin', 'network_engineer'],
     },
     {
         key: 'sms',
         label: 'SMS Gateway',
         icon: Smartphone,
         route: 'settings.sms.edit',
+        roles: ['tenant_admin', 'admin', 'marketing'],
     },
     {
         key: 'payment',
         label: 'Payment Gateway',
         icon: CreditCard,
         route: 'settings.payment.edit',
+        roles: ['tenant_admin'],
     },
     {
         key: 'system',
         label: 'System',
         icon: Cog,
         route: 'settings.system.edit',
+        roles: ['tenant_admin'],
     },
     /*{
         key: 'whatsapp',
@@ -72,6 +77,12 @@ const settingsTabs = [
         route: 'mikrotiks.index',
     },*/
 ];
+
+const userRoles = page.props.auth.user.roles;
+const filteredTabs = settingsTabs.filter(tab => {
+    if (!tab.roles) return true;
+    return tab.roles.some(role => userRoles.includes(role));
+});
 </script>
 
 <template>
@@ -90,7 +101,7 @@ const settingsTabs = [
 
                     <nav class="flex flex-col gap-2">
                         <Link
-                            v-for="tab in settingsTabs"
+                            v-for="tab in filteredTabs"
                             :key="tab.key"
                             :href="route(tab.route)"
                             :class="[ 

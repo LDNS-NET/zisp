@@ -37,7 +37,7 @@ class TenantSystemUserController extends Controller
             });
         
         $roles = Role::whereIn('name', [
-            'tenant_admin', 'admin', 'customer_care', 'technical', 
+            'admin', 'customer_care', 'technical', 
             'network_engineer', 'marketing', 'network_admin'
         ])->get();
 

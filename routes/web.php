@@ -252,7 +252,7 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode'])
         });
 
         //Payments
-        Route::middleware(['role:tenant_admin|admin'])->group(function () {
+        Route::middleware(['role:tenant_admin'])->group(function () {
             Route::resource('payments', TenantPaymentController::class)->only(['index', 'store', 'update', 'destroy']);
             Route::delete('/payments/bulk-delete', [TenantPaymentController::class, 'bulkDelete'])->name('payments.bulk-delete');
         });
@@ -330,8 +330,8 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode'])
             });
         });
 
-        // Staff Management (Tenant Admin only)
-        Route::middleware(['role:tenant_admin|admin'])->group(function () {
+        // Staff Management & Core Settings (Tenant Admin only)
+        Route::middleware(['role:tenant_admin'])->group(function () {
             Route::prefix('settings/staff')->name('settings.staff.')->group(function () {
                 Route::get('/', [TenantSystemUserController::class, 'index'])->name('index');
                 Route::post('/', [TenantSystemUserController::class, 'store'])->name('store');
@@ -348,6 +348,10 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode'])
             // System Settings
             Route::get('settings/system', [App\Http\Controllers\Tenants\TenantSystemSettingsController::class, 'edit'])->name('settings.system.edit');
             Route::post('settings/system', [App\Http\Controllers\Tenants\TenantSystemSettingsController::class, 'update'])->name('settings.system.update');
+            
+            // Payment Gateway Settings
+            Route::get('settings/payment', [TenantPaymentGatewayController::class, 'edit'])->name('settings.payment.edit');
+            Route::post('settings/payment', [TenantPaymentGatewayController::class, 'update'])->name('settings.payment.update');
         });
 
         // Network Management
