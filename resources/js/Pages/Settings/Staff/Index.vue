@@ -52,6 +52,7 @@ const openEditModal = (user) => {
     staffForm.name = user.name;
     staffForm.email = user.email;
     staffForm.username = user.username;
+    staffForm.phone = user.phone || '';
     staffForm.role = user.role;
     staffForm.password = '';
     staffForm.password_confirmation = '';
@@ -207,10 +208,17 @@ const toggleStatus = (user) => {
                         </div>
                     </div>
 
-                    <div>
-                        <InputLabel for="email" value="Email Address" />
-                        <TextInput id="email" v-model="staffForm.email" type="email" class="mt-1 block w-full" autocomplete="email" />
-                        <InputError :message="staffForm.errors.email" class="mt-2" />
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <InputLabel for="email" value="Email Address" />
+                            <TextInput id="email" v-model="staffForm.email" type="email" class="mt-1 block w-full" autocomplete="email" />
+                            <InputError :message="staffForm.errors.email" class="mt-2" />
+                        </div>
+                        <div>
+                            <InputLabel for="phone" value="Phone Number" />
+                            <TextInput id="phone" v-model="staffForm.phone" type="text" class="mt-1 block w-full" autocomplete="tel" required />
+                            <InputError :message="staffForm.errors.phone" class="mt-2" />
+                        </div>
                     </div>
 
                     <div>

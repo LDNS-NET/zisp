@@ -29,6 +29,7 @@ class TenantSystemUserController extends Controller
                     'name' => $user->name,
                     'email' => $user->email,
                     'username' => $user->username,
+                    'phone' => $user->phone,
                     'role' => $user->roles->first()?->name,
                     'last_login_at' => $user->last_login_at,
                     'is_suspended' => $user->is_suspended,
@@ -52,7 +53,7 @@ class TenantSystemUserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'username' => 'required|string|max:255|unique:users',
-            'phone' => 'nullable|string|max:20',
+            'phone' => 'required|string|max:20',
             'password' => 'required|string|min:8|confirmed',
             'role' => 'required|string|exists:roles,name',
         ]);
@@ -80,6 +81,7 @@ class TenantSystemUserController extends Controller
             'name' => 'required|string|max:255',
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($id)],
             'username' => ['required', 'string', 'max:255', Rule::unique('users')->ignore($id)],
+            'phone' => 'required|string|max:20',
             'role' => 'required|string|exists:roles,name',
             'password' => 'nullable|string|min:8|confirmed',
         ]);
@@ -88,6 +90,7 @@ class TenantSystemUserController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'username' => $request->username,
+            'phone' => $request->phone,
         ];
 
         if ($request->filled('password')) {
