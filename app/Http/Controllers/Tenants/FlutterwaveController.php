@@ -17,10 +17,12 @@ use Inertia\Inertia;
 class FlutterwaveController extends Controller
 {
     protected $flutterwaveService;
+    protected $paymentProcessingService;
 
-    public function __construct(FlutterwaveService $flutterwaveService)
+    public function __construct(FlutterwaveService $flutterwaveService, \App\Services\PaymentProcessingService $paymentProcessingService)
     {
         $this->flutterwaveService = $flutterwaveService;
+        $this->paymentProcessingService = $paymentProcessingService;
     }
 
     /**
@@ -71,7 +73,11 @@ class FlutterwaveController extends Controller
                     'paid_at' => now(),
                 ]);
 
-                // Process the service (Hotspot or Renewal)
+                // Process payment (create/extend user)
+                if ($payment->hotspot_package_id || $payment->package_id) {
+                    $this->paymentProcessingService->processSuccess($payment);
+                }
+ 
                 return $this->handleRedirect($payment);
             }
             
@@ -87,55 +93,24 @@ class FlutterwaveController extends Controller
      */
     protected function handleRedirect($payment)
     {
-        $metadata = $payment->response['metadata'] ?? [];
-        $type = $metadata['type'] ?? 'hotspot'; // Default to hotspot if not specified
+        if ($payment->hotspot_package_id) {
+            $user = \App\Models\Tenants\NetworkUser::where('phone', $payment->phone)
+                ->where('type', 'hotspot')
+                ->first();
 
-        // Hotspot Payment
-        if ($type === 'hotspot' || $payment->hotspot_package_id) {
-            // Logic to create/update network user and redirect to success
-            $user = NetworkUser::find($payment->user_id);
-            
-            if ($user && $payment->hotspot_package_id) {
-                $package = TenantHotspot::find($payment->hotspot_package_id);
-                if ($package) {
-                    // Calculate expiry
-                    $duration = $package->duration_value; // e.g., 1
-                    $unit = $package->duration_unit; // e.g., 'hours'
-                    
-                    $expiry = match($unit) {
-                        'minutes' => now()->addMinutes($duration),
-                        'hours' => now()->addHours($duration),
-                        'days' => now()->addDays($duration),
-                        'weeks' => now()->addWeeks($duration),
-                        'months' => now()->addMonths($duration),
-                        default => now()->addHours(1),
-                    };
-
-                    // Update user
-                    $user->update([
-                        'status' => 'active',
-                        'plan_id' => $package->id,
-                        'plan_type' => 'hotspot',
-                        'expiration' => $expiry,
-                        'simultaneous_use' => $package->device_limit,
-                        'download_limit' => $package->download_speed . 'M',
-                        'upload_limit' => $package->upload_speed . 'M',
-                    ]);
-                }
+            if ($user) {
+                // Get hotspot metadata from payment response
+                $metadata = $payment->response['metadata'] ?? [];
+                
+                return redirect()->route('hotspot.success', array_filter([
+                    'u' => $user->username,
+                    'p' => $user->password,
+                    'link-login' => $metadata['link_login'] ?? null,
+                    'link-orig' => $metadata['link_orig'] ?? null,
+                    'error-link' => $metadata['error_link'] ?? null,
+                ]));
             }
-
-            return redirect()->route('hotspot.success', [
-                'u' => $user->username,
-                'p' => $user->password, // Be careful exposing password in URL, but standard for hotspot
-            ]);
-        }
-
-        // Customer Renewal/Upgrade
-        if ($type === 'renewal' || $type === 'upgrade') {
-            // Logic handled by SubscriptionController usually, but we can do basic update here
-            // Ideally we should call a service method to handle the business logic to avoid duplication
-            // For now, redirect to dashboard with success message
-             return redirect()->route('customer.dashboard')->with('success', 'Payment successful! Your plan has been updated.');
+            return redirect()->route('hotspot.success');
         }
 
         return redirect()->route('customer.dashboard');
