@@ -79,30 +79,46 @@
 <body>
     <div class="card">
         @if(request()->has('u') && request()->has('p'))
-            <span class="icon">✅</span>
-            <h1>Payment Successful!</h1>
-            <p>Your internet access has been activated.</p>
+            <span class="icon">🔐</span>
+            <h1>Logging you in...</h1>
+            <div class="spinner"></div>
+            <p>Please wait while we connect you to the internet.</p>
             
-            <div style="margin-top: 25px; padding: 15px; background: rgba(255,255,255,0.15); border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); text-align: left;">
-                <h2 style="margin: 0 0 10px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.8;">Your Credentials</h2>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                    <span style="font-size: 12px; opacity: 0.7;">Username:</span>
-                    <span style="font-family: monospace; font-weight: 700; font-size: 16px;">{{ request()->get('u') }}</span>
-                </div>
-                <div style="display: flex; justify-content: space-between;">
-                    <span style="font-size: 12px; opacity: 0.7;">Password:</span>
-                    <span style="font-family: monospace; font-weight: 700; font-size: 16px;">{{ request()->get('p') }}</span>
-                </div>
-            </div>
+            <!-- Hidden form for auto-login -->
+            <form id="loginForm" method="post" action="{{ request()->get('link-login') ?? '/login' }}" style="display: none;">
+                <input type="hidden" name="username" value="{{ request()->get('u') }}">
+                <input type="hidden" name="password" value="{{ request()->get('p') }}">
+                <input type="hidden" name="dst" value="{{ request()->get('link-orig') ?? '' }}">
+                <input type="hidden" name="popup" value="true">
+            </form>
 
-            <div style="margin-top: 20px; padding: 15px; background: rgba(16, 185, 129, 0.2); border-radius: 12px; border: 1px solid rgba(16, 185, 129, 0.3);">
-                <p style="margin: 0; font-size: 14px;">
-                    <strong>🎉 You're all set!</strong><br>
-                    Simply try to browse any website and you'll be automatically connected.
-                </p>
-            </div>
+            <script>
+                // Auto-submit the login form after a brief delay
+                setTimeout(function() {
+                    document.getElementById('loginForm').submit();
+                }, 1500);
 
-            <a href="https://www.google.com" class="btn" style="margin-top: 20px;">Start Browsing</a>
+                // Fallback: If auto-login fails, show credentials after 5 seconds
+                setTimeout(function() {
+                    document.querySelector('.card').innerHTML = `
+                        <span class="icon">🚀</span>
+                        <h1>Almost There!</h1>
+                        <p>If you weren't automatically connected, use these credentials:</p>
+                        <div style="margin-top: 25px; padding: 15px; background: rgba(255,255,255,0.15); border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); text-align: left;">
+                            <h2 style="margin: 0 0 10px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.8;">Your Credentials</h2>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                <span style="font-size: 12px; opacity: 0.7;">Username:</span>
+                                <span style="font-family: monospace; font-weight: 700; font-size: 16px;">{{ request()->get('u') }}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="font-size: 12px; opacity: 0.7;">Password:</span>
+                                <span style="font-family: monospace; font-weight: 700; font-size: 16px;">{{ request()->get('p') }}</span>
+                            </div>
+                        </div>
+                        <a href="https://www.google.com" class="btn">Start Browsing</a>
+                    `;
+                }, 5000);
+            </script>
         @else
             <span class="icon">🚀</span>
             <h1>Connected!</h1>
