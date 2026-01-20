@@ -103,8 +103,14 @@ Route::post('/onboarding-requests', [OnboardingRequestController::class, 'store'
 Route::middleware(['check.subscription', 'maintenance.mode'])->group(function () {
 
     Route::middleware('throttle:portal_login')->group(function () {
-        Route::get('/hotspot/success', function () {
-            return view('hotspot.success');
+        Route::get('/hotspot/success', function (Illuminate\Http\Request $request) {
+            // Redirect back to hotspot page with credentials for auto-fill
+            $params = [];
+            if ($request->has('u')) $params['u'] = $request->get('u');
+            if ($request->has('p')) $params['p'] = $request->get('p');
+            if ($request->has('mac')) $params['mac'] = $request->get('mac');
+            
+            return redirect()->route('hotspot.index', $params);
         })->name('hotspot.success');
 
         Route::get('/hotspot/suspended', [TenantHotspotController::class, 'suspended'])->name('hotspot.suspended');

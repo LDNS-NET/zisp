@@ -70,6 +70,36 @@ onMounted(() => {
     const urlParams = new URLSearchParams(window.location.search);
     deviceMac.value = urlParams.get('mac') || '';
 
+    // Check for payment callback with credentials
+    const username = urlParams.get('u');
+    const password = urlParams.get('p');
+    
+    if (username && password) {
+        // Auto-fill member login
+        memberUsername.value = username;
+        memberPassword.value = password;
+        activeTab.value = 'member';
+        
+        // Show success message
+        showToast('Payment successful! Click Login to connect', 'success');
+        
+        // Clean URL (remove credentials from address bar for security)
+        const cleanUrl = window.location.origin + window.location.pathname;
+        window.history.replaceState({}, document.title, cleanUrl);
+        
+        // Focus the login button after a short delay
+        setTimeout(() => {
+            const loginButton = document.querySelector('button[type="button"]');
+            if (loginButton) {
+                loginButton.focus();
+                loginButton.classList.add('ring-4', 'ring-blue-300', 'animate-pulse');
+                setTimeout(() => {
+                    loginButton.classList.remove('animate-pulse');
+                }, 2000);
+            }
+        }, 500);
+    }
+
     // Lazy load the logo to prioritize page rendering
     if (page.props.tenant?.logo) {
         setTimeout(() => {
