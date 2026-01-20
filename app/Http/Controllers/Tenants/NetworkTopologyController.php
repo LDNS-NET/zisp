@@ -36,6 +36,12 @@ class NetworkTopologyController extends Controller
             ->whereNull('deleted_at')
             ->get();
 
+        // Get active users count per router from TenantActiveUsers
+        $activeUsersCounts = \App\Models\Tenants\TenantActiveUsers::where('status', 'active')
+            ->selectRaw('router_id, COUNT(*) as count')
+            ->groupBy('router_id')
+            ->pluck('count', 'router_id');
+
         $nodes = [];
         $edges = [];
 
@@ -87,7 +93,7 @@ class NetworkTopologyController extends Controller
                 'memory' => $memory,
                 'uptime' => $uptime,
                 'last_seen' => $router->last_seen_at?->diffForHumans(),
-                'active_users' => 0, // Users aren't linked to specific routers
+                'active_users' => $activeUsersCounts[$router->id] ?? 0,
                 'location' => $router->location,
             ];
         }
