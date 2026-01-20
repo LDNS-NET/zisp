@@ -27,7 +27,7 @@ class NetworkUser extends Authenticatable
         'password',
         'web_password',
         'phone',
-        'email',
+        //'email',
         'location',
         'type',
         'package_id',

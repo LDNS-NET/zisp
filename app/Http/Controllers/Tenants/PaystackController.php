@@ -205,16 +205,10 @@ class PaystackController extends Controller
                 ->first();
 
             if ($user) {
-                // Get hotspot metadata from payment response
-                $metadata = $payment->response['metadata'] ?? [];
-                
-                return redirect()->route('hotspot.success', array_filter([
+                return redirect()->route('hotspot.success', [
                     'u' => $user->username,
-                    'p' => $user->password,
-                    'link-login' => $metadata['link_login'] ?? null,
-                    'link-orig' => $metadata['link_orig'] ?? null,
-                    'error-link' => $metadata['error_link'] ?? null,
-                ]));
+                    'p' => $user->password
+                ]);
             }
             return redirect()->route('hotspot.success');
         }

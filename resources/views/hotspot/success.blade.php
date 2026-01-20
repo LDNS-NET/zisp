@@ -79,9 +79,9 @@
 <body>
     <div class="card">
         @if(request()->has('u') && request()->has('p'))
-            <span class="icon" id="status-icon">✅</span>
-            <h1 id="status-title">Payment Successful!</h1>
-            <p id="status-text">Your internet access has been activated.</p>
+            <span class="icon">✅</span>
+            <h1>Payment Successful!</h1>
+            <p>Your internet access has been activated.</p>
             
             <div style="margin-top: 25px; padding: 15px; background: rgba(255,255,255,0.15); border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); text-align: left;">
                 <h2 style="margin: 0 0 10px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.8;">Your Credentials</h2>
@@ -95,45 +95,12 @@
                 </div>
             </div>
 
-            @if(request()->has('link-login'))
-                <div id="login-status" style="margin-top: 20px; padding: 15px; background: rgba(59, 130, 246, 0.2); border-radius: 12px; border: 1px solid rgba(59, 130, 246, 0.3);">
-                    <p style="margin: 0; font-size: 14px;">
-                        <strong>Connecting...</strong><br>
-                        Please wait while we log you into the network.
-                    </p>
-                </div>
-
-                <!-- Hidden form for auto-login to MikroTik -->
-                <form id="loginForm" method="post" action="{{ request()->get('link-login') }}" style="display: none;">
-                    <input type="hidden" name="username" value="{{ request()->get('u') }}">
-                    <input type="hidden" name="password" value="{{ request()->get('p') }}">
-                    <input type="hidden" name="dst" value="{{ request()->get('link-orig') ?? 'https://www.google.com' }}">
-                </form>
-
-                <script>
-                    document.addEventListener('DOMContentLoaded', function() {
-                        const statusIcon = document.getElementById('status-icon');
-                        const statusTitle = document.getElementById('status-title');
-                        const statusText = document.getElementById('status-text');
-                        
-                        // Briefly show loading state
-                        statusIcon.innerText = '🔐';
-                        statusTitle.innerText = 'Connecting...';
-                        statusText.innerText = 'Authenticating with network...';
-
-                        setTimeout(function() {
-                            document.getElementById('loginForm').submit();
-                        }, 2000);
-                    });
-                </script>
-            @else
-                <div style="margin-top: 20px; padding: 15px; background: rgba(16, 185, 129, 0.2); border-radius: 12px; border: 1px solid rgba(16, 185, 129, 0.3);">
-                    <p style="margin: 0; font-size: 14px;">
-                        <strong>🎉 You're all set!</strong><br>
-                        If you are not automatically connected, please try to browse any website.
-                    </p>
-                </div>
-            @endif
+            <div style="margin-top: 20px; padding: 15px; background: rgba(16, 185, 129, 0.2); border-radius: 12px; border: 1px solid rgba(16, 185, 129, 0.3);">
+                <p style="margin: 0; font-size: 14px;">
+                    <strong>🎉 You're all set!</strong><br>
+                    Simply try to browse any website and you'll be automatically connected.
+                </p>
+            </div>
 
             <a href="https://www.google.com" class="btn" style="margin-top: 20px;">Start Browsing</a>
         @else

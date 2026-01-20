@@ -439,10 +439,7 @@ async function processPaystackPayment() {
                 phone: phoneNumber.value, 
                 email: props.tenant.email || 'billing@' + props.tenant.subdomain + '.com',
                 payment_method: 'paystack',
-                mac: deviceMac.value,
-                link_login: new URLSearchParams(window.location.search).get('link-login') || new URLSearchParams(window.location.search).get('login_url'),
-                link_orig: new URLSearchParams(window.location.search).get('link-orig'),
-                error_link: new URLSearchParams(window.location.search).get('error-link')
+                mac: deviceMac.value
             })
         });
         
@@ -487,10 +484,7 @@ async function processFlutterwavePayment() {
                 phone: phoneNumber.value, 
                 email: props.tenant.email || 'billing@' + props.tenant.subdomain + '.com',
                 payment_method: 'flutterwave',
-                mac: deviceMac.value,
-                link_login: new URLSearchParams(window.location.search).get('link-login') || new URLSearchParams(window.location.search).get('login_url'),
-                link_orig: new URLSearchParams(window.location.search).get('link-orig'),
-                error_link: new URLSearchParams(window.location.search).get('error-link')
+                mac: deviceMac.value
             })
         });
         

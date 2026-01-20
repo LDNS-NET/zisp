@@ -67,8 +67,6 @@ class TenantPayment extends Model
         "vodafone_cash_transaction_id",
         "fawry_reference",
         "fawry_transaction_id",
-        "mac_address",
-        "email",
         "tenant_id",
         "disbursement_status",
         "disbursement_transaction_id",
