@@ -325,6 +325,13 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode'])
 
             Route::get('/predictions', [App\Http\Controllers\Tenants\PredictiveAnalyticsController::class, 'index'])->name('predictions');
             Route::post('/predictions/refresh', [App\Http\Controllers\Tenants\PredictiveAnalyticsController::class, 'refresh'])->name('predictions.refresh');
+
+            // Report Builder
+            Route::resource('reports', App\Http\Controllers\Tenants\ReportBuilderController::class)->only(['index', 'store', 'destroy']);
+            Route::post('/reports/{report}/generate', [App\Http\Controllers\Tenants\ReportBuilderController::class, 'generate'])->name('reports.generate');
+            
+            // Financial Intelligence
+            Route::get('/finance', [App\Http\Controllers\Tenants\FinancialAnalyticsController::class, 'index'])->name('finance');
         });
 
         //captive portal

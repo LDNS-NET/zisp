@@ -57,6 +57,8 @@ const navigation = [
     { name: 'Traffic Analytics', href: route('analytics.traffic'), icon: BarChart3, active: 'analytics.traffic' },
     { name: 'Network Topology', href: route('analytics.topology'), icon: Network, active: 'analytics.topology' },
     { name: 'Predictive Insights', href: route('analytics.predictions'), icon: BrainCircuit, active: 'analytics.predictions' },
+    { name: 'Financial Intelligence', href: route('analytics.finance'), icon: Banknote, active: 'analytics.finance' },
+    { name: 'Report Builder', href: route('analytics.reports.index'), icon: FileText, active: 'analytics.reports.*' },
     
     { header: 'User Management' },
     { name: 'Online Users', href: route('activeusers.index'), icon: Activity, active: 'activeusers.*', countKey: 'online_users' },

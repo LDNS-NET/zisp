@@ -342,25 +342,25 @@ CREATE TABLE tenant_report_runs (
 - [x] Set up Chart.js/ApexCharts in frontend
 
 ### Phase 1.2: Network Topology (Week 3-4)
-- [ ] Implement topology data fetching
-- [ ] Build interactive topology visualization
-- [ ] Add device status indicators
-- [ ] Implement click-to-manage features
+- [x] Implement topology data fetching
+- [x] Build interactive topology visualization
+- [x] Add device status indicators
+- [x] Implement click-to-manage features
 - [ ] Add auto-discovery (optional)
 
 ### Phase 1.3: Traffic Analytics (Week 5-6)
-- [ ] Build user bandwidth graphs
-- [ ] Create top consumers dashboard
-- [ ] Implement protocol breakdown
-- [ ] Add anomaly detection (basic rules first)
-- [ ] Create alert system for anomalies
+- [x] Build user bandwidth graphs
+- [x] Create top consumers dashboard
+- [x] Implement protocol breakdown
+- [x] Add anomaly detection (basic rules first)
+- [x] Create alert system for anomalies
 
 ### Phase 1.4: Predictive Analytics (Week 7-8)
-- [ ] Implement churn prediction model
-- [ ] Build revenue forecasting
-- [ ] Create capacity planning tool
-- [ ] Add seasonality detection
-- [ ] Build prediction dashboard widgets
+- [x] Implement churn prediction model
+- [x] Build revenue forecasting
+- [x] Create capacity planning tool (heuristic)
+- [x] Add seasonality detection
+- [x] Build prediction dashboard widgets
 
 ### Phase 1.5: Report Builder (Week 9-10)
 - [ ] Create report configuration system
