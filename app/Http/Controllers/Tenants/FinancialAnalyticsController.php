@@ -88,12 +88,12 @@ class FinancialAnalyticsController extends Controller
 
     protected function getZoneRevenueHeatmap()
     {
-        return NetworkUser::select('location', DB::raw('SUM(COALESCE(packages.price, tenant_hotspot_packages.price, 0)) as revenue'))
+        return NetworkUser::select('network_users.location', DB::raw('SUM(COALESCE(packages.price, tenant_hotspot_packages.price, 0)) as revenue'))
             ->leftJoin('packages', 'network_users.package_id', '=', 'packages.id')
             ->leftJoin('tenant_hotspot_packages', 'network_users.hotspot_package_id', '=', 'tenant_hotspot_packages.id')
-            ->whereNotNull('location')
-            ->where('location', '!=', '')
-            ->groupBy('location')
+            ->whereNotNull('network_users.location')
+            ->where('network_users.location', '!=', '')
+            ->groupBy('network_users.location')
             ->orderByDesc('revenue')
             ->get();
     }

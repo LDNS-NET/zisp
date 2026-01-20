@@ -172,7 +172,7 @@ class NetworkUser extends Authenticatable
             }
 
             if ($tenantId) {
-                $query->where('tenant_id', $tenantId);
+                $query->where('network_users.tenant_id', $tenantId);
             } else {
                 // Fallback for public routes (hotspot page)
                 $host = request()->getHost();
@@ -182,7 +182,7 @@ class NetworkUser extends Authenticatable
                 if (!in_array($host, $centralDomains)) {
                     $tenant = \App\Models\Tenant::where('subdomain', $subdomain)->first();
                     if ($tenant) {
-                        $query->where('tenant_id', $tenant->id);
+                        $query->where('network_users.tenant_id', $tenant->id);
                     }
                 }
             }

@@ -48,8 +48,8 @@ class Package extends Model
 
             if ($tenantId) {
                 $query->where(function($q) use ($tenantId) {
-                    $q->where('tenant_id', $tenantId)
-                      ->orWhereNull('tenant_id');
+                    $q->where('packages.tenant_id', $tenantId)
+                      ->orWhereNull('packages.tenant_id');
                 });
             }
         });

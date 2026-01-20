@@ -41,7 +41,7 @@ class TenantHotspot extends Model
     {
         static::addGlobalScope('tenant', function ($query) {
             if (tenant()) {
-                $query->where('tenant_id', tenant()->id);
+                $query->where('tenant_hotspot_packages.tenant_id', tenant()->id);
             } else {
                 foreach (['customer', 'web'] as $guard) {
                     if (auth()->guard($guard)->hasUser()) {
@@ -49,7 +49,7 @@ class TenantHotspot extends Model
                         if ($guard === 'web' && ($user->is_super_admin ?? false)) {
                             return;
                         }
-                        $query->where('tenant_id', $user->tenant_id);
+                        $query->where('tenant_hotspot_packages.tenant_id', $user->tenant_id);
                         return;
                     }
 
@@ -58,7 +58,7 @@ class TenantHotspot extends Model
                         if ($user->is_super_admin ?? false) {
                             return;
                         }
-                        $query->where('tenant_id', $user->tenant_id);
+                        $query->where('tenant_hotspot_packages.tenant_id', $user->tenant_id);
                         return;
                     }
                 }
@@ -71,7 +71,7 @@ class TenantHotspot extends Model
                 if (!in_array($host, $centralDomains)) {
                     $tenant = \App\Models\Tenant::where('subdomain', $subdomain)->first();
                     if ($tenant) {
-                        $query->where('tenant_id', $tenant->id);
+                        $query->where('tenant_hotspot_packages.tenant_id', $tenant->id);
                     }
                 }
             }
