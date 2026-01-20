@@ -344,6 +344,10 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode'])
             Route::post('settings/general', [TenantGeneralSettingsController::class, 'update'])
                 ->middleware('throttle:file_upload')
                 ->name('settings.general.update');
+
+            // System Settings
+            Route::get('settings/system', [App\Http\Controllers\Tenants\TenantSystemSettingsController::class, 'edit'])->name('settings.system.edit');
+            Route::post('settings/system', [App\Http\Controllers\Tenants\TenantSystemSettingsController::class, 'update'])->name('settings.system.update');
         });
 
         // Network Management
