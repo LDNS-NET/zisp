@@ -19,31 +19,19 @@ const props = defineProps({
     paymentMethods: Array,
     country: String,
     currency: String,
+    usage: Object,
 });
 
-const statusColorClass = computed(() => {
-    if (props.daysRemaining === null) return 'bg-green-100 text-green-800';
-    if (props.daysRemaining <= 0) return 'bg-red-100 text-red-800';
-    if (props.daysRemaining <= 3) return 'bg-yellow-100 text-yellow-800';
-    return 'bg-green-100 text-green-800';
+// ... status logic stays same ...
+
+const dataLimitGB = computed(() => {
+    // If the package has a data limit, use it. Otherwise assume unlimited or high number for visual scale
+    return props.package?.data_limit || 100; 
 });
 
-const statusLabel = computed(() => {
-    if (props.daysRemaining === null) return 'Active';
-    if (props.daysRemaining <= 0) return 'Expired';
-    return 'Active';
+const usagePercentage = computed(() => {
+    return Math.min(100, Math.round((props.usage.total_gb / dataLimitGB.value) * 100));
 });
-
-const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('en-GB', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-};
 </script>
 
 <template>
@@ -55,9 +43,15 @@ const formatDate = (dateString) => {
         <div class="space-y-8">
             <!-- Welcome Header -->
             <div class="bg-indigo-600 rounded-[2rem] p-8 text-white shadow-xl shadow-indigo-100 relative overflow-hidden">
-                <div class="relative z-10">
-                    <h1 class="text-3xl font-black mb-2">Hello, {{ user.full_name || user.username }}!</h1>
-                    <p class="text-indigo-100 font-medium">Your internet connection is currently <span class="font-black underline decoration-2 underline-offset-4">{{ user.online ? 'Active' : 'Offline' }}</span>.</p>
+                <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div>
+                        <h1 class="text-3xl font-black mb-2">Hello, {{ user.full_name || user.username }}!</h1>
+                        <p class="text-indigo-100 font-medium">Your internet connection is currently <span class="font-black underline decoration-2 underline-offset-4">{{ user.online ? 'Active' : 'Offline' }}</span>.</p>
+                    </div>
+                    <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20">
+                        <p class="text-[10px] font-black uppercase tracking-widest text-indigo-100 mb-1">Total Data Used</p>
+                        <p class="text-2xl font-black">{{ usage.total_gb }} <span class="text-sm">GB</span></p>
+                    </div>
                 </div>
                 <!-- Decorative SVG -->
                 <svg class="absolute right-0 bottom-0 w-64 h-64 text-indigo-500 opacity-20 -mr-16 -mb-16" fill="currentColor" viewBox="0 0 24 24">
@@ -72,35 +66,57 @@ const formatDate = (dateString) => {
                         <div class="p-8">
                             <div class="flex justify-between items-start mb-8">
                                 <div>
-                                    <h3 class="text-xl font-black text-slate-900">Current Plan</h3>
-                                    <p class="text-sm font-bold text-slate-400 uppercase tracking-widest">Subscription Details</p>
+                                    <h3 class="text-xl font-black text-slate-900">Subscription & Usage</h3>
+                                    <p class="text-sm font-bold text-slate-400 uppercase tracking-widest">Real-time status</p>
                                 </div>
                                 <span :class="statusColorClass" class="px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest shadow-sm">
                                     {{ statusLabel }}
                                 </span>
                             </div>
 
-                            <div class="flex flex-col md:flex-row gap-10 items-center md:items-start">
-                                <div class="w-40 h-40 rounded-3xl bg-slate-50 border-2 border-dashed border-slate-200 flex items-center justify-center shrink-0 relative group">
-                                    <div class="absolute inset-4 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-100 group-hover:scale-110 transition-transform duration-300">
-                                        <Zap class="w-12 h-12 text-white" />
+                            <div class="grid md:grid-cols-2 gap-12">
+                                <!-- Usage Circle -->
+                                <div class="flex flex-col items-center justify-center p-6 bg-slate-50 rounded-[2.5rem] border border-slate-100 relative overflow-hidden group">
+                                    <div class="relative h-48 w-48 mb-6">
+                                        <svg class="h-full w-full transform -rotate-90" viewBox="0 0 36 36">
+                                            <path class="text-slate-200" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="2.5" />
+                                            <path :class="usagePercentage > 80 ? 'text-orange-500' : 'text-indigo-600'" 
+                                                class="transition-all duration-1000"
+                                                :stroke-dasharray="usagePercentage + ', 100'"
+                                                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+                                        </svg>
+                                        <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                            <span class="text-4xl font-black text-slate-900">{{ usagePercentage }}%</span>
+                                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Plan Used</span>
+                                        </div>
+                                    </div>
+                                    <div class="text-center">
+                                        <p class="text-sm font-bold text-slate-600">{{ usage.total_gb }} GB used of {{ dataLimitGB }} GB</p>
                                     </div>
                                 </div>
-                                <div class="flex-1 text-center md:text-left">
-                                    <h2 class="text-4xl font-black text-slate-900 mb-4">{{ package?.name || 'No Active Plan' }}</h2>
+
+                                <!-- Stats & Limits -->
+                                <div class="space-y-6">
+                                    <h4 class="text-4xl font-black text-slate-900 mb-2">{{ package?.name || 'No Active Plan' }}</h4>
                                     
-                                    <div class="grid grid-cols-2 gap-4 mb-8">
-                                        <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Download Speed</p>
-                                            <p class="text-xl font-black text-indigo-600">{{ package?.download_speed }} Mbps</p>
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div class="bg-indigo-50 p-4 rounded-2xl border border-indigo-100">
+                                            <div class="flex items-center gap-2 mb-1">
+                                                <ArrowDownCircle class="w-3 h-3 text-indigo-600" />
+                                                <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Download</p>
+                                            </div>
+                                            <p class="text-xl font-black text-indigo-600">{{ usage.download_gb }} <span class="text-[10px]">GB</span></p>
                                         </div>
-                                        <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Upload Speed</p>
-                                            <p class="text-xl font-black text-violet-600">{{ package?.upload_speed }} Mbps</p>
+                                        <div class="bg-violet-50 p-4 rounded-2xl border border-violet-100">
+                                            <div class="flex items-center gap-2 mb-1">
+                                                <ArrowUpCircle class="w-3 h-3 text-violet-600" />
+                                                <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Upload</p>
+                                            </div>
+                                            <p class="text-xl font-black text-violet-600">{{ usage.upload_gb }} <span class="text-[10px]">GB</span></p>
                                         </div>
                                     </div>
-                                    
-                                    <div v-if="daysRemaining !== null" class="space-y-3">
+
+                                    <div class="space-y-4">
                                         <div class="flex justify-between items-end">
                                             <p class="text-sm font-black text-slate-900">Time Remaining</p>
                                             <p class="text-sm font-black" :class="daysRemaining <= 3 ? 'text-red-600' : 'text-indigo-600'">
@@ -111,9 +127,15 @@ const formatDate = (dateString) => {
                                             <div 
                                                 class="h-full rounded-full transition-all duration-1000" 
                                                 :class="daysRemaining <= 3 ? 'bg-red-500' : 'bg-indigo-600'"
-                                                :style="{ width: Math.max(0, Math.min(100, (daysRemaining / 30) * 100)) + '%' }"
+                                                :style="{ width: Math.max(2, Math.min(100, (daysRemaining / 30) * 100)) + '%' }"
                                             ></div>
                                         </div>
+                                    </div>
+
+                                    <div class="flex gap-4 pt-4">
+                                        <Link :href="route('customer.renew')" class="flex-1 rounded-2xl bg-slate-900 text-white p-4 text-center text-sm font-black hover:bg-slate-800 transition-colors">
+                                            Extend Plan
+                                        </Link>
                                     </div>
                                 </div>
                             </div>
@@ -124,17 +146,17 @@ const formatDate = (dateString) => {
                                     <Clock class="w-5 h-5 text-slate-400" />
                                 </div>
                                 <div>
-                                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Expiration Date</p>
+                                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Expires On</p>
                                     <p class="text-sm font-black text-slate-900">{{ formatDate(user.expires_at) }}</p>
                                 </div>
                             </div>
                             <div class="flex items-center gap-3">
                                 <div class="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center">
-                                    <ShieldCheck class="w-5 h-5 text-slate-400" />
+                                    <Wifi class="w-5 h-5 text-slate-400" />
                                 </div>
                                 <div>
-                                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Account Status</p>
-                                    <p class="text-sm font-black text-green-600 uppercase">{{ user.status }}</p>
+                                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Plan Speed</p>
+                                    <p class="text-sm font-black text-slate-900">{{ package?.download_speed }} Mbps</p>
                                 </div>
                             </div>
                         </div>

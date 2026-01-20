@@ -541,6 +541,15 @@ Route::prefix('customer')->name('customer.')->group(function () {
         Route::post('upgrade/pay', [App\Http\Controllers\Customer\UpgradeController::class, 'initiatePayment'])->name('upgrade.pay');
         Route::get('upgrade/status/{referenceId}', [App\Http\Controllers\Customer\UpgradeController::class, 'checkPaymentStatus'])->name('upgrade.status');
 
+        Route::get('history', [App\Http\Controllers\Customer\SessionController::class, 'index'])->name('history');
+        
+        Route::prefix('tickets')->name('tickets.')->group(function () {
+            Route::get('/', [App\Http\Controllers\Customer\TicketController::class, 'index'])->name('index');
+            Route::post('/', [App\Http\Controllers\Customer\TicketController::class, 'store'])->name('store');
+            Route::get('/{ticket}', [App\Http\Controllers\Customer\TicketController::class, 'show'])->name('show');
+            Route::post('/{ticket}/reply', [App\Http\Controllers\Customer\TicketController::class, 'reply'])->name('reply');
+        });
+
         // Paystack verification (for customer portal)
         Route::get('paystack/verify/{reference}', [App\Http\Controllers\Tenants\PaystackController::class, 'verify'])->name('paystack.verify');
         

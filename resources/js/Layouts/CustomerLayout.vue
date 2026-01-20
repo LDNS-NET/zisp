@@ -21,8 +21,10 @@ const isMobileMenuOpen = ref(false);
 
 const navigation = [
     { name: 'Dashboard', href: route('customer.dashboard'), icon: LayoutDashboard, active: 'customer.dashboard' },
+    { name: 'History', href: route('customer.history'), icon: Clock, active: 'customer.history' },
     { name: 'Renew Plan', href: route('customer.renew'), icon: RefreshCw, active: 'customer.renew' },
     { name: 'Upgrade Speed', href: route('customer.upgrade'), icon: TrendingUp, active: 'customer.upgrade' },
+    { name: 'Support Tickets', href: route('customer.tickets.index'), icon: MessagesSquare, active: 'customer.tickets.*' },
 ];
 
 const logout = () => {
