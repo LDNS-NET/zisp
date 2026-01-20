@@ -44,6 +44,9 @@ class RolesAndPermissionsSeeder extends Seeder
         }
 
         // Assign permissions to roles
+        $tenantAdminRole = Role::findByName('tenant_admin', 'web');
+        $tenantAdminRole->givePermissionTo(Permission::all());
+
         $adminRole = Role::findByName('admin', 'web');
         $adminRole->givePermissionTo(Permission::all());
 
@@ -52,5 +55,13 @@ class RolesAndPermissionsSeeder extends Seeder
         Role::findByName('network_engineer', 'web')->givePermissionTo(['manage network', 'configure network']);
         Role::findByName('marketing', 'web')->givePermissionTo(['manage marketing', 'view analytics']);
         Role::findByName('network_admin', 'web')->givePermissionTo(['manage network', 'configure network', 'manage system users']);
+
+        // Assign 'tenant_admin' to existing users who have a tenant_id but no roles
+        $existingTenants = \App\Models\User::whereNotNull('tenant_id')->get();
+        foreach ($existingTenants as $user) {
+            if ($user->roles->isEmpty()) {
+                $user->assignRole('tenant_admin');
+            }
+        }
     }
 }
