@@ -24,7 +24,29 @@ const props = defineProps({
     usage: Object,
 });
 
-// ... status logic stays same ...
+const statusColorClass = computed(() => {
+    if (props.daysRemaining === null) return 'bg-green-100 text-green-800';
+    if (props.daysRemaining <= 0) return 'bg-red-100 text-red-800';
+    if (props.daysRemaining <= 3) return 'bg-yellow-100 text-yellow-800';
+    return 'bg-green-100 text-green-800';
+});
+
+const statusLabel = computed(() => {
+    if (props.daysRemaining === null) return 'Active';
+    if (props.daysRemaining <= 0) return 'Expired';
+    return 'Active';
+});
+
+const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('en-GB', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+};
 
 const dataLimitGB = computed(() => {
     // If the package has a data limit, use it. Otherwise assume unlimited or high number for visual scale
