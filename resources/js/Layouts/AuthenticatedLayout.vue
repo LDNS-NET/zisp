@@ -55,6 +55,7 @@ const navigation = [
     { header: 'Analytics' },
     { name: 'Traffic Analytics', href: route('analytics.traffic'), icon: BarChart3, active: 'analytics.traffic' },
     { name: 'Network Topology', href: route('analytics.topology'), icon: Network, active: 'analytics.topology' },
+    { name: 'Predictive Insights', href: route('analytics.predictions'), icon: BrainCircuit, active: 'analytics.predictions' },
     
     { header: 'User Management' },
     { name: 'Online Users', href: route('activeusers.index'), icon: Activity, active: 'activeusers.*', countKey: 'online_users' },

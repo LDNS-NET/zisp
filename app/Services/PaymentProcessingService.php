@@ -184,30 +184,7 @@ class PaymentProcessingService
             $tenantMikrotik = \App\Models\Tenants\TenantMikrotik::where('tenant_id', $user->tenant_id)->first();
             if ($tenantMikrotik) {
                 $mikrotik = new \App\Services\MikrotikService($tenantMikrotik);
-                
-                // If user doesn't have mikrotik_id, they don't exist on router yet - create them
-                if (!$user->mikrotik_id) {
-                    $package = $user->type === 'hotspot' 
-                        ? $user->hotspotPackage 
-                        : $user->package;
-                    
-                    $profile = $package?->mikrotik_profile ?? 'default';
-                    
-                    $mikrotikId = $mikrotik->createUser($user->type, [
-                        'username' => $user->username,
-                        'password' => $user->password,
-                        'profile' => $profile,
-                    ]);
-                    
-                    if ($mikrotikId) {
-                        $user->mikrotik_id = $mikrotikId;
-                        $user->save();
-                        Log::info('User created on MikroTik', ['username' => $user->username, 'mikrotik_id' => $mikrotikId]);
-                    }
-                } else {
-                    // User exists, unsuspend them
-                    $mikrotik->unsuspendUser($user->type, $user->mikrotik_id);
-                }
+                $mikrotik->unsuspendUser($user->type, $user->mikrotik_id ?? $user->username);
 
                 // For hotspot users with a MAC address, kick them to trigger immediate MAC-Auth
                 if ($user->type === 'hotspot' && $user->mac_address) {
