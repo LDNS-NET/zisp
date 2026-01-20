@@ -141,25 +141,34 @@ class PaystackController extends Controller
      */
     public function handleCallback(Request $request)
     {
-        $reference = $request->query('reference');
-        
-        if (!$reference) {
-            return redirect()->route('dashboard')->with('error', 'No reference provided.');
-        }
+        try {
+            $reference = $request->query('reference') ?? $request->query('trxref');
+            
+            Log::info('Paystack: Callback received', [
+                'reference' => $reference,
+                'params' => $request->all()
+            ]);
 
-        // Find payment by reference
-        $payment = TenantPayment::where('receipt_number', $reference)
-            ->orWhere('checkout_request_id', $reference)
-            ->first();
+            if (!$reference) {
+                Log::warning('Paystack: Callback missing reference');
+                return redirect()->route('dashboard')->with('error', 'No reference provided.');
+            }
 
-        if (!$payment) {
-            return redirect()->route('dashboard')->with('error', 'Payment record not found.');
-        }
+            // Find payment by reference
+            $payment = TenantPayment::where('receipt_number', $reference)
+                ->orWhere('checkout_request_id', $reference)
+                ->first();
 
-        // If already paid, handle redirect
-        if ($payment->status === 'paid') {
-            return $this->handleRedirect($payment);
-        }
+            if (!$payment) {
+                Log::warning('Paystack: Payment record not found in callback', ['reference' => $reference]);
+                return redirect()->route('dashboard')->with('error', 'Payment record not found.');
+            }
+
+            // If already paid, handle redirect
+            if ($payment->status === 'paid') {
+                Log::info('Paystack: Payment already paid, redirecting', ['reference' => $reference]);
+                return $this->handleRedirect($payment);
+            }
 
         // Get tenant's Paystack credentials
         $gateway = TenantPaymentGateway::where('tenant_id', $payment->tenant_id)
@@ -177,9 +186,11 @@ class PaystackController extends Controller
             'public_key' => $gateway->paystack_public_key,
         ]);
 
+        Log::info('Paystack: Verifying transaction in callback', ['reference' => $reference]);
         $result = $this->paystackService->verifyTransaction($reference);
 
         if ($result && $result['success'] && $result['status'] === 'success') {
+            Log::info('Paystack: Payment verified successfully', ['reference' => $reference]);
             // Update payment status
             $payment->status = 'paid';
             $payment->paid_at = now();
@@ -188,14 +199,26 @@ class PaystackController extends Controller
 
             // Process payment (create/extend user)
             if ($payment->hotspot_package_id || $payment->package_id) {
+                Log::info('Paystack: Processing successful payment', ['payment_id' => $payment->id]);
                 $this->paymentProcessingService->processSuccess($payment);
             }
 
             return $this->handleRedirect($payment);
         }
 
+        Log::error('Paystack: Payment verification failed in callback', [
+            'reference' => $reference,
+            'result' => $result
+        ]);
         return redirect()->route('dashboard')->with('error', 'Payment verification failed.');
+    } catch (\Exception $e) {
+        Log::error('Paystack: Callback exception', [
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+        return redirect()->route('dashboard')->with('error', 'Internal error processing payment.');
     }
+}
 
     protected function handleRedirect($payment)
     {

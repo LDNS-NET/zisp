@@ -46,14 +46,22 @@ class PaystackService
 
         try {
             // Convert amount to kobo/cents (Paystack expects smallest currency unit)
-            $amountInKobo = (int)($amount * 100);
+            $amountInKobo = (int)round($amount * 100);
 
             $payload = [
                 'email' => $email,
                 'amount' => $amountInKobo,
                 'reference' => $reference,
                 'currency' => strtoupper($currency),
-                'metadata' => $metadata,
+                'metadata' => array_merge($metadata, [
+                    'custom_fields' => [
+                        [
+                            'display_name' => 'Reference',
+                            'variable_name' => 'reference',
+                            'value' => $reference
+                        ]
+                    ]
+                ]),
             ];
 
             // Add callback_url if present in metadata or passed separately
@@ -61,15 +69,23 @@ class PaystackService
                 $payload['callback_url'] = $metadata['callback_url'];
             }
 
-            Log::info('Paystack: Initializing transaction', ['payload' => $payload]);
+            Log::info('Paystack: Initializing transaction', [
+                'email' => $email,
+                'amount' => $amountInKobo,
+                'reference' => $reference,
+                'currency' => $currency,
+                'callback_url' => $payload['callback_url'] ?? 'not set'
+            ]);
 
             $response = Http::withToken($this->secretKey)
+                ->timeout(30)
                 ->post("{$this->baseUrl}/transaction/initialize", $payload);
 
             if ($response->successful()) {
                 $data = $response->json();
                 
                 if ($data['status'] === true) {
+                    Log::info('Paystack: Initialization successful', ['access_code' => $data['data']['access_code']]);
                     return [
                         'success' => true,
                         'access_code' => $data['data']['access_code'],
@@ -82,6 +98,11 @@ class PaystackService
             Log::error('Paystack: Failed to initialize transaction', [
                 'status' => $response->status(),
                 'response' => $response->json(),
+                'payload_summary' => [
+                    'email' => $email,
+                    'amount' => $amountInKobo,
+                    'reference' => $reference
+                ]
             ]);
 
             $errorData = $response->json();
@@ -92,8 +113,9 @@ class PaystackService
         } catch (\Exception $e) {
             Log::error('Paystack: Initialization exception', [
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
-            return ['success' => false, 'message' => 'Payment initialization error'];
+            return ['success' => false, 'message' => 'Payment initialization error: ' . $e->getMessage()];
         }
     }
 
