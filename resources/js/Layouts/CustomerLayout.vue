@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { Link, usePage, useForm, Head } from '@inertiajs/vue3';
 import Toast from '@/Components/Toast.vue';
 import { 
@@ -18,7 +18,7 @@ import {
 } from 'lucide-vue-next';
 
 const page = usePage();
-const user = page.props.user;
+const user = computed(() => page.props.auth?.user);
 const isMobileMenuOpen = ref(false);
 
 const navigation = [
@@ -99,11 +99,11 @@ const toggleMobileMenu = () => {
                     <div class="bg-slate-50 rounded-2xl p-4 mb-4">
                         <div class="flex items-center gap-3 mb-3">
                             <div class="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-indigo-600 font-black">
-                                {{ user.username.charAt(0).toUpperCase() }}
+                                {{ user?.username?.charAt(0).toUpperCase() }}
                             </div>
                             <div class="overflow-hidden">
-                                <p class="text-sm font-black text-slate-900 truncate">{{ user.username }}</p>
-                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate">{{ user.account_number }}</p>
+                                <p class="text-sm font-black text-slate-900 truncate">{{ user?.username }}</p>
+                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate">{{ user?.account_number }}</p>
                             </div>
                         </div>
                         <button @click="logout" class="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-white border border-slate-200 text-xs font-black text-slate-600 hover:bg-red-50 hover:text-red-600 hover:border-red-100 transition-all">
@@ -133,8 +133,8 @@ const toggleMobileMenu = () => {
                 </div>
                 <div class="flex items-center gap-6">
                     <div class="flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-full border border-slate-100">
-                        <div class="w-2 h-2 rounded-full" :class="user.online ? 'bg-green-500 animate-pulse' : 'bg-slate-300'"></div>
-                        <span class="text-xs font-bold text-slate-600">{{ user.online ? 'Connected' : 'Offline' }}</span>
+                        <div class="w-2 h-2 rounded-full" :class="user?.online ? 'bg-green-500 animate-pulse' : 'bg-slate-300'"></div>
+                        <span class="text-xs font-bold text-slate-600">{{ user?.online ? 'Connected' : 'Offline' }}</span>
                     </div>
                 </div>
             </header>

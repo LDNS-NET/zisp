@@ -87,8 +87,8 @@ const runSpeedTest = () => {
             <div class="bg-indigo-600 rounded-[2rem] p-8 text-white shadow-xl shadow-indigo-100 relative overflow-hidden">
                 <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div>
-                        <h1 class="text-3xl font-black mb-2">Hello, {{ user.full_name || user.username }}!</h1>
-                        <p class="text-indigo-100 font-medium">Your internet connection is currently <span class="font-black underline decoration-2 underline-offset-4">{{ user.online ? 'Active' : 'Offline' }}</span>.</p>
+                        <h1 class="text-3xl font-black mb-2">Hello, {{ user?.full_name || user?.username }}!</h1>
+                        <p class="text-indigo-100 font-medium">Your internet connection is currently <span class="font-black underline decoration-2 underline-offset-4">{{ user?.online ? 'Active' : 'Offline' }}</span>.</p>
                     </div>
                     <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20">
                         <p class="text-[10px] font-black uppercase tracking-widest text-indigo-100 mb-1">Total Data Used</p>
@@ -189,7 +189,7 @@ const runSpeedTest = () => {
                                 </div>
                                 <div>
                                     <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Expires On</p>
-                                    <p class="text-sm font-black text-slate-900">{{ formatDate(user.expires_at) }}</p>
+                                    <p class="text-sm font-black text-slate-900">{{ formatDate(user?.expires_at) }}</p>
                                 </div>
                             </div>
                             <div class="flex items-center gap-3">
@@ -235,15 +235,15 @@ const runSpeedTest = () => {
                             <div class="space-y-6">
                                 <div>
                                     <p class="text-slate-400 text-[10px] uppercase font-black tracking-widest mb-1">Account Number</p>
-                                    <p class="text-xl font-mono font-black text-indigo-100">{{ user.account_number }}</p>
+                                    <p class="text-xl font-mono font-black text-indigo-100">{{ user?.account_number }}</p>
                                 </div>
                                 <div>
                                     <p class="text-slate-400 text-[10px] uppercase font-black tracking-widest mb-1">Username</p>
-                                    <p class="text-lg font-bold">{{ user.username }}</p>
+                                    <p class="text-lg font-bold">{{ user?.username }}</p>
                                 </div>
                                 <div>
                                     <p class="text-slate-400 text-[10px] uppercase font-black tracking-widest mb-1">Phone Number</p>
-                                    <p class="text-lg font-bold">{{ user.phone || 'Not set' }}</p>
+                                    <p class="text-lg font-bold">{{ user?.phone || 'Not set' }}</p>
                                 </div>
                             </div>
                         </div>
