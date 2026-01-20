@@ -29,7 +29,8 @@ import {
     Globe,
     Bell,
     Shield,
-    BarChart3
+    BarChart3,
+    BrainCircuit
 } from 'lucide-vue-next';
 
 const { theme, setTheme } = useTheme();
