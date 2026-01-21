@@ -335,6 +335,12 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode'])
                 Route::put('/{user}', [TenantSystemUserController::class, 'update'])->name('update');
                 Route::delete('/{user}', [TenantSystemUserController::class, 'destroy'])->name('destroy');
                 Route::post('/{user}/toggle-status', [TenantSystemUserController::class, 'toggleStatus'])->name('toggle-status');
+                
+                // Advanced Security Routes
+                Route::put('/{user}/security', [TenantSystemUserController::class, 'updateSecurity'])->name('update-security');
+                Route::get('/{user}/devices', [TenantSystemUserController::class, 'devices'])->name('devices');
+                Route::post('/{user}/devices/{device}/toggle', [TenantSystemUserController::class, 'toggleDeviceLock'])->name('toggle-device-lock');
+                Route::get('/activity', [TenantSystemUserController::class, 'activity'])->name('activity');
             });
             
             Route::get('settings/general', [TenantGeneralSettingsController::class, 'edit'])->name('settings.general.edit');

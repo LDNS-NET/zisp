@@ -62,6 +62,8 @@ const securityForm = useForm({
     permissions: [],
 });
 
+const userDevices = ref([]);
+
 const newIp = ref('');
 const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
@@ -99,7 +101,25 @@ const openSecurityModal = (user) => {
     securityForm.is_device_lock_enabled = user.is_device_lock_enabled || false;
     securityForm.max_devices = user.security_config?.max_devices || 1;
     securityForm.permissions = user.permissions || [];
+    
+    // Fetch user devices
+    fetchDevices(user.id);
+    
     showSecurityModal.value = true;
+};
+
+const fetchDevices = (userId) => {
+    axios.get(route('settings.staff.devices', userId)).then(response => {
+        userDevices.value = response.data;
+    });
+};
+
+const toggleDeviceLock = (deviceId) => {
+    axios.post(route('settings.staff.toggle-device-lock', [editingUser.value.id, deviceId]))
+        .then(() => {
+            toast.success('Device status updated');
+            fetchDevices(editingUser.value.id);
+        });
 };
 
 const closeModal = () => {
@@ -515,6 +535,24 @@ const toggleStatus = (user) => {
                         <h4 class="text-sm font-bold mb-2 dark:text-white">Max Concurrent Devices</h4>
                         <TextInput v-model="securityForm.max_devices" type="number" min="1" class="w-24 text-sm" />
                         <p class="mt-2 text-xs text-gray-500">Limit the number of distinct devices this staff member can register.</p>
+                    </div>
+
+                    <div v-if="userDevices.length" class="space-y-3">
+                        <h4 class="text-sm font-bold dark:text-white">Recently Used Devices</h4>
+                        <div v-for="device in userDevices" :key="device.id" class="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700">
+                            <div class="flex items-center gap-3">
+                                <div :class="['p-2 rounded-lg', device.is_locked ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600']">
+                                    <Smartphone class="h-4 w-4" />
+                                </div>
+                                <div class="min-w-0">
+                                    <p class="text-xs font-bold truncate">{{ device.device_name || 'Generic Device' }}</p>
+                                    <p class="text-[10px] text-gray-500">Last IP: {{ device.last_ip }} • Added: {{ new Date(device.created_at).toLocaleDateString() }}</p>
+                                </div>
+                            </div>
+                            <button @click="toggleDeviceLock(device.id)" :class="['px-3 py-1 rounded text-[10px] font-bold transition-colors', device.is_locked ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-red-100 text-red-700 hover:bg-red-200']">
+                                {{ device.is_locked ? 'UNLOCK' : 'LOCK DEVICE' }}
+                            </button>
+                        </div>
                     </div>
                 </div>
 
