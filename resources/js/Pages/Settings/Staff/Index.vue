@@ -510,7 +510,7 @@ const toggleStatus = (user) => {
                         <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
                             <label v-for="perm in permissions" :key="perm.id" class="flex items-center gap-2 p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                                 <input type="checkbox" v-model="securityForm.permissions" :value="perm.name" class="rounded text-orange-500 focus:ring-orange-500 bg-transparent" />
-                                <span class="text-xs capitalize dark:text-gray-300">{{ perm.name.replace('manage ', '') }}</span>
+                                <span class="text-[10px] capitalize dark:text-gray-300">{{ perm.name.replace('manage_', '').replace('view_', '').replace(/_/g, ' ') }}</span>
                             </label>
                         </div>
                     </div>
@@ -545,8 +545,8 @@ const toggleStatus = (user) => {
                                     <Smartphone class="h-4 w-4" />
                                 </div>
                                 <div class="min-w-0">
-                                    <p class="text-xs font-bold truncate">{{ device.device_name || 'Generic Device' }}</p>
-                                    <p class="text-[10px] text-gray-500">Last IP: {{ device.last_ip }} • Added: {{ new Date(device.created_at).toLocaleDateString() }}</p>
+                                    <p class="text-xs font-bold truncate">{{ device.device_name }}</p>
+                                    <p class="text-[10px] text-gray-500" :title="device.device_id">ID: {{ device.device_id.substring(0,8) }}... • Last IP: {{ device.last_ip }}</p>
                                 </div>
                             </div>
                             <button @click="toggleDeviceLock(device.id)" :class="['px-3 py-1 rounded text-[10px] font-bold transition-colors', device.is_locked ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-red-100 text-red-700 hover:bg-red-200']">

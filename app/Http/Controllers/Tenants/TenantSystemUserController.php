@@ -198,16 +198,40 @@ class TenantSystemUserController extends Controller
         return back()->with('success', "Device $status successfully.");
     }
 
-    public function activity()
+    public function activity(Request $request)
     {
         $tenantId = Auth::user()->tenant_id;
-        $activities = TenantActivity::where('tenant_id', $tenantId)
-            ->with('user')
-            ->latest()
-            ->paginate(50);
+        $search = $request->input('search');
+        $dateFrom = $request->input('date_from');
+        $dateTo = $request->input('date_to');
+
+        $query = TenantActivity::where('tenant_id', $tenantId)
+            ->with('user');
+
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->where('action', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%")
+                  ->orWhereHas('user', function($uq) use ($search) {
+                      $uq->where('name', 'like', "%{$search}%")
+                         ->orWhere('email', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        if ($dateFrom) {
+            $query->whereDate('created_at', '>=', $dateFrom);
+        }
+
+        if ($dateTo) {
+            $query->whereDate('created_at', '<=', $dateTo);
+        }
+
+        $activities = $query->latest()->paginate(50)->withQueryString();
 
         return inertia('Settings/Staff/Activity', [
             'activities' => $activities,
+            'filters' => $request->only(['search', 'date_from', 'date_to'])
         ]);
     }
 }

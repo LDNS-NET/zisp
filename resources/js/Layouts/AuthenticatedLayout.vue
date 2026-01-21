@@ -56,34 +56,34 @@ const navigation = [
     { name: 'Dashboard', href: route('dashboard'), icon: LayoutDashboard, active: 'dashboard' },
     
     { header: 'Analytics' },
-    { name: 'Traffic Analytics', href: route('analytics.traffic'), icon: BarChart3, active: 'analytics.traffic', roles: ['tenant_admin', 'admin', 'network_engineer', 'technical'] },
-    { name: 'Network Topology', href: route('analytics.topology'), icon: Network, active: 'analytics.topology', roles: ['tenant_admin', 'network_engineer', 'technical'] },
-    { name: 'Predictive Insights', href: route('analytics.predictions'), icon: BrainCircuit, active: 'analytics.predictions', roles: ['tenant_admin', 'admin', 'network_engineer'] },
-    { name: 'Financial Intelligence', href: route('analytics.finance'), icon: Banknote, active: 'analytics.finance', roles: ['tenant_admin'] },
-    { name: 'Report Builder', href: route('analytics.reports.index'), icon: FileText, active: 'analytics.reports.*', roles: ['tenant_admin'] },
+    { name: 'Traffic Analytics', href: route('analytics.traffic'), icon: BarChart3, active: 'analytics.traffic', roles: ['tenant_admin', 'admin', 'network_engineer', 'technical'], permission: 'view_traffic_analytics' },
+    { name: 'Network Topology', href: route('analytics.topology'), icon: Network, active: 'analytics.topology', roles: ['tenant_admin', 'network_engineer', 'technical'], permission: 'view_topology' },
+    { name: 'Predictive Insights', href: route('analytics.predictions'), icon: BrainCircuit, active: 'analytics.predictions', roles: ['tenant_admin', 'admin', 'network_engineer'], permission: 'view_predictions' },
+    { name: 'Financial Intelligence', href: route('analytics.finance'), icon: Banknote, active: 'analytics.finance', roles: ['tenant_admin'], permission: 'view_finance' },
+    { name: 'Report Builder', href: route('analytics.reports.index'), icon: FileText, active: 'analytics.reports.*', roles: ['tenant_admin'], permission: 'view_reports' },
     
     { header: 'User Management' },
-    { name: 'Online Users', href: route('activeusers.index'), icon: Activity, active: 'activeusers.*', countKey: 'online_users', roles: ['tenant_admin', 'admin', 'customer_care', 'technical'] },
-    { name: 'All Users', href: route('users.index'), icon: Users, active: 'users.*', countKey: 'all_users', roles: ['tenant_admin', 'admin', 'customer_care', 'technical'] },
-    { name: 'Leads', href: route('leads.index'), icon: Layers, active: 'leads.*', countKey: 'leads', roles: ['tenant_admin', 'admin', 'marketing'] },
-    { name: 'Tickets', href: route('tickets.index'), icon: HelpCircle, active: 'tickets.*', countKey: 'tickets', roles: ['tenant_admin', 'admin', 'customer_care', 'technical'] },
+    { name: 'Online Users', href: route('activeusers.index'), icon: Activity, active: 'activeusers.*', countKey: 'online_users', roles: ['tenant_admin', 'admin', 'customer_care', 'technical'], permission: 'view_online_users' },
+    { name: 'All Users', href: route('users.index'), icon: Users, active: 'users.*', countKey: 'all_users', roles: ['tenant_admin', 'admin', 'customer_care', 'technical'], permission: 'view_users' },
+    { name: 'Leads', href: route('leads.index'), icon: Layers, active: 'leads.*', countKey: 'leads', roles: ['tenant_admin', 'admin', 'marketing'], permission: 'view_leads' },
+    { name: 'Tickets', href: route('tickets.index'), icon: HelpCircle, active: 'tickets.*', countKey: 'tickets', roles: ['tenant_admin', 'admin', 'customer_care', 'technical'], permission: 'view_tickets' },
     
     { header: 'Billing & Finance' },
-    { name: 'Packages', href: route('packages.index'), icon: Layers, active: 'packages.*', countKey: 'packages', roles: ['tenant_admin', 'admin', 'marketing'] },
-    { name: 'Vouchers', href: route('vouchers.index'), icon: Gift, active: 'vouchers.*', countKey: 'vouchers', roles: ['tenant_admin', 'admin', 'marketing', 'customer_care'] },
-    { name: 'Payments', href: route('payments.index'), icon: Banknote, active: 'payments.*', roles: ['tenant_admin'] },
-    { name: 'Invoices', href: route('invoices.index'), icon: FileText, active: 'invoices.*', countKey: 'invoices', roles: ['tenant_admin', 'admin', 'customer_care'] },
+    { name: 'Packages', href: route('packages.index'), icon: Layers, active: 'packages.*', countKey: 'packages', roles: ['tenant_admin', 'admin', 'marketing'], permission: 'view_packages' },
+    { name: 'Vouchers', href: route('vouchers.index'), icon: Gift, active: 'vouchers.*', countKey: 'vouchers', roles: ['tenant_admin', 'admin', 'marketing', 'customer_care'], permission: 'view_vouchers' },
+    { name: 'Payments', href: route('payments.index'), icon: Banknote, active: 'payments.*', roles: ['tenant_admin'], permission: 'view_payments' },
+    { name: 'Invoices', href: route('invoices.index'), icon: FileText, active: 'invoices.*', countKey: 'invoices', roles: ['tenant_admin', 'admin', 'customer_care'], permission: 'view_invoices' },
 
     { header: 'Network Management', roles: ['tenant_admin', 'network_engineer', 'technical', 'network_admin'] },
-    { name: 'Mikrotiks', href: route('mikrotiks.index'), icon: Network, active: 'mikrotiks.*', countKey: 'mikrotiks', roles: ['tenant_admin', 'network_engineer', 'technical', 'network_admin'] },
+    { name: 'Mikrotiks', href: route('mikrotiks.index'), icon: Network, active: 'mikrotiks.*', countKey: 'mikrotiks', roles: ['tenant_admin', 'network_engineer', 'technical', 'network_admin'], permission: 'view_routers' },
 
     { header: 'System & Security', roles: ['tenant_admin', 'network_admin'] },
-    { name: 'Staff Management', href: route('settings.staff.index'), icon: UserCog, active: 'settings.staff.*', roles: ['tenant_admin'] },
-    { name: 'Content Filtering', href: route('settings.content-filter.index'), icon: Lock, active: 'settings.content-filter.*', roles: ['tenant_admin', 'network_engineer', 'network_admin'] },
+    { name: 'Staff Management', href: route('settings.staff.index'), icon: UserCog, active: 'settings.staff.*', roles: ['tenant_admin'], permission: 'manage_staff' },
+    { name: 'Content Filtering', href: route('settings.content-filter.index'), icon: Lock, active: 'settings.content-filter.*', roles: ['tenant_admin', 'network_engineer', 'network_admin'], permission: 'manage_filters' },
     
     { header: 'Communication', roles: ['tenant_admin', 'admin', 'marketing', 'customer_care'] },
-    { name: 'SMS', href: route('sms.index'), icon: MessageSquare, active: 'sms.*', roles: ['tenant_admin', 'admin', 'marketing', 'customer_care'] },
-    { name: 'Templates', href: route('smstemplates.index'), icon: Smartphone, active: 'smstemplates.*', roles: ['tenant_admin', 'admin', 'marketing', 'customer_care'] },
+    { name: 'SMS', href: route('sms.index'), icon: MessageSquare, active: 'sms.*', roles: ['tenant_admin', 'admin', 'marketing', 'customer_care'], permission: 'view_sms' },
+    { name: 'Templates', href: route('smstemplates.index'), icon: Smartphone, active: 'smstemplates.*', roles: ['tenant_admin', 'admin', 'marketing', 'customer_care'], permission: 'view_templates' },
 ];
 
 const page = usePage();
@@ -92,14 +92,21 @@ const tenantLogo = page.props.tenant?.logo;
 
 const filteredNavigation = computed(() => {
     return navigation.filter((item, index) => {
-        // If it's a link, filter by roles
+        // If it's a link, filter by roles OR permission
         if (!item.header) {
-            if (!item.roles) return true;
-            return item.roles.some((role) => user.roles.includes(role));
+            if (!item.roles && !item.permission) return true;
+            
+            const hasRole = item.roles ? item.roles.some((role) => user.roles.includes(role)) : false;
+            const hasPermission = item.permission ? user.permissions.includes(item.permission) : false;
+            
+            return hasRole || hasPermission;
         }
 
-        // If it's a header, check if it has roles and if the user matches
-        if (item.roles && !item.roles.some(role => user.roles.includes(role))) {
+        // If it's a header, check if it has roles/permissions
+        const headerHasRole = item.roles ? item.roles.some(role => user.roles.includes(role)) : true;
+        const headerHasPermission = item.permission ? user.permissions.includes(item.permission) : false;
+
+        if (!headerHasRole && !headerHasPermission) {
             return false;
         }
 
@@ -110,7 +117,10 @@ const filteredNavigation = computed(() => {
             if (nextItem.header) break;
             
             // Check if this child is visible
-            const isChildVisible = !nextItem.roles || nextItem.roles.some(role => user.roles.includes(role));
+            const isChildVisible = (!nextItem.roles && !nextItem.permission) || 
+                                   (nextItem.roles && nextItem.roles.some(role => user.roles.includes(role))) ||
+                                   (nextItem.permission && user.permissions.includes(nextItem.permission));
+                                   
             if (isChildVisible) {
                 hasVisibleChild = true;
                 break;
@@ -122,15 +132,17 @@ const filteredNavigation = computed(() => {
 
 const settingsRoutes = [
     { name: 'settings.general.edit', roles: ['tenant_admin'] },
-    { name: 'settings.hotspot.edit', roles: ['tenant_admin', 'admin', 'network_engineer'] },
-    { name: 'settings.sms.edit', roles: ['tenant_admin', 'admin', 'marketing'] },
-    { name: 'settings.payment.edit', roles: ['tenant_admin'] },
-    { name: 'settings.system.edit', roles: ['tenant_admin'] },
+    { name: 'settings.hotspot.edit', roles: ['tenant_admin', 'admin', 'network_engineer'], permission: 'manage_hotspot' },
+    { name: 'settings.sms.edit', roles: ['tenant_admin', 'admin', 'marketing'], permission: 'manage_sms' },
+    { name: 'settings.payment.edit', roles: ['tenant_admin'], permission: 'manage_payments' },
+    { name: 'settings.system.edit', roles: ['tenant_admin'], permission: 'manage_system' },
 ];
 
 const firstAccessibleSettingsRoute = computed(() => {
     return settingsRoutes.find(route => {
-        return !route.roles || route.roles.some(role => user.roles.includes(role));
+        const hasRole = !route.roles || route.roles.some(role => user.roles.includes(role));
+        const hasPermission = route.permission && user.permissions.includes(route.permission);
+        return hasRole || hasPermission;
     })?.name;
 });
 

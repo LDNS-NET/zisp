@@ -8,6 +8,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Support\Facades\Auth;
 use App\Models\UserDevice;
 use Carbon\Carbon;
+use Inertia\Inertia;
 
 class StaffSecurityMiddleware
 {
@@ -18,13 +19,18 @@ class StaffSecurityMiddleware
     {
         $user = Auth::user();
 
-        // If not logged in or is superadmin, skip checks
-        if (!$user || $user->hasRole('superadmin')) {
+        // If not logged in, just proceed (let auth middleware handle it)
+        if (!$user) {
             return $next($request);
         }
 
-        // 1. Working Hours Enforcement
-        if ($user->working_hours) {
+        // Skip security enforcement for SuperAdmins and TenantAdmins (owners)
+        if ($user->hasRole('superadmin') || $user->hasRole('tenant_admin')) {
+            return $next($request);
+        }
+
+        // 1. Working Hours Enforcement (Shift Logic)
+        if ($user->working_hours && !$request->routeIs('errors.off-duty') && !$request->routeIs('logout')) {
             $now = Carbon::now();
             $dayOfWeek = strtolower($now->format('l'));
             $schedule = $user->working_hours[$dayOfWeek] ?? null;
@@ -34,8 +40,7 @@ class StaffSecurityMiddleware
                 $end = Carbon::createFromTimeString($schedule['end']);
 
                 if (!$now->between($start, $end)) {
-                    Auth::logout();
-                    return redirect()->route('login')->with('error', 'Access denied: Outside working hours.');
+                    return redirect()->route('errors.off-duty');
                 }
             }
         }
@@ -43,72 +48,110 @@ class StaffSecurityMiddleware
         // 2. IP Whitelisting
         if ($user->allowed_ips && !empty($user->allowed_ips)) {
             $clientIp = $request->ip();
-            if (!in_array($clientIp, $user->allowed_ips)) {
+            $isAllowed = false;
+            
+            foreach ($user->allowed_ips as $allowedIp) {
+                if ($this->ipMatches($clientIp, $allowedIp)) {
+                    $isAllowed = true;
+                    break;
+                }
+            }
+
+            if (!$isAllowed) {
                 Auth::logout();
                 return redirect()->route('login')->with('error', "Access denied: Unauthorized network ($clientIp).");
             }
         }
 
-        // 3. Proxy/VPN Blocking (Basic Header Checks)
-        $proxyHeaders = [
-            'HTTP_VIA',
-            'HTTP_X_FORWARDED_FOR',
-            'HTTP_FORWARDED_FOR',
-            'HTTP_X_FORWARDED',
-            'HTTP_FORWARDED',
-            'HTTP_CLIENT_IP',
-            'HTTP_FORWARDED_FOR_IP',
-            'VIA',
-            'X_FORWARDED_FOR',
-            'FORWARDED_FOR',
-            'X_FORWARDED',
-            'FORWARDED',
-            'CLIENT_IP',
-            'FORWARDED_FOR_IP',
-            'HTTP_PROXY_CONNECTION'
-        ];
+        // 3. Proxy/VPN Blocking
+        $this->checkForProxies($request);
 
-        foreach ($proxyHeaders as $header) {
-            if ($request->header($header) || isset($_SERVER[$header])) {
-                Auth::logout();
-                return redirect()->route('login')->with('error', 'Access denied: Proxies and VPNs are prohibited.');
-            }
-        }
-
-        // 4. Device Identification & Locking
+        // 4. Device Locking & Single Session Enforcement
         if ($user->is_device_lock_enabled) {
-            $deviceId = $request->header('X-Device-ID');
+            $deviceId = $request->header('X-Device-ID') ?? $this->generateFallBackDeviceId($request);
+            $userAgent = $request->header('User-Agent');
+            $friendlyName = $this->parseUserAgent($userAgent);
             
-            if (!$deviceId) {
-                // If device ID is missing, we might want to block or allow but flag.
-                // For strict security, we block if it's mandatory.
-                // return response()->json(['error' => 'Device identification missing.'], 403);
-            } else {
-                $device = UserDevice::firstOrCreate(
-                    ['user_id' => $user->id, 'device_id' => $deviceId],
-                    ['device_name' => $request->header('User-Agent'), 'last_ip' => $request->ip()]
-                );
+            // Check if this specific device is registered
+            $device = UserDevice::where('user_id', $user->id)
+                ->where('device_id', $deviceId)
+                ->first();
 
-                if ($device->is_locked) {
+            if (!$device) {
+                // Check if we reached the limit of registered devices
+                $deviceCount = UserDevice::where('user_id', $user->id)->count();
+                $limit = $user->security_config['max_devices'] ?? 1;
+
+                if ($deviceCount >= $limit) {
                     Auth::logout();
-                    return redirect()->route('login')->with('error', 'Access denied: This device has been locked.');
+                    return redirect()->route('login')->with('error', 'Limit reached: This new device is not authorized. Max allowed devices: ' . $limit);
                 }
 
-                // Check for "multiple device" usage if config exists
-                $deviceLimit = $user->security_config['max_devices'] ?? 1;
-                $activeDevices = UserDevice::where('user_id', $user->id)
-                    ->where('is_locked', false)
-                    ->count();
-
-                if ($activeDevices > $deviceLimit && !$user->devices()->where('device_id', $deviceId)->exists()) {
-                    Auth::logout();
-                    return redirect()->route('login')->with('error', 'Access denied: Maximum device limit reached.');
-                }
-                
-                $device->update(['last_ip' => $request->ip()]);
+                // Register new device
+                $device = UserDevice::create([
+                    'user_id' => $user->id,
+                    'device_id' => $deviceId,
+                    'device_name' => $friendlyName,
+                    'last_ip' => $request->ip(),
+                    'is_locked' => false
+                ]);
             }
+
+            if ($device->is_locked) {
+                Auth::logout();
+                return redirect()->route('login')->with('error', 'Access denied: This device has been locked by administration.');
+            }
+
+            // Strict Session Check: If another record from this user was updated in the last 5 minutes 
+            // and it's NOT this device, we block it to enforce "One Workstation at a Time".
+            $otherActiveDevice = UserDevice::where('user_id', $user->id)
+                ->where('device_id', '!=', $deviceId)
+                ->where('updated_at', '>', now()->subMinutes(5)) // Active threshold
+                ->first();
+
+            if ($otherActiveDevice) {
+                Auth::logout();
+                return redirect()->route('login')->with('error', 'Security Policy: You have an active workshop session on another device (' . $otherActiveDevice->device_name . '). Please logout there first.');
+            }
+            
+            // Update last seen heartbeat
+            $device->touch();
+            $device->update(['last_ip' => $request->ip()]);
         }
 
         return $next($request);
+    }
+
+    private function ipMatches($clientIp, $allowedIp) {
+        return $clientIp === $allowedIp;
+    }
+
+    private function parseUserAgent($ua) {
+        if (preg_match('/(tablet|ipad|playbook|silk)|(android(?!.*mobi))/i', $ua)) return 'Tablet';
+        if (preg_match('/Mobile|iP(hone|od|ad)|Android|BlackBerry|IEMobile|Kindle|NetFront|Silk-Accelerated|(hpw|web)OS|Fennec|Minimo|Opera M(obi|ini)|Blazer|Dolfin|Dolphin|Skyfire|Zune/i', $ua)) return 'Mobile Device';
+        if (preg_match('/Windows/i', $ua)) return 'Windows Desktop';
+        if (preg_match('/Macintosh/i', $ua)) return 'Mac Desktop';
+        if (preg_match('/Linux/i', $ua)) return 'Linux Desktop';
+        return 'Unknown Station';
+    }
+
+    private function checkForProxies(Request $request) {
+        $proxyHeaders = [
+            'HTTP_VIA', 'HTTP_X_FORWARDED_FOR', 'HTTP_FORWARDED_FOR', 'HTTP_X_FORWARDED',
+            'HTTP_FORWARDED', 'HTTP_CLIENT_IP', 'HTTP_FORWARDED_FOR_IP', 'VIA',
+            'X_FORWARDED_FOR', 'FORWARDED_FOR', 'X_FORWARDED', 'FORWARDED', 'CLIENT_IP',
+            'FORWARDED_FOR_IP', 'HTTP_PROXY_CONNECTION'
+        ];
+
+        foreach ($proxyHeaders as $header) {
+            if ($request->header($header)) {
+                Auth::logout();
+                abort(redirect()->route('login')->with('error', 'Access denied: Proxies and VPNs are prohibited.'));
+            }
+        }
+    }
+
+    private function generateFallBackDeviceId(Request $request) {
+        return md5($request->header('User-Agent') . $request->ip());
     }
 }

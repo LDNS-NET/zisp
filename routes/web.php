@@ -163,8 +163,21 @@ Route::get('mikrotiks/{mikrotik}/download-script', [TenantMikrotikController::cl
 |--------------------------------------------------------------------------
 */
 
-Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode'])
+Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode', 'staff_security', 'audit_staff'])
     ->group(function () {
+        // Off-duty / Shift ended page
+        Route::get('/off-duty', function () {
+            $user = auth()->user();
+            $now = \Carbon\Carbon::now();
+            $dayOfWeek = strtolower($now->format('l'));
+            $schedule = $user->working_hours[$dayOfWeek] ?? null;
+            
+            return Inertia::render('Errors/OffDuty', [
+                'user' => $user,
+                'schedule' => $schedule
+            ]);
+        })->name('errors.off-duty');
+
         // Subscription & Renewal (Accessible even if expired)
         Route::get('/subscription/renew', [SubscriptionController::class, 'showRenewal'])->name('subscription.renew');
         Route::post('/subscription/initialize-payment', [SubscriptionController::class, 'initializePayment'])
@@ -181,7 +194,7 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode'])
             ->name('dashboard.data');
 
         //Active Users
-        Route::middleware(['role:tenant_admin|admin|customer_care|technical'])->group(function () {
+        Route::middleware(['role_or_permission:tenant_admin|admin|customer_care|technical|view_online_users'])->group(function () {
             Route::resource('activeusers', TenantActiveUsersController::class)->middleware('throttle:online_users');
         });
 
@@ -207,12 +220,12 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode'])
         });
 
         //tenants packages
-        Route::middleware(['role:tenant_admin|admin|marketing'])->group(function () {
+        Route::middleware(['role_or_permission:tenant_admin|admin|marketing|view_packages'])->group(function () {
             Route::resource('packages', PackageController::class)->except(['show']);
         });
 
         //network users( wifi users )
-        Route::middleware(['role:tenant_admin|admin|customer_care|technical'])->group(function () {
+        Route::middleware(['role_or_permission:tenant_admin|admin|customer_care|technical|view_users'])->group(function () {
             Route::resource('users', TenantUserController::class)->middleware('throttle:user_crud');
             Route::delete('/users/bulk-delete', [TenantUserController::class, 'bulkDelete'])
                 ->middleware('throttle:bulk_actions')
@@ -225,13 +238,13 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode'])
 
 
         //Leads
-        Route::middleware(['role:tenant_admin|admin|marketing'])->group(function () {
+        Route::middleware(['role_or_permission:tenant_admin|admin|marketing|view_leads'])->group(function () {
             Route::resource('leads', TenantLeadController::class)->only(['index', 'store', 'update', 'destroy']);
             Route::delete('leads/bulk-delete', [TenantLeadController::class, 'bulkDelete'])->name('leads.bulk-delete');
         });
 
         //tickets
-        Route::middleware(['role:tenant_admin|admin|customer_care|technical'])->group(function () {
+        Route::middleware(['role_or_permission:tenant_admin|admin|customer_care|technical|view_tickets'])->group(function () {
             Route::resource('tickets', TenantTicketController::class)->only(['index', 'store', 'update', 'destroy']);
             Route::delete('tickets/bulk-delete', [TenantTicketController::class, 'bulkDelete'])->name('tickets.bulk-delete');
             Route::put('/tickets/{ticket}/resolve', [TenantTicketController::class, 'resolve'])->name('tickets.resolve');
@@ -244,7 +257,7 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode'])
         });
 
         //vouchers
-        Route::middleware(['role:tenant_admin|admin|marketing|customer_care'])->group(function () {
+        Route::middleware(['role_or_permission:tenant_admin|admin|marketing|customer_care|view_vouchers'])->group(function () {
             Route::get('/vouchers/print', [VoucherController::class, 'print'])->name('vouchers.print');
             Route::delete('/vouchers/bulk-delete', [VoucherController::class, 'bulkDelete'])->name('vouchers.bulk-delete');
             Route::resource('vouchers', VoucherController::class);
@@ -252,13 +265,13 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode'])
         });
 
         //Payments
-        Route::middleware(['role:tenant_admin'])->group(function () {
+        Route::middleware(['role_or_permission:tenant_admin|view_payments'])->group(function () {
             Route::resource('payments', TenantPaymentController::class)->only(['index', 'store', 'update', 'destroy']);
             Route::delete('/payments/bulk-delete', [TenantPaymentController::class, 'bulkDelete'])->name('payments.bulk-delete');
         });
 
         //Invoices
-        Route::middleware(['role:tenant_admin|admin|customer_care'])->group(function () {
+        Route::middleware(['role_or_permission:tenant_admin|admin|customer_care|view_invoices'])->group(function () {
             Route::resource('invoices', TenantInvoiceController::class)->only(['index', 'store', 'update', 'destroy']);
             Route::delete('/invoices/bulk-delete', [TenantInvoiceController::class, 'bulkDelete'])->name('invoices.bulk-delete');
         });
@@ -301,23 +314,23 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode'])
 
         // Analytics routes
         Route::prefix('analytics')->name('analytics.')->group(function () {
-            Route::middleware(['role:tenant_admin|admin|network_engineer|technical'])->group(function () {
+            Route::middleware(['role_or_permission:tenant_admin|admin|network_engineer|technical|view_traffic_analytics'])->group(function () {
                 Route::get('/traffic', [App\Http\Controllers\Tenants\TrafficAnalyticsController::class, 'index'])->name('traffic');
                 Route::get('/traffic/user/{userId}', [App\Http\Controllers\Tenants\TrafficAnalyticsController::class, 'getUserBandwidth'])->name('traffic.user');
             });
             
-            Route::middleware(['role:tenant_admin|network_engineer|technical'])->group(function () {
+            Route::middleware(['role_or_permission:tenant_admin|network_engineer|technical|view_topology'])->group(function () {
                 Route::get('/topology', [App\Http\Controllers\Tenants\NetworkTopologyController::class, 'index'])->name('topology');
                 Route::get('/topology/updates', [App\Http\Controllers\Tenants\NetworkTopologyController::class, 'getTopologyUpdates'])->name('topology.updates');
                 Route::get('/topology/device/{id}', [App\Http\Controllers\Tenants\NetworkTopologyController::class, 'getDeviceDetails'])->name('topology.device');
             });
-
-            Route::middleware(['role:tenant_admin|admin|network_engineer'])->group(function () {
+ 
+            Route::middleware(['role_or_permission:tenant_admin|admin|network_engineer|view_predictions'])->group(function () {
                 Route::get('/predictions', [App\Http\Controllers\Tenants\PredictiveAnalyticsController::class, 'index'])->name('predictions');
                 Route::post('/predictions/refresh', [App\Http\Controllers\Tenants\PredictiveAnalyticsController::class, 'refresh'])->name('predictions.refresh');
             });
-
-            Route::middleware(['role:tenant_admin'])->group(function () {
+ 
+            Route::middleware(['role_or_permission:tenant_admin|view_finance|view_reports'])->group(function () {
                 // Report Builder
                 Route::resource('reports', App\Http\Controllers\Tenants\ReportBuilderController::class)->only(['index', 'store', 'destroy']);
                 Route::post('/reports/{report}/generate', [App\Http\Controllers\Tenants\ReportBuilderController::class, 'generate'])->name('reports.generate');
