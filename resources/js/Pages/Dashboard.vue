@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, onUnmounted } from 'vue';
 import { Head, usePage, Link, router } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import VueApexCharts from 'vue3-apexcharts';
@@ -51,6 +51,10 @@ const expiresAt = ref(page.props.subscription_expires_at || null);
 const countdown = ref('');
 const daysRemaining = ref(0);
 
+// Timer refs for cleanup
+const countdownInterval = ref(null);
+const pollingInterval = ref(null);
+
 // Dynamic greeting based on time of day
 const getGreeting = () => {
     const hour = new Date().getHours();
@@ -86,16 +90,28 @@ function updateCountdown() {
 
 onMounted(() => {
     updateCountdown();
-    setInterval(updateCountdown, 1000);
+    countdownInterval.value = setInterval(updateCountdown, 1000);
 
-    // Poll for real-time stats updates every 5 seconds
-    setInterval(() => {
+    // Poll for real-time stats updates every 30 seconds
+    const POLL_INTERVAL = 30000;
+    
+    pollingInterval.value = setInterval(() => {
+        // Skip polling if tab is not visible to save resources
+        if (document.hidden) {
+            return;
+        }
+
         router.reload({
             only: ['stats'],
             preserveScroll: true,
             preserveState: true,
         });
-    }, 5000);
+    }, POLL_INTERVAL);
+});
+
+onUnmounted(() => {
+    if (countdownInterval.value) clearInterval(countdownInterval.value);
+    if (pollingInterval.value) clearInterval(pollingInterval.value);
 });
 
 // Compute subscription status color
