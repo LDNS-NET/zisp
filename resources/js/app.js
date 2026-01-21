@@ -1,6 +1,23 @@
 import '../css/app.css';
 import './bootstrap';
 
+// Patch for "Added non-passive event listener to a scroll-blocking 'touchstart' event" violation
+(function () {
+    if (typeof EventTarget !== 'undefined') {
+        const func = EventTarget.prototype.addEventListener;
+        EventTarget.prototype.addEventListener = function (type, fn, capture) {
+            this.func = func;
+            if (typeof capture !== 'boolean') {
+                capture = capture || {};
+                capture.passive = (capture.passive === undefined);
+            } else {
+                capture = { passive: true, capture: capture };
+            }
+            this.func(type, fn, capture);
+        };
+    }
+})();
+
 import { createInertiaApp } from '@inertiajs/vue3';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createApp, h } from 'vue';
