@@ -134,6 +134,7 @@ const incomeChartOptions = computed(() => ({
         height: 350,
         toolbar: { show: false },
         background: 'transparent',
+        animations: { enabled: false },
     },
     theme: {
         mode: isDark.value ? 'dark' : 'light',
@@ -198,6 +199,7 @@ const userGrowthOptions = computed(() => ({
         height: 350,
         toolbar: { show: false },
         background: 'transparent',
+        animations: { enabled: false },
     },
     theme: {
         mode: isDark.value ? 'dark' : 'light',
@@ -289,6 +291,7 @@ const packageChartOptions = computed(() => ({
         type: 'donut',
         height: 350,
         background: 'transparent',
+        animations: { enabled: false },
     },
     theme: {
         mode: isDark.value ? 'dark' : 'light',
