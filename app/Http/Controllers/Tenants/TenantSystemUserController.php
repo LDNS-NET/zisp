@@ -9,6 +9,9 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Auth;
+use App\Models\TenantActivity;
+use App\Models\UserDevice;
+use Spatie\Permission\Models\Permission;
 
 class TenantSystemUserController extends Controller
 {
@@ -33,6 +36,11 @@ class TenantSystemUserController extends Controller
                     'role' => $user->roles->first()?->name,
                     'last_login_at' => $user->last_login_at,
                     'is_suspended' => $user->is_suspended,
+                    'working_hours' => $user->working_hours,
+                    'allowed_ips' => $user->allowed_ips,
+                    'security_config' => $user->security_config,
+                    'is_device_lock_enabled' => $user->is_device_lock_enabled,
+                    'permissions' => $user->permissions->pluck('name'),
                 ];
             });
         
@@ -41,9 +49,14 @@ class TenantSystemUserController extends Controller
             'network_engineer', 'marketing', 'network_admin'
         ])->get();
 
+        $permissions = Permission::all();
+        $activities = TenantActivity::where('tenant_id', $tenantId)->latest()->take(100)->get();
+
         return inertia('Settings/Staff/Index', [
             'users' => $users,
             'roles' => $roles,
+            'permissions' => $permissions,
+            'activities' => $activities,
         ]);
     }
 
@@ -132,5 +145,69 @@ class TenantSystemUserController extends Controller
 
         $status = $user->is_suspended ? 'suspended' : 'activated';
         return back()->with('success', "Staff member $status successfully.");
+    }
+
+    public function updateSecurity(Request $request, $id)
+    {
+        $user = User::where('tenant_id', Auth::user()->tenant_id)->findOrFail($id);
+
+        $validated = $request->validate([
+            'working_hours' => 'nullable|array',
+            'allowed_ips' => 'nullable|array',
+            'allowed_ips.*' => 'ip',
+            'is_device_lock_enabled' => 'nullable|boolean',
+            'max_devices' => 'nullable|integer|min:1',
+            'permissions' => 'nullable|array',
+            'permissions.*' => 'exists:permissions,name',
+        ]);
+
+        $user->update([
+            'working_hours' => $validated['working_hours'] ?? $user->working_hours,
+            'allowed_ips' => $validated['allowed_ips'] ?? $user->allowed_ips,
+            'is_device_lock_enabled' => $validated['is_device_lock_enabled'] ?? $user->is_device_lock_enabled,
+            'security_config' => array_merge($user->security_config ?? [], [
+                'max_devices' => $validated['max_devices'] ?? ($user->security_config['max_devices'] ?? 1)
+            ]),
+        ]);
+
+        if (isset($validated['permissions'])) {
+            $user->syncPermissions($validated['permissions']);
+        }
+
+        TenantActivity::log('staff.security_updated', "Updated security settings for staff member: {$user->name}", $user);
+
+        return back()->with('success', 'Security settings updated successfully.');
+    }
+
+    public function devices($id)
+    {
+        $user = User::where('tenant_id', Auth::user()->tenant_id)->findOrFail($id);
+        return response()->json($user->devices);
+    }
+
+    public function toggleDeviceLock($id, $deviceId)
+    {
+        $user = User::where('tenant_id', Auth::user()->tenant_id)->findOrFail($id);
+        $device = $user->devices()->where('id', $deviceId)->firstOrFail();
+
+        $device->update(['is_locked' => !$device->is_locked]);
+
+        $status = $device->is_locked ? 'locked' : 'unlocked';
+        TenantActivity::log('staff.device_toggled', "Device $status for staff member: {$user->name}", $user, ['device' => $device->device_id]);
+
+        return back()->with('success', "Device $status successfully.");
+    }
+
+    public function activity()
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $activities = TenantActivity::where('tenant_id', $tenantId)
+            ->with('user')
+            ->latest()
+            ->paginate(50);
+
+        return inertia('Settings/Staff/Activity', [
+            'activities' => $activities,
+        ]);
     }
 }

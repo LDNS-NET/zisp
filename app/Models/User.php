@@ -35,6 +35,10 @@ class User extends Authenticatable //implements MustVerifyEmail
         'email_verified_at',
         'last_login_at',
         'is_suspended',
+        'working_hours',
+        'allowed_ips',
+        'security_config',
+        'is_device_lock_enabled',
     ];
 
     protected $casts = [
@@ -42,6 +46,10 @@ class User extends Authenticatable //implements MustVerifyEmail
         'is_super_admin' => 'boolean',
         'subscription_expires_at' => 'datetime',
         'is_suspended' => 'boolean',
+        'working_hours' => 'array',
+        'allowed_ips' => 'array',
+        'security_config' => 'array',
+        'is_device_lock_enabled' => 'boolean',
     ];
 
     protected $hidden = [
@@ -62,5 +70,10 @@ class User extends Authenticatable //implements MustVerifyEmail
     public function tenantGeneralSetting()
     {
         return $this->hasOne(TenantGeneralSetting::class, 'tenant_id', 'tenant_id');
+    }
+
+    public function devices()
+    {
+        return $this->hasMany(UserDevice::class);
     }
 }
