@@ -59,8 +59,8 @@ const navigation = [
     { name: 'Traffic Analytics', href: route('analytics.traffic'), icon: BarChart3, active: 'analytics.traffic', roles: ['tenant_admin', 'admin', 'network_engineer', 'technical'] },
     { name: 'Network Topology', href: route('analytics.topology'), icon: Network, active: 'analytics.topology', roles: ['tenant_admin', 'network_engineer', 'technical'] },
     { name: 'Predictive Insights', href: route('analytics.predictions'), icon: BrainCircuit, active: 'analytics.predictions', roles: ['tenant_admin', 'admin', 'network_engineer'] },
-    { name: 'Financial Intelligence', href: route('analytics.finance'), icon: Banknote, active: 'analytics.finance', roles: ['tenant_admin', 'admin', 'marketing'] },
-    { name: 'Report Builder', href: route('analytics.reports.index'), icon: FileText, active: 'analytics.reports.*', roles: ['tenant_admin', 'admin', 'marketing'] },
+    { name: 'Financial Intelligence', href: route('analytics.finance'), icon: Banknote, active: 'analytics.finance', roles: ['tenant_admin'] },
+    { name: 'Report Builder', href: route('analytics.reports.index'), icon: FileText, active: 'analytics.reports.*', roles: ['tenant_admin'] },
     
     { header: 'User Management' },
     { name: 'Online Users', href: route('activeusers.index'), icon: Activity, active: 'activeusers.*', countKey: 'online_users', roles: ['tenant_admin', 'admin', 'customer_care', 'technical'] },

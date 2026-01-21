@@ -317,7 +317,7 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode'])
                 Route::post('/predictions/refresh', [App\Http\Controllers\Tenants\PredictiveAnalyticsController::class, 'refresh'])->name('predictions.refresh');
             });
 
-            Route::middleware(['role:tenant_admin|admin|marketing'])->group(function () {
+            Route::middleware(['role:tenant_admin'])->group(function () {
                 // Report Builder
                 Route::resource('reports', App\Http\Controllers\Tenants\ReportBuilderController::class)->only(['index', 'store', 'destroy']);
                 Route::post('/reports/{report}/generate', [App\Http\Controllers\Tenants\ReportBuilderController::class, 'generate'])->name('reports.generate');
@@ -397,26 +397,6 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode'])
             ->name('mikrotiks.reprovision');
         
         Route::post('mikrotiks/{mikrotik}/provision-hotspot', [TenantMikrotikController::class, 'provisionHotspot'])->name('mikrotiks.provisionHotspot');
-
-        // Analytics routes
-        Route::prefix('analytics')->name('analytics.')->group(function () {
-            Route::get('/traffic', [App\Http\Controllers\Tenants\TrafficAnalyticsController::class, 'index'])->name('traffic');
-            Route::get('/traffic/user/{userId}', [App\Http\Controllers\Tenants\TrafficAnalyticsController::class, 'getUserBandwidth'])->name('traffic.user');
-            
-            Route::get('/topology', [App\Http\Controllers\Tenants\NetworkTopologyController::class, 'index'])->name('topology');
-            Route::get('/topology/updates', [App\Http\Controllers\Tenants\NetworkTopologyController::class, 'getTopologyUpdates'])->name('topology.updates');
-            Route::get('/topology/device/{id}', [App\Http\Controllers\Tenants\NetworkTopologyController::class, 'getDeviceDetails'])->name('topology.device');
-
-            Route::get('/predictions', [App\Http\Controllers\Tenants\PredictiveAnalyticsController::class, 'index'])->name('predictions');
-            Route::post('/predictions/refresh', [App\Http\Controllers\Tenants\PredictiveAnalyticsController::class, 'refresh'])->name('predictions.refresh');
-
-            // Report Builder
-            Route::resource('reports', App\Http\Controllers\Tenants\ReportBuilderController::class)->only(['index', 'store', 'destroy']);
-            Route::post('/reports/{report}/generate', [App\Http\Controllers\Tenants\ReportBuilderController::class, 'generate'])->name('reports.generate');
-            
-            // Financial Intelligence
-            Route::get('/finance', [App\Http\Controllers\Tenants\FinancialAnalyticsController::class, 'index'])->name('finance');
-        });
 
         //captive portal
     

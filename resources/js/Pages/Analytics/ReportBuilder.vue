@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue';
-import { Head, useForm, router } from '@inertiajs/vue3';
+import { Head, useForm, router, usePage } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { 
     FileText, Plus, Trash2, Download, 
@@ -56,13 +56,16 @@ const getStatusColor = (status) => {
 const selectedMetricData = computed(() => {
     return props.metrics[form.config.metric] || null;
 });
+
+const user = usePage().props.auth.user;
+const isTenantAdmin = computed(() => user.roles.includes('tenant_admin'));
 </script>
 
 <template>
     <AuthenticatedLayout>
         <Head title="Custom Report Builder" />
 
-        <div class="min-h-screen bg-slate-50 dark:bg-slate-950 px-4 py-8 sm:px-6 lg:px-8">
+        <div v-if="isTenantAdmin" class="min-h-screen bg-slate-50 dark:bg-slate-950 px-4 py-8 sm:px-6 lg:px-8">
             <div class="mx-auto max-w-7xl">
                 <!-- Header -->
                 <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -254,6 +257,15 @@ const selectedMetricData = computed(() => {
                         <button type="submit" class="rounded-xl bg-blue-600 px-8 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-all">Save Report</button>
                     </div>
                 </form>
+            </div>
+        </div>
+        <div v-else class="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+            <div class="text-center p-8 bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-800">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 mb-4">
+                    <FileText class="w-8 h-8" />
+                </div>
+                <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-2">Unauthorized Access</h2>
+                <p class="text-slate-500 dark:text-slate-400">You do not have permission to build or view business reports.</p>
             </div>
         </div>
     </AuthenticatedLayout>

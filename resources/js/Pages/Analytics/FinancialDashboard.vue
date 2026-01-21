@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue';
-import { Head } from '@inertiajs/vue3';
+import { Head, usePage } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import VueApexCharts from 'vue3-apexcharts';
 import { 
@@ -12,6 +12,9 @@ import {
 const props = defineProps(['metrics', 'currency']);
 
 const isDark = computed(() => document.documentElement.classList.contains('dark'));
+
+const user = usePage().props.auth.user;
+const isTenantAdmin = computed(() => user.roles.includes('tenant_admin'));
 
 // MRR Trend Chart
 const mrrChartOptions = computed(() => ({
@@ -99,7 +102,7 @@ const zoneRevenueSeries = computed(() => props.metrics.zone_revenue.map(z => z.r
     <AuthenticatedLayout>
         <Head title="Financial Intelligence" />
 
-        <div class="min-h-screen bg-slate-50 dark:bg-slate-950 px-4 py-8 sm:px-6 lg:px-8">
+        <div v-if="isTenantAdmin" class="min-h-screen bg-slate-50 dark:bg-slate-950 px-4 py-8 sm:px-6 lg:px-8">
             <div class="mx-auto max-w-7xl">
                 <!-- Header Component -->
                 <div class="mb-10 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
@@ -283,6 +286,15 @@ const zoneRevenueSeries = computed(() => props.metrics.zone_revenue.map(z => z.r
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+        <div v-else class="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+            <div class="text-center p-8 bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-800">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 mb-4">
+                    <Activity class="w-8 h-8" />
+                </div>
+                <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-2">Unauthorized Access</h2>
+                <p class="text-slate-500 dark:text-slate-400">You do not have permission to view this financial data.</p>
             </div>
         </div>
     </AuthenticatedLayout>

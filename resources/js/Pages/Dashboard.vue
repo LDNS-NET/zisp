@@ -322,6 +322,10 @@ const packageChartSeries = computed(() =>
         props.stats?.users?.static || 0,
     ]
 );
+
+const isTenantAdmin = computed(() => {
+    return user.roles.includes('tenant_admin');
+});
 </script>
 
 <template>
@@ -581,8 +585,8 @@ const packageChartSeries = computed(() =>
                             </div>
                         </div>
 
-                        <!-- Revenue Card (if admin/cashier) -->
-                        <div v-if="user.role === 'admin' || user.role === 'cashier'" class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 p-4 shadow-xl transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:-translate-y-1 dark:from-purple-600 dark:to-purple-700 border border-purple-400/30 sm:col-span-2 lg:col-span-1">
+                        <!-- Revenue Card (only tenant_admin) -->
+                        <div v-if="isTenantAdmin" class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 p-4 shadow-xl transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:-translate-y-1 dark:from-purple-600 dark:to-purple-700 border border-purple-400/30 sm:col-span-2 lg:col-span-1">
                             <div class="absolute top-0 right-0 w-32 h-32 opacity-20">
                                 <svg viewBox="0 0 100 100" class="w-full h-full text-white" fill="currentColor">
                                     <circle cx="70" cy="20" r="12" opacity="0.8"/>
@@ -716,8 +720,8 @@ const packageChartSeries = computed(() =>
                                 </div>
                             </div>
 
-                            <!-- Revenue Intelligence -->
-                            <div class="py-10 mb-10 mt-10 rounded-2xl border border-gray-200 dark:border-gray-700 p-5 bg-white/50 dark:bg-slate-700/30">
+                            <!-- Revenue Intelligence (only tenant_admin) -->
+                            <div v-if="isTenantAdmin" class="py-10 mb-10 mt-10 rounded-2xl border border-gray-200 dark:border-gray-700 p-5 bg-white/50 dark:bg-slate-700/30">
                                 <h4 class="mb-4 flex items-center gap-2 font-bold text-gray-900 dark:text-white">
                                     <Briefcase class="h-4 w-4 text-emerald-500" />
                                     Revenue Intelligence
