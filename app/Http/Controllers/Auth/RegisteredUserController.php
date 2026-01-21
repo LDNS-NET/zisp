@@ -106,7 +106,11 @@ class RegisteredUserController extends Controller
 
             // Link user to tenant
             $user->tenant_id = $tenantId;
+            $user->role = 'tenant_admin'; // Set the role column for legacy compatibility
             $user->save();
+
+            // Assign Spatie role
+            $user->assignRole('tenant_admin');
         });
 
         event(new Registered($user));
