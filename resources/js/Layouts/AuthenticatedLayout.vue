@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, watch, computed } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
@@ -90,10 +90,51 @@ const page = usePage();
 const user = page.props.auth.user;
 const tenantLogo = page.props.tenant?.logo;
 
-const filteredNavigation = navigation.filter((item) => {
-    if (!item.roles) return true;
-    return item.roles.some((role) => user.roles.includes(role));
+const filteredNavigation = computed(() => {
+    return navigation.filter((item, index) => {
+        // If it's a link, filter by roles
+        if (!item.header) {
+            if (!item.roles) return true;
+            return item.roles.some((role) => user.roles.includes(role));
+        }
+
+        // If it's a header, check if it has roles and if the user matches
+        if (item.roles && !item.roles.some(role => user.roles.includes(role))) {
+            return false;
+        }
+
+        // Check if there is at least one visible item following this header until the next header
+        let hasVisibleChild = false;
+        for (let i = index + 1; i < navigation.length; i++) {
+            const nextItem = navigation[i];
+            if (nextItem.header) break;
+            
+            // Check if this child is visible
+            const isChildVisible = !nextItem.roles || nextItem.roles.some(role => user.roles.includes(role));
+            if (isChildVisible) {
+                hasVisibleChild = true;
+                break;
+            }
+        }
+        return hasVisibleChild;
+    });
 });
+
+const settingsRoutes = [
+    { name: 'settings.general.edit', roles: ['tenant_admin'] },
+    { name: 'settings.hotspot.edit', roles: ['tenant_admin', 'admin', 'network_engineer'] },
+    { name: 'settings.sms.edit', roles: ['tenant_admin', 'admin', 'marketing'] },
+    { name: 'settings.payment.edit', roles: ['tenant_admin'] },
+    { name: 'settings.system.edit', roles: ['tenant_admin'] },
+];
+
+const firstAccessibleSettingsRoute = computed(() => {
+    return settingsRoutes.find(route => {
+        return !route.roles || route.roles.some(role => user.roles.includes(role));
+    })?.name;
+});
+
+const canAccessDomainSettings = computed(() => user.roles.includes('tenant_admin'));
 
 function toggleSidebar() {
     sidebarOpen.value = !sidebarOpen.value;
@@ -242,6 +283,7 @@ function toggleSidebar() {
                 <div class="flex items-center gap-3 sm:gap-4">
                     <!-- Notifications -->
                     <Link 
+                        v-if="canAccessDomainSettings"
                         :href="route('domain-requests.index')" 
                         class="relative p-2 text-gray-500 hover:bg-gray-100 rounded-full dark:text-gray-400 dark:hover:bg-slate-800 transition-colors"
                         title="Notifications"
@@ -281,10 +323,10 @@ function toggleSidebar() {
                             <DropdownLink :href="route('profile.edit')" class="flex items-center gap-2">
                                 <FolderEdit class="w-4 h-4" /> Profile
                             </DropdownLink>
-                            <DropdownLink :href="route('settings.general.edit')" class="flex items-center gap-2">
+                            <DropdownLink v-if="firstAccessibleSettingsRoute" :href="route(firstAccessibleSettingsRoute)" class="flex items-center gap-2">
                                 <Settings class="w-4 h-4" /> Settings
                             </DropdownLink>
-                            <DropdownLink :href="route('domain-requests.index')" class="flex items-center gap-2">
+                            <DropdownLink v-if="canAccessDomainSettings" :href="route('domain-requests.index')" class="flex items-center gap-2">
                                 <Globe class="w-4 h-4" /> Domain Settings
                             </DropdownLink>
                             <div class="border-t border-gray-100 dark:border-slate-700 my-1"></div>

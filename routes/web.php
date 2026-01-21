@@ -284,23 +284,20 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode'])
             Route::delete('/smstemplates/bulk-delete', [TenantSMSTemplateController::class, 'bulkDelete'])->name('smstemplates.bulk-delete');
         });
 
-        //Hotspot Settings
-        Route::get('settings/hotspot', [TenantHotspotSettingsController::class, 'edit'])->name('settings.hotspot.edit');
-        Route::post('settings/hotspot', [TenantHotspotSettingsController::class, 'update'])
-            ->middleware('throttle:file_upload')
-            ->name('settings.hotspot.update');
+        // Multi-Role Settings
+        Route::middleware(['role:tenant_admin|admin|network_engineer'])->group(function () {
+            Route::get('settings/hotspot', [TenantHotspotSettingsController::class, 'edit'])->name('settings.hotspot.edit');
+            Route::post('settings/hotspot', [TenantHotspotSettingsController::class, 'update'])
+                ->middleware('throttle:file_upload')
+                ->name('settings.hotspot.update');
+        });
 
-        //payment gateways settings
-        Route::get('settings/payment', [TenantPaymentGatewayController::class, 'edit'])->name('settings.payment.edit');
-        Route::post('settings/payment', [TenantPaymentGatewayController::class, 'update'])->name('settings.payment.update');
-
-        //sms gateway settings
-        Route::get('settings/sms', [TenantSmsGatewayController::class, 'edit'])->name('settings.sms.edit');
-        Route::post('settings/sms', [TenantSmsGatewayController::class, 'update'])->name('settings.sms.update');
-        Route::get('/settings/sms/show', [TenantSmsGatewayController::class, 'show'])->name('settings.sms.show');
-        Route::get('/settings/sms/json', [TenantSmsGatewayController::class, 'getGateway'])->name('settings.sms.json');
-
-
+        Route::middleware(['role:tenant_admin|admin|marketing'])->group(function () {
+            Route::get('settings/sms', [TenantSmsGatewayController::class, 'edit'])->name('settings.sms.edit');
+            Route::post('settings/sms', [TenantSmsGatewayController::class, 'update'])->name('settings.sms.update');
+            Route::get('/settings/sms/show', [TenantSmsGatewayController::class, 'show'])->name('settings.sms.show');
+            Route::get('/settings/sms/json', [TenantSmsGatewayController::class, 'getGateway'])->name('settings.sms.json');
+        });
 
         // Analytics routes
         Route::prefix('analytics')->name('analytics.')->group(function () {
@@ -352,6 +349,10 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode'])
             // Payment Gateway Settings
             Route::get('settings/payment', [TenantPaymentGatewayController::class, 'edit'])->name('settings.payment.edit');
             Route::post('settings/payment', [TenantPaymentGatewayController::class, 'update'])->name('settings.payment.update');
+
+            // Domain Requests
+            Route::get('domain-requests', [App\Http\Controllers\Tenants\DomainRequestController::class, 'index'])->name('domain-requests.index');
+            Route::post('domain-requests', [App\Http\Controllers\Tenants\DomainRequestController::class, 'store'])->name('domain-requests.store');
         });
 
         // Network Management
@@ -360,7 +361,6 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode'])
                 Route::post('mikrotiks/{mikrotik}/reboot', [TenantMikrotikController::class, 'reboot'])->name('mikrotiks.reboot');
                 Route::delete('mikrotiks/{mikrotik}/force-delete', [TenantMikrotikController::class, 'forceDelete'])->name('mikrotiks.forceDelete');
                 Route::resource('mikrotiks', TenantMikrotikController::class);
-                // ... other mikrotik routes ...
             });
             
             Route::get('settings/content-filter', [ContentFilterController::class, 'index'])->name('settings.content-filter.index');
@@ -368,21 +368,13 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode'])
             Route::post('settings/content-filter/apply/{router}', [ContentFilterController::class, 'applyToRouter'])->name('settings.content-filter.apply');
         });
 
-        // Domain Requests
-        Route::get('domain-requests', [App\Http\Controllers\Tenants\DomainRequestController::class, 'index'])->name('domain-requests.index');
-        Route::post('domain-requests', [App\Http\Controllers\Tenants\DomainRequestController::class, 'store'])->name('domain-requests.store');
-
         //Mikrotik Details
         Route::resource('mikrotikdetails', MikrotikDetailsController::class)->only(['index']);
 
-
-        //mikrotiks
+        //mikrotiks additional endpoints
         Route::middleware('throttle:mikrotik_api')->group(function () {
-            Route::post('mikrotiks/{mikrotik}/reboot', [TenantMikrotikController::class, 'reboot'])->name('mikrotiks.reboot');
             Route::post('mikrotiks/{mikrotik}/identity', [TenantMikrotikController::class, 'updateIdentity'])->name('mikrotiks.updateIdentity');
             Route::post('mikrotiks/{mikrotik}/restore', [TenantMikrotikController::class, 'restore'])->name('mikrotiks.restore');
-            Route::delete('mikrotiks/{mikrotik}/force-delete', [TenantMikrotikController::class, 'forceDelete'])->name('mikrotiks.forceDelete');
-            Route::resource('mikrotiks', TenantMikrotikController::class);
             Route::get('mikrotiks/{mikrotik}/test-connection', [TenantMikrotikController::class, 'testConnection'])->name('mikrotiks.testConnection');
             Route::get('mikrotiks/{mikrotik}/ping', [TenantMikrotikController::class, 'pingRouter'])->name('mikrotiks.ping');
             Route::get('mikrotiks/status', [TenantMikrotikController::class, 'getAllStatus'])->name('mikrotiks.statusAll');
