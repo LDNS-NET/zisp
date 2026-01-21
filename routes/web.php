@@ -376,6 +376,7 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode', 'sta
                 Route::get('/{user}/devices', [TenantSystemUserController::class, 'devices'])->name('devices');
                 Route::post('/{user}/devices/{device}/toggle', [TenantSystemUserController::class, 'toggleDeviceLock'])->name('toggle-device-lock');
                 Route::get('/activity', [TenantSystemUserController::class, 'activity'])->name('activity');
+                Route::post('/global', [TenantSystemUserController::class, 'updateGlobalSettings'])->name('update-global');
             });
             
             Route::get('settings/general', [TenantGeneralSettingsController::class, 'edit'])->name('settings.general.edit');

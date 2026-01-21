@@ -5,22 +5,19 @@ import { useToast } from 'vue-toastification';
 import { 
     Users, 
     UserPlus, 
+    Search, 
+    Filter, 
+    MoreHorizontal, 
     Shield, 
-    Mail, 
-    Phone, 
+    Lock, 
+    Clock, 
+    Settings, 
     Trash2, 
-    UserX, 
-    UserCheck,
-    Edit2,
-    Lock,
-    Clock,
-    Globe,
-    Smartphone,
-    Activity,
-    Save,
-    ChevronRight,
-    Search,
-    ShieldAlert
+    CheckCircle, 
+    XCircle, 
+    Activity, 
+    ShieldAlert, 
+    Phone 
 } from 'lucide-vue-next';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Modal from '@/Components/Modal.vue';
@@ -37,6 +34,7 @@ const props = defineProps({
     roles: Array,
     permissions: Array,
     activities: Array,
+    management_support_phone: String,
 });
 
 const showModal = ref(false);
@@ -60,6 +58,10 @@ const securityForm = useForm({
     is_device_lock_enabled: false,
     max_devices: 1,
     permissions: [],
+});
+
+const globalSettingsForm = useForm({
+    management_support_phone: props.management_support_phone || '',
 });
 
 const userDevices = ref([]);
@@ -180,6 +182,12 @@ const toggleStatus = (user) => {
         onSuccess: () => toast.success('Status updated'),
     });
 };
+
+const updateGlobalSettings = () => {
+    globalSettingsForm.post(route('settings.staff.update-global'), {
+        onSuccess: () => toast.success('Platform-wide staff support number updated.'),
+    });
+};
 </script>
 
 <template>
@@ -201,7 +209,41 @@ const toggleStatus = (user) => {
         </template>
 
         <div class="py-12">
-            <div class="mx-auto max-w-7xl sm:px-6 lg:px-8">
+            <div class="mx-auto max-w-7xl sm:px-6 lg:px-8 space-y-8">
+                <!-- Global Settings Card -->
+                <div class="bg-gradient-to-r from-blue-600 to-indigo-700 p-6 rounded-xl shadow-lg text-white">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                        <div class="flex-1">
+                            <h3 class="text-lg font-bold flex items-center gap-2">
+                                <ShieldAlert class="h-5 w-5" />
+                                Staff Platform Configuration
+                            </h3>
+                            <p class="text-sm text-blue-100 mt-1 opacity-90">
+                                This number is displayed to off-duty staff. It should be a personal emergency contact for the administrator.
+                            </p>
+                        </div>
+                        <div class="flex-shrink-0 flex items-center gap-3">
+                            <div class="relative">
+                                <Phone class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-blue-200" />
+                                <input 
+                                    v-model="globalSettingsForm.management_support_phone" 
+                                    type="text" 
+                                    placeholder="Management Phone" 
+                                    class="pl-10 pr-4 py-2 bg-white/10 border border-white/20 rounded-lg text-sm text-white placeholder-blue-200 focus:ring-white focus:border-white transition-all w-full md:w-64"
+                                />
+                            </div>
+                            <button 
+                                @click="updateGlobalSettings"
+                                :disabled="globalSettingsForm.processing"
+                                class="px-6 py-2 bg-white text-blue-700 rounded-lg text-sm font-bold hover:bg-blue-50 transition-colors disabled:opacity-50"
+                            >
+                                <span v-if="globalSettingsForm.processing">Saving...</span>
+                                <span v-else>Update</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Summary Cards -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                     <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700">

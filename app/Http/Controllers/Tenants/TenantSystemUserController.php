@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\TenantActivity;
 use App\Models\UserDevice;
 use Spatie\Permission\Models\Permission;
+use App\Models\TenantGeneralSetting;
 
 class TenantSystemUserController extends Controller
 {
@@ -52,11 +53,14 @@ class TenantSystemUserController extends Controller
         $permissions = Permission::all();
         $activities = TenantActivity::where('tenant_id', $tenantId)->latest()->take(100)->get();
 
+        $settings = TenantGeneralSetting::where('tenant_id', $tenantId)->first();
+
         return inertia('Settings/Staff/Index', [
             'users' => $users,
             'roles' => $roles,
             'permissions' => $permissions,
             'activities' => $activities,
+            'management_support_phone' => $settings?->management_support_phone
         ]);
     }
 
@@ -185,17 +189,29 @@ class TenantSystemUserController extends Controller
         return response()->json($user->devices);
     }
 
-    public function toggleDeviceLock($id, $deviceId)
+    public function toggleDeviceLock(User $user, UserDevice $device)
     {
-        $user = User::where('tenant_id', Auth::user()->tenant_id)->findOrFail($id);
-        $device = $user->devices()->where('id', $deviceId)->firstOrFail();
-
         $device->update(['is_locked' => !$device->is_locked]);
-
         $status = $device->is_locked ? 'locked' : 'unlocked';
         TenantActivity::log('staff.device_toggled', "Device $status for staff member: {$user->name}", $user, ['device' => $device->device_id]);
 
         return back()->with('success', "Device $status successfully.");
+    }
+
+    public function updateGlobalSettings(Request $request)
+    {
+        $request->validate([
+            'management_support_phone' => 'nullable|string|max:20',
+        ]);
+
+        $tenantId = Auth::user()->tenant_id;
+
+        TenantGeneralSetting::updateOrCreate(
+            ['tenant_id' => $tenantId],
+            ['management_support_phone' => $request->management_support_phone]
+        );
+
+        return back()->with('success', 'Global staff settings updated.');
     }
 
     public function activity(Request $request)
