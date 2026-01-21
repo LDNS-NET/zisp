@@ -328,7 +328,7 @@ const toggleStatus = (user) => {
                             <Activity class="h-5 w-5 text-purple-500" />
                             Platform Audit Trail
                         </h3>
-                        <PrimaryButton :href="route('settings.staff.activity')" class="scale-90">View Full Log</PrimaryButton>
+                        <Link :href="route('settings.staff.activity')" class="scale-90 inline-flex items-center px-4 py-2 bg-blue-600 dark:bg-blue-700 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-500 active:bg-blue-900 focus:outline-none focus:border-blue-900 focus:ring ring-blue-300 disabled:opacity-25 transition ease-in-out duration-150">View Full Log</Link>
                     </div>
                     <div class="p-0 max-h-[400px] overflow-y-auto">
                         <div v-for="activity in activities" :key="activity.id" class="p-4 border-b dark:border-gray-700 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">

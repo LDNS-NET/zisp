@@ -151,7 +151,13 @@ watch([search, dateFrom, dateTo], () => {
                         </div>
                         
                         <div class="mt-6">
-                            <Pagination :links="activities.links" />
+                            <Pagination 
+                                :links="activities.links" 
+                                :per-page="activities.per_page"
+                                :total="activities.total"
+                                :from="activities.from"
+                                :to="activities.to"
+                            />
                         </div>
                     </div>
                 </div>

@@ -25,6 +25,7 @@ const form = useForm({
     theme: settings.value.theme || 'system',
     support_email: settings.value.support_email || '',
     support_phone: settings.value.support_phone || '',
+    management_support_phone: settings.value.management_support_phone || '',
     whatsapp: settings.value.whatsapp || '',
     address: settings.value.address || '',
     city: settings.value.city || '',
@@ -299,6 +300,19 @@ function submit() {
                                 class="mt-1 block w-full"
                                 placeholder="+254 700 000 000"
                             />
+                        </div>
+                        <div>
+                            <InputLabel
+                                for="management_support_phone"
+                                value="Management Support Number (for Staff)"
+                            />
+                            <TextInput
+                                id="management_support_phone"
+                                v-model="form.management_support_phone"
+                                class="mt-1 block w-full"
+                                placeholder="+254 700 000 002"
+                            />
+                            <p class="mt-1 text-[10px] text-gray-500 italic">This number is displayed to staff members when they are off-duty.</p>
                         </div>
                     </div>
                 </div>

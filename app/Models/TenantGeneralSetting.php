@@ -9,7 +9,7 @@ class TenantGeneralSetting extends Model
 {
     //use SoftDeletes;
     protected $fillable = [
-        'tenant_id', 'business_type', 'logo', 'support_email', 'support_phone',
+        'tenant_id', 'business_name', 'business_type', 'logo', 'support_email', 'support_phone', 'management_support_phone',
         'whatsapp', 'address', 'city', 'state', 'postal_code', 'country', 'website', 'facebook', 'twitter',
         'instagram', 'business_hours', 'timezone', 'currency', 'language', 'created_by'
     ];

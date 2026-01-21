@@ -105,6 +105,7 @@ class TenantGeneralSettingsController extends Controller
             // Contact Information
             'support_email'  => 'nullable|email|max:255',
             'support_phone'  => 'nullable|string|max:20',
+            'management_support_phone' => 'nullable|string|max:20',
             'whatsapp'       => 'nullable|string|max:20',
 
             // Address

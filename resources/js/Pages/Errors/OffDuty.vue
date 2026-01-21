@@ -6,6 +6,8 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 defineProps({
     user: Object,
     schedule: Object,
+    nextShift: Object,
+    supportPhone: String,
 });
 </script>
 
@@ -23,7 +25,7 @@ defineProps({
                 Your scheduled working hours for today have concluded. The system is currently restricted to active shift personnel only.
             </p>
 
-            <div v-if="schedule" class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 mb-8 text-left">
+            <div v-if="schedule" class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 mb-4 text-left">
                 <h4 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Today's Schedule</h4>
                 <div class="flex items-center justify-between text-sm">
                     <span class="text-gray-600 dark:text-gray-300">Shift Window</span>
@@ -31,13 +33,22 @@ defineProps({
                 </div>
             </div>
 
+            <div v-if="nextShift" class="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 mb-8 text-left border border-blue-100 dark:border-blue-800">
+                <h4 class="text-xs font-bold text-blue-500 uppercase tracking-widest mb-3">Next Scheduled Shift</h4>
+                <div class="flex items-center justify-between text-sm">
+                    <span class="text-blue-700 dark:text-blue-300">{{ nextShift.day }}</span>
+                    <span class="font-bold text-blue-900 dark:text-blue-100">{{ nextShift.start }} — {{ nextShift.end }}</span>
+                </div>
+            </div>
+
             <div class="space-y-3">
                 <p class="text-xs text-gray-400 mb-4">Need emergency access? Contact your administrator:</p>
                 <div class="flex flex-col gap-2">
-                    <a href="#" class="flex items-center justify-center gap-2 text-sm text-blue-600 hover:underline">
+                    <a v-if="supportPhone" :href="`tel:${supportPhone}`" class="flex items-center justify-center gap-2 text-sm text-blue-600 hover:underline">
                         <Phone class="h-4 w-4" />
-                        Management Support
+                        {{ supportPhone }}
                     </a>
+                    <span v-else class="text-xs text-gray-500 italic">No support number provided</span>
                 </div>
             </div>
 

@@ -172,9 +172,31 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode', 'sta
             $dayOfWeek = strtolower($now->format('l'));
             $schedule = $user->working_hours[$dayOfWeek] ?? null;
             
+            // Find next shift
+            $nextShift = null;
+            $days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+            $todayIndex = array_search($dayOfWeek, $days);
+            
+            for ($i = 1; $i <= 7; $i++) {
+                $nextIndex = ($todayIndex + $i) % 7;
+                $nextDay = $days[$nextIndex];
+                if (isset($user->working_hours[$nextDay]['start']) && $user->working_hours[$nextDay]['start'] !== '') {
+                    $nextShift = [
+                        'day' => ucfirst($nextDay),
+                        'start' => $user->working_hours[$nextDay]['start'],
+                        'end' => $user->working_hours[$nextDay]['end']
+                    ];
+                    break;
+                }
+            }
+
+            $settings = \App\Models\TenantGeneralSetting::where('tenant_id', $user->tenant_id)->first();
+
             return Inertia::render('Errors/OffDuty', [
                 'user' => $user,
-                'schedule' => $schedule
+                'schedule' => $schedule,
+                'nextShift' => $nextShift,
+                'supportPhone' => $settings?->management_support_phone ?? $settings?->support_phone
             ]);
         })->name('errors.off-duty');
 
