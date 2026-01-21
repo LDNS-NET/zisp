@@ -19,11 +19,11 @@ class SuperAdminController extends Controller
     public function dashboard()
     {
         // 1. Tenant Metrics
-        $totalTenants = User::count();
-        $activeTenants = User::where('is_suspended', false)->count();
-        $suspendedTenants = User::where('is_suspended', true)->count();
+        $totalTenants = User::where('role', 'tenant_admin')->count();
+        $activeTenants = User::where('role', 'tenant_admin')->where('is_suspended', false)->count();
+        $suspendedTenants = User::where('role', 'tenant_admin')->where('is_suspended', true)->count();
         
-        $lastMonthTenants = User::where('created_at', '<', now()->subMonth())->count();
+        $lastMonthTenants = User::where('role', 'tenant_admin')->where('created_at', '<', now()->subMonth())->count();
         $tenantGrowth = $lastMonthTenants > 0 ? (($totalTenants - $lastMonthTenants) / $lastMonthTenants) * 100 : 100;
 
         // 2. End User Metrics
@@ -76,7 +76,7 @@ class SuperAdminController extends Controller
             ->get();
 
         // 8. Recent Activity (Enhanced)
-        $recentTenants = User::latest()->take(5)->get();
+        $recentTenants = User::where('role', 'tenant_admin')->latest()->take(5)->get();
         $recentPayments = TenantPayment::where('status', 'paid')->latest()->take(5)->with('tenant')->get();
         
         $recentActivity = collect()

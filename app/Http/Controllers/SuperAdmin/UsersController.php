@@ -19,7 +19,7 @@ class UsersController extends Controller
 {
     public function index(Request $request)
     {
-        $query = User::query()->where('role', '!=', 'superadmin'); // Exclude superadmins
+        $query = User::query()->where('role', 'tenant_admin'); // Only show tenant owners/principals
 
         // Search
         if ($request->filled('search')) {
@@ -281,7 +281,7 @@ class UsersController extends Controller
      */
     public function export(Request $request)
     {
-        $query = User::query()->where('role', '!=', 'superadmin');
+        $query = User::query()->where('role', 'tenant_admin');
 
         // Apply same filters as index
         if ($request->filled('search')) {
