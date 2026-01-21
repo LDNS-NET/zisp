@@ -54,12 +54,6 @@ class Package extends Model
             }
         });
 
-        static::addGlobalScope('created_by', function ($query) {
-            if (auth()->guard('web')->check()) {
-                $query->where('created_by', auth()->id());
-            }
-        });
-
         static::creating(function ($model) {
             if (auth()->guard('web')->check() && empty($model->created_by)) {
                 $model->created_by = auth()->id();

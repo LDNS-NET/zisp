@@ -31,7 +31,7 @@ class TenantUserController extends Controller
         $search = $request->get('search');
 
         $query = NetworkUser::query()
-            ->with('package')
+            ->with(['package', 'hotspotPackage'])
             ->when($type !== 'all', function ($q) use ($type) {
                 return $q->where('type', $type);
             })
@@ -101,13 +101,15 @@ class TenantUserController extends Controller
                 'phone' => $user->phone,
                 'location' => $user->location,
                 'type' => $user->type,
+                'package_id' => $user->package_id,
+                'hotspot_package_id' => $user->hotspot_package_id,
                 // Use real-time check against active session list for accuracy
                 'is_online' => in_array(strtolower($user->username), $activeUsernames),
                 'expires_at' => $user->expires_at,
                 'expiry_human' => optional($user->expires_at)->diffForHumans(),
-                'package' => $user->package ? [
-                    'id' => $user->package->id,
-                    'name' => $user->package->name,
+                'package' => ($user->package ?: $user->hotspotPackage) ? [
+                    'id' => $user->package?->id ?? $user->hotspotPackage?->id,
+                    'name' => $user->package?->name ?? $user->hotspotPackage?->name,
                 ] : null,
             ]),
             'filters' => [
@@ -201,7 +203,7 @@ class TenantUserController extends Controller
 
     public function show($id)
     {
-        $user = NetworkUser::with('package')->findOrFail($id);
+        $user = NetworkUser::with(['package', 'hotspotPackage'])->findOrFail($id);
 
         // Fetch user payments
         $userPayments = TenantPayment::where('user_id', $id)
