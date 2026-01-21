@@ -36,6 +36,10 @@ class DashboardController extends Controller
                 // Charts
                 'sms_chart' => $this->monthlyCount(TenantSMS::class, 'created_at'),
                 'payments_chart' => $this->monthlySum(TenantPayment::class, 'paid_at', 'amount'),
+                'payments' => [
+                    'total_amount' => TenantPayment::sum('amount'),
+                    'count' => TenantPayment::count(),
+                ],
                 'user_types_chart' => $this->getUserTypesByMonth(),
 
                 // User Distribution
