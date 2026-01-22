@@ -4,13 +4,14 @@ namespace App\Http\Controllers\Tenants;
 
 use App\Http\Controllers\Controller;
 use App\Models\Tenants\TenantInstallation;
-use App\Models\Tenants\TenantTechnician;
+use App\Models\User;
 use App\Models\Tenants\TenantEquipment;
 use App\Models\Tenants\NetworkUser;
 use App\Models\Tenants\TenantInstallationChecklist;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class TenantInstallationController extends Controller
 {
@@ -50,7 +51,14 @@ class TenantInstallationController extends Controller
             'today' => TenantInstallation::today()->count(),
         ];
 
-        $technicians = TenantTechnician::active()->get(['id', 'name', 'employee_id']);
+        // Get technicians from Users with technical or technician roles
+        $tenantId = Auth::user()->tenant_id;
+        $technicians = User::where('tenant_id', $tenantId)
+            ->where('is_suspended', false)
+            ->whereHas('roles', function ($q) {
+                $q->whereIn('name', ['technical', 'technician', 'network_engineer']);
+            })
+            ->get(['id', 'name', 'username', 'phone']);
 
         return Inertia::render('Tenants/Installations/Index', [
             'installations' => $installations,

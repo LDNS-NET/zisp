@@ -134,7 +134,7 @@ class TenantInstallation extends Model
 
     public function technician()
     {
-        return $this->belongsTo(TenantTechnician::class, 'technician_id');
+        return $this->belongsTo(User::class, 'technician_id');
     }
 
     public function equipment()

@@ -80,7 +80,6 @@ const navigation = [
 
     { header: 'Field Operations', roles: ['tenant_admin', 'admin', 'network_engineer', 'technical', 'technician'] },
     { name: 'Installations', href: route('tenant.installations.index'), icon: Layers, active: 'tenant.installations.*', roles: ['tenant_admin', 'admin', 'network_engineer', 'technical', 'technician'], permission: 'view_installations' },
-    { name: 'Technicians', href: route('tenant.technicians.index'), icon: Users, active: 'tenant.technicians.*', roles: ['tenant_admin', 'admin', 'network_engineer'], permission: 'manage_technicians' },
 
     { header: 'System & Security', roles: ['tenant_admin', 'network_admin'] },
     { name: 'Staff Management', href: route('settings.staff.index'), icon: UserCog, active: 'settings.staff.*', roles: ['tenant_admin'], permission: 'manage_staff' },

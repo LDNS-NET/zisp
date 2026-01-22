@@ -11,10 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('tenant_technician_locations', function (Blueprint $table) {
+        Schema::create('tenant_user_locations', function (Blueprint $table) {
             $table->id();
             $table->string('tenant_id')->nullable()->index();
-            $table->foreignId('technician_id')->constrained('tenant_technicians')->onDelete('cascade');
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->decimal('latitude', 10, 8);
             $table->decimal('longitude', 11, 8);
             $table->decimal('accuracy', 8, 2)->nullable(); // GPS accuracy in meters
@@ -24,9 +24,9 @@ return new class extends Migration
             $table->timestamp('recorded_at');
             $table->timestamps();
 
-            $table->index(['technician_id', 'recorded_at'], 'ttl_tech_time_idx');
-            $table->index(['tenant_id', 'recorded_at'], 'ttl_tenant_time_idx');
-            $table->index(['installation_id'], 'ttl_inst_idx');
+            $table->index(['user_id', 'recorded_at'], 'tul_user_time_idx');
+            $table->index(['tenant_id', 'recorded_at'], 'tul_tenant_time_idx');
+            $table->index(['installation_id'], 'tul_inst_idx');
         });
     }
 
@@ -35,6 +35,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('tenant_technician_locations');
+        Schema::dropIfExists('tenant_user_locations');
     }
 };

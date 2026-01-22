@@ -40,7 +40,6 @@ use App\Http\Controllers\Tenants\MomoController;
 use App\Http\Controllers\Tenants\TenantSystemUserController;
 use App\Http\Controllers\Tenants\ContentFilterController;
 use App\Http\Controllers\Tenants\TenantInstallationController;
-use App\Http\Controllers\Tenants\TenantTechnicianController;
 use App\Http\Controllers\Tenants\TenantInstallationPhotoController;
 use App\Http\Controllers\Tenants\TenantInstallationChecklistController;
 
@@ -309,19 +308,6 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode', 'sta
             Route::delete('/photos/{photo}', [TenantInstallationPhotoController::class, 'destroy'])->name('photos.destroy');
             Route::get('/{installation}/photos', [TenantInstallationPhotoController::class, 'getByInstallation'])->name('photos.index');
             Route::get('/{installation}/photos/{type}', [TenantInstallationPhotoController::class, 'getByType'])->name('photos.by-type');
-        });
-
-        // Technician Management
-        Route::prefix('technicians')->name('tenant.technicians.')->middleware(['role:tenant_admin|admin|network_engineer'])->group(function () {
-            Route::get('/', [TenantTechnicianController::class, 'index'])->name('index');
-            Route::post('/', [TenantTechnicianController::class, 'store'])->name('store');
-            Route::put('/{technician}', [TenantTechnicianController::class, 'update'])->name('update');
-            Route::delete('/{technician}', [TenantTechnicianController::class, 'destroy'])->name('destroy');
-            
-            // Location & Tracking
-            Route::post('/{technician}/location', [TenantTechnicianController::class, 'updateLocation'])->name('location.update');
-            Route::get('/available', [TenantTechnicianController::class, 'getAvailable'])->name('available');
-            Route::get('/tracking', [TenantTechnicianController::class, 'trackingData'])->name('tracking');
         });
 
         // Installation Checklists

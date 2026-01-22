@@ -4,13 +4,13 @@ namespace App\Models\Tenants;
 
 use Illuminate\Database\Eloquent\Model;
 
-class TenantTechnicianLocation extends Model
+class TenantUserLocation extends Model
 {
-    protected $table = 'tenant_technician_locations';
+    protected $table = 'tenant_user_locations';
 
     protected $fillable = [
         'tenant_id',
-        'technician_id',
+        'user_id',
         'latitude',
         'longitude',
         'accuracy',
@@ -76,9 +76,9 @@ class TenantTechnicianLocation extends Model
     }
 
     // Relationships
-    public function technician()
+    public function user()
     {
-        return $this->belongsTo(TenantTechnician::class, 'technician_id');
+        return $this->belongsTo(\App\Models\User::class, 'user_id');
     }
 
     public function installation()
@@ -97,9 +97,9 @@ class TenantTechnicianLocation extends Model
         return $query->whereDate('recorded_at', now()->toDateString());
     }
 
-    public function scopeForTechnician($query, $technicianId)
+    public function scopeForUser($query, $userId)
     {
-        return $query->where('technician_id', $technicianId);
+        return $query->where('user_id', $userId);
     }
 
     // Helpers
