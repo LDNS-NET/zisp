@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('tenant_installation_photos', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('tenant_id')->nullable()->constrained('tenants')->onDelete('cascade');
+            $table->string('tenant_id')->nullable()->index();
             $table->foreignId('installation_id')->constrained('tenant_installations')->onDelete('cascade');
             $table->string('photo_path');
             $table->string('photo_type'); // before, during, after, equipment, issue, completion

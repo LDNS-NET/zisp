@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('tenant_technicians', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
-            $table->foreignId('tenant_id')->nullable()->constrained('tenants')->onDelete('cascade');
+            $table->string('tenant_id')->nullable()->index();
             $table->string('name');
             $table->string('email')->nullable();
             $table->string('phone');

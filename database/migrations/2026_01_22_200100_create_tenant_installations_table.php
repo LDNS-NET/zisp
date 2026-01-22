@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('tenant_installations', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('tenant_id')->nullable()->constrained('tenants')->onDelete('cascade');
+            $table->string('tenant_id')->nullable()->index();
             $table->foreignId('network_user_id')->nullable()->constrained('network_users')->onDelete('set null');
             $table->foreignId('technician_id')->nullable()->constrained('tenant_technicians')->onDelete('set null');
             $table->foreignId('equipment_id')->nullable()->constrained('tenant_equipments')->onDelete('set null');

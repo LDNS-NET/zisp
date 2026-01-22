@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('tenant_installation_checklists', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('tenant_id')->nullable()->constrained('tenants')->onDelete('cascade');
+            $table->string('tenant_id')->nullable()->index();
             $table->string('name');
             $table->text('description')->nullable();
             $table->enum('installation_type', ['new', 'relocation', 'upgrade', 'repair', 'maintenance'])->default('new');
