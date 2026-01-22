@@ -76,7 +76,7 @@ const navigation = [
 
     { header: 'Network Management', roles: ['tenant_admin', 'network_engineer', 'technical', 'network_admin'] },
     { name: 'Mikrotiks', href: route('mikrotiks.index'), icon: Network, active: 'mikrotiks.*', countKey: 'mikrotiks', roles: ['tenant_admin', 'network_engineer', 'technical', 'network_admin'], permission: 'view_routers' },
-    { name: 'Equipment', href: route('tenants.equipment.index'), icon: Layers, active: 'equipment.*', roles: ['tenant_admin', 'admin', 'network_engineer', 'technical'], permission: 'view_equipment' },
+    { name: 'Equipment', href: route('equipment.index'), icon: Layers, active: 'equipment.*', roles: ['tenant_admin', 'admin', 'network_engineer', 'technical'], permission: 'view_equipment' },
 
     { header: 'Field Operations', roles: ['tenant_admin', 'admin', 'network_engineer', 'technical', 'technician'] },
     { name: 'Installations', href: route('tenant.installations.index'), icon: Layers, active: 'tenant.installations.*', roles: ['tenant_admin', 'admin', 'network_engineer', 'technical', 'technician'], permission: 'view_installations' },
