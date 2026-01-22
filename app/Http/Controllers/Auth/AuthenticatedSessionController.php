@@ -47,7 +47,7 @@ class AuthenticatedSessionController extends Controller
                 if ($setting && $setting->logo) {
                     // Convert relative path to full URL
                     if (!str_starts_with($setting->logo, 'http')) {
-                        $tenantLogo = asset('storage/' . $setting->logo);
+                        //$tenantLogo = asset('storage/' . $setting->logo);
                         $tenantLogo = storage::disk('public')->url($setting->logo);
                     } else {
                         $tenantLogo = $setting->logo;
