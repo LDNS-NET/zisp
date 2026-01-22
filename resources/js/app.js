@@ -35,11 +35,11 @@ import { createApp, h } from 'vue';
 import VueApexCharts from 'vue3-apexcharts';
 import { ZiggyVue } from '../../vendor/tightenco/ziggy';
 
-// ✅ Vue Toastification
+//  Vue Toastification
 import Toast from 'vue-toastification';
 import 'vue-toastification/dist/index.css';
 
-// ✅ Lucide icons (modern & lightweight)
+//  Lucide icons (modern & lightweight)
 import * as LucideIcons from 'lucide-vue-next';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
@@ -54,12 +54,12 @@ createInertiaApp({
     setup({ el, App, props, plugin }) {
         const vueApp = createApp({ render: () => h(App, props) });
 
-        // ✅ Core plugins
+        //  Core plugins
         vueApp.use(plugin);
         vueApp.use(ZiggyVue);
-        vueApp.use(VueApexCharts); // <-- ✅ ApexCharts added here
+        vueApp.use(VueApexCharts); // <--  ApexCharts added here
 
-        // ✅ Toastification setup
+        //  Toastification setup
         vueApp.use(Toast, {
             position: 'top-right',
             timeout: 3000,
@@ -72,7 +72,7 @@ createInertiaApp({
             icon: true,
         });
 
-        // ✅ Register Lucide icons globally
+        //  Register Lucide icons globally
         Object.entries(LucideIcons).forEach(([name, component]) => {
             if (name && component && typeof component === 'object') {
                 vueApp.component(name, component);
