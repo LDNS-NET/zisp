@@ -77,7 +77,15 @@ class TenantInstallationController extends Controller
 
     public function create()
     {
-        $technicians = TenantTechnician::active()->get(['id', 'name', 'phone', 'specialization']);
+        // Get technicians from Users with technical or technician roles
+        $tenantId = Auth::user()->tenant_id;
+        $technicians = User::where('tenant_id', $tenantId)
+            ->where('is_suspended', false)
+            ->whereHas('roles', function ($q) {
+                $q->whereIn('name', ['technical', 'technician', 'network_engineer']);
+            })
+            ->get(['id', 'name', 'username', 'phone']);
+            
         $equipment = TenantEquipment::all(['id', 'name', 'type', 'serial_number']);
         $networkUsers = NetworkUser::where('status', 'active')->get(['id', 'username', 'name', 'phone']);
         $checklists = TenantInstallationChecklist::active()->get(['id', 'name', 'installation_type', 'service_type']);
@@ -94,7 +102,7 @@ class TenantInstallationController extends Controller
     {
         $validated = $request->validate([
             'network_user_id' => 'nullable|exists:network_users,id',
-            'technician_id' => 'required|exists:tenant_technicians,id',
+            'technician_id' => 'required|exists:users,id',
             'equipment_id' => 'nullable|exists:tenant_equipments,id',
             'customer_name' => 'required|string|max:255',
             'customer_phone' => 'required|string|max:20',
@@ -143,7 +151,15 @@ class TenantInstallationController extends Controller
 
     public function edit(TenantInstallation $installation)
     {
-        $technicians = TenantTechnician::active()->get(['id', 'name', 'phone', 'specialization']);
+        // Get technicians from Users with technical or technician roles
+        $tenantId = Auth::user()->tenant_id;
+        $technicians = User::where('tenant_id', $tenantId)
+            ->where('is_suspended', false)
+            ->whereHas('roles', function ($q) {
+                $q->whereIn('name', ['technical', 'technician', 'network_engineer']);
+            })
+            ->get(['id', 'name', 'username', 'phone']);
+            
         $equipment = TenantEquipment::all(['id', 'name', 'type', 'serial_number']);
         $networkUsers = NetworkUser::where('status', 'active')->get(['id', 'username', 'name', 'phone']);
 
@@ -159,7 +175,7 @@ class TenantInstallationController extends Controller
     {
         $validated = $request->validate([
             'network_user_id' => 'nullable|exists:network_users,id',
-            'technician_id' => 'required|exists:tenant_technicians,id',
+            'technician_id' => 'required|exists:users,id',
             'equipment_id' => 'nullable|exists:tenant_equipments,id',
             'customer_name' => 'required|string|max:255',
             'customer_phone' => 'required|string|max:20',
