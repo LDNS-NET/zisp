@@ -9,10 +9,21 @@ import './bootstrap';
             this.func = func;
             if (typeof capture !== 'boolean') {
                 capture = capture || {};
-                capture.passive = (capture.passive === undefined);
             } else {
-                capture = { passive: true, capture: capture };
+                capture = { capture: capture };
             }
+
+            // Only force passive on scroll-blocking events for window/document/body
+            // This silences the specific violation while allowing interactive elements to work
+            if (['touchstart', 'touchmove', 'wheel', 'mousewheel'].includes(type)) {
+                if (capture.passive === undefined) {
+                    // Check if target is a global scrolling container
+                    if (this === window || this === document || this === document.body) {
+                        capture.passive = true;
+                    }
+                }
+            }
+
             this.func(type, fn, capture);
         };
     }
