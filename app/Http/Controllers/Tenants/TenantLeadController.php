@@ -144,7 +144,7 @@ class TenantLeadController extends Controller
         // Mark lead as converted
         $lead->update(['status' => 'converted']);
 
-        return redirect()->route('tenant.installations.my-installations')
+        return redirect()->route('leads.index')
             ->with('success', "Lead converted to installation #{$installationNumber}. Technicians can now pick this job.");
     }
 
