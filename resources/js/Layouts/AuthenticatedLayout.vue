@@ -166,7 +166,7 @@ function toggleSidebar() {
         <!-- Sidebar -->
         <aside 
             :class="[
-                'fixed lg:static inset-y-0 left-0 z-50 bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-800 transition-all duration-300 ease-in-out flex flex-col',
+                'fixed lg:static inset-y-0 left-0 z-50 bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-800 transition-all duration-300 ease-in-out flex flex-col overflow-x-hidden',
                 collapsed ? 'lg:w-20' : 'lg:w-72',
                 sidebarOpen ? 'translate-x-0 w-72' : '-translate-x-full lg:translate-x-0'
             ]"
@@ -236,7 +236,7 @@ function toggleSidebar() {
                                 collapsed ? 'mx-auto' : 'mr-3'
                             ]" 
                         />
-                        <span :class="['transition-all duration-300 whitespace-nowrap', collapsed ? 'lg:hidden' : 'block']">
+                        <span :class="['transition-all duration-300 lg:whitespace-nowrap', collapsed ? 'lg:hidden' : 'block']">
                             {{ item.name }}
                         </span>
                         
