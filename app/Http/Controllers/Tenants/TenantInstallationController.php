@@ -71,7 +71,7 @@ class TenantInstallationController extends Controller
             ->get(['id', 'name', 'username', 'phone']);
             
         $equipment = TenantEquipment::all(['id', 'name', 'type', 'serial_number']);
-        $networkUsers = NetworkUser::where('status', 'active')->get(['id', 'username', 'name', 'phone']);
+        $networkUsers = NetworkUser::where('status', 'active')->get(['id', 'username', 'full_name', 'phone']);
         $checklists = TenantInstallationChecklist::active()->get(['id', 'name', 'installation_type', 'service_type']);
 
         return Inertia::render('Tenants/Installations/Create', [
@@ -145,7 +145,7 @@ class TenantInstallationController extends Controller
             ->get(['id', 'name', 'username', 'phone']);
             
         $equipment = TenantEquipment::all(['id', 'name', 'type', 'serial_number']);
-        $networkUsers = NetworkUser::where('status', 'active')->get(['id', 'username', 'name', 'phone']);
+        $networkUsers = NetworkUser::where('status', 'active')->get(['id', 'username', 'full_name', 'phone']);
 
         return Inertia::render('Tenants/Installations/Edit', [
             'installation' => $installation,
