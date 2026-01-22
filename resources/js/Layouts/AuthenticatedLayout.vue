@@ -76,6 +76,11 @@ const navigation = [
 
     { header: 'Network Management', roles: ['tenant_admin', 'network_engineer', 'technical', 'network_admin'] },
     { name: 'Mikrotiks', href: route('mikrotiks.index'), icon: Network, active: 'mikrotiks.*', countKey: 'mikrotiks', roles: ['tenant_admin', 'network_engineer', 'technical', 'network_admin'], permission: 'view_routers' },
+    { name: 'Equipment', href: route('tenants.equipment.index'), icon: Layers, active: 'equipment.*', roles: ['tenant_admin', 'admin', 'network_engineer', 'technical'], permission: 'view_equipment' },
+
+    { header: 'Field Operations', roles: ['tenant_admin', 'admin', 'network_engineer', 'technical', 'technician'] },
+    { name: 'Installations', href: route('tenant.installations.index'), icon: Layers, active: 'tenant.installations.*', roles: ['tenant_admin', 'admin', 'network_engineer', 'technical', 'technician'], permission: 'view_installations' },
+    { name: 'Technicians', href: route('tenant.technicians.index'), icon: Users, active: 'tenant.technicians.*', roles: ['tenant_admin', 'admin', 'network_engineer'], permission: 'manage_technicians' },
 
     { header: 'System & Security', roles: ['tenant_admin', 'network_admin'] },
     { name: 'Staff Management', href: route('settings.staff.index'), icon: UserCog, active: 'settings.staff.*', roles: ['tenant_admin'], permission: 'manage_staff' },

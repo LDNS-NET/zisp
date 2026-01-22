@@ -39,6 +39,10 @@ use App\Http\Controllers\Tenants\SubscriptionController;
 use App\Http\Controllers\Tenants\MomoController;
 use App\Http\Controllers\Tenants\TenantSystemUserController;
 use App\Http\Controllers\Tenants\ContentFilterController;
+use App\Http\Controllers\Tenants\TenantInstallationController;
+use App\Http\Controllers\Tenants\TenantTechnicianController;
+use App\Http\Controllers\Tenants\TenantInstallationPhotoController;
+use App\Http\Controllers\Tenants\TenantInstallationChecklistController;
 
 // SuperAdmin controllers
 use App\Http\Controllers\SuperAdmin\SuperAdminController;
@@ -276,6 +280,59 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode', 'sta
         Route::middleware(['role:tenant_admin|admin|network_engineer|technical'])->group(function () {
             Route::resource('equipment', TenantEquipmentController::class)->only(['index', 'store', 'update', 'destroy']);
             Route::delete('/equipment/bulk-delete', [TenantEquipmentController::class, 'bulkDelete'])->name('equipment.bulk-delete');
+        });
+
+        // Installation Management
+        Route::prefix('installations')->name('tenant.installations.')->middleware(['role:tenant_admin|admin|network_engineer|technical|technician'])->group(function () {
+            // Main Installation Routes
+            Route::get('/', [TenantInstallationController::class, 'index'])->name('index');
+            Route::get('/create', [TenantInstallationController::class, 'create'])->name('create');
+            Route::post('/', [TenantInstallationController::class, 'store'])->name('store');
+            Route::get('/{installation}', [TenantInstallationController::class, 'show'])->name('show');
+            Route::get('/{installation}/edit', [TenantInstallationController::class, 'edit'])->name('edit');
+            Route::put('/{installation}', [TenantInstallationController::class, 'update'])->name('update');
+            Route::delete('/{installation}', [TenantInstallationController::class, 'destroy'])->name('destroy');
+            
+            // Installation Actions
+            Route::post('/{installation}/start', [TenantInstallationController::class, 'start'])->name('start');
+            Route::post('/{installation}/complete', [TenantInstallationController::class, 'complete'])->name('complete');
+            Route::post('/{installation}/cancel', [TenantInstallationController::class, 'cancel'])->name('cancel');
+            
+            // Views
+            Route::get('/calendar/view', [TenantInstallationController::class, 'calendar'])->name('calendar');
+            Route::get('/dashboard/view', [TenantInstallationController::class, 'dashboard'])->name('dashboard');
+            
+            // Photos
+            Route::post('/{installation}/photos', [TenantInstallationPhotoController::class, 'store'])->name('photos.store');
+            Route::post('/{installation}/photos/bulk', [TenantInstallationPhotoController::class, 'bulkStore'])->name('photos.bulk-store');
+            Route::put('/photos/{photo}', [TenantInstallationPhotoController::class, 'update'])->name('photos.update');
+            Route::delete('/photos/{photo}', [TenantInstallationPhotoController::class, 'destroy'])->name('photos.destroy');
+            Route::get('/{installation}/photos', [TenantInstallationPhotoController::class, 'getByInstallation'])->name('photos.index');
+            Route::get('/{installation}/photos/{type}', [TenantInstallationPhotoController::class, 'getByType'])->name('photos.by-type');
+        });
+
+        // Technician Management
+        Route::prefix('technicians')->name('tenant.technicians.')->middleware(['role:tenant_admin|admin|network_engineer'])->group(function () {
+            Route::get('/', [TenantTechnicianController::class, 'index'])->name('index');
+            Route::post('/', [TenantTechnicianController::class, 'store'])->name('store');
+            Route::put('/{technician}', [TenantTechnicianController::class, 'update'])->name('update');
+            Route::delete('/{technician}', [TenantTechnicianController::class, 'destroy'])->name('destroy');
+            
+            // Location & Tracking
+            Route::post('/{technician}/location', [TenantTechnicianController::class, 'updateLocation'])->name('location.update');
+            Route::get('/available', [TenantTechnicianController::class, 'getAvailable'])->name('available');
+            Route::get('/tracking', [TenantTechnicianController::class, 'trackingData'])->name('tracking');
+        });
+
+        // Installation Checklists
+        Route::prefix('installation-checklists')->name('tenant.checklists.')->middleware(['role:tenant_admin|admin|network_engineer'])->group(function () {
+            Route::get('/', [TenantInstallationChecklistController::class, 'index'])->name('index');
+            Route::post('/', [TenantInstallationChecklistController::class, 'store'])->name('store');
+            Route::put('/{checklist}', [TenantInstallationChecklistController::class, 'update'])->name('update');
+            Route::delete('/{checklist}', [TenantInstallationChecklistController::class, 'destroy'])->name('destroy');
+            Route::post('/{checklist}/toggle-active', [TenantInstallationChecklistController::class, 'toggleActive'])->name('toggle-active');
+            Route::post('/{checklist}/duplicate', [TenantInstallationChecklistController::class, 'duplicate'])->name('duplicate');
+            Route::get('/for-installation', [TenantInstallationChecklistController::class, 'getForInstallation'])->name('for-installation');
         });
 
         //vouchers
