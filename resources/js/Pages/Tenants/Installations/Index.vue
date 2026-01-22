@@ -7,7 +7,7 @@ import InputLabel from '@/Components/InputLabel.vue'
 import SelectInput from '@/Components/SelectInput.vue'
 import Pagination from '@/Components/Pagination.vue'
 import StatusBadge from '@/Components/StatusBadge.vue'
-import { Calendar, MapPin, User, Clock, Filter, Plus, Eye, Edit, Trash2, CheckCircle, XCircle, Play } from 'lucide-vue-next'
+import { Calendar, MapPin, User, Clock, Filter, Eye, Edit, Trash2, CheckCircle, XCircle, Play } from 'lucide-vue-next'
 
 const props = defineProps({
     installations: Object,
@@ -115,13 +115,6 @@ function deleteInstallation(id) {
                         >
                             <MapPin class="w-4 h-4 mr-2" />
                             Dashboard
-                        </Link>
-                        <Link
-                            :href="route('tenant.installations.create')"
-                            class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                        >
-                            <Plus class="w-4 h-4 mr-2" />
-                            Schedule Installation
                         </Link>
                     </div>
                 </div>
