@@ -133,28 +133,6 @@ onMounted(() => {
 
 const logoFile = ref(null);
 const logoPreview = ref('');
-const logoError = ref(false);
-
-function getLogoUrl(logoPath) {
-    if (!logoPath) return '';
-    // If it's already a full URL, extract just the path
-    if (logoPath.startsWith('http')) {
-        try {
-            const url = new URL(logoPath);
-            return url.pathname;
-        } catch (e) {
-            console.error('Invalid logo URL:', logoPath);
-            return '';
-        }
-    }
-    // If it's a relative path, ensure it starts with /
-    return logoPath.startsWith('/') ? logoPath : '/' + logoPath;
-}
-
-function onLogoError() {
-    console.error('Failed to load logo image:', form.value.logo);
-    logoError.value = true;
-}
 
 onMounted(() => {
     // Sync global theme/color from loaded settings
@@ -166,7 +144,6 @@ function onLogoChange(e) {
     const file = e.target.files[0];
     if (file) {
         logoFile.value = file;
-        logoError.value = false;
         const reader = new FileReader();
         reader.onload = (ev) => {
             logoPreview.value = ev.target.result;
@@ -179,7 +156,6 @@ function removeLogo() {
     logoPreview.value = '';
     form.value.logo = '';
     form.value.remove_logo = true;
-    logoError.value = false;
 }
 
 const success = ref(page.props.flash?.success || '');
@@ -207,7 +183,6 @@ function submit() {
             loading.value = false;
             logoFile.value = null;
             logoPreview.value = '';
-            logoError.value = false;
             if (page?.props?.settings) {
                 setFormFromBackend(page.props.settings);
                 if (form.value.theme) setTheme(form.value.theme);
@@ -261,23 +236,19 @@ function submit() {
                 <div class="mb-6">
                     <InputLabel for="logo" value="Business Logo" />
                     <div class="mt-2 flex items-center gap-6">
-                        <div v-if="(form.logo || logoPreview) && !logoError" class="relative">
+                        <div v-if="form.logo || logoPreview" class="relative">
                             <img
-                                :src="logoPreview || getLogoUrl(form.logo)"
+                                :src="logoPreview || form.logo"
                                 alt="Logo Preview"
                                 class="h-20 w-20 rounded border object-contain shadow"
-                                @error="onLogoError"
                             />
                             <button
                                 type="button"
                                 @click="removeLogo"
-                                class="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-red-600 text-white shadow hover:bg-red-700"
+                                class="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-red-600 shadow"
                             >
                                 &times;
                             </button>
-                        </div>
-                        <div v-else-if="logoError" class="flex h-20 w-20 items-center justify-center rounded border border-dashed border-gray-400 bg-gray-100 dark:bg-gray-700">
-                            <span class="text-xs text-gray-500 dark:text-gray-400">No logo</span>
                         </div>
                         <input
                             type="file"
