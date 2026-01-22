@@ -22,6 +22,7 @@ const mrrChartOptions = computed(() => ({
         type: 'area',
         toolbar: { show: false },
         background: 'transparent',
+        animations: { enabled: false }, // Optimize performance
     },
     theme: { mode: isDark.value ? 'dark' : 'light' },
     stroke: { curve: 'smooth', width: 3 },
@@ -50,7 +51,7 @@ const mrrChartOptions = computed(() => ({
 
 const mrrChartSeries = computed(() => [{
     name: 'MRR',
-    data: props.metrics.mrr_trend.map(d => d.total)
+    data: props.metrics.mrr_trend.map(d => Number(d.total))
 }]);
 
 // Cash Flow Forecast Chart
@@ -58,6 +59,7 @@ const forecastOptions = computed(() => ({
     chart: {
         type: 'bar',
         toolbar: { show: false },
+        animations: { enabled: false }, // Optimize performance
     },
     theme: { mode: isDark.value ? 'dark' : 'light' },
     plotOptions: {
@@ -79,12 +81,15 @@ const forecastOptions = computed(() => ({
 
 const forecastSeries = computed(() => [{
     name: 'Projected Revenue',
-    data: props.metrics.cash_flow_forecast.map(d => d.projected)
+    data: props.metrics.cash_flow_forecast.map(d => Number(d.projected))
 }]);
 
 // Zone Revenue Comparison
 const zoneRevenueOptions = computed(() => ({
-    chart: { type: 'donut' },
+    chart: { 
+        type: 'donut',
+        animations: { enabled: false }, // Optimize performance
+    },
     labels: props.metrics.zone_revenue.map(z => z.location),
     colors: ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'],
     legend: { position: 'bottom' },
@@ -94,7 +99,7 @@ const zoneRevenueOptions = computed(() => ({
     }]
 }));
 
-const zoneRevenueSeries = computed(() => props.metrics.zone_revenue.map(z => z.revenue));
+const zoneRevenueSeries = computed(() => props.metrics.zone_revenue.map(z => Number(z.revenue)));
 
 </script>
 
