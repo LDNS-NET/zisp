@@ -76,4 +76,9 @@ class User extends Authenticatable //implements MustVerifyEmail
     {
         return $this->hasMany(UserDevice::class);
     }
+
+    public function assignedInstallations()
+    {
+        return $this->hasMany(\App\Models\Tenants\TenantInstallation::class, 'technician_id');
+    }
 }
