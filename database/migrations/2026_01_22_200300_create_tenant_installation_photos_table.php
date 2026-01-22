@@ -24,8 +24,8 @@ return new class extends Migration
             $table->foreignId('uploaded_by')->constrained('users')->onDelete('cascade');
             $table->timestamps();
 
-            $table->index(['installation_id', 'photo_type']);
-            $table->index(['tenant_id']);
+            $table->index(['installation_id', 'photo_type'], 'tip_inst_type_idx');
+            $table->index(['tenant_id'], 'tip_tenant_idx');
         });
     }
 

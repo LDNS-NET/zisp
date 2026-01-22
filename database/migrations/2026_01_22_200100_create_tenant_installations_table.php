@@ -47,10 +47,10 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            $table->index(['tenant_id', 'status']);
-            $table->index(['tenant_id', 'scheduled_date']);
-            $table->index(['technician_id', 'status']);
-            $table->index(['installation_number']);
+            $table->index(['tenant_id', 'status'], 'ti_tenant_status_idx');
+            $table->index(['tenant_id', 'scheduled_date'], 'ti_tenant_date_idx');
+            $table->index(['technician_id', 'status'], 'ti_tech_status_idx');
+            $table->index(['installation_number'], 'ti_number_idx');
         });
     }
 

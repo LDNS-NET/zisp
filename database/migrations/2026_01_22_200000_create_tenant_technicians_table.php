@@ -31,8 +31,8 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            $table->index(['tenant_id', 'status']);
-            $table->index(['tenant_id', 'employee_id']);
+            $table->index(['tenant_id', 'status'], 'tt_tenant_status_idx');
+            $table->index(['tenant_id', 'employee_id'], 'tt_tenant_emp_idx');
         });
     }
 

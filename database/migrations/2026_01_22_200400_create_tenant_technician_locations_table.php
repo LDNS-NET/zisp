@@ -24,9 +24,9 @@ return new class extends Migration
             $table->timestamp('recorded_at');
             $table->timestamps();
 
-            $table->index(['technician_id', 'recorded_at']);
-            $table->index(['tenant_id', 'recorded_at']);
-            $table->index(['installation_id']);
+            $table->index(['technician_id', 'recorded_at'], 'ttl_tech_time_idx');
+            $table->index(['tenant_id', 'recorded_at'], 'ttl_tenant_time_idx');
+            $table->index(['installation_id'], 'ttl_inst_idx');
         });
     }
 
