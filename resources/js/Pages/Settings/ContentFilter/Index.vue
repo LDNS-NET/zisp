@@ -47,9 +47,19 @@ const submitSettings = () => {
     });
 };
 
+const applyingToRouter = ref(null);
+
 const applyToRouter = (routerId) => {
+    applyingToRouter.value = routerId;
     form.post(route('settings.content-filter.apply', routerId), {
-        onSuccess: () => toast.success('Policies pushed to router'),
+        onSuccess: () => {
+            toast.success('Content filtering policies successfully applied to router');
+            applyingToRouter.value = null;
+        },
+        onError: () => {
+            toast.error('Failed to apply policies to router');
+            applyingToRouter.value = null;
+        },
     });
 };
 
@@ -164,9 +174,11 @@ const toggleCategory = (catId) => {
                                     </div>
                                     <button 
                                         @click="applyToRouter(router.id)"
-                                        class="text-xs font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400"
+                                        :disabled="applyingToRouter === router.id || form.processing"
+                                        class="text-xs font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                        Apply
+                                        <span v-if="applyingToRouter === router.id">Applying...</span>
+                                        <span v-else>Apply</span>
                                     </button>
                                 </div>
                             </div>
