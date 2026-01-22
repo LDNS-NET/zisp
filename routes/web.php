@@ -265,6 +265,7 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode', 'sta
         //Leads
         Route::middleware(['role_or_permission:tenant_admin|admin|marketing|view_leads'])->group(function () {
             Route::resource('leads', TenantLeadController::class)->only(['index', 'store', 'update', 'destroy']);
+            Route::post('leads/{lead}/convert-to-installation', [TenantLeadController::class, 'convertToInstallation'])->name('leads.convert-to-installation');
             Route::delete('leads/bulk-delete', [TenantLeadController::class, 'bulkDelete'])->name('leads.bulk-delete');
         });
 
@@ -294,6 +295,7 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode', 'sta
             
             // Installation Actions
             Route::post('/{installation}/pick', [TenantInstallationController::class, 'pickInstallation'])->name('pick');
+            Route::post('/{installation}/unpick', [TenantInstallationController::class, 'unpickInstallation'])->name('unpick');
             Route::post('/{installation}/start', [TenantInstallationController::class, 'start'])->name('start');
             Route::post('/{installation}/complete', [TenantInstallationController::class, 'complete'])->name('complete');
             Route::post('/{installation}/cancel', [TenantInstallationController::class, 'cancel'])->name('cancel');

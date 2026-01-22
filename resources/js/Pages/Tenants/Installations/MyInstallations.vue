@@ -1,10 +1,12 @@
 <script setup>
 import { ref, computed } from 'vue'
-import { Head, router, Link } from '@inertiajs/vue3'
+import { Head, router, Link, useForm } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import StatusBadge from '@/Components/StatusBadge.vue'
 import Pagination from '@/Components/Pagination.vue'
-import { CheckCircle, Clock, MapPin, User, Calendar, Package, Play, Check, Eye, AlertCircle } from 'lucide-vue-next'
+import InputLabel from '@/Components/InputLabel.vue'
+import TextInput from '@/Components/TextInput.vue'
+import { CheckCircle, Clock, MapPin, User, Calendar, Package, Play, Check, Eye, AlertCircle, X, XCircle } from 'lucide-vue-next'
 
 const props = defineProps({
     installations: Object,
@@ -14,9 +16,19 @@ const props = defineProps({
 })
 
 const statusFilter = ref(props.filters?.status || '')
+const showPickModal = ref(false)
+const selectedInstallation = ref(null)
+
+const pickForm = useForm({
+    scheduled_date: '',
+    scheduled_time: '',
+    estimated_duration: 120, // Default 2 hours
+})
 
 function getStatusColor(status) {
     const colors = {
+        new: 'orange',
+        pending: 'purple',
         scheduled: 'blue',
         in_progress: 'yellow',
         completed: 'green',
@@ -36,9 +48,31 @@ function getPriorityColor(priority) {
     return colors[priority] || 'gray'
 }
 
-function pickInstallation(id) {
-    if (confirm('Pick this installation? You will be assigned to complete it.')) {
-        router.post(route('tenant.installations.pick', id))
+function openPickModal(installation) {
+    selectedInstallation.value = installation
+    pickForm.scheduled_date = ''
+    pickForm.scheduled_time = ''
+    pickForm.estimated_duration = 120
+    showPickModal.value = true
+}
+
+function closePickModal() {
+    showPickModal.value = false
+    selectedInstallation.value = null
+    pickForm.reset()
+}
+
+function submitPick() {
+    pickForm.post(route('tenant.installations.pick', selectedInstallation.value.id), {
+        onSuccess: () => {
+            closePickModal()
+        }
+    })
+}
+
+function unpickInstallation(id) {
+    if (confirm('Unpick this installation? It will become available for other technicians.')) {
+        router.post(route('tenant.installations.unpick', id))
     }
 }
 
@@ -132,8 +166,8 @@ function filterByStatus(status) {
                             </div>
                             <div class="space-y-1 text-sm text-gray-600 dark:text-gray-400 mb-3">
                                 <div class="flex items-center">
-                                    <Calendar class="w-4 h-4 mr-2" />
-                                    {{ inst.scheduled_date }}
+                                    <User class="w-4 h-4 mr-2" />
+                                    {{ inst.customer_phone }}
                                 </div>
                                 <div class="flex items-center">
                                     <MapPin class="w-4 h-4 mr-2" />
@@ -141,7 +175,7 @@ function filterByStatus(status) {
                                 </div>
                             </div>
                             <button
-                                @click="pickInstallation(inst.id)"
+                                @click="openPickModal(inst)"
                                 class="w-full px-3 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 text-sm font-medium"
                             >
                                 Pick This Job
@@ -266,7 +300,15 @@ function filterByStatus(status) {
                                                 <Eye class="w-4 h-4" />
                                             </Link>
                                             <button
-                                                v-if="installation.status === 'scheduled' && installation.picked_by"
+                                                v-if="installation.status === 'pending' && installation.picked_by"
+                                                @click="unpickInstallation(installation.id)"
+                                                class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                                                title="Unpick Installation"
+                                            >
+                                                <XCircle class="w-4 h-4" />
+                                            </button>
+                                            <button
+                                                v-if="installation.status === 'pending' && installation.picked_by"
                                                 @click="startInstallation(installation.id)"
                                                 class="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
                                                 title="Start Installation"
@@ -296,6 +338,101 @@ function filterByStatus(status) {
                     <!-- Pagination -->
                     <div v-if="installations.data.length > 0" class="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
                         <Pagination :links="installations.links" />
+                    </div>
+                </div>
+
+                <!-- Pick Installation Modal -->
+                <div v-if="showPickModal" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+                    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" @click="closePickModal"></div>
+                        
+                        <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                            <div class="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h3 class="text-lg font-medium text-gray-900 dark:text-white">
+                                        Pick Installation
+                                    </h3>
+                                    <button @click="closePickModal" class="text-gray-400 hover:text-gray-500">
+                                        <X class="w-5 h-5" />
+                                    </button>
+                                </div>
+                                
+                                <div v-if="selectedInstallation" class="mb-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                    <div class="font-semibold text-gray-900 dark:text-white">{{ selectedInstallation.customer_name }}</div>
+                                    <div class="text-sm text-gray-600 dark:text-gray-400">{{ selectedInstallation.installation_address }}</div>
+                                </div>
+
+                                <form @submit.prevent="submitPick" class="space-y-4">
+                                    <div>
+                                        <InputLabel for="scheduled_date" value="Scheduled Date *" />
+                                        <input
+                                            id="scheduled_date"
+                                            v-model="pickForm.scheduled_date"
+                                            type="date"
+                                            :min="new Date().toISOString().split('T')[0]"
+                                            class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                            required
+                                        />
+                                        <div v-if="pickForm.errors.scheduled_date" class="text-red-600 text-sm mt-1">
+                                            {{ pickForm.errors.scheduled_date }}
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <InputLabel for="scheduled_time" value="Scheduled Time (Optional)" />
+                                        <input
+                                            id="scheduled_time"
+                                            v-model="pickForm.scheduled_time"
+                                            type="time"
+                                            class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                        />
+                                        <div v-if="pickForm.errors.scheduled_time" class="text-red-600 text-sm mt-1">
+                                            {{ pickForm.errors.scheduled_time }}
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <InputLabel for="estimated_duration" value="Estimated Duration (minutes) *" />
+                                        <select
+                                            id="estimated_duration"
+                                            v-model="pickForm.estimated_duration"
+                                            class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                            required
+                                        >
+                                            <option :value="30">30 minutes</option>
+                                            <option :value="60">1 hour</option>
+                                            <option :value="90">1.5 hours</option>
+                                            <option :value="120">2 hours</option>
+                                            <option :value="180">3 hours</option>
+                                            <option :value="240">4 hours</option>
+                                            <option :value="300">5 hours</option>
+                                            <option :value="360">6 hours</option>
+                                            <option :value="480">8 hours</option>
+                                        </select>
+                                        <div v-if="pickForm.errors.estimated_duration" class="text-red-600 text-sm mt-1">
+                                            {{ pickForm.errors.estimated_duration }}
+                                        </div>
+                                    </div>
+
+                                    <div class="flex gap-3 mt-6">
+                                        <button
+                                            type="button"
+                                            @click="closePickModal"
+                                            class="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            :disabled="pickForm.processing"
+                                            class="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50"
+                                        >
+                                            {{ pickForm.processing ? 'Picking...' : 'Pick Installation' }}
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -212,8 +212,13 @@ class TenantInstallationController extends Controller
 
     public function start(TenantInstallation $installation)
     {
-        if ($installation->status !== 'scheduled') {
-            return back()->with('error', 'Only scheduled installations can be started.');
+        if (!in_array($installation->status, ['pending', 'scheduled'])) {
+            return back()->with('error', 'Only pending or scheduled installations can be started.');
+        }
+
+        // Ensure only the assigned technician can start
+        if ($installation->technician_id && $installation->technician_id !== Auth::id()) {
+            return back()->with('error', 'Only the assigned technician can start this installation.');
         }
 
         $installation->start();
@@ -348,13 +353,12 @@ class TenantInstallationController extends Controller
             'completed_today' => TenantInstallation::where('technician_id', $userId)->where('status', 'completed')->whereDate('completed_at', now())->count(),
         ];
 
-        // Get available installations (not picked by anyone)
+        // Get available installations (not picked by anyone, status = new)
         $availableInstallations = TenantInstallation::with(['networkUser', 'equipment'])
-            ->where('status', 'scheduled')
+            ->where('status', 'new')
             ->whereNull('picked_by')
-            ->whereDate('scheduled_date', '>=', now())
             ->orderBy('priority', 'desc')
-            ->orderBy('scheduled_date', 'asc')
+            ->orderBy('created_at', 'desc')
             ->limit(10)
             ->get();
 
@@ -368,24 +372,66 @@ class TenantInstallationController extends Controller
         ]);
     }
 
-    public function pickInstallation(TenantInstallation $installation)
+    public function pickInstallation(Request $request, TenantInstallation $installation)
     {
         $userId = Auth::id();
 
+        // Validate that installation can be picked
         if ($installation->picked_by && $installation->picked_by !== $userId) {
             return back()->with('error', 'This installation has already been picked by another technician.');
         }
 
-        if ($installation->status !== 'scheduled') {
-            return back()->with('error', 'Only scheduled installations can be picked.');
+        if (!in_array($installation->status, ['new', 'pending'])) {
+            return back()->with('error', 'Only new installations can be picked.');
         }
 
+        // Validate required fields
+        $validated = $request->validate([
+            'scheduled_date' => 'required|date|after_or_equal:today',
+            'scheduled_time' => 'nullable|date_format:H:i',
+            'estimated_duration' => 'required|integer|min:15|max:480', // 15 mins to 8 hours
+        ]);
+
+        // Update installation with pick details
         $installation->update([
             'picked_by' => $userId,
             'picked_at' => now(),
+            'technician_id' => $userId, // Assign technician
+            'scheduled_date' => $validated['scheduled_date'],
+            'scheduled_time' => $validated['scheduled_time'] ?? null,
+            'estimated_duration' => $validated['estimated_duration'],
+            'status' => 'pending', // Change status to pending
         ]);
 
-        return back()->with('success', 'Installation picked successfully. You can now start working on it.');
+        return back()->with('success', 'Installation picked successfully. Status changed to pending.');
+    }
+
+    public function unpickInstallation(TenantInstallation $installation)
+    {
+        $userId = Auth::id();
+
+        // Only the technician who picked it can unpick
+        if ($installation->picked_by !== $userId) {
+            return back()->with('error', 'You can only unpick installations you have picked.');
+        }
+
+        // Cannot unpick if already in progress or completed
+        if (in_array($installation->status, ['in_progress', 'completed', 'cancelled'])) {
+            return back()->with('error', 'Cannot unpick installations that are in progress or completed.');
+        }
+
+        // Reset to new status
+        $installation->update([
+            'picked_by' => null,
+            'picked_at' => null,
+            'technician_id' => null,
+            'scheduled_date' => null,
+            'scheduled_time' => null,
+            'estimated_duration' => null,
+            'status' => 'new',
+        ]);
+
+        return back()->with('success', 'Installation unpicked. It is now available for other technicians.');
     }
 
     private function getStatusColor($status)

@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Tenants;
 
 use App\Http\Controllers\Controller;
 use App\Models\Tenants\TenantLeads;
+use App\Models\Tenants\TenantInstallation;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Auth;
 
 class TenantLeadController extends Controller
 {
@@ -108,6 +110,38 @@ class TenantLeadController extends Controller
         return back()->with('success', 'Selected Leads deleted successfully.');
     }
 
+    /**
+     * Convert a confirmed lead to an installation
+     */
+    public function convertToInstallation(TenantLeads $lead)
+    {
+        // Check if lead is already converted
+        if ($lead->status === 'converted') {
+            return back()->with('error', 'This lead has already been converted to an installation.');
+        }
 
+        // Generate unique installation number
+        $installationNumber = 'INST-' . now()->format('Ymd') . '-' . str_pad(TenantInstallation::count() + 1, 4, '0', STR_PAD_LEFT);
+
+        // Create installation from lead
+        $installation = TenantInstallation::create([
+            'installation_number' => $installationNumber,
+            'customer_name' => $lead->name,
+            'customer_phone' => $lead->phone_number,
+            'customer_email' => $lead->email_address,
+            'installation_address' => $lead->address,
+            'installation_type' => 'new',
+            'service_type' => 'wireless', // Default, can be changed later
+            'status' => 'new', // New status - waiting to be picked by technician
+            'priority' => 'medium',
+            'created_by' => Auth::id(),
+        ]);
+
+        // Mark lead as converted
+        $lead->update(['status' => 'converted']);
+
+        return redirect()->route('tenant.installations.my-installations')
+            ->with('success', "Lead converted to installation #{$installationNumber}. Technicians can now pick this job.");
+    }
 
 }

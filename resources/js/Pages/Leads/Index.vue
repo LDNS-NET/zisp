@@ -103,6 +103,12 @@ function remove(lead) {
     }
 }
 
+function convertToInstallation(lead) {
+    if (confirm(`Convert "${lead.name}" to an installation? This will create a new installation job for technicians to pick.`)) {
+        router.post(route('leads.convert-to-installation', lead.id));
+    }
+}
+
 const bulkDelete = () => {
     if (!selectedTenantLeads.value.length) return;
     if (!confirm('Are you sure you want to delete selected Leads?')) return;
@@ -422,6 +428,17 @@ watch(search, (value) => {
                             <MapPin class="w-4 h-4" />
                         </div>
                         <span class="text-sm font-medium text-gray-700 dark:text-gray-200">View Address</span>
+                    </button>
+
+                    <button 
+                        v-if="selectedLead.status !== 'converted'"
+                        @click="convertToInstallation(selectedLead); showActionsModal = false" 
+                        class="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors text-left group"
+                    >
+                        <div class="p-1.5 rounded-md bg-orange-50 text-orange-600 dark:bg-orange-900/20 dark:text-orange-400 group-hover:bg-orange-100 dark:group-hover:bg-orange-900/40">
+                            <CheckCircle class="w-4 h-4" />
+                        </div>
+                        <span class="text-sm font-medium text-orange-600 dark:text-orange-400">Convert to Installation</span>
                     </button>
 
                     <div class="border-t border-gray-100 dark:border-slate-700 my-1"></div>

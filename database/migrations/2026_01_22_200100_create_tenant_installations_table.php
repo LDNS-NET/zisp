@@ -28,9 +28,9 @@ return new class extends Migration
             $table->decimal('longitude', 11, 8)->nullable();
             $table->enum('installation_type', ['new', 'relocation', 'upgrade', 'repair', 'maintenance'])->default('new');
             $table->enum('service_type', ['fiber', 'wireless', 'hybrid'])->default('wireless');
-            $table->enum('status', ['scheduled', 'in_progress', 'completed', 'cancelled', 'on_hold'])->default('scheduled');
+            $table->enum('status', ['new', 'pending', 'scheduled', 'in_progress', 'completed', 'cancelled', 'on_hold'])->default('new');
             $table->enum('priority', ['low', 'medium', 'high', 'urgent'])->default('medium');
-            $table->date('scheduled_date');
+            $table->date('scheduled_date')->nullable(); // Nullable until technician picks and schedules
             $table->time('scheduled_time')->nullable();
             $table->timestamp('started_at')->nullable();
             $table->timestamp('completed_at')->nullable();
