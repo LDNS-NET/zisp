@@ -4,9 +4,8 @@ import './bootstrap';
 // Patch for "Added non-passive event listener to a scroll-blocking 'touchstart' event" violation
 (function () {
     if (typeof EventTarget !== 'undefined') {
-        const func = EventTarget.prototype.addEventListener;
+        const originalAddEventListener = EventTarget.prototype.addEventListener;
         EventTarget.prototype.addEventListener = function (type, fn, capture) {
-            this.func = func;
             if (typeof capture !== 'boolean') {
                 capture = capture || {};
             } else {
@@ -24,7 +23,7 @@ import './bootstrap';
                 }
             }
 
-            this.func(type, fn, capture);
+            originalAddEventListener.call(this, type, fn, capture);
         };
     }
 })();
