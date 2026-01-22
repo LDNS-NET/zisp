@@ -324,6 +324,70 @@ class TenantInstallationController extends Controller
         ]);
     }
 
+    public function myInstallations(Request $request)
+    {
+        $userId = Auth::id();
+        
+        // Get installations assigned to or picked by this technician
+        $installations = TenantInstallation::with(['networkUser', 'equipment', 'technician'])
+            ->where(function ($q) use ($userId) {
+                $q->where('technician_id', $userId)
+                  ->orWhere('picked_by', $userId);
+            })
+            ->when($request->status, function ($q) use ($request) {
+                $q->where('status', $request->status);
+            })
+            ->orderByRaw("FIELD(status, 'in_progress', 'scheduled', 'on_hold', 'completed', 'cancelled')")
+            ->orderBy('scheduled_date', 'asc')
+            ->paginate($request->get('per_page', 15));
+
+        $stats = [
+            'assigned' => TenantInstallation::where('technician_id', $userId)->count(),
+            'picked' => TenantInstallation::where('picked_by', $userId)->whereIn('status', ['scheduled', 'in_progress'])->count(),
+            'in_progress' => TenantInstallation::where('technician_id', $userId)->where('status', 'in_progress')->count(),
+            'completed_today' => TenantInstallation::where('technician_id', $userId)->where('status', 'completed')->whereDate('completed_at', now())->count(),
+        ];
+
+        // Get available installations (not picked by anyone)
+        $availableInstallations = TenantInstallation::with(['networkUser', 'equipment'])
+            ->where('status', 'scheduled')
+            ->whereNull('picked_by')
+            ->whereDate('scheduled_date', '>=', now())
+            ->orderBy('priority', 'desc')
+            ->orderBy('scheduled_date', 'asc')
+            ->limit(10)
+            ->get();
+
+        return Inertia::render('Tenants/Installations/MyInstallations', [
+            'installations' => $installations,
+            'availableInstallations' => $availableInstallations,
+            'stats' => $stats,
+            'filters' => [
+                'status' => $request->status,
+            ],
+        ]);
+    }
+
+    public function pickInstallation(TenantInstallation $installation)
+    {
+        $userId = Auth::id();
+
+        if ($installation->picked_by && $installation->picked_by !== $userId) {
+            return back()->with('error', 'This installation has already been picked by another technician.');
+        }
+
+        if ($installation->status !== 'scheduled') {
+            return back()->with('error', 'Only scheduled installations can be picked.');
+        }
+
+        $installation->update([
+            'picked_by' => $userId,
+            'picked_at' => now(),
+        ]);
+
+        return back()->with('success', 'Installation picked successfully. You can now start working on it.');
+    }
+
     private function getStatusColor($status)
     {
         return match($status) {

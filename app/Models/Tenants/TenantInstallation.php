@@ -16,6 +16,8 @@ class TenantInstallation extends Model
         'tenant_id',
         'network_user_id',
         'technician_id',
+        'picked_by',
+        'picked_at',
         'equipment_id',
         'installation_number',
         'customer_name',
@@ -135,6 +137,11 @@ class TenantInstallation extends Model
     public function technician()
     {
         return $this->belongsTo(User::class, 'technician_id');
+    }
+
+    public function pickedBy()
+    {
+        return $this->belongsTo(User::class, 'picked_by');
     }
 
     public function equipment()

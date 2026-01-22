@@ -293,9 +293,13 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode', 'sta
             Route::delete('/{installation}', [TenantInstallationController::class, 'destroy'])->name('destroy');
             
             // Installation Actions
+            Route::post('/{installation}/pick', [TenantInstallationController::class, 'pickInstallation'])->name('pick');
             Route::post('/{installation}/start', [TenantInstallationController::class, 'start'])->name('start');
             Route::post('/{installation}/complete', [TenantInstallationController::class, 'complete'])->name('complete');
             Route::post('/{installation}/cancel', [TenantInstallationController::class, 'cancel'])->name('cancel');
+            
+            // Technician Views
+            Route::get('/my-installations', [TenantInstallationController::class, 'myInstallations'])->name('my-installations');
             
             // Views
             Route::get('/calendar/view', [TenantInstallationController::class, 'calendar'])->name('calendar');

@@ -16,6 +16,8 @@ return new class extends Migration
             $table->string('tenant_id')->nullable()->index();
             $table->foreignId('network_user_id')->nullable()->constrained('network_users')->onDelete('set null');
             $table->foreignId('technician_id')->nullable()->constrained('users')->onDelete('set null');
+            $table->foreignId('picked_by')->nullable()->constrained('users')->onDelete('set null'); // Technician who picked the job
+            $table->timestamp('picked_at')->nullable(); // When the job was picked
             $table->foreignId('equipment_id')->nullable()->constrained('tenant_equipments')->onDelete('set null');
             $table->string('installation_number')->unique();
             $table->string('customer_name');
