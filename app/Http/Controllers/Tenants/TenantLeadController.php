@@ -134,6 +134,7 @@ class TenantLeadController extends Controller
             'service_type' => 'wireless', // Default, can be changed later
             'status' => 'new', // New status - waiting to be picked by technician
             'priority' => 'medium',
+            'scheduled_date' => null, // Will be set when technician picks the job
             'created_by' => Auth::id(),
         ]);
 

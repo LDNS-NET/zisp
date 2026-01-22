@@ -3,11 +3,9 @@ import { ref, watch, computed } from 'vue'
 import { Head, useForm, router, Link } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import TextInput from '@/Components/TextInput.vue'
-import InputLabel from '@/Components/InputLabel.vue'
-import SelectInput from '@/Components/SelectInput.vue'
 import Pagination from '@/Components/Pagination.vue'
 import StatusBadge from '@/Components/StatusBadge.vue'
-import { Calendar, MapPin, User, Clock, Filter, Eye, Edit, Trash2, CheckCircle, XCircle, Play } from 'lucide-vue-next'
+import { Calendar, MapPin, User, Clock, Eye, Edit, Trash2, CheckCircle, XCircle, Play } from 'lucide-vue-next'
 
 const props = defineProps({
     installations: Object,
@@ -17,26 +15,14 @@ const props = defineProps({
 })
 
 const search = ref(props.filters?.search || '')
-const statusFilter = ref(props.filters?.status || '')
-const priorityFilter = ref(props.filters?.priority || '')
-const technicianFilter = ref(props.filters?.technician_id || '')
-const dateFrom = ref(props.filters?.date_from || '')
-const dateTo = ref(props.filters?.date_to || '')
 
 let searchTimeout
-watch([search, statusFilter, priorityFilter, technicianFilter, dateFrom, dateTo], () => {
+watch(search, () => {
     clearTimeout(searchTimeout)
     searchTimeout = setTimeout(() => {
         router.get(
             route('tenant.installations.index'),
-            {
-                search: search.value,
-                status: statusFilter.value,
-                priority: priorityFilter.value,
-                technician_id: technicianFilter.value,
-                date_from: dateFrom.value,
-                date_to: dateTo.value,
-            },
+            { search: search.value },
             { preserveState: true, preserveScroll: true, replace: true }
         )
     }, 300)
@@ -44,6 +30,8 @@ watch([search, statusFilter, priorityFilter, technicianFilter, dateFrom, dateTo]
 
 function getStatusColor(status) {
     const colors = {
+        new: 'orange',
+        pending: 'purple',
         scheduled: 'blue',
         in_progress: 'yellow',
         completed: 'green',
@@ -120,10 +108,18 @@ function deleteInstallation(id) {
                 </div>
 
                 <!-- Stats Cards -->
-                <div class="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6">
+                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-6">
                     <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
                         <div class="text-sm text-gray-600 dark:text-gray-400">Total</div>
                         <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ stats.total }}</div>
+                    </div>
+                    <div class="bg-orange-50 dark:bg-orange-900/20 rounded-lg shadow p-4">
+                        <div class="text-sm text-orange-600 dark:text-orange-400">New</div>
+                        <div class="text-2xl font-bold text-orange-700 dark:text-orange-300">{{ stats.new }}</div>
+                    </div>
+                    <div class="bg-purple-50 dark:bg-purple-900/20 rounded-lg shadow p-4">
+                        <div class="text-sm text-purple-600 dark:text-purple-400">Pending</div>
+                        <div class="text-2xl font-bold text-purple-700 dark:text-purple-300">{{ stats.pending }}</div>
                     </div>
                     <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg shadow p-4">
                         <div class="text-sm text-blue-600 dark:text-blue-400">Scheduled</div>
@@ -141,70 +137,20 @@ function deleteInstallation(id) {
                         <div class="text-sm text-red-600 dark:text-red-400">Cancelled</div>
                         <div class="text-2xl font-bold text-red-700 dark:text-red-300">{{ stats.cancelled }}</div>
                     </div>
-                    <div class="bg-purple-50 dark:bg-purple-900/20 rounded-lg shadow p-4">
-                        <div class="text-sm text-purple-600 dark:text-purple-400">Today</div>
-                        <div class="text-2xl font-bold text-purple-700 dark:text-purple-300">{{ stats.today }}</div>
+                    <div class="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg shadow p-4">
+                        <div class="text-sm text-indigo-600 dark:text-indigo-400">Today</div>
+                        <div class="text-2xl font-bold text-indigo-700 dark:text-indigo-300">{{ stats.today }}</div>
                     </div>
                 </div>
 
-                <!-- Filters -->
+                <!-- Search Bar -->
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-6">
-                    <div class="grid grid-cols-1 md:grid-cols-6 gap-4">
-                        <div class="md:col-span-2">
-                            <InputLabel value="Search" />
-                            <TextInput
-                                v-model="search"
-                                type="text"
-                                placeholder="Search installations..."
-                                class="mt-1 block w-full"
-                            />
-                        </div>
-                        <div>
-                            <InputLabel value="Status" />
-                            <SelectInput v-model="statusFilter" class="mt-1 block w-full">
-                                <option value="">All Status</option>
-                                <option value="scheduled">Scheduled</option>
-                                <option value="in_progress">In Progress</option>
-                                <option value="completed">Completed</option>
-                                <option value="cancelled">Cancelled</option>
-                                <option value="on_hold">On Hold</option>
-                            </SelectInput>
-                        </div>
-                        <div>
-                            <InputLabel value="Priority" />
-                            <SelectInput v-model="priorityFilter" class="mt-1 block w-full">
-                                <option value="">All Priorities</option>
-                                <option value="urgent">Urgent</option>
-                                <option value="high">High</option>
-                                <option value="medium">Medium</option>
-                                <option value="low">Low</option>
-                            </SelectInput>
-                        </div>
-                        <div>
-                            <InputLabel value="Technician" />
-                            <SelectInput v-model="technicianFilter" class="mt-1 block w-full">
-                                <option value="">All Technicians</option>
-                                <option v-for="tech in technicians" :key="tech.id" :value="tech.id">
-                                    {{ tech.name }}
-                                </option>
-                            </SelectInput>
-                        </div>
-                        <div>
-                            <InputLabel value="Date Range" />
-                            <div class="flex gap-2 mt-1">
-                                <input
-                                    v-model="dateFrom"
-                                    type="date"
-                                    class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                                />
-                                <input
-                                    v-model="dateTo"
-                                    type="date"
-                                    class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                                />
-                            </div>
-                        </div>
-                    </div>
+                    <TextInput
+                        v-model="search"
+                        type="text"
+                        placeholder="Search by customer name, phone, location, or installation number..."
+                        class="w-full"
+                    />
                 </div>
 
                 <!-- Installations Table -->

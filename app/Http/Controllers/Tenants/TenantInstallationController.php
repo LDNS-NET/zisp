@@ -19,31 +19,20 @@ class TenantInstallationController extends Controller
     {
         $installations = TenantInstallation::with(['technician', 'networkUser', 'equipment'])
             ->when($request->search, function ($q) use ($request) {
-                $q->where('installation_number', 'like', "%{$request->search}%")
-                  ->orWhere('customer_name', 'like', "%{$request->search}%")
-                  ->orWhere('customer_phone', 'like', "%{$request->search}%")
-                  ->orWhere('installation_address', 'like', "%{$request->search}%");
+                $q->where(function ($query) use ($request) {
+                    $query->where('installation_number', 'like', "%{$request->search}%")
+                          ->orWhere('customer_name', 'like', "%{$request->search}%")
+                          ->orWhere('customer_phone', 'like', "%{$request->search}%")
+                          ->orWhere('installation_address', 'like', "%{$request->search}%");
+                });
             })
-            ->when($request->status, function ($q) use ($request) {
-                $q->where('status', $request->status);
-            })
-            ->when($request->priority, function ($q) use ($request) {
-                $q->where('priority', $request->priority);
-            })
-            ->when($request->technician_id, function ($q) use ($request) {
-                $q->where('technician_id', $request->technician_id);
-            })
-            ->when($request->date_from, function ($q) use ($request) {
-                $q->whereDate('scheduled_date', '>=', $request->date_from);
-            })
-            ->when($request->date_to, function ($q) use ($request) {
-                $q->whereDate('scheduled_date', '<=', $request->date_to);
-            })
-            ->latest('scheduled_date')
+            ->latest('created_at')
             ->paginate($request->get('per_page', 15));
 
         $stats = [
             'total' => TenantInstallation::count(),
+            'new' => TenantInstallation::where('status', 'new')->count(),
+            'pending' => TenantInstallation::where('status', 'pending')->count(),
             'scheduled' => TenantInstallation::where('status', 'scheduled')->count(),
             'in_progress' => TenantInstallation::where('status', 'in_progress')->count(),
             'completed' => TenantInstallation::where('status', 'completed')->count(),
@@ -66,11 +55,6 @@ class TenantInstallationController extends Controller
             'technicians' => $technicians,
             'filters' => [
                 'search' => $request->search,
-                'status' => $request->status,
-                'priority' => $request->priority,
-                'technician_id' => $request->technician_id,
-                'date_from' => $request->date_from,
-                'date_to' => $request->date_to,
             ],
         ]);
     }
