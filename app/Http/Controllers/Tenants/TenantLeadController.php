@@ -120,8 +120,11 @@ class TenantLeadController extends Controller
             return back()->with('error', 'This lead has already been converted to an installation.');
         }
 
-        // Generate unique installation number
-        $installationNumber = 'INST-' . now()->format('Ymd') . '-' . str_pad(TenantInstallation::count() + 1, 4, '0', STR_PAD_LEFT);
+        // Generate unique installation number with timestamp and random suffix
+        $date = now()->format('Ymd');
+        $time = now()->format('His');
+        $random = strtoupper(substr(uniqid(), -4));
+        $installationNumber = "INST-{$date}-{$time}-{$random}";
 
         // Create installation from lead
         $installation = TenantInstallation::create([
