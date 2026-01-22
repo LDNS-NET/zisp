@@ -283,43 +283,25 @@ class TenantInstallationController extends Controller
     public function dashboard()
     {
         $today = now()->toDateString();
-        $tenantId = Auth::user()->tenant_id;
 
         $stats = [
-            'today_scheduled' => TenantInstallation::whereDate('scheduled_date', $today)
-                ->where('status', 'scheduled')
-                ->count(),
-            'today_in_progress' => TenantInstallation::whereDate('scheduled_date', $today)
-                ->where('status', 'in_progress')
-                ->count(),
-            'today_completed' => TenantInstallation::whereDate('completed_at', $today)
-                ->where('status', 'completed')
-                ->count(),
-            'upcoming' => TenantInstallation::where('scheduled_date', '>', $today)
-                ->whereIn('status', ['scheduled', 'pending'])
-                ->count(),
+            'today_scheduled' => TenantInstallation::today()->scheduled()->count(),
+            'today_in_progress' => TenantInstallation::today()->inProgress()->count(),
+            'today_completed' => TenantInstallation::today()->completed()->count(),
+            'upcoming' => TenantInstallation::upcoming()->count(),
             'overdue' => TenantInstallation::where('scheduled_date', '<', $today)
                 ->whereIn('status', ['scheduled', 'in_progress'])
                 ->count(),
         ];
 
         $todayInstallations = TenantInstallation::with(['technician', 'networkUser'])
-            ->whereDate('scheduled_date', $today)
+            ->today()
             ->whereIn('status', ['scheduled', 'in_progress'])
             ->get();
 
-        // Get technicians who have installations today
-        $activeTechnicians = User::where('tenant_id', $tenantId)
-            ->where('is_suspended', false)
-            ->whereHas('roles', function ($q) {
-                $q->whereIn('name', ['technical', 'technician', 'network_engineer']);
-            })
-            ->whereHas('assignedInstallations', function ($q) use ($today) {
-                $q->whereDate('scheduled_date', $today)
-                  ->whereIn('status', ['scheduled', 'in_progress']);
-            })
-            ->withCount(['assignedInstallations' => function ($q) use ($today) {
-                $q->whereDate('scheduled_date', $today)
+        $activeTechnicians = TenantTechnician::active()
+            ->with(['installations' => function ($q) use ($today) {
+                $q->where('scheduled_date', $today)
                   ->whereIn('status', ['scheduled', 'in_progress']);
             }])
             ->get();

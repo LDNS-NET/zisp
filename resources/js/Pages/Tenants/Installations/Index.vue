@@ -5,7 +5,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import TextInput from '@/Components/TextInput.vue'
 import Pagination from '@/Components/Pagination.vue'
 import StatusBadge from '@/Components/StatusBadge.vue'
-import { Calendar, MapPin, User, Clock, Eye, Edit, Trash2, CheckCircle, XCircle, Play, Plus } from 'lucide-vue-next'
+import { Calendar, MapPin, User, Clock, Eye, Edit, Trash2, CheckCircle, XCircle, Play } from 'lucide-vue-next'
 
 const props = defineProps({
     installations: Object,
@@ -103,13 +103,6 @@ function deleteInstallation(id) {
                         >
                             <MapPin class="w-4 h-4 mr-2" />
                             Dashboard
-                        </Link>
-                        <Link
-                            :href="route('tenant.installations.create')"
-                            class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
-                        >
-                            <Plus class="w-4 h-4 mr-2" />
-                            New Installation
                         </Link>
                     </div>
                 </div>
