@@ -5,7 +5,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head } from '@inertiajs/vue3';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import { useToast } from 'vue-toastification';
-import { Settings, Shield, Lock } from 'lucide-vue-next';
+import Layout from '../Layout.vue';
 
 const toast = useToast();
 
@@ -31,7 +31,7 @@ function submit() {
 
 <template>
     <Head title="System Settings" />
-    <AuthenticatedLayout>
+    <Layout>
         <template #header>
             <div class="flex items-center gap-3">
                 <div class="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
@@ -141,5 +141,5 @@ function submit() {
                 </div>
             </div>
         </div>
-    </AuthenticatedLayout>
+    </Layout>
 </template>
