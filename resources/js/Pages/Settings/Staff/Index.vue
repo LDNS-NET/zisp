@@ -17,7 +17,9 @@ import {
     XCircle, 
     Activity, 
     ShieldAlert, 
-    Phone 
+    Phone, 
+    Pencil,
+    UserLock
 } from 'lucide-vue-next';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Modal from '@/Components/Modal.vue';
@@ -339,11 +341,11 @@ const updateGlobalSettings = () => {
                                                     <Lock class="h-4 w-4" />
                                                 </button>
                                                 <button @click="openEditModal(user)" title="Edit Staff" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-                                                    <Edit2 class="h-4 w-4" />
+                                                    <Pencil class="h-4 w-4" />
                                                 </button>
                                                 <button @click="toggleStatus(user)" :title="user.is_suspended ? 'Activate' : 'Suspend'" class="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-                                                    <UserX v-if="!user.is_suspended" class="h-4 w-4" />
-                                                    <UserCheck v-else class="h-4 w-4" />
+                                                    <UserLock v-if="!user.is_suspended" class="h-4 w-4" />
+                                                    <UserPlus v-else class="h-4 w-4" />
                                                 </button>
                                                 <button @click="deleteStaff(user)" title="Delete Staff" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
                                                     <Trash2 class="h-4 w-4" />
