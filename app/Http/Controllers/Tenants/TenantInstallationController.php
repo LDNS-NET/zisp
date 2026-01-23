@@ -17,7 +17,31 @@ class TenantInstallationController extends Controller
 {
     public function index(Request $request)
     {
+        $user = Auth::user();
+        $userId = $user->id;
+        
+        // Check if user is admin or tenant_admin
+        $isAdmin = $user->hasAnyRole(['tenant_admin', 'admin', 'network_engineer']);
+        
         $installations = TenantInstallation::with(['technician', 'networkUser', 'equipment'])
+            ->when(!$isAdmin, function ($q) use ($userId) {
+                // For technicians: only show unpicked installations or installations they picked
+                $q->where(function ($query) use ($userId) {
+                    $query->where(function ($q) {
+                        // Unpicked installations (available to pick)
+                        $q->where('status', 'new')
+                          ->whereNull('picked_by');
+                    })
+                    ->orWhere(function ($q) use ($userId) {
+                        // Installations picked by this technician
+                        $q->where('picked_by', $userId);
+                    })
+                    ->orWhere(function ($q) use ($userId) {
+                        // Installations assigned to this technician
+                        $q->where('technician_id', $userId);
+                    });
+                });
+            })
             ->when($request->search, function ($q) use ($request) {
                 $q->where(function ($query) use ($request) {
                     $query->where('installation_number', 'like', "%{$request->search}%")
@@ -29,16 +53,28 @@ class TenantInstallationController extends Controller
             ->latest('created_at')
             ->paginate($request->get('per_page', 15));
 
-        $stats = [
-            'total' => TenantInstallation::count(),
-            'new' => TenantInstallation::where('status', 'new')->count(),
-            'pending' => TenantInstallation::where('status', 'pending')->count(),
-            'scheduled' => TenantInstallation::where('status', 'scheduled')->count(),
-            'in_progress' => TenantInstallation::where('status', 'in_progress')->count(),
-            'completed' => TenantInstallation::where('status', 'completed')->count(),
-            'cancelled' => TenantInstallation::where('status', 'cancelled')->count(),
-            'today' => TenantInstallation::today()->count(),
-        ];
+        // Stats based on role
+        if ($isAdmin) {
+            $stats = [
+                'total' => TenantInstallation::count(),
+                'new' => TenantInstallation::where('status', 'new')->count(),
+                'pending' => TenantInstallation::where('status', 'pending')->count(),
+                'scheduled' => TenantInstallation::where('status', 'scheduled')->count(),
+                'in_progress' => TenantInstallation::where('status', 'in_progress')->count(),
+                'completed' => TenantInstallation::where('status', 'completed')->count(),
+                'cancelled' => TenantInstallation::where('status', 'cancelled')->count(),
+                'today' => TenantInstallation::today()->count(),
+            ];
+        } else {
+            // Technician stats
+            $stats = [
+                'available' => TenantInstallation::where('status', 'new')->whereNull('picked_by')->count(),
+                'my_picked' => TenantInstallation::where('picked_by', $userId)->count(),
+                'my_assigned' => TenantInstallation::where('technician_id', $userId)->count(),
+                'in_progress' => TenantInstallation::where('technician_id', $userId)->where('status', 'in_progress')->count(),
+                'completed' => TenantInstallation::where('technician_id', $userId)->where('status', 'completed')->count(),
+            ];
+        }
 
         // Get technicians from Users with technical or technician roles
         $tenantId = Auth::user()->tenant_id;
