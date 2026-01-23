@@ -71,11 +71,11 @@ function openEditModal(equip) {
 
 function submit() {
     if (editing.value) {
-        form.put(route('tenants.equipment.update', editing.value), {
+        form.put(route('equipment.update', editing.value), {
             onSuccess: () => showModal.value = false
         })
     } else {
-        form.post(route('tenants.equipment.store'), {
+        form.post(route('equipment.store'), {
             onSuccess: () => showModal.value = false
         })
     }
@@ -83,7 +83,7 @@ function submit() {
 
 function remove(id) {
     if (confirm("Delete this Equipment")){
-        router.delete(route('tenants.equipment.destroy',id))
+        router.delete(route('equipment.destroy',id))
     }
 }
 
@@ -103,11 +103,11 @@ const bulkDelete = () => {
   if (!selectedTenantEquipment.value.length) return
   if (!confirm('Are you sure you want to delete Equipment?')) return
 
-  router.delete(route('tenants.equipment.bulk-delete'), {
+  router.delete(route('equipment.bulk-delete'), {
     data: { ids: selectedTenantEquipment.value },
     onSuccess: () => {
       selectedTenantEquipment.value = []
-      router.visit(route('tenants.equipment.index'), {
+      router.visit(route('equipment.index'), {
         preserveScroll: true,
       })
     }
