@@ -142,7 +142,6 @@ class TenantPaymentController extends Controller
             'user_id' => 'required|exists:network_users,id',
             'receipt_number' => 'required|string|max:255|unique:tenant_payments,receipt_number',
             'amount' => 'required|numeric|min:0',
-            'checked' => 'required|boolean',
             'paid_at' => 'required|date',
         ]);
 
@@ -159,9 +158,10 @@ class TenantPaymentController extends Controller
         // Ensure tenant_id is set correctly
         $data['tenant_id'] = auth()->user()->tenant_id ?? tenant('id');
         $data['payment_method'] = 'manual';
-        // Manual payments are always completed
+        // Manual payments are always completed and checked (received outside gateway)
         $data['disbursement_status'] = 'completed';
         $data['disbursement_type'] = 'completed';
+        $data['checked'] = true;
         $payment = TenantPayment::create($data);
 
         // 🔥 Load tenant router config from DB, not strings
@@ -196,7 +196,6 @@ class TenantPaymentController extends Controller
             'user_id' => 'sometimes|exists:network_users,id',
             'receipt_number' => 'required|string|max:255|unique:tenant_payments,receipt_number,' . $id,
             'amount' => 'required|numeric|min:0',
-            'checked' => 'required|boolean',
             'paid_at' => 'required|date',
         ]);
 
@@ -207,9 +206,10 @@ class TenantPaymentController extends Controller
             }
         }
 
-        // Manual payments are always completed
+        // Manual payments are always completed and checked (received outside gateway)
         $data['disbursement_status'] = 'completed';
         $data['disbursement_type'] = 'completed';
+        $data['checked'] = true;
 
         $tenantPayment->update($data);
 

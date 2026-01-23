@@ -313,7 +313,6 @@ const form = useForm({
     user_id: '',
     receipt_number: '',
     amount: '',
-    checked: false, // boolean in DB
     paid_at: '',
     phone: '', // auto-filled, readonly
 });
@@ -350,9 +349,6 @@ function openEditModal(payment) {
     form.user_id = payment.user_id ?? '';
     form.receipt_number = payment.receipt_number;
     form.amount = payment.amount;
-    // Use strict boolean for checked
-    form.checked =
-        payment.checked === true || payment.checked === 'true' ? true : false;
     form.paid_at = normalizeToDatetimeLocal(payment.paid_at);
     form.phone = payment.phone ?? '';
     editing.value = payment.id;
@@ -907,25 +903,7 @@ function generatePaymentConfirmation() {
                         <InputError :message="form.errors.amount" class="mt-2" />
                     </div>
 
-                    <!-- Checked select (Yes/No as boolean) -->
-                    <div>
-                        <InputLabel for="checked" value="Checked" />
-
-                        <select v-model="form.checked" id="checked" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm
-           focus:border-blue-500 focus:ring-blue-500
-           dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400
-           transition-colors duration-200 ease-in-out">
-                            <option :value="true" class="bg-white text-gray-700 dark:bg-gray-700 dark:text-gray-300">
-                                Yes
-                            </option>
-                            <option :value="false" class="bg-white text-gray-700 dark:bg-gray-700 dark:text-gray-300">
-                                No
-                            </option>
-                        </select>
-
-                        <InputError :message="form.errors.checked" class="mt-2" />
-                    </div>
-
+                    <!-- Note: Checked is automatically set to 'true' for manual payments -->
 
                     <div>
                         <InputLabel for="paid_at" value="Paid At" />
