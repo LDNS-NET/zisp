@@ -157,7 +157,8 @@ class TenantPaymentController extends Controller
             $data['created_by'] = auth()->id();
         }
 
-        $data['tenant_id'] = tenant('id');
+        // Ensure tenant_id is set correctly
+        $data['tenant_id'] = auth()->user()->tenant_id ?? tenant('id');
         $data['payment_method'] = 'manual';
         $data['disbursement_status'] = 'completed';
         $payment = TenantPayment::create($data);
