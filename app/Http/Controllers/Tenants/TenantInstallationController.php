@@ -89,6 +89,7 @@ class TenantInstallationController extends Controller
             'installations' => $installations,
             'stats' => $stats,
             'technicians' => $technicians,
+            'isAdmin' => $isAdmin,
             'filters' => [
                 'search' => $request->search,
             ],
@@ -149,6 +150,25 @@ class TenantInstallationController extends Controller
 
     public function show(TenantInstallation $installation)
     {
+        $user = Auth::user();
+        $userId = $user->id;
+        $isAdmin = $user->hasAnyRole(['tenant_admin', 'admin', 'network_engineer']);
+        
+        // Authorization check for technicians
+        if (!$isAdmin) {
+            // Technicians can only view:
+            // 1. Unpicked installations (status = new, picked_by = null)
+            // 2. Installations they picked (picked_by = their ID)
+            // 3. Installations assigned to them (technician_id = their ID)
+            $canView = ($installation->status === 'new' && $installation->picked_by === null) ||
+                       $installation->picked_by === $userId ||
+                       $installation->technician_id === $userId;
+            
+            if (!$canView) {
+                abort(403, 'You do not have permission to view this installation.');
+            }
+        }
+        
         $installation->load([
             'technician',
             'networkUser',
