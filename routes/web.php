@@ -287,6 +287,14 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode', 'sta
             // Main Installation Routes
             Route::get('/', [TenantInstallationController::class, 'index'])->name('index');
             Route::get('/create', [TenantInstallationController::class, 'create'])->name('create');
+            
+            // Technician Views (must come before /{installation} to avoid route conflict)
+            Route::get('/my-installations', [TenantInstallationController::class, 'myInstallations'])->name('my-installations');
+            
+            // Views
+            Route::get('/calendar/view', [TenantInstallationController::class, 'calendar'])->name('calendar');
+            Route::get('/dashboard/view', [TenantInstallationController::class, 'dashboard'])->name('dashboard');
+            
             Route::post('/', [TenantInstallationController::class, 'store'])->name('store');
             Route::get('/{installation}', [TenantInstallationController::class, 'show'])->name('show');
             Route::get('/{installation}/edit', [TenantInstallationController::class, 'edit'])->name('edit');
@@ -299,13 +307,6 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode', 'sta
             Route::post('/{installation}/start', [TenantInstallationController::class, 'start'])->name('start');
             Route::post('/{installation}/complete', [TenantInstallationController::class, 'complete'])->name('complete');
             Route::post('/{installation}/cancel', [TenantInstallationController::class, 'cancel'])->name('cancel');
-            
-            // Technician Views
-            Route::get('/my-installations', [TenantInstallationController::class, 'myInstallations'])->name('my-installations');
-            
-            // Views
-            Route::get('/calendar/view', [TenantInstallationController::class, 'calendar'])->name('calendar');
-            Route::get('/dashboard/view', [TenantInstallationController::class, 'dashboard'])->name('dashboard');
             
             // Photos
             Route::post('/{installation}/photos', [TenantInstallationPhotoController::class, 'store'])->name('photos.store');
