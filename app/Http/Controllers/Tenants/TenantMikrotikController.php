@@ -724,6 +724,12 @@ class TenantMikrotikController extends Controller
 
     public function destroy(Request $request, $id, WinboxPortService $winboxService)
     {
+        // Only admins, tenant admins, and network engineers can delete routers
+        $user = auth()->user();
+        if (!$user->hasAnyRole(['admin', 'tenant_admin', 'network_engineer'])) {
+            abort(403, 'You do not have permission to delete routers. Please submit a router deletion request to your administrator with documentation explaining why it should be removed.');
+        }
+
         $request->validate([
             'password' => 'required|current_password',
         ]);
@@ -742,6 +748,12 @@ class TenantMikrotikController extends Controller
 
     public function restore(Request $request, $id)
     {
+        // Only admins, tenant admins, and network engineers can restore routers
+        $user = auth()->user();
+        if (!$user->hasAnyRole(['admin', 'tenant_admin', 'network_engineer'])) {
+            abort(403, 'You do not have permission to restore routers. Please contact your administrator.');
+        }
+
         $request->validate([
             'password' => 'required|current_password',
         ]);
@@ -754,6 +766,12 @@ class TenantMikrotikController extends Controller
 
     public function forceDelete(Request $request, $id)
     {
+        // Only admins, tenant admins, and network engineers can permanently delete routers
+        $user = auth()->user();
+        if (!$user->hasAnyRole(['admin', 'tenant_admin', 'network_engineer'])) {
+            abort(403, 'You do not have permission to permanently delete routers. Please contact your administrator.');
+        }
+
         $request->validate([
             'password' => 'required|current_password',
         ]);

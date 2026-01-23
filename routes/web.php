@@ -447,12 +447,20 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode', 'sta
             Route::post('domain-requests', [App\Http\Controllers\Tenants\DomainRequestController::class, 'store'])->name('domain-requests.store');
         });
 
-        // Network Management
-        Route::middleware(['role:tenant_admin|network_engineer|network_admin|technical'])->group(function () {
+        // Network Management - Admin Only Operations (Delete, Force Delete)
+        Route::middleware(['role:tenant_admin|admin|network_engineer'])->group(function () {
+            Route::middleware('throttle:mikrotik_api')->group(function () {
+                Route::delete('mikrotiks/{mikrotik}', [TenantMikrotikController::class, 'destroy'])->name('mikrotiks.destroy');
+                Route::delete('mikrotiks/{mikrotik}/force-delete', [TenantMikrotikController::class, 'forceDelete'])->name('mikrotiks.forceDelete');
+                Route::post('mikrotiks/{mikrotik}/restore', [TenantMikrotikController::class, 'restore'])->name('mikrotiks.restore');
+            });
+        });
+
+        // Network Management - General Operations (All Network Staff)
+        Route::middleware(['role:tenant_admin|admin|network_engineer|network_admin|technical'])->group(function () {
             Route::middleware('throttle:mikrotik_api')->group(function () {
                 Route::post('mikrotiks/{mikrotik}/reboot', [TenantMikrotikController::class, 'reboot'])->name('mikrotiks.reboot');
-                Route::delete('mikrotiks/{mikrotik}/force-delete', [TenantMikrotikController::class, 'forceDelete'])->name('mikrotiks.forceDelete');
-                Route::resource('mikrotiks', TenantMikrotikController::class);
+                Route::resource('mikrotiks', TenantMikrotikController::class)->except(['destroy']);
             });
             
             Route::get('settings/content-filter', [ContentFilterController::class, 'index'])->name('settings.content-filter.index');
@@ -466,7 +474,6 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode', 'sta
         //mikrotiks additional endpoints
         Route::middleware('throttle:mikrotik_api')->group(function () {
             Route::post('mikrotiks/{mikrotik}/identity', [TenantMikrotikController::class, 'updateIdentity'])->name('mikrotiks.updateIdentity');
-            Route::post('mikrotiks/{mikrotik}/restore', [TenantMikrotikController::class, 'restore'])->name('mikrotiks.restore');
             Route::get('mikrotiks/{mikrotik}/test-connection', [TenantMikrotikController::class, 'testConnection'])->name('mikrotiks.testConnection');
             Route::get('mikrotiks/{mikrotik}/ping', [TenantMikrotikController::class, 'pingRouter'])->name('mikrotiks.ping');
             Route::get('mikrotiks/status', [TenantMikrotikController::class, 'getAllStatus'])->name('mikrotiks.statusAll');
