@@ -122,7 +122,7 @@ const bulkDelete = () => {
 
     <div class="max-w-7xl mx-auto p-6 space-y-6">
         <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
-            <h2 class="text-2xl font-bold flex">Equipment</h2>
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Equipment</h2>
             
             <div class="flex items-center gap-4 w-full sm:w-auto">
                 <div class="relative w-full sm:w-72">
@@ -143,50 +143,74 @@ const bulkDelete = () => {
             </div>
         </div>
 
-        <div class="bg-white p-4 rounded shadow text-xl font-semibold">
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow text-xl font-semibold text-gray-900 dark:text-white">
             Total Equipment Cost: KES {{ totalPrice.toLocaleString() }}
         </div>
 
         <!--bulk delete option opens if checkbox value is true-->
-        <div v-if="selectedTenantEquipment.length" class="mb-4 flex items-center justify-between bg-yellow-50 p-3 border border-yellow-200 rounded">
+        <div v-if="selectedTenantEquipment.length" class="mb-4 flex items-center justify-between bg-yellow-50 dark:bg-yellow-900/20 p-3 border border-yellow-200 dark:border-yellow-700 rounded">
             <div class="flex gap-2">
+                <span class="text-yellow-800 dark:text-yellow-200">{{ selectedTenantEquipment.length }} item(s) selected</span>
                 <DangerButton @click="bulkDelete">Delete ({{ selectedTenantEquipment.length }})</DangerButton>
             </div>
         </div>
 
-        <table class="w-full bg-white rounded shadow overflow-hidden">
-            <thead class="bg-gray-100 text-left">
-                <tr>
-                    <td class="px-4 py-3"> <input type="checkbox" v-model="selectAll"/></td>
-                    <th class="px-4 py-2">Name</th>
-                    <th class="px-4 py-2">Type</th>
-                    <th class="px-4 py-2">Serial</th>
-                    <th class="px-4 py-2">Location</th>
-                    <th class="px-4 py-2">User</th>
-                    <th class="px-4 py-2">Price (Ksh)</th>
-                    <th class="px-4 py-2">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr v-for="item in equipment.data" :key="item.id" class="border-t">
-                    <td class="px-6 py-3"> <input type="checkbox" :value="item.id" v-model="selectedTenantEquipment"/></td>
-                    <td class="px-4 py-2">{{ item.name }}</td>
-                    <td class="px-4 py-2">{{ item.type }}</td>
-                    <td class="px-4 py-2">{{ item.serial_number }}</td>
-                    <td class="px-4 py-2">{{ item.location ?? '-' }}</td>
-                    <td class="px-4 py-2">{{ item.assigned_to ?? '-' }}</td>
-                    <td class="px-4 py-2">{{ item.total_price?.toLocaleString() ?? '0.00' }}</td>
-                    <td class="px-4 py-2 space-x-2">
-                        <button @click="openEditModal(item)" class="text-blue-600 hover:underline"><Edit class="w-4 h-4" /> </button>
-                        <button @click="remove(item.id)" >
-                            <Trash2 class="w-4 h-4 text-red-600" />
-
-
-                        </button>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+        <div class="overflow-x-auto rounded-lg shadow">
+            <table class="w-full bg-white dark:bg-gray-800">
+                <thead class="bg-gray-100 dark:bg-gray-700 text-left">
+                    <tr>
+                        <th class="px-4 py-3">
+                            <input 
+                                type="checkbox" 
+                                v-model="selectAll"
+                                class="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 dark:bg-gray-700"
+                            />
+                        </th>
+                        <th class="px-4 py-2 text-gray-700 dark:text-gray-200">Name</th>
+                        <th class="px-4 py-2 text-gray-700 dark:text-gray-200">Type</th>
+                        <th class="px-4 py-2 text-gray-700 dark:text-gray-200">Serial</th>
+                        <th class="px-4 py-2 text-gray-700 dark:text-gray-200">Location</th>
+                        <th class="px-4 py-2 text-gray-700 dark:text-gray-200">User</th>
+                        <th class="px-4 py-2 text-gray-700 dark:text-gray-200">Price (Ksh)</th>
+                        <th class="px-4 py-2 text-gray-700 dark:text-gray-200">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="item in equipment.data" :key="item.id" class="border-t border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                        <td class="px-4 py-3">
+                            <input 
+                                type="checkbox" 
+                                :value="item.id" 
+                                v-model="selectedTenantEquipment"
+                                class="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 dark:bg-gray-700"
+                            />
+                        </td>
+                        <td class="px-4 py-2 text-gray-900 dark:text-gray-100">{{ item.name }}</td>
+                        <td class="px-4 py-2 text-gray-900 dark:text-gray-100">{{ item.type }}</td>
+                        <td class="px-4 py-2 text-gray-900 dark:text-gray-100">{{ item.serial_number }}</td>
+                        <td class="px-4 py-2 text-gray-600 dark:text-gray-400">{{ item.location ?? '-' }}</td>
+                        <td class="px-4 py-2 text-gray-600 dark:text-gray-400">{{ item.assigned_to ?? '-' }}</td>
+                        <td class="px-4 py-2 text-gray-900 dark:text-gray-100">{{ item.total_price?.toLocaleString() ?? '0.00' }}</td>
+                        <td class="px-4 py-2 space-x-2">
+                            <button 
+                                @click="openEditModal(item)" 
+                                class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors"
+                                title="Edit"
+                            >
+                                <Edit class="w-4 h-4" />
+                            </button>
+                            <button 
+                                @click="remove(item.id)" 
+                                class="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 transition-colors"
+                                title="Delete"
+                            >
+                                <Trash2 class="w-4 h-4" />
+                            </button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     </div>
     <div v-show="equipment.total > 0" class="flex justify-center mt-6">
         <Pagination 
@@ -200,8 +224,8 @@ const bulkDelete = () => {
 
     <!-- Modal -->
     <Modal :show="showModal" @close="showModal = false">
-        <form @submit.prevent="submit" class="p-6 space-y-4">
-            <h2 class="text-xl font-semibold mb-4">
+        <form @submit.prevent="submit" class="p-6 space-y-4 bg-white dark:bg-gray-800">
+            <h2 class="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
                 {{ editing ? 'Edit Equipment' : 'Add Equipment' }}
             </h2>
 
