@@ -315,7 +315,6 @@ const form = useForm({
     amount: '',
     checked: false, // boolean in DB
     paid_at: '',
-    disbursement_status: 'pending', // default option
     phone: '', // auto-filled, readonly
 });
 
@@ -355,7 +354,6 @@ function openEditModal(payment) {
     form.checked =
         payment.checked === true || payment.checked === 'true' ? true : false;
     form.paid_at = normalizeToDatetimeLocal(payment.paid_at);
-    form.disbursement_status = payment.disbursement_status ?? 'pending';
     form.phone = payment.phone ?? '';
     editing.value = payment.id;
     showModal.value = true;
@@ -936,22 +934,7 @@ function generatePaymentConfirmation() {
                         <InputError :message="form.errors.paid_at" class="mt-2" />
                     </div>
 
-                    <!-- Disbursement select -->
-                    <div>
-                        <InputLabel for="disbursement_status" value="Disbursement Status" />
-
-                        <select v-model="form.disbursement_status" id="disbursement_status" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm
-           focus:border-blue-500 focus:ring-blue-500
-           dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400
-           transition-colors duration-200 ease-in-out">
-                            <option v-for="opt in DISBURSEMENT_OPTIONS" :key="opt.value" :value="opt.value"
-                                class="bg-white text-gray-700 dark:bg-gray-700 dark:text-gray-300">
-                                {{ opt.label }}
-                            </option>
-                        </select>
-
-                        <InputError :message="form.errors.disbursement_status" class="mt-2" />
-                    </div>
+                    <!-- Note: Disbursement status is automatically set to 'completed' for manual payments -->
 
                 </div>
 

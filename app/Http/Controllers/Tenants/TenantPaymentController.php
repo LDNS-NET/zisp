@@ -144,7 +144,6 @@ class TenantPaymentController extends Controller
             'amount' => 'required|numeric|min:0',
             'checked' => 'required|boolean',
             'paid_at' => 'required|date',
-            'disbursement_status' => 'required|string|in:pending,processing,completed,failed',
         ]);
 
         $user = NetworkUser::findOrFail($data['user_id']);
@@ -160,7 +159,9 @@ class TenantPaymentController extends Controller
         // Ensure tenant_id is set correctly
         $data['tenant_id'] = auth()->user()->tenant_id ?? tenant('id');
         $data['payment_method'] = 'manual';
+        // Manual payments are always completed
         $data['disbursement_status'] = 'completed';
+        $data['disbursement_type'] = 'completed';
         $payment = TenantPayment::create($data);
 
         // 🔥 Load tenant router config from DB, not strings
@@ -197,7 +198,6 @@ class TenantPaymentController extends Controller
             'amount' => 'required|numeric|min:0',
             'checked' => 'required|boolean',
             'paid_at' => 'required|date',
-            'disbursement_status' => 'required|string|in:pending,processing,completed,failed',
         ]);
 
         if (isset($data['user_id'])) {
@@ -206,6 +206,10 @@ class TenantPaymentController extends Controller
                 $data['phone'] = $user->phone;
             }
         }
+
+        // Manual payments are always completed
+        $data['disbursement_status'] = 'completed';
+        $data['disbursement_type'] = 'completed';
 
         $tenantPayment->update($data);
 
