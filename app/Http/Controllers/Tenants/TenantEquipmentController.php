@@ -22,7 +22,7 @@ class TenantEquipmentController extends Controller
             ->paginate($request->get('per_page', 10));
         $totalPrice = (float) TenantEquipment::sum('total_price');
 
-        return Inertia::render('Tenants/Equipment/Index', [
+        return Inertia::render('Equipment/Index', [
             'equipment' => $equipment,
             'totalPrice' => $totalPrice,
             'filters' => [
