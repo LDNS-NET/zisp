@@ -13,10 +13,11 @@ use App\Models\Radius\Radusergroup;
 use App\Models\Package;
 use App\Models\Tenant;
 use App\Models\Tenants\TenantHotspot;
+use Spatie\Permission\Traits\HasRoles;
 
 class NetworkUser extends Authenticatable
 {
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, HasRoles;
 
     protected $table = 'network_users';
 
