@@ -43,6 +43,17 @@ const composeMode = ref('filter'); // 'filter' or 'manual'
 const recipientCount = ref(0);
 const isCalculating = ref(false);
 
+const availableVariables = [
+    { label: 'Full Name', value: '{full_name}' },
+    { label: 'Phone', value: '{phone}' },
+    { label: 'Account No.', value: '{account_number}' },
+    { label: 'Expiry Date', value: '{expiry_date}' },
+    { label: 'Package Name', value: '{package}' },
+    { label: 'Username', value: '{username}' },
+    { label: 'Password', value: '{password}' },
+    { label: 'Support No.', value: '{support_number}' },
+];
+
 const form = useForm({
     recipients: [], // For manual selection
     filters: {
@@ -397,38 +408,48 @@ const formatDate = (date) => {
                             <p class="text-xs text-gray-500 text-right">Hold Ctrl/Cmd to select multiple</p>
                         </div>
 
-                        <!-- Message Box -->
-                        <div class="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                            
-                            <div class="flex items-center justify-between">
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Message Content</label>
-                                <div class="flex gap-2">
-                                    <select @change="e => applyTemplate(e.target.value)" class="text-xs rounded-lg border-gray-200 dark:border-gray-700 py-1 pl-2 pr-6">
-                                        <option value="">Load Template...</option>
+                            <div class="space-y-2 pt-4 border-t border-gray-200 dark:border-gray-700">
+                                
+                                <div class="flex items-center justify-between">
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Message Content</label>
+                                    <select @change="e => applyTemplate(e.target.value)" class="text-xs rounded-lg border-gray-200 dark:border-gray-700 py-1 pl-2 pr-8 bg-gray-50 dark:bg-gray-800">
+                                        <option value="">✨ Load Template...</option>
                                         <option v-for="t in templates" :key="t.id" :value="t.content">{{ t.name }}</option>
                                     </select>
                                 </div>
-                            </div>
 
-                            <textarea 
-                                v-model="form.message" 
-                                rows="6" 
-                                class="w-full rounded-xl border-gray-300 dark:border-gray-600 dark:bg-gray-900 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
-                                placeholder="Type your message here... Use {full_name}, {expiry_date} for personalization."
-                            ></textarea>
-
-                            <div class="flex justify-between items-start">
-                                <div class="text-xs text-gray-500 space-x-2">
-                                    <span class="inline-flex items-center px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-gray-600 dark:text-gray-300 cursor-pointer hover:bg-gray-200" @click="form.message += '{full_name}'">{full_name}</span>
-                                    <span class="inline-flex items-center px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-gray-600 dark:text-gray-300 cursor-pointer hover:bg-gray-200" @click="form.message += '{expiry_date}'">{expiry_date}</span>
-                                    <span class="inline-flex items-center px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-gray-600 dark:text-gray-300 cursor-pointer hover:bg-gray-200" @click="form.message += '{account_number}'">{account_number}</span>
+                                <!-- Variables Toolbar -->
+                                <div class="flex flex-wrap gap-1.5 p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-100 dark:border-gray-700">
+                                    <span class="text-xs text-gray-400 font-medium px-1 flex items-center">Insert:</span>
+                                    <button 
+                                        v-for="v in availableVariables" 
+                                        :key="v.value"
+                                        type="button"
+                                        @click="form.message += v.value"
+                                        class="px-2 py-1 bg-white dark:bg-gray-600 border border-gray-200 dark:border-gray-500 rounded text-xs font-medium text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-300 transition-colors shadow-sm"
+                                        :title="'Insert ' + v.value"
+                                    >
+                                        {{ v.label }}
+                                    </button>
                                 </div>
-                                <div class="text-xs text-right" :class="form.message.length > 160 ? 'text-orange-500' : 'text-gray-500'">
-                                    {{ form.message.length }} chars 
-                                    <span v-if="form.message.length > 0">({{ Math.ceil(form.message.length / 160) }} segments)</span>
+
+                                <textarea 
+                                    v-model="form.message" 
+                                    rows="6" 
+                                    class="w-full rounded-xl border-gray-300 dark:border-gray-600 dark:bg-gray-900 focus:ring-blue-500 focus:border-blue-500 shadow-sm font-mono text-sm"
+                                    placeholder="Type your message here..."
+                                ></textarea>
+
+                                <div class="flex justify-between items-start">
+                                    <p class="text-xs text-gray-500 italic">
+                                        Variables will be replaced with actual user data upon sending.
+                                    </p>
+                                    <div class="text-xs text-right" :class="form.message.length > 160 ? 'text-orange-500' : 'text-gray-500'">
+                                        {{ form.message.length }} chars 
+                                        <span v-if="form.message.length > 0">({{ Math.ceil(form.message.length / 160) }} segments)</span>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
                     </div>
 
