@@ -333,7 +333,7 @@ const formatDate = (date) => {
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                         <MapPin class="w-3 h-3 inline mr-1" /> Location / Building
                                     </label>
-                                    <select v-model="form.filters.location" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm">
+                                    <select v-model="form.filters.location" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 text-sm">
                                         <option value="">All Locations</option>
                                         <option v-for="loc in locations" :key="loc" :value="loc">{{ loc }}</option>
                                     </select>
@@ -342,7 +342,7 @@ const formatDate = (date) => {
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                         <Box class="w-3 h-3 inline mr-1" /> Package
                                     </label>
-                                    <select v-model="form.filters.package_id" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm">
+                                    <select v-model="form.filters.package_id" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 text-sm">
                                         <option value="">All Packages</option>
                                         <option v-for="pkg in packages" :key="pkg.id" :value="pkg.id">{{ pkg.name }}</option>
                                     </select>
@@ -399,7 +399,7 @@ const formatDate = (date) => {
                             <select 
                                 v-model="form.recipients" 
                                 multiple 
-                                class="w-full h-48 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm"
+                                class="w-full h-48 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 text-sm"
                             >
                                 <option v-for="r in renters" :key="r.id" :value="r.id">
                                     {{ r.full_name }} ({{ r.phone }})
@@ -412,7 +412,7 @@ const formatDate = (date) => {
                                 
                                 <div class="flex items-center justify-between">
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Message Content</label>
-                                    <select @change="e => applyTemplate(e.target.value)" class="text-xs rounded-lg border-gray-200 dark:border-gray-700 py-1 pl-2 pr-8 bg-gray-50 dark:bg-gray-800">
+                                    <select @change="e => applyTemplate(e.target.value)" class="text-xs rounded-lg border-gray-200 dark:border-gray-700 py-1 pl-2 pr-8 bg-gray-50 dark:bg-gray-800 dark:text-gray-200">
                                         <option value="">✨ Load Template...</option>
                                         <option v-for="t in templates" :key="t.id" :value="t.content">{{ t.name }}</option>
                                     </select>
@@ -436,7 +436,7 @@ const formatDate = (date) => {
                                 <textarea 
                                     v-model="form.message" 
                                     rows="6" 
-                                    class="w-full rounded-xl border-gray-300 dark:border-gray-600 dark:bg-gray-900 focus:ring-blue-500 focus:border-blue-500 shadow-sm font-mono text-sm"
+                                    class="w-full rounded-xl border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200 focus:ring-blue-500 focus:border-blue-500 shadow-sm font-mono text-sm"
                                     placeholder="Type your message here..."
                                 ></textarea>
 
@@ -455,7 +455,7 @@ const formatDate = (date) => {
 
                     <!-- Footer -->
                     <div class="p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex justify-between items-center">
-                        <button @click="closeCompose" class="text-gray-500 hover:text-gray-700 text-sm font-medium">Cancel</button>
+                        <button @click="closeCompose" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-sm font-medium">Cancel</button>
                         <button 
                             @click="sendSms" 
                             :disabled="form.processing || (composeMode === 'manual' && !form.recipients.length) || (composeMode === 'filter' && recipientCount === 0)"
@@ -477,20 +477,20 @@ const formatDate = (date) => {
 
             <!-- View Modal (Reuse existing Modal component) -->
             <Modal :show="showViewModal" @close="showViewModal = false">
-                <div class="p-6" v-if="selectedSms">
+                <div class="p-6 dark:bg-gray-800 dark:text-white" v-if="selectedSms">
                     <h3 class="text-lg font-bold mb-4">Message Details</h3>
                     <div class="space-y-4">
                         <div>
-                            <label class="text-xs uppercase text-gray-500">Recipient</label>
+                            <label class="text-xs uppercase text-gray-500 dark:text-gray-400">Recipient</label>
                             <p class="font-medium">{{ selectedSms.recipient_name }} ({{ selectedSms.phone_number }})</p>
                         </div>
                         <div>
-                            <label class="text-xs uppercase text-gray-500">Message</label>
-                            <p class="p-3 bg-gray-50 rounded-lg text-sm">{{ selectedSms.message }}</p>
+                            <label class="text-xs uppercase text-gray-500 dark:text-gray-400">Message</label>
+                            <p class="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-sm">{{ selectedSms.message }}</p>
                         </div>
                     </div>
                     <div class="mt-6 flex justify-end">
-                        <button @click="showViewModal = false" class="px-4 py-2 bg-gray-200 rounded-lg">Close</button>
+                        <button @click="showViewModal = false" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">Close</button>
                     </div>
                 </div>
             </Modal>

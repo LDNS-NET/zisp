@@ -83,7 +83,7 @@ const navigation = [
     { name: 'All Installations', href: route('tenant.installations.index'), icon: Layers, active: 'tenant.installations.index', roles: ['tenant_admin', 'admin', 'network_engineer', 'technical', 'technician'], permission: 'view_installations' },
 
     { header: 'System & Security', roles: ['tenant_admin', 'network_admin'] },
-    { name: 'Staff Management', href: route('settings.staff.index'), icon: UserCog, active: 'settings.staff.*', roles: ['tenant_admin'], permission: 'manage_staff' },
+    { name: 'Team', href: route('settings.staff.index'), icon: UserCog, active: 'settings.staff.*', roles: ['tenant_admin'], permission: 'manage_staff' },
     { name: 'Content Filtering', href: route('settings.content-filter.index'), icon: Lock, active: 'settings.content-filter.*', roles: ['tenant_admin', 'network_engineer', 'network_admin'], permission: 'manage_filters' },
     
     { header: 'Communication', roles: ['tenant_admin', 'admin', 'marketing', 'customer_care'] },
