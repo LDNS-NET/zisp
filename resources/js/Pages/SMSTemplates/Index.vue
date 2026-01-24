@@ -124,14 +124,14 @@ const submit = () => {
 };
 
 const availableVariables = [
-    '{full_name}',
-    '{phone}',
-    '{account_number}',
-    '{expiry_date}',
-    '{package}',
-    '{username}',
-    '{password}',
-    '{support_number}'
+    { label: 'Full Name', value: '{full_name}' },
+    { label: 'Phone', value: '{phone}' },
+    { label: 'Account No.', value: '{account_number}' },
+    { label: 'Expiry Date', value: '{expiry_date}' },
+    { label: 'Package Name', value: '{package}' },
+    { label: 'Username', value: '{username}' },
+    { label: 'Password', value: '{password}' },
+    { label: 'Support No.', value: '{support_number}' },
 ];
 
 const insertVariable = (variable) => {
@@ -412,13 +412,14 @@ const bulkDelete = () => {
                                     <p class="mb-1 font-medium">Available Variables (Click to insert):</p>
                                     <div class="flex flex-wrap gap-2">
                                         <button 
-                                            v-for="variable in availableVariables" 
-                                            :key="variable"
+                                            v-for="v in availableVariables" 
+                                            :key="v.value"
                                             type="button"
-                                            @click="insertVariable(variable)"
+                                            @click="insertVariable(v.value)"
                                             class="px-2 py-1 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded text-xs text-gray-700 dark:text-gray-300 transition-colors border border-gray-200 dark:border-gray-600"
+                                            :title="'Insert ' + v.value"
                                         >
-                                            {{ variable }}
+                                            {{ v.label }}
                                         </button>
                                     </div>
                                 </div>

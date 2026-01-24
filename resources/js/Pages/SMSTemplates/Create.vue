@@ -23,7 +23,39 @@ function submit() {
             toast.error('Failed. Check form for errors.');
         },
     });
+    });
 }
+
+const availableVariables = [
+    { label: 'Full Name', value: '{full_name}' },
+    { label: 'Phone', value: '{phone}' },
+    { label: 'Account No.', value: '{account_number}' },
+    { label: 'Expiry Date', value: '{expiry_date}' },
+    { label: 'Package Name', value: '{package}' },
+    { label: 'Username', value: '{username}' },
+    { label: 'Password', value: '{password}' },
+    { label: 'Support No.', value: '{support_number}' },
+];
+
+const insertVariable = (variable) => {
+    const textarea = document.getElementById('content');
+    if (textarea) {
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const text = form.content;
+        const before = text.substring(0, start);
+        const after = text.substring(end, text.length);
+        form.content = before + variable + after;
+        
+        // Restore focus and cursor position
+        setTimeout(() => {
+            textarea.focus();
+            textarea.setSelectionRange(start + variable.length, start + variable.length);
+        }, 0);
+    } else {
+        form.content += variable;
+    }
+};
 </script>
 
 <template>
@@ -69,14 +101,20 @@ function submit() {
                             ></TextArea>
                         </div>
 
-                        <div class="px-2 font-semibold">
-                            Use These Variables to customise your messages:
+                        <div class="px-2 font-semibold text-sm text-gray-700 dark:text-gray-300">
+                            Available Variables (Click to insert):
                         </div>
-                        <div
-                            class="rounded-xl border border-dotted border-blue-500 bg-gray-300 px-2 py-2 text-sm text-gray-900 dark:bg-gray-900 dark:text-gray-100"
-                        >
-                            <div>{full_name}, {phone}, {account_number}, {package}</div>
-                            <div> {expiry_date}, {username}, {password}, {support_number}</div>
+                        <div class="flex flex-wrap gap-2 px-2">
+                            <button 
+                                v-for="v in availableVariables" 
+                                :key="v.value"
+                                type="button"
+                                @click="insertVariable(v.value)"
+                                class="px-2 py-1 bg-white dark:bg-gray-600 border border-gray-200 dark:border-gray-500 rounded text-xs font-medium text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-300 transition-colors shadow-sm"
+                                :title="'Insert ' + v.value"
+                            >
+                                {{ v.label }}
+                            </button>
                         </div>
 
                         <div class="flex items-center justify-between">
