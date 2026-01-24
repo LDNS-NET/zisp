@@ -357,6 +357,7 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode', 'sta
         //Communication
         Route::middleware(['role:tenant_admin|admin|marketing|customer_care'])->group(function () {
             //SMS
+            Route::get('/sms/count', [TenantSMSController::class, 'count'])->name('sms.count');
             Route::resource('sms', TenantSMSController::class)
                 ->only(['index', 'create', 'store', 'destroy'])
                 ->middleware('throttle:sms_sending');

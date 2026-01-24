@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Tenants\TenantSMS;
 use App\Models\Tenants\NetworkUser;
 use App\Models\Tenants\TenantSMSTemplate;
+use App\Models\Package;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Http;
@@ -26,11 +27,15 @@ class TenantSMSController extends Controller
             
         $renters = NetworkUser::all(['id', 'full_name', 'phone']);
         $templates = TenantSMSTemplate::orderBy('name')->get(['id', 'name', 'content']);
+        $packages = Package::all(['id', 'name']);
+        $locations = NetworkUser::whereNotNull('location')->distinct()->pluck('location');
 
         return Inertia::render('SMS/Index', [
             'smsLogs' => $smsLogs,
             'renters' => $renters,
             'templates' => $templates,
+            'packages' => $packages,
+            'locations' => $locations,
             'filters' => [
                 'search' => $request->search,
             ],
@@ -54,12 +59,44 @@ class TenantSMSController extends Controller
         // ...existing code...
 
         $validated = $request->validate([
-            'recipients' => 'required|array',
+            'recipients' => 'nullable|array',
             'recipients.*' => 'exists:network_users,id',
+            'filters' => 'nullable|array',
             'message' => 'required|string|max:500',
         ]);
 
-        $renters = NetworkUser::whereIn('id', $validated['recipients'])->get();
+        if (!empty($validated['filters'])) {
+            $query = NetworkUser::query();
+            $filters = $validated['filters'];
+
+            if (!empty($filters['location'])) {
+                $query->where('location', $filters['location']);
+            }
+            if (!empty($filters['package_id'])) {
+                $query->where('package_id', $filters['package_id']);
+            }
+            if (!empty($filters['status'])) {
+                if ($filters['status'] === 'active') {
+                   $query->where('status', 'active'); // Assuming 'status' column or online check
+                } elseif ($filters['status'] === 'expired') {
+                   $query->where('expires_at', '<', now());
+                } elseif ($filters['status'] === 'expiring_soon') {
+                   $query->where('expires_at', '>', now())->where('expires_at', '<=', now()->addDays(3));
+                }
+            }
+             if (!empty($filters['search'])) {
+                $search = $filters['search'];
+                $query->where(function($q) use ($search) {
+                    $q->where('full_name', 'like', "%{$search}%")
+                      ->orWhere('username', 'like', "%{$search}%")
+                      ->orWhere('phone', 'like', "%{$search}%");
+                });
+            }
+
+            $renters = $query->get();
+        } else {
+            $renters = NetworkUser::whereIn('id', $validated['recipients'] ?? [])->get();
+        }
 
         if ($renters->isEmpty()) {
             return redirect()->back()->withErrors(['recipients' => 'No valid renters selected.']);
@@ -238,4 +275,34 @@ class TenantSMSController extends Controller
         }
     }
 
+    public function count(Request $request)
+    {
+        $query = NetworkUser::query();
+        
+        if ($request->location) {
+            $query->where('location', $request->location);
+        }
+        if ($request->package_id) {
+            $query->where('package_id', $request->package_id);
+        }
+        if ($request->status) {
+            if ($request->status === 'active') {
+                $query->where('expires_at', '>', now());
+            } elseif ($request->status === 'expired') {
+                $query->where('expires_at', '<', now());
+            } elseif ($request->status === 'expiring_soon') {
+                $query->where('expires_at', '>', now())->where('expires_at', '<=', now()->addDays(3));
+            }
+        }
+        if ($request->search) {
+             $search = $request->search;
+             $query->where(function($q) use ($search) {
+                 $q->where('full_name', 'like', "%{$search}%")
+                   ->orWhere('username', 'like', "%{$search}%")
+                   ->orWhere('phone', 'like', "%{$search}%");
+             });
+        }
+
+        return response()->json(['count' => $query->count()]);
+    }
 }
