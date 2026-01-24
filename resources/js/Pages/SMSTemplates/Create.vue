@@ -23,7 +23,6 @@ function submit() {
             toast.error('Failed. Check form for errors.');
         },
     });
-    });
 }
 
 const availableVariables = [
