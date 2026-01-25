@@ -118,7 +118,7 @@ const navigation = [
         { name: 'Tickets', href: route('tickets.index'), active: 'tickets.*', countKey: 'tickets', roles: ['tenant_admin', 'admin', 'customer_care', 'technical'], permission: 'view_tickets' },
     ]},
     { name: 'System', icon: Settings, children: [
-        { name: 'Staff', href: route('settings.staff.index'), active: 'settings.staff.*', roles: ['tenant_admin'], permission: 'manage_staff' },
+        { name: 'Team', href: route('settings.staff.index'), active: 'settings.staff.*', roles: ['tenant_admin'], permission: 'manage_staff' },
     ]}
 ];
 

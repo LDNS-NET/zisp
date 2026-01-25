@@ -199,12 +199,12 @@ const updateGlobalSettings = () => {
         <template #header>
             <div class="flex items-center justify-between">
                 <h2 class="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-200">
-                    Staff Management & Security
+                    Team Management & Security
                 </h2>
                 <div class="flex gap-4">
                     <PrimaryButton @click="openCreateModal" class="flex items-center gap-2">
                         <UserPlus class="h-4 w-4" />
-                        Add Staff Member
+                        Add Team Member
                     </PrimaryButton>
                 </div>
             </div>
@@ -218,10 +218,10 @@ const updateGlobalSettings = () => {
                         <div class="flex-1">
                             <h3 class="text-lg font-bold flex items-center gap-2">
                                 <ShieldAlert class="h-5 w-5" />
-                                Staff Platform Configuration
+                                Team Platform Configuration
                             </h3>
                             <p class="text-sm text-blue-100 mt-1 opacity-90">
-                                This number is displayed to off-duty staff. It should be a personal emergency contact for the administrator.
+                                This number is displayed to off-duty team. It should be a personal emergency contact for the administrator.
                             </p>
                         </div>
                         <div class="flex-shrink-0 flex items-center gap-3">
@@ -251,7 +251,7 @@ const updateGlobalSettings = () => {
                     <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700">
                         <div class="flex items-center justify-between">
                             <div>
-                                <p class="text-sm text-gray-500 dark:text-gray-400">Total Staff</p>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">Total Teams</p>
                                 <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ users.length }}</h3>
                             </div>
                             <div class="h-12 w-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center text-blue-600">
@@ -356,7 +356,7 @@ const updateGlobalSettings = () => {
                                     <tr v-if="!users.length">
                                         <td colspan="5" class="px-6 py-12 text-center text-gray-500">
                                             <Users class="h-12 w-12 mx-auto mb-4 opacity-20" />
-                                            <p>No staff members found.</p>
+                                            <p>No Team members found.</p>
                                         </td>
                                     </tr>
                                 </tbody>
@@ -578,7 +578,7 @@ const updateGlobalSettings = () => {
                     <div class="p-4 rounded-xl border border-gray-100 dark:border-gray-700">
                         <h4 class="text-sm font-bold mb-2 dark:text-white">Max Concurrent Devices</h4>
                         <TextInput v-model="securityForm.max_devices" type="number" min="1" class="w-24 text-sm" />
-                        <p class="mt-2 text-xs text-gray-500">Limit the number of distinct devices this staff member can register.</p>
+                        <p class="mt-2 text-xs text-gray-500">Limit the number of distinct devices this team member can register.</p>
                     </div>
 
                     <div v-if="userDevices.length" class="space-y-3">
