@@ -155,8 +155,10 @@ watch(() => form.collection_method, (newMethod) => {
         form.tinypesa_account_number = recordToLoad.tinypesa_account_number || '';
         form.use_own_api = recordToLoad.use_own_api === 1 || recordToLoad.use_own_api === true || false;
         form.is_active = recordToLoad.is_active ?? true;
+        form.provider = recordToLoad.provider;
     } else {
         // Reset fields if no existing config
+        form.provider = targetProvider;
         if (!useOwnApi) form.use_own_api = false;
     }
 });
