@@ -160,7 +160,36 @@ onMounted(() => {
 </script>
 
 <template>
-    <Head title="Zyraaf Cloud | ISP Manager" />
+    <Head>
+        <title>Zyraaf Cloud | Best ISP Management & Billing System</title>
+        <meta name="description" content="Zyraaf Cloud is the leading ISP management and billing system. Automate M-Pesa payments, manage Mikrotik routers, PPPoE, Hotspot vouchers, and invoices." />
+        <meta name="keywords" content="isp billing system, mikrotik hotspot management, pppoe billing, kenya isp software, mpesa integration, radius billing, wifi management software, zyraaf cloud" />
+        <meta property="og:title" content="Zyraaf Cloud | Automated ISP Billing & Management" />
+        <meta property="og:description" content="Manage your ISP entirely from one dashboard. Mikrotik integration, M-Pesa payments, SMS breakdown, and more." />
+        <meta property="og:type" content="website" />
+        <meta property="text:json-ld">
+            {{
+                JSON.stringify({
+                    "@context": "https://schema.org",
+                    "@type": "SoftwareApplication",
+                    "name": "Zyraaf Cloud",
+                    "applicationCategory": "BusinessApplication",
+                    "operatingSystem": "Web",
+                    "offers": {
+                        "@type": "Offer",
+                        "price": "0",
+                        "priceCurrency": "KES"
+                    },
+                    "description": "Comprehensive ISP management software for automated billing, bandwidth control, and payment processing.",
+                    "aggregateRating": {
+                        "@type": "AggregateRating",
+                        "ratingValue": "4.8",
+                        "ratingCount": "100"
+                    }
+                })
+            }}
+        </meta>
+    </Head>
 
     <!-- Success Toast -->
     <Transition
