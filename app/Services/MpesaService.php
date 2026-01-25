@@ -31,7 +31,7 @@ class MpesaService
         $this->consumerSecret = $credentials['consumer_secret'] ?? config('mpesa.consumer_secret');
         $this->shortcode = $credentials['shortcode'] ?? config('mpesa.shortcode');
         $this->passkey = $credentials['passkey'] ?? config('mpesa.passkey');
-        $this->environment = $credentials['environment'] ?? config('mpesa.environment', 'sandbox');
+        $this->environment = strtolower($credentials['environment'] ?? config('mpesa.environment', 'sandbox'));
         
         $this->baseUrl = $this->environment === 'production' 
             ? 'https://api.safaricom.co.ke' 
@@ -130,7 +130,10 @@ class MpesaService
                 'phone' => $phone,
                 'amount' => $amount,
                 'reference' => $reference,
-                'shortcode' => $this->shortcode
+                'shortcode' => $this->shortcode,
+                'env' => $this->environment,
+                'base_url' => $this->baseUrl,
+                'token_sample' => substr($token, 0, 10) . '...' . substr($token, -5)
             ]);
 
             $response = Http::withToken($token)
@@ -140,6 +143,11 @@ class MpesaService
 
             // Retry on Invalid Access Token (404.001.03)
             if ($response->status() === 404 && isset($data['errorCode']) && $data['errorCode'] === '404.001.03') {
+                Log::warning('M-Pesa: Invalid Access Token detected. Headers and Token Dump:', [
+                    'url' => $url,
+                    'auth_header' => 'Bearer ' . substr($token, 0, 10) . '...',
+                    'env_var' => $this->environment
+                ]);
                 Log::warning('M-Pesa: Invalid Access Token detected. Clearing cache and retrying...');
                 
                 $token = $this->getAccessToken(true); // Force refresh
