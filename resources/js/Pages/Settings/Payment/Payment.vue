@@ -87,6 +87,8 @@ const form = useForm({
     airtel_client_id: initialGateway.airtel_client_id || '',
     airtel_client_secret: initialGateway.airtel_client_secret || '',
     airtel_env: initialGateway.airtel_env || 'sandbox',
+    tinypesa_api_key: initialGateway.tinypesa_api_key || '',
+    tinypesa_account_number: initialGateway.tinypesa_account_number || '',
     use_own_api: initialGateway.use_own_api === 1 || initialGateway.use_own_api === true || false,
     is_active: initialGateway.is_active ?? true,
 });
@@ -105,6 +107,7 @@ watch(() => form.collection_method, (newMethod) => {
     else if (newMethod === 'bank') targetProvider = 'bank';
     else if (newMethod === 'custom_mpesa') { targetProvider = 'mpesa'; useOwnApi = true; targetPayoutMethod = 'mpesa_phone'; }
     else if (newMethod === 'phone') { targetProvider = 'mpesa'; targetPayoutMethod = 'mpesa_phone'; }
+    else if (newMethod === 'tinypesa') { targetProvider = 'tinypesa'; useOwnApi = true; }
     else if (newMethod === 'mpesa_till') { targetProvider = 'mpesa'; targetPayoutMethod = 'till'; }
     else if (newMethod === 'mpesa_paybill') { targetProvider = 'mpesa'; targetPayoutMethod = 'paybill'; }
 
@@ -148,6 +151,8 @@ watch(() => form.collection_method, (newMethod) => {
         form.airtel_client_id = recordToLoad.airtel_client_id || '';
         form.airtel_client_secret = recordToLoad.airtel_client_secret || '';
         form.airtel_env = recordToLoad.airtel_env || 'sandbox';
+        form.tinypesa_api_key = recordToLoad.tinypesa_api_key || '';
+        form.tinypesa_account_number = recordToLoad.tinypesa_account_number || '';
         form.use_own_api = recordToLoad.use_own_api === 1 || recordToLoad.use_own_api === true || false;
         form.is_active = recordToLoad.is_active ?? true;
     } else {
@@ -207,6 +212,11 @@ const save = () => {
             form.provider = 'airtel_money';
             form.payout_method = null;
             form.use_own_api = false;
+            break;
+        case 'tinypesa':
+            form.provider = 'tinypesa';
+            form.payout_method = '';
+            form.use_own_api = true; // Tinypesa is technically an "own api" integration
             break;
         default:
             form.provider = form.collection_method;
@@ -340,6 +350,33 @@ const save = () => {
                         class="mt-1 block w-full"
                         placeholder="Enter account number"
                     />
+                </div>
+
+                <!-- Tinypesa Fields -->
+                <div v-if="form.provider === 'tinypesa'" class="space-y-4">
+                    <div>
+                        <InputLabel for="tinypesa_api_key" value="Tinypesa API Key" />
+                        <TextInput
+                            id="tinypesa_api_key"
+                            v-model="form.tinypesa_api_key"
+                            type="password"
+                            class="mt-1 block w-full"
+                            required
+                        />
+                        <InputError :message="form.errors.tinypesa_api_key" class="mt-2" />
+                    </div>
+                    <div>
+                        <InputLabel for="tinypesa_account_number" value="Tinypesa Account Number (Optional)" />
+                        <TextInput
+                            id="tinypesa_account_number"
+                            v-model="form.tinypesa_account_number"
+                            type="text"
+                            class="mt-1 block w-full"
+                            placeholder="e.g. 123456"
+                        />
+                        <p class="text-xs text-gray-500 mt-1">If left blank, Tinypesa uses your default linked account.</p>
+                        <InputError :message="form.errors.tinypesa_account_number" class="mt-2" />
+                    </div>
                 </div>
 
                 <!-- Paystack -->

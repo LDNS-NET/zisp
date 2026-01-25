@@ -63,7 +63,7 @@ class TenantPaymentGatewayController extends Controller
         $tenantId = $this->resolveTenantId($request);
 
         $validated = $request->validate([
-            'provider' => 'required|in:intasend,mpesa,paystack,flutterwave,momo,airtel_money,bank,custom',
+            'provider' => 'required|in:intasend,mpesa,tinypesa,paystack,flutterwave,momo,airtel_money,bank,custom',
             'payout_method' => 'nullable|string|max:100',
             'bank_name' => 'nullable|string|max:100',
             'bank_account' => 'nullable|string|max:50',
@@ -111,6 +111,8 @@ class TenantPaymentGatewayController extends Controller
             'fawry_security_key' => 'nullable|string',
             'ecocash_client_id' => 'nullable|string',
             'ecocash_client_secret' => 'nullable|string',
+            'tinypesa_api_key' => 'nullable|string',
+            'tinypesa_account_number' => 'nullable|string',
             'wave_api_key' => 'nullable|string',
             'use_own_api' => 'nullable|boolean',
             'label' => 'nullable|string|max:50',

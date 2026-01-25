@@ -140,6 +140,9 @@ Route::middleware(['check.subscription', 'maintenance.mode'])->group(function ()
         Route::post('/flutterwave/webhook', [App\Http\Controllers\Tenants\FlutterwaveController::class, 'webhook'])->name('flutterwave.webhook');
         Route::get('/flutterwave/callback', [App\Http\Controllers\Tenants\FlutterwaveController::class, 'handleCallback'])->name('flutterwave.callback');
 
+        // Tinypesa Webhook
+        Route::post('/tinypesa/webhook', [App\Http\Controllers\Tenants\TinypesaController::class, 'callback'])->name('tinypesa.callback');
+
         Route::get('/hotspot/momo/status/{referenceId}', [MomoController::class, 'checkStatus'])->name('hotspot.momo.status');
     });
 });

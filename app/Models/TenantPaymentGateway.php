@@ -63,6 +63,8 @@ class TenantPaymentGateway extends Model
         'ecocash_client_id',
         'ecocash_client_secret',
         'wave_api_key',
+        'tinypesa_api_key',
+        'tinypesa_account_number',
         'label',
         'is_active',
         'created_by',
@@ -447,5 +449,15 @@ class TenantPaymentGateway extends Model
     public function setWaveApiKeyAttribute($value)
     {
         $this->attributes['wave_api_key'] = $value ? Crypt::encryptString($value) : null;
+    }
+
+    public function getTinypesaApiKeyAttribute($value)
+    {
+        return $value ? Crypt::decryptString($value) : null;
+    }
+
+    public function setTinypesaApiKeyAttribute($value)
+    {
+        $this->attributes['tinypesa_api_key'] = $value ? Crypt::encryptString($value) : null;
     }
 }

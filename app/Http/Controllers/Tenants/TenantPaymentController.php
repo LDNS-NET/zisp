@@ -326,7 +326,7 @@ class TenantPaymentController extends Controller
             // Resolve M-Pesa credentials for this tenant
             $tenantId = $request->tenant_id ?? tenant('id');
             $gateway = \App\Models\TenantPaymentGateway::where('tenant_id', $tenantId)
-                ->where('provider', 'mpesa')
+                ->whereIn('provider', ['mpesa', 'tinypesa'])
                 ->where('use_own_api', true)
                 ->where('is_active', true)
                 ->first();
@@ -351,14 +351,25 @@ class TenantPaymentController extends Controller
             }
 
             // Initiate M-Pesa STK Push
-            $mpesaResponse = $mpesa->stkPush(
-                $phone,
-                $data['amount'],
-                $receiptNumber,
-                "Package Payment - {$package->name}"
-            );
+            if ($gateway && $gateway->provider === 'tinypesa') {
+                $tinypesa = new \App\Services\TinypesaService(
+                    $gateway->tinypesa_api_key, 
+                    $gateway->tinypesa_account_number
+                );
+                
+                $mpesaResponse = $tinypesa->stkPush($phone, $data['amount']);
+            } else {
+                // Default M-Pesa Service
+                $mpesaResponse = $mpesa->stkPush(
+                    $phone,
+                    $data['amount'],
+                    $receiptNumber,
+                    "Package Payment - {$package->name}"
+                );
+            }
 
-            \Log::info('M-Pesa STK Push initiated', [
+            \Log::info('M-Pesa/Tinypesa STK Push initiated', [
+                'provider' => $gateway->provider ?? 'mpesa',
                 'response' => $mpesaResponse,
                 'receipt_number' => $receiptNumber,
                 'using_custom_api' => (bool)$gateway,
@@ -378,7 +389,7 @@ class TenantPaymentController extends Controller
                 'hotspot_package_id' => null,
                 'amount' => $data['amount'],
                 'currency' => $currency,
-                'payment_method' => 'mpesa',
+                'payment_method' => $gateway && $gateway->provider === 'tinypesa' ? 'tinypesa' : 'mpesa',
                 'receipt_number' => $receiptNumber,
                 'status' => 'pending',
                 'checked' => false,
@@ -398,11 +409,19 @@ class TenantPaymentController extends Controller
                 'payment_id' => $payment->id,
                 'receipt_number' => $receiptNumber,
                 'checkout_request_id' => $payment->checkout_request_id,
+                'provider' => $payment->payment_method
             ]);
 
             // Dispatch job to check payment status (using payment model)
-            \App\Jobs\CheckMpesaPaymentStatusJob::dispatch($payment)
-                ->delay(now()->addSeconds(30));
+            // For Tinypesa, we primarily rely on Webhook, but polling might be supported if there's an endpoint.
+            // Tinypesa doesn't strictly have a query endpoint in V1 (it uses callback), so we skip polling or keep it if generic.
+            // MpesaService logic is generic, so we can keep it if it checks logic, BUT CheckMpesaPaymentStatusJob likely uses MpesaService query.
+            // We should only dispatch if provider is mpesa.
+            
+            if ($payment->payment_method === 'mpesa') {
+                \App\Jobs\CheckMpesaPaymentStatusJob::dispatch($payment)
+                    ->delay(now()->addSeconds(30));
+            }
 
             return response()->json([
                 'success' => true,

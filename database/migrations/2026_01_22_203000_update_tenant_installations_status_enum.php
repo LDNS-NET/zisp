@@ -13,10 +13,20 @@ return new class extends Migration
     public function up(): void
     {
         // Alter the status enum to include 'new' and 'pending'
-        DB::statement("ALTER TABLE tenant_installations MODIFY COLUMN status ENUM('new', 'pending', 'scheduled', 'in_progress', 'completed', 'cancelled', 'on_hold') DEFAULT 'new'");
-        
-        // Make scheduled_date nullable if not already
-        DB::statement("ALTER TABLE tenant_installations MODIFY COLUMN scheduled_date DATE NULL");
+        // SQLite doesn't support changing enums easily, so we skip strict check for it or use raw SQL only for MySQL
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE tenant_installations MODIFY COLUMN status ENUM('new', 'pending', 'scheduled', 'in_progress', 'completed', 'cancelled', 'on_hold') DEFAULT 'new'");
+            DB::statement("ALTER TABLE tenant_installations MODIFY COLUMN scheduled_date DATE NULL");
+        } else {
+             // For SQLite, we just make the column nullable using standard schema builder if doctrine is installed, or simpler raw sql workaround
+             // Since this is likely dev, we will assume schema builder is safest path if possible, but change() requires dbal.
+             // We will try to just set nullable for scheduled_date. status enum in sqlite is just text constraint.
+            Schema::table('tenant_installations', function (Blueprint $table) {
+                $table->date('scheduled_date')->nullable()->change();
+                // We cannot easily 'add' values to enum in sqlite without recreating table. 
+                // We will assume the column is just VARCHAR in sqlite or check constraint is loose.
+            });
+        }
     }
 
     /**
