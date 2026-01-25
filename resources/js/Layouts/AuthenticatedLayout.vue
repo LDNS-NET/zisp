@@ -32,7 +32,10 @@ import {
     BarChart3,
     BrainCircuit,
     UserCog,
-    Lock
+    Lock,
+    ChevronDown,
+    Wrench,
+    Radio
 } from 'lucide-vue-next';
 
 const { theme, setTheme } = useTheme();
@@ -40,99 +43,112 @@ const showingNavigationDropdown = ref(false);
 const sidebarOpen = ref(false);
 const collapsed = ref(false);
 
+// State for open groups in sidebar
+const openGroups = ref({});
+
 // Persist collapsed state
 onMounted(() => {
     const savedCollapsed = localStorage.getItem('ldns_sidebar_collapsed');
     if (savedCollapsed !== null) {
         collapsed.value = savedCollapsed === 'true';
     }
+    
+    // Auto-open groups based on current route
+    navigation.forEach(group => {
+        if (group.children) {
+            const hasActiveChild = group.children.some(child => route().current(child.active));
+            if (hasActiveChild) {
+                openGroups.value[group.name] = true;
+            }
+        }
+    });
 });
 
 watch(collapsed, (val) => {
     localStorage.setItem('ldns_sidebar_collapsed', val);
+    if (val) {
+        // Close all groups when collapsing sidebar for cleaner UI
+        openGroups.value = {};
+    }
 });
+
+const toggleGroup = (groupName) => {
+    if (collapsed.value) {
+        collapsed.value = false; // Auto expand sidebar if clicking a group
+        setTimeout(() => {
+            openGroups.value[groupName] = !openGroups.value[groupName];
+        }, 150);
+    } else {
+        openGroups.value[groupName] = !openGroups.value[groupName];
+    }
+};
 
 const navigation = [
     { name: 'Dashboard', href: route('dashboard'), icon: LayoutDashboard, active: 'dashboard' },
-    
-    { header: 'Analytics' },
-    { name: 'Traffic Analytics', href: route('analytics.traffic'), icon: BarChart3, active: 'analytics.traffic', roles: ['tenant_admin', 'admin', 'network_engineer', 'technical'], permission: 'view_traffic_analytics' },
-    { name: 'Network Topology', href: route('analytics.topology'), icon: Network, active: 'analytics.topology', roles: ['tenant_admin', 'network_engineer', 'technical'], permission: 'view_topology' },
-    { name: 'Predictive Insights', href: route('analytics.predictions'), icon: BrainCircuit, active: 'analytics.predictions', roles: ['tenant_admin', 'admin', 'network_engineer'], permission: 'view_predictions' },
-    { name: 'Financial Intelligence', href: route('analytics.finance'), icon: Banknote, active: 'analytics.finance', roles: ['tenant_admin'], permission: 'view_finance' },
-    { name: 'Report Builder', href: route('analytics.reports.index'), icon: FileText, active: 'analytics.reports.*', roles: ['tenant_admin'], permission: 'view_reports' },
-    
-    { header: 'User Management' },
-    { name: 'Online Users', href: route('activeusers.index'), icon: Activity, active: 'activeusers.*', countKey: 'online_users', roles: ['tenant_admin', 'admin', 'customer_care', 'technical'], permission: 'view_online_users' },
-    { name: 'All Users', href: route('users.index'), icon: Users, active: 'users.*', countKey: 'all_users', roles: ['tenant_admin', 'admin', 'customer_care', 'technical'], permission: 'view_users' },
-    { name: 'Leads', href: route('leads.index'), icon: Layers, active: 'leads.*', countKey: 'leads', roles: ['tenant_admin', 'admin', 'marketing'], permission: 'view_leads' },
-    { name: 'Tickets', href: route('tickets.index'), icon: HelpCircle, active: 'tickets.*', countKey: 'tickets', roles: ['tenant_admin', 'admin', 'customer_care', 'technical'], permission: 'view_tickets' },
-    
-    { header: 'Billing & Finance' },
-    { name: 'Packages', href: route('packages.index'), icon: Layers, active: 'packages.*', countKey: 'packages', roles: ['tenant_admin', 'admin', 'marketing'], permission: 'view_packages' },
-    { name: 'Vouchers', href: route('vouchers.index'), icon: Gift, active: 'vouchers.*', countKey: 'vouchers', roles: ['tenant_admin', 'admin', 'marketing', 'customer_care'], permission: 'view_vouchers' },
-    { name: 'Payments', href: route('payments.index'), icon: Banknote, active: 'payments.*', roles: ['tenant_admin'], permission: 'view_payments' },
-    { name: 'Invoices', href: route('invoices.index'), icon: FileText, active: 'invoices.*', countKey: 'invoices', roles: ['tenant_admin', 'admin', 'customer_care'], permission: 'view_invoices' },
-
-    { header: 'Network Management', roles: ['tenant_admin', 'network_engineer', 'technical', 'network_admin'] },
-    { name: 'Mikrotiks', href: route('mikrotiks.index'), icon: Network, active: 'mikrotiks.*', countKey: 'mikrotiks', roles: ['tenant_admin', 'network_engineer', 'technical', 'network_admin'], permission: 'view_routers' },
-    { name: 'Equipment', href: route('equipment.index'), icon: Layers, active: 'equipment.*', roles: ['tenant_admin', 'admin', 'network_engineer', 'technical'], permission: 'view_equipment' },
-
-    { header: 'Field Operations', roles: ['tenant_admin', 'admin', 'network_engineer', 'technical', 'technician'] },
-    { name: 'My Installations', href: route('tenant.installations.my-installations'), icon: Layers, active: 'tenant.installations.my-installations', roles: ['technical', 'technician'], permission: 'view_installations' },
-    { name: 'All Installations', href: route('tenant.installations.index'), icon: Layers, active: 'tenant.installations.index', roles: ['tenant_admin', 'admin', 'network_engineer', 'technical', 'technician'], permission: 'view_installations' },
-
-    { header: 'System & Security', roles: ['tenant_admin', 'network_admin'] },
-    { name: 'Team', href: route('settings.staff.index'), icon: UserCog, active: 'settings.staff.*', roles: ['tenant_admin'], permission: 'manage_staff' },
-    { name: 'Content Filtering', href: route('settings.content-filter.index'), icon: Lock, active: 'settings.content-filter.*', roles: ['tenant_admin', 'network_engineer', 'network_admin'], permission: 'manage_filters' },
-    
-    { header: 'Communication', roles: ['tenant_admin', 'admin', 'marketing', 'customer_care'] },
-    { name: 'SMS', href: route('sms.index'), icon: MessageSquare, active: 'sms.*', roles: ['tenant_admin', 'admin', 'marketing', 'customer_care'], permission: 'view_sms' },
-    { name: 'Templates', href: route('smstemplates.index'), icon: Smartphone, active: 'smstemplates.*', roles: ['tenant_admin', 'admin', 'marketing', 'customer_care'], permission: 'view_templates' },
+    { name: 'Analytics', icon: BarChart3, children: [
+        { name: 'Traffic Analytics', href: route('analytics.traffic'), active: 'analytics.traffic', roles: ['tenant_admin', 'admin', 'network_engineer', 'technical'], permission: 'view_traffic_analytics' },
+        { name: 'Network Topology', href: route('analytics.topology'), active: 'analytics.topology', roles: ['tenant_admin', 'network_engineer', 'technical'], permission: 'view_topology' },
+        { name: 'Predictive Insights', href: route('analytics.predictions'), active: 'analytics.predictions', roles: ['tenant_admin', 'admin', 'network_engineer'], permission: 'view_predictions' },
+        { name: 'Financial Intelligence', href: route('analytics.finance'), active: 'analytics.finance', roles: ['tenant_admin'], permission: 'view_finance' },
+        { name: 'Report Builder', href: route('analytics.reports.index'), active: 'analytics.reports.*', roles: ['tenant_admin'], permission: 'view_reports' },
+    ]},
+    { name: 'User Management', icon: Users, children: [
+        { name: 'Online Users', href: route('activeusers.index'), active: 'activeusers.*', countKey: 'online_users', roles: ['tenant_admin', 'admin', 'customer_care', 'technical'], permission: 'view_online_users' },
+        { name: 'All Users', href: route('users.index'), active: 'users.*', countKey: 'all_users', roles: ['tenant_admin', 'admin', 'customer_care', 'technical'], permission: 'view_users' },
+        { name: 'My Leads', href: route('leads.index'), active: 'leads.*', countKey: 'leads', roles: ['tenant_admin', 'admin', 'marketing'], permission: 'view_leads' },
+    ]},
+    { name: 'Finance', icon: Banknote, children: [
+        { name: 'Packages', href: route('packages.index'), active: 'packages.*', countKey: 'packages', roles: ['tenant_admin', 'admin', 'marketing'], permission: 'view_packages' },
+        { name: 'Vouchers', href: route('vouchers.index'), active: 'vouchers.*', countKey: 'vouchers', roles: ['tenant_admin', 'admin', 'marketing', 'customer_care'], permission: 'view_vouchers' },
+        { name: 'Payments', href: route('payments.index'), active: 'payments.*', roles: ['tenant_admin'], permission: 'view_payments' },
+        { name: 'Invoices', href: route('invoices.index'), active: 'invoices.*', countKey: 'invoices', roles: ['tenant_admin', 'admin', 'customer_care'], permission: 'view_invoices' },
+    ]},
+    { name: 'Network', icon: Network, children: [
+        { name: 'Mikrotiks', href: route('mikrotiks.index'), active: 'mikrotiks.*', countKey: 'mikrotiks', roles: ['tenant_admin', 'network_engineer', 'technical', 'network_admin'], permission: 'view_routers' },
+        { name: 'Equipment', href: route('equipment.index'), active: 'equipment.*', roles: ['tenant_admin', 'admin', 'network_engineer', 'technical'], permission: 'view_equipment' },
+        { name: 'Content Filter', href: route('settings.content-filter.index'), active: 'settings.content-filter.*', roles: ['tenant_admin', 'network_engineer', 'network_admin'], permission: 'manage_filters' },
+    ]},
+    { name: 'Field Ops', icon: Wrench, children: [
+        { name: 'My Installations', href: route('tenant.installations.my-installations'), active: 'tenant.installations.my-installations', roles: ['technical', 'technician'], permission: 'view_installations' },
+        { name: 'Dispatch Board', href: route('tenant.installations.index'), active: 'tenant.installations.index', roles: ['tenant_admin', 'admin', 'network_engineer', 'technical', 'technician'], permission: 'view_installations' },
+    ]},
+    { name: 'Support', icon: MessageSquare, children: [
+        { name: 'SMS', href: route('sms.index'), active: 'sms.*', roles: ['tenant_admin', 'admin', 'marketing', 'customer_care'], permission: 'view_sms' },
+        { name: 'Templates', href: route('smstemplates.index'), active: 'smstemplates.*', roles: ['tenant_admin', 'admin', 'marketing', 'customer_care'], permission: 'view_templates' },
+        { name: 'Tickets', href: route('tickets.index'), active: 'tickets.*', countKey: 'tickets', roles: ['tenant_admin', 'admin', 'customer_care', 'technical'], permission: 'view_tickets' },
+    ]},
+    { name: 'System', icon: Settings, children: [
+        { name: 'Staff', href: route('settings.staff.index'), active: 'settings.staff.*', roles: ['tenant_admin'], permission: 'manage_staff' },
+    ]}
 ];
 
 const page = usePage();
 const user = page.props.auth.user;
 const tenantLogo = page.props.tenant?.logo;
 
+// Helper to check access for a single item
+const hasAccess = (item) => {
+    if (!item.roles && !item.permission) return true;
+    const hasRole = item.roles ? item.roles.some((role) => user.roles.includes(role)) : false;
+    const hasPermission = item.permission ? user.permissions.includes(item.permission) : false;
+    return hasRole || hasPermission;
+};
+
 const filteredNavigation = computed(() => {
-    return navigation.filter((item, index) => {
-        // If it's a link, filter by roles OR permission
-        if (!item.header) {
-            if (!item.roles && !item.permission) return true;
-            
-            const hasRole = item.roles ? item.roles.some((role) => user.roles.includes(role)) : false;
-            const hasPermission = item.permission ? user.permissions.includes(item.permission) : false;
-            
-            return hasRole || hasPermission;
+    return navigation.reduce((acc, item) => {
+        // Single link
+        if (!item.children) {
+            if (hasAccess(item)) acc.push(item);
+            return acc;
         }
-
-        // If it's a header, check if it has roles/permissions
-        const headerHasRole = item.roles ? item.roles.some(role => user.roles.includes(role)) : true;
-        const headerHasPermission = item.permission ? user.permissions.includes(item.permission) : false;
-
-        if (!headerHasRole && !headerHasPermission) {
-            return false;
+        
+        // Group: Check if at least one child is accessible
+        const accessibleChildren = item.children.filter(child => hasAccess(child));
+        if (accessibleChildren.length > 0) {
+            acc.push({ ...item, children: accessibleChildren });
         }
-
-        // Check if there is at least one visible item following this header until the next header
-        let hasVisibleChild = false;
-        for (let i = index + 1; i < navigation.length; i++) {
-            const nextItem = navigation[i];
-            if (nextItem.header) break;
-            
-            // Check if this child is visible
-            const isChildVisible = (!nextItem.roles && !nextItem.permission) || 
-                                   (nextItem.roles && nextItem.roles.some(role => user.roles.includes(role))) ||
-                                   (nextItem.permission && user.permissions.includes(nextItem.permission));
-                                   
-            if (isChildVisible) {
-                hasVisibleChild = true;
-                break;
-            }
-        }
-        return hasVisibleChild;
-    });
+        return acc;
+    }, []);
 });
 
 const settingsRoutes = [
@@ -183,7 +199,7 @@ function toggleSidebar() {
                     <img 
                         :src="tenantLogo" 
                         alt="Tenant Logo" 
-                        class="h-12 w-12 object-contain rounded-lg transition-all duration-300"
+                        class="h-12 w-auto max-w-[150px] object-contain transition-all duration-300"
                     />
                 </div>
 
@@ -192,7 +208,7 @@ function toggleSidebar() {
                     <img 
                         :src="tenantLogo" 
                         alt="Tenant Logo" 
-                        class="h-12 w-12 object-contain rounded-lg transition-all duration-300"
+                        class="h-10 w-auto object-contain transition-all duration-300"
                     />
                 </div>
 
@@ -211,25 +227,18 @@ function toggleSidebar() {
             </div>
 
             <!-- Navigation -->
-            <div class="flex-1 overflow-y-auto py-4 px-3 space-y-1 custom-scrollbar">
+            <div class="flex-1 overflow-y-auto py-4 px-3 space-y-2 custom-scrollbar">
                 <template v-for="(item, index) in filteredNavigation" :key="index">
-                    <!-- Section Header -->
-                    <div 
-                        v-if="item.header" 
-                        :class="['mt-6 mb-2 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider transition-all duration-300', collapsed ? 'lg:hidden' : 'block']"
-                    >
-                        {{ item.header }}
-                    </div>
                     
-                    <!-- Link -->
+                    <!-- Single Link -->
                     <Link 
-                        v-else
+                        v-if="!item.children"
                         :href="item.href"
                         :class="[
                             'group flex items-center px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200',
                             route().current(item.active) 
-                                ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400' 
-                                : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white'
+                                ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20' 
+                                : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white'
                         ]"
                         :title="collapsed ? item.name : ''"
                     >
@@ -237,23 +246,96 @@ function toggleSidebar() {
                             :is="item.icon" 
                             :class="[
                                 'flex-shrink-0 w-5 h-5 transition-colors duration-200',
-                                route().current(item.active) ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 group-hover:text-gray-600 dark:text-gray-500 dark:group-hover:text-gray-300',
+                                route().current(item.active) ? 'text-white' : 'text-gray-400 group-hover:text-gray-600 dark:text-gray-500 dark:group-hover:text-gray-300',
                                 collapsed ? 'mx-auto' : 'mr-3'
                             ]" 
                         />
                         <span :class="['transition-all duration-300 lg:whitespace-nowrap', collapsed ? 'lg:hidden' : 'block']">
                             {{ item.name }}
                         </span>
-                        
-                        <!-- Count Badge -->
-                        <span 
-                            v-if="item.countKey && $page.props.sidebarCounts && $page.props.sidebarCounts[item.countKey] > 0 && !collapsed" 
-                            class="ml-auto inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300"
-                        >
-                            {{ $page.props.sidebarCounts[item.countKey] }}
-                        </span>
                     </Link>
+
+                    <!-- Group Dropdown -->
+                    <div v-else>
+                        <button 
+                            @click="toggleGroup(item.name)"
+                            :class="[
+                                'w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group',
+                                openGroups[item.name] 
+                                    ? 'text-gray-900 dark:text-white bg-gray-50 dark:bg-slate-800/50' 
+                                    : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white'
+                            ]"
+                            :title="collapsed ? item.name : ''"
+                        >
+                            <div class="flex items-center">
+                                <component 
+                                    :is="item.icon" 
+                                    :class="[
+                                        'flex-shrink-0 w-5 h-5 transition-colors duration-200',
+                                        openGroups[item.name] ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 group-hover:text-gray-600 dark:text-gray-500 dark:group-hover:text-gray-300',
+                                        collapsed ? 'mx-auto' : 'mr-3'
+                                    ]" 
+                                />
+                                <span :class="['transition-all duration-300', collapsed ? 'lg:hidden' : 'block']">
+                                    {{ item.name }}
+                                </span>
+                            </div>
+                            <ChevronDown 
+                                :class="[
+                                    'w-4 h-4 text-gray-400 transition-transform duration-200',
+                                    openGroups[item.name] ? 'rotate-180' : '',
+                                    collapsed ? 'hidden' : 'block'
+                                ]" 
+                            />
+                        </button>
+                        
+                        <!-- Children -->
+                        <div 
+                            v-show="openGroups[item.name] && !collapsed" 
+                            class="mt-1 space-y-1 pl-10 pr-2 transition-all duration-300"
+                        >
+                            <Link 
+                                v-for="child in item.children" 
+                                :key="child.name"
+                                :href="child.href"
+                                :class="[
+                                    'flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 relative',
+                                    route().current(child.active)
+                                        ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/10'
+                                        : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-800/50'
+                                ]"
+                            >
+                                <span v-if="route().current(child.active)" class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-600 rounded-r-md"></span>
+                                <span class="truncate">{{ child.name }}</span>
+                                
+                                <span 
+                                    v-if="child.countKey && $page.props.sidebarCounts && $page.props.sidebarCounts[child.countKey] > 0" 
+                                    class="ml-auto inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-gray-300"
+                                >
+                                    {{ $page.props.sidebarCounts[child.countKey] }}
+                                </span>
+                            </Link>
+                        </div>
+                    </div>
                 </template>
+            </div>
+            
+            <!-- User Profile Bottom (Optional Polish) -->
+            <div class="mt-auto border-t border-gray-100 dark:border-slate-800 p-4">
+                 <div class="flex items-center gap-3" v-if="!collapsed">
+                    <div class="h-8 w-8 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-xs shadow-lg">
+                        {{ user.name.charAt(0).toUpperCase() }}
+                    </div>
+                    <div class="flex-1 min-w-0 overflow-hidden">
+                        <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ user.name }}</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ user.email }}</p>
+                    </div>
+                 </div>
+                 <div v-else class="flex justify-center">
+                    <div class="h-8 w-8 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-xs shadow-lg">
+                        {{ user.name.charAt(0).toUpperCase() }}
+                    </div>
+                 </div>
             </div>
         </aside>
 
@@ -277,9 +359,9 @@ function toggleSidebar() {
                     Leave Impersonation
                 </Link>
             </div>
-            <header class="h-16 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between px-4 sm:px-6 lg:px-8 z-30 sticky top-0">
+            <header class="h-16 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between px-4 sm:px-6 lg:px-8 z-30 sticky top-0 backdrop-blur-md bg-opacity-80 dark:bg-opacity-80">
                 
-                <!-- Left: Mobile Toggle -->
+                <!-- Left: Mobile Toggle & Title -->
                 <div class="flex items-center gap-4">
                     <button 
                         @click="toggleSidebar" 
@@ -287,17 +369,21 @@ function toggleSidebar() {
                     >
                         <Menu class="w-6 h-6" />
                     </button>
-                    <span 
-                        :class="['font-bold text-xl text-gray-900 dark:text-white transition-opacity duration-300', collapsed ? 'lg:opacity-0 lg:hidden' : 'opacity-100']"
-                    >
-                        {{ user.name }}
-                    </span>
+                    <!-- Breadcrumbs or Title could go here -->
                 </div>
 
-                
-
                 <!-- Right: Actions -->
-                <div class="flex items-center gap-3 sm:gap-4">
+                <div class="flex items-center gap-2 sm:gap-4">
+                     <!-- Theme Toggle -->
+                    <button 
+                        @click="setTheme(theme === 'dark' ? 'light' : 'dark')"
+                        class="p-2 text-gray-500 hover:bg-gray-100 rounded-full dark:text-gray-400 dark:hover:bg-slate-800 transition-colors"
+                        :title="theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
+                    >
+                        <Sun v-if="theme === 'dark'" class="w-5 h-5" />
+                        <Moon v-else class="w-5 h-5" />
+                    </button>
+                    
                     <!-- Notifications -->
                     <Link 
                         v-if="canAccessDomainSettings"
@@ -308,18 +394,18 @@ function toggleSidebar() {
                         <Bell class="w-5 h-5" />
                         <span 
                             v-if="user.unread_notifications_count > 0"
-                            class="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-white dark:ring-slate-900"
+                            class="absolute top-1.5 right-1.5 flex h-2 w-2 items-center justify-center rounded-full bg-red-500 ring-2 ring-white dark:ring-slate-900"
                         >
-                            {{ user.unread_notifications_count }}
                         </span>
                     </Link>
 
+                    <div class="h-6 w-px bg-gray-200 dark:bg-slate-700 hidden sm:block"></div>
+
                     <Dropdown align="right" width="48">
                         <template #trigger>
-                            <button class="flex items-center gap-3 pl-3 pr-1 py-1.5 rounded-full hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors border border-transparent hover:border-gray-200 dark:hover:border-slate-700">
-                                <div class="h-9 w-9 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-700 dark:text-blue-300 font-bold text-sm border border-blue-200 dark:border-blue-800">
-                                    {{ user.name.charAt(0).toUpperCase() }}
-                                </div>
+                            <button class="flex items-center gap-2 pl-2 pr-1 py-1.5 rounded-full hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors">
+                                <span class="hidden sm:block text-sm font-medium text-gray-700 dark:text-gray-200">{{ user.name }}</span>
+                                <ChevronDown class="w-4 h-4 text-gray-400" />
                             </button>
                         </template>
 
@@ -328,15 +414,7 @@ function toggleSidebar() {
                                 <div class="font-medium text-gray-900 dark:text-white">{{ user.name }}</div>
                                 <div class="text-sm text-gray-500 dark:text-gray-400">{{ user.email }}</div>
                             </div>
-                            <!-- Theme Toggle -->
-                                <button 
-                                    @click="setTheme(theme === 'dark' ? 'light' : 'dark')"
-                                    class="p-2 text-gray-500 hover:bg-gray-100 rounded-full dark:text-gray-400 dark:hover:bg-slate-800 transition-colors"
-                                    :title="theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
-                                >
-                                    <Sun v-if="theme === 'dark'" class="w-5 h-5" />
-                                    <Moon v-else class="w-5 h-5" />
-                                </button>
+                            
                             <DropdownLink :href="route('profile.edit')" class="flex items-center gap-2">
                                 <FolderEdit class="w-4 h-4" /> Profile
                             </DropdownLink>
