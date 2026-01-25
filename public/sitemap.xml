@@ -8,7 +8,91 @@
         <priority>1.0</priority>
     </url>
 
-    <!-- Authentication (Included as requested) -->
+    <!-- Marketing Service Pages -->
+    <url>
+        <loc>https://zispbilling.cloud/mikrotik-billing-system</loc>
+        <changefreq>weekly</changefreq>
+        <priority>0.9</priority>
+    </url>
+    <url>
+        <loc>https://zispbilling.cloud/hotspot-billing</loc>
+        <changefreq>weekly</changefreq>
+        <priority>0.9</priority>
+    </url>
+    <url>
+        <loc>https://zispbilling.cloud/pppoe-billing</loc>
+        <changefreq>weekly</changefreq>
+        <priority>0.9</priority>
+    </url>
+    <url>
+        <loc>https://zispbilling.cloud/mobile-money-integration</loc>
+        <changefreq>weekly</changefreq>
+        <priority>0.9</priority>
+    </url>
+    <url>
+        <loc>https://zispbilling.cloud/african-isp-billing-system</loc>
+        <changefreq>weekly</changefreq>
+        <priority>0.9</priority>
+    </url>
+
+    <!-- Country Landing Pages -->
+    <url>
+        <loc>https://zispbilling.cloud/isp-billing-software-kenya</loc>
+        <changefreq>monthly</changefreq>
+        <priority>0.8</priority>
+    </url>
+    <url>
+        <loc>https://zispbilling.cloud/isp-billing-software-uganda</loc>
+        <changefreq>monthly</changefreq>
+        <priority>0.8</priority>
+    </url>
+    <url>
+        <loc>https://zispbilling.cloud/isp-billing-software-tanzania</loc>
+        <changefreq>monthly</changefreq>
+        <priority>0.8</priority>
+    </url>
+    <url>
+        <loc>https://zispbilling.cloud/isp-billing-software-ghana</loc>
+        <changefreq>monthly</changefreq>
+        <priority>0.8</priority>
+    </url>
+    <url>
+        <loc>https://zispbilling.cloud/isp-billing-software-nigeria</loc>
+        <changefreq>monthly</changefreq>
+        <priority>0.8</priority>
+    </url>
+    <url>
+        <loc>https://zispbilling.cloud/isp-billing-software-zambia</loc>
+        <changefreq>monthly</changefreq>
+        <priority>0.8</priority>
+    </url>
+    <url>
+        <loc>https://zispbilling.cloud/isp-billing-software-rwanda</loc>
+        <changefreq>monthly</changefreq>
+        <priority>0.8</priority>
+    </url>
+    <url>
+        <loc>https://zispbilling.cloud/isp-billing-software-south-sudan</loc>
+        <changefreq>monthly</changefreq>
+        <priority>0.8</priority>
+    </url>
+    <url>
+        <loc>https://zispbilling.cloud/isp-billing-software-somalia</loc>
+        <changefreq>monthly</changefreq>
+        <priority>0.8</priority>
+    </url>
+    <url>
+        <loc>https://zispbilling.cloud/isp-billing-software-drc</loc>
+        <changefreq>monthly</changefreq>
+        <priority>0.8</priority>
+    </url>
+    <url>
+        <loc>https://zispbilling.cloud/isp-billing-software-ethiopia</loc>
+        <changefreq>monthly</changefreq>
+        <priority>0.8</priority>
+    </url>
+
+    <!-- Core App Pages -->
     <url>
         <loc>https://zispbilling.cloud/login</loc>
         <changefreq>monthly</changefreq>

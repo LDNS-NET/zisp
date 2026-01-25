@@ -58,6 +58,19 @@ use App\Http\Controllers\OnboardingRequestController;
 */
 Route::get('/', [\App\Http\Controllers\WelcomeController::class, 'index']);
 
+// SEO Marketing Routes
+Route::controller(\App\Http\Controllers\MarketingController::class)->group(function () {
+    // Service Pages
+    Route::get('/mikrotik-billing-system', fn() => app()->call('App\Http\Controllers\MarketingController@service', ['slug' => 'mikrotik-billing-system']));
+    Route::get('/hotspot-billing', fn() => app()->call('App\Http\Controllers\MarketingController@service', ['slug' => 'hotspot-billing']));
+    Route::get('/pppoe-billing', fn() => app()->call('App\Http\Controllers\MarketingController@service', ['slug' => 'pppoe-billing']));
+    Route::get('/mobile-money-integration', fn() => app()->call('App\Http\Controllers\MarketingController@service', ['slug' => 'mobile-money-integration']));
+    Route::get('/african-isp-billing-system', fn() => app()->call('App\Http\Controllers\MarketingController@service', ['slug' => 'african-isp-billing-system']));
+
+    // Country Pages
+    Route::get('/isp-billing-software-{country}', 'country')->where('country', '[a-z-]+');
+});
+
 // Public route for MikroTik to download hotspot template files
 // Public route for MikroTik to download hotspot template files
 Route::get('hotspot-templates/{file}', function ($file) {
