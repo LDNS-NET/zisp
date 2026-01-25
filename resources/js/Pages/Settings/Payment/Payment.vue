@@ -282,6 +282,7 @@ const save = () => {
                     >
                         <template v-if="country === 'KE'">
                             <option v-if="supportedMethods.includes('mpesa') || supportedMethods.includes('phone')" value="phone">M-Pesa Phone (Automatic)</option>
+                            <option v-if="supportedMethods.includes('tinypesa')" value="tinypesa">Tinypesa (Kenya)</option>
                             <option v-if="supportedMethods.includes('custom_mpesa')" value="custom_mpesa">Custom M-Pesa API</option>
                             <option v-if="supportedMethods.includes('bank')" value="bank">Bank</option>
                             <option v-if="supportedMethods.includes('mpesa_till')" value="mpesa_till">M-Pesa Till</option>
