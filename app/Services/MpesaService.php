@@ -46,9 +46,13 @@ class MpesaService
      * Get OAuth access token from M-Pesa API
      * Tokens are cached for 55 minutes (they expire after 1 hour)
      */
-    public function getAccessToken(): ?string
+    public function getAccessToken($forceRetrieved = false): ?string
     {
         $cacheKey = 'mpesa_access_token_' . md5($this->consumerKey . $this->consumerSecret);
+
+        if ($forceRetrieved) {
+            Cache::forget($cacheKey);
+        }
 
         return Cache::remember($cacheKey, 55 * 60, function () {
             try {
@@ -134,10 +138,27 @@ class MpesaService
 
             $data = $response->json();
 
-            Log::info('M-Pesa: STK Push response', [
-                'status_code' => $response->status(),
-                'response' => $data
-            ]);
+            // Retry on Invalid Access Token (404.001.03)
+            if ($response->status() === 404 && isset($data['errorCode']) && $data['errorCode'] === '404.001.03') {
+                Log::warning('M-Pesa: Invalid Access Token detected. Clearing cache and retrying...');
+                
+                $token = $this->getAccessToken(true); // Force refresh
+                
+                if ($token) {
+                    $response = Http::withToken($token)->post($url, $payload);
+                    $data = $response->json();
+                    
+                    Log::info('M-Pesa: Retry response', [
+                        'status_code' => $response->status(),
+                        'response' => $data
+                    ]);
+                }
+            } else {
+                Log::info('M-Pesa: STK Push response', [
+                    'status_code' => $response->status(),
+                    'response' => $data
+                ]);
+            }
 
             if ($response->successful() && isset($data['ResponseCode']) && $data['ResponseCode'] == '0') {
                 return [
