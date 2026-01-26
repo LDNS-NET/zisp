@@ -28,9 +28,12 @@ class SyncGenieACSDevicesJob implements ShouldQueue
             $tenant->run(function () use ($remoteDevices, $service) {
                 
                 // Get all MikroTik IPs for this specific tenant
-                $tenantMikrotikIps = \App\Models\Tenants\TenantMikrotik::pluck('ip_address', 'public_ip')
-                    ->flatten()
+                $tenantMikrotikIps = \App\Models\Tenants\TenantMikrotik::query()
+                    ->select('public_ip', 'wireguard_address')
+                    ->get()
+                    ->flatMap(fn($m) => [$m->public_ip, $m->wireguard_address])
                     ->filter()
+                    ->unique()
                     ->toArray();
 
                 foreach ($remoteDevices as $remote) {
@@ -44,20 +47,24 @@ class SyncGenieACSDevicesJob implements ShouldQueue
                     $existingDevice = TenantDevice::where('serial_number', $serial)->first();
 
                     if ($existingDevice) {
-                        // Just update its health/stats
                         $service->syncDevice($existingDevice, $remote);
                     } 
                     // CHECK 2: If new, does its connection IP match this tenant's MikroTiks?
-                    elseif ($deviceSourceIp && in_array($deviceSourceIp, $tenantMikrotikIps)) {
-                        $newDevice = TenantDevice::create([
-                            'serial_number' => $serial,
-                            'tenant_id' => tenant('id'),
-                            'online' => true,
-                            'last_contact_at' => now(),
-                        ]);
-                        $service->syncDevice($newDevice, $remote);
-                        
-                        Log::info("TR-069: Automatically discovered and assigned device {$serial} to tenant " . tenant('id'));
+                    elseif ($deviceSourceIp) {
+                        if (in_array($deviceSourceIp, $tenantMikrotikIps)) {
+                            $newDevice = TenantDevice::create([
+                                'serial_number' => $serial,
+                                'tenant_id' => tenant('id'),
+                                'online' => true,
+                                'last_contact_at' => now(),
+                            ]);
+                            $service->syncDevice($newDevice, $remote);
+                            
+                            Log::info("TR-069: Automatically discovered device {$serial} for tenant " . tenant('id'));
+                        } else {
+                            // Optional: Log skipped device for debugging
+                            Log::debug("TR-069: Skipping device {$serial} with source IP {$deviceSourceIp} - No matching MikroTik in tenant " . tenant('id'));
+                        }
                     }
                 }
             });

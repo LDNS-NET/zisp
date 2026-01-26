@@ -9,6 +9,7 @@ use App\Models\Tenants\TenantDevice;
 use App\Models\Tenants\TenantDeviceAction;
 use App\Services\GenieACSService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Response;
 use Inertia\Inertia;
 
 class TenantDeviceController extends Controller
@@ -34,6 +35,36 @@ class TenantDeviceController extends Controller
         return Inertia::render('Devices/Index', [
             'devices' => $devices,
             'filters' => $request->only(['search']),
+        ]);
+    }
+
+    /**
+     * Download the MikroTik provisioning script.
+     */
+    public function downloadScript()
+    {
+        $acsUrl = config('services.genieacs.cwmp_url');
+        $acsUser = config('services.genieacs.username');
+        $acsPass = config('services.genieacs.password');
+
+        $content = "# ZISP TR-069 Auto-Provisioning Script for MikroTik\n" .
+                   "# Generated for " . (tenant('name') ?? 'ZISP') . "\n\n" .
+                   ":local acsUrl \"{$acsUrl}\"\n" .
+                   ":local acsUser \"{$acsUser}\"\n" .
+                   ":local acsPass \"{$acsPass}\"\n" .
+                   ":local informInterval \"300\"\n\n" .
+                   "/tr069 client\n" .
+                   "set enabled=yes \\\n" .
+                   "    url=\$acsUrl \\\n" .
+                   "    username=\$acsUser \\\n" .
+                   "    password=\$acsPass \\\n" .
+                   "    periodic-inform-interval=\$informInterval \\\n" .
+                   "    periodic-inform-enabled=yes\n\n" .
+                   ":log info \"ZISP: TR-069 Configuration applied. Reporting to \$acsUrl\"";
+
+        return Response::make($content, 200, [
+            'Content-Type' => 'application/octet-stream',
+            'Content-Disposition' => 'attachment; filename="zisp_tr069_setup.rsc"',
         ]);
     }
 

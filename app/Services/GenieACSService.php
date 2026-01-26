@@ -27,7 +27,7 @@ class GenieACSService
         try {
             // Fetch projections to minimize data transfer
             $projections = [
-                '_id', '_lastInform', '_ip',
+                '_id', '_lastInform', '_ip', '_lastBootstrap', '_lastConnectionRequest',
                 'InternetGatewayDevice.DeviceInfo.Manufacturer', 
                 'InternetGatewayDevice.DeviceInfo.ModelName',
                 'Device.DeviceInfo.Manufacturer',

@@ -4,7 +4,7 @@ import { Head, router, Link } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import Pagination from '@/Components/Pagination.vue'
 import PrimaryButton from '@/Components/PrimaryButton.vue'
-import { Search, RefreshCw, Eye, Activity, Router } from 'lucide-vue-next'
+import { Search, RefreshCw, Eye, Activity, Router, Download } from 'lucide-vue-next'
 
 const props = defineProps({
     devices: Object,
@@ -69,6 +69,15 @@ const getStatusColor = (online) => {
                         <RefreshCw :class="['h-4 w-4', syncing ? 'animate-spin' : '']" /> 
                         {{ syncing ? 'Syncing...' : 'Sync GenieACS' }}
                     </PrimaryButton>
+
+                    <a 
+                        :href="route('devices.download-script')" 
+                        target="_blank"
+                        class="flex items-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm font-medium"
+                    >
+                        <Download class="h-4 w-4" /> 
+                        Download .RSC
+                    </a>
                 </div>
             </div>
 
