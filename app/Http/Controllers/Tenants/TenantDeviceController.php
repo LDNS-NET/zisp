@@ -53,14 +53,15 @@ class TenantDeviceController extends Controller
                    ":local acsUser \"{$acsUser}\"\n" .
                    ":local acsPass \"{$acsPass}\"\n" .
                    ":local informInterval \"300\"\n\n" .
-                   "/tr069 client\n" .
-                   "set enabled=yes \\\n" .
-                   "    url=\$acsUrl \\\n" .
-                   "    username=\$acsUser \\\n" .
-                   "    password=\$acsPass \\\n" .
-                   "    periodic-inform-interval=\$informInterval \\\n" .
-                   "    periodic-inform-enabled=yes\n\n" .
-                   ":log info \"ZISP: TR-069 Configuration applied. Reporting to \$acsUrl\"";
+                   ":put \"======= Configuring TR-069 Client =======\"\n" .
+                   ":do {\n" .
+                   "    /tr069 client set enabled=yes url=\$acsUrl username=\$acsUser password=\$acsPass periodic-inform-interval=\$informInterval periodic-inform-enabled=yes\n" .
+                   "    :log info \"ZISP: TR-069 Configuration applied. Reporting to \$acsUrl\"\n" .
+                   "    :put \"Success: TR-069 enabled and reporting to \$acsUrl\"\n" .
+                   "} on-error={\n" .
+                   "    :put \"Error: Could not configure TR-069. Ensure the tr069 package is installed.\"\n" .
+                   "    :log error \"ZISP: Failed to configure TR-069 client\"\n" .
+                   "}";
 
         return Response::make($content, 200, [
             'Content-Type' => 'application/octet-stream',
