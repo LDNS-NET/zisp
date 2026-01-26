@@ -35,7 +35,8 @@ import {
     Lock,
     ChevronDown,
     Wrench,
-    Radio
+    Radio,
+    Router
 } from 'lucide-vue-next';
 
 const { theme, setTheme } = useTheme();
@@ -105,6 +106,7 @@ const navigation = [
     ]},
     { name: 'Network', icon: Network, children: [
         { name: 'Mikrotiks', href: route('mikrotiks.index'), active: 'mikrotiks.*', countKey: 'mikrotiks', roles: ['tenant_admin', 'network_engineer', 'technical', 'network_admin'], permission: 'view_routers' },
+        { name: 'TR-069 Devices', href: route('devices.index'), active: 'devices.*', roles: ['tenant_admin', 'network_engineer', 'technical'], permission: 'view_equipment' },
         { name: 'Equipment', href: route('equipment.index'), active: 'equipment.*', roles: ['tenant_admin', 'admin', 'network_engineer', 'technical'], permission: 'view_equipment' },
         { name: 'Content Filter', href: route('settings.content-filter.index'), active: 'settings.content-filter.*', roles: ['tenant_admin', 'network_engineer', 'network_admin'], permission: 'manage_filters' },
     ]},

@@ -39,6 +39,7 @@ use App\Http\Controllers\Tenants\SubscriptionController;
 use App\Http\Controllers\Tenants\MomoController;
 use App\Http\Controllers\Tenants\TenantSystemUserController;
 use App\Http\Controllers\Tenants\ContentFilterController;
+use App\Http\Controllers\Tenants\TenantDeviceController;
 use App\Http\Controllers\Tenants\TenantInstallationController;
 use App\Http\Controllers\Tenants\TenantInstallationPhotoController;
 use App\Http\Controllers\Tenants\TenantInstallationChecklistController;
@@ -296,6 +297,13 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode', 'sta
         Route::middleware(['role:tenant_admin|admin|network_engineer|technical'])->group(function () {
             Route::resource('equipment', TenantEquipmentController::class)->only(['index', 'store', 'update', 'destroy']);
             Route::delete('/equipment/bulk-delete', [TenantEquipmentController::class, 'bulkDelete'])->name('equipment.bulk-delete');
+        });
+
+        // TR-069 Devices
+        Route::middleware(['role:tenant_admin|admin|network_engineer|technical'])->group(function () {
+            Route::resource('devices', TenantDeviceController::class);
+            Route::post('devices/sync', [TenantDeviceController::class, 'sync'])->name('devices.sync');
+            Route::post('devices/{device}/action', [TenantDeviceController::class, 'action'])->name('devices.action');
         });
 
         // Installation Management
