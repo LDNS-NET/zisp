@@ -12,6 +12,7 @@ const props = defineProps({
 })
 
 const search = ref(props.filters?.search || '');
+const syncing = ref(false);
 let searchTimeout;
 
 watch(search, (value) => {
@@ -26,10 +27,11 @@ watch(search, (value) => {
 });
 
 const syncDevices = () => {
+    syncing.value = true;
     router.post(route('devices.sync'), {}, {
         preserveScroll: true,
-        onStart: () => {
-            // Optional: show loading state
+        onFinish: () => {
+            syncing.value = false;
         }
     });
 }
@@ -63,8 +65,9 @@ const getStatusColor = (online) => {
                         />
                     </div>
                 
-                    <PrimaryButton @click="syncDevices" class="flex items-center gap-2 whitespace-nowrap">
-                        <RefreshCw class="h-4 w-4" /> Sync GenieACS
+                    <PrimaryButton @click="syncDevices" :disabled="syncing" class="flex items-center gap-2 whitespace-nowrap">
+                        <RefreshCw :class="['h-4 w-4', syncing ? 'animate-spin' : '']" /> 
+                        {{ syncing ? 'Syncing...' : 'Sync GenieACS' }}
                     </PrimaryButton>
                 </div>
             </div>

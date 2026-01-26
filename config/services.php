@@ -49,4 +49,11 @@ return [
         'secret_key' => env('PAYSTACK_SECRET_KEY'),
     ],
 
+    'genieacs' => [
+        'nbi_url' => env('GENIEACS_NBI_URL', 'http://127.0.0.1:7557'),
+        'cwmp_url' => env('GENIEACS_CWMP_URL', 'http://127.0.0.1:7547'),
+        'username' => env('GENIEACS_USERNAME'),
+        'password' => env('GENIEACS_PASSWORD'),
+    ],
+
 ];

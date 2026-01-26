@@ -304,6 +304,7 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode', 'sta
             Route::resource('devices', TenantDeviceController::class);
             Route::post('devices/sync', [TenantDeviceController::class, 'sync'])->name('devices.sync');
             Route::post('devices/{device}/action', [TenantDeviceController::class, 'action'])->name('devices.action');
+            Route::post('devices/{device}/link-subscriber', [TenantDeviceController::class, 'linkSubscriber'])->name('devices.link-subscriber');
         });
 
         // Installation Management

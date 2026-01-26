@@ -21,6 +21,7 @@ import {
 
 const props = defineProps({
     device: Object,
+    subscribers: Array,
 })
 
 const activeTab = ref('overview')
@@ -61,6 +62,16 @@ const updatePppoe = () => {
     triggerAction('update_pppoe', {
         username: pppoeForm.username,
         password: pppoeForm.password
+    })
+}
+
+const subscriberForm = useForm({
+    subscriber_id: props.device.subscriber_id,
+})
+
+const updateSubscriber = () => {
+    subscriberForm.post(route('devices.link-subscriber', props.device.id), {
+        preserveScroll: true,
     })
 }
 
@@ -208,6 +219,24 @@ const getStatusColor = (online) => {
                         </div>
 
                         <div class="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-6 border border-gray-200 dark:border-gray-800">
+                            <h4 class="text-sm font-bold text-gray-700 dark:text-gray-300 mb-4">Assign Subscriber</h4>
+                            <div class="space-y-4">
+                                <select 
+                                    v-model="subscriberForm.subscriber_id"
+                                    class="w-full px-3 py-2 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 rounded-lg text-sm dark:text-white focus:ring-blue-500"
+                                >
+                                    <option :value="null">Unassigned</option>
+                                    <option v-for="sub in subscribers" :key="sub.id" :value="sub.id">
+                                        {{ sub.full_name }} ({{ sub.account_number }})
+                                    </option>
+                                </select>
+                                <PrimaryButton @click="updateSubscriber" :disabled="subscriberForm.processing" class="w-full justify-center text-xs">
+                                    {{ subscriberForm.processing ? 'Linking...' : 'Update Assignment' }}
+                                </PrimaryButton>
+                            </div>
+                        </div>
+
+                        <div class="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-6 border border-gray-200 dark:border-gray-800 mt-6">
                             <h4 class="text-sm font-bold text-gray-700 dark:text-gray-300 mb-4">Device Timeline</h4>
                             <div class="space-y-4">
                                 <div v-for="log in device.logs.slice(0, 3)" :key="log.id" class="flex gap-3">
