@@ -3,7 +3,7 @@
 
 :local acsUrl "http://213.199.41.117:7547"
 :local acsUser "admin"
-:local acsPass "Nopass/4INK."
+:local acsPass "Niceone2025"
 :local informInterval "300"
 
 /tr069 client
