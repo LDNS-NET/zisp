@@ -78,5 +78,4 @@ Schedule::command('analytics:aggregate-traffic --hours=1')
 // Sync TR-069 devices from GenieACS every 10 minutes
 Schedule::job(new \App\Jobs\SyncGenieACSDevicesJob)
     ->everyTwoMinutes()
-    ->withoutOverlapping()
-    ->runInBackground();
+    ->withoutOverlapping();
