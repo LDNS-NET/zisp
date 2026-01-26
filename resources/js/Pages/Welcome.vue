@@ -43,7 +43,7 @@ const detailedFeatures = [
         icon: '🔗',
         title: 'Seamless Payment Integration',
         description:
-            'Accept payments via Mpesa, PesaPal, MTN Money with instant reconciliation. Enable auto-receipts and reduce manual financial tasks.',
+            'Accept payments via M-Pesa, Airtel Money, MTN MoMo, Paystack, and Flutterwave with instant reconciliation. Enable auto-receipts and reduce manual financial tasks.',
     },
     {
         icon: '📡',
@@ -101,7 +101,7 @@ const howItWorksSteps = [
         step: '3',
         title: 'Automate Billing & Payments',
         description:
-            'Invoices, reminders, and M-Pesa payment verification happen automatically. Users are notified instantly.',
+            'Invoices, reminders, and mobile money payment verification happen automatically. Users are notified instantly.',
     },
     {
         step: '4',
@@ -334,7 +334,7 @@ onMounted(() => {
             <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
                 <div v-for="(feature, idx) in [
                     { icon: '🔗', title: 'Mikrotik API Control', desc: 'Suspend, resume, throttle, and monitor users directly via RouterOS API.' },
-                    { icon: '💳', title: 'Payment Reconciliation', desc: 'Supports M-Pesa, PesaPal with automatic real-time updates.' },
+                    { icon: '💳', title: 'Payment Reconciliation', desc: 'Supports M-Pesa, Airtel, MTN, Paystack & more with automatic real-time updates.' },
                     { icon: '📄', title: 'Automated Invoicing', desc: 'Digital invoices, reminders, and receipts via SMS & email.' },
                     { icon: '👥', title: 'Self-Service Portal', desc: 'Customers manage renewals, usage, and support anytime.' },
                 ]" :key="idx" class="group relative overflow-hidden rounded-2xl bg-white/5 backdrop-blur-xl p-8 shadow-lg border border-white/10 transition-all duration-500 hover:shadow-2xl hover:scale-105 hover:-translate-y-3 cursor-default hover:bg-white/10">
@@ -514,7 +514,7 @@ onMounted(() => {
                             We integrate with the most popular payment gateways in each region, ensuring your customers can pay with ease.
                         </p>
                         <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                            <div v-for="gateway in ['M-Pesa', 'MTN MoMo', 'Airtel Money', 'Paystack', 'Flutterwave', 'PesaPal']" :key="gateway" class="p-4 rounded-xl bg-white/5 border border-white/10 text-center">
+                            <div v-for="gateway in ['M-Pesa', 'Airtel Money', 'MTN MoMo', 'Paystack', 'Flutterwave', 'Orange Money']" :key="gateway" class="p-4 rounded-xl bg-white/5 border border-white/10 text-center hover:bg-white/10 transition-colors cursor-default">
                                 <span class="text-sm font-semibold text-gray-300">{{ gateway }}</span>
                             </div>
                         </div>
