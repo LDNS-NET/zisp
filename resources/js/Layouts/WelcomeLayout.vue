@@ -302,9 +302,15 @@ const openTube = () => {
                 </div>
 
                 <div class="border-t border-white/10 pt-8 flex flex-col md:flex-row items-center justify-between">
-                    <p class="text-sm text-gray-400 font-light">
-                        © {{ new Date().getFullYear() }} Mfire Enterprises. All rights reserved.
-                    </p>
+                    <div class="flex flex-col md:flex-row items-center gap-2">
+                        <p class="text-sm text-gray-400 font-light">
+                            © {{ new Date().getFullYear() }} Mfire Enterprises. All rights reserved.
+                        </p>
+                        <span class="hidden md:block text-gray-600">|</span>
+                        <p class="text-sm text-gray-500 font-light">
+                            Built by <a href="https://zyraafcloud.com" target="_blank" class="text-orange-500 hover:text-orange-400 transition-colors">ZyraafCloud Networks</a>
+                        </p>
+                    </div>
                     <div class="flex gap-6 mt-6 md:mt-0">
                         <button @click="openX" class="text-gray-400 hover:text-orange-400 transition-all duration-300 hover:scale-110">
                             <span class="sr-only">Twitter</span>
