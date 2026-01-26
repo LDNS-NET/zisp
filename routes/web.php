@@ -301,9 +301,9 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode', 'sta
 
         // TR-069 Devices
         Route::middleware(['role:tenant_admin|admin|network_engineer|technical'])->group(function () {
-            Route::resource('devices', TenantDeviceController::class);
             Route::post('devices/sync', [TenantDeviceController::class, 'sync'])->name('devices.sync');
             Route::get('devices/download-script', [TenantDeviceController::class, 'downloadScript'])->name('devices.download-script');
+            Route::resource('devices', TenantDeviceController::class);
             Route::post('devices/{device}/action', [TenantDeviceController::class, 'action'])->name('devices.action');
             Route::post('devices/{device}/link-subscriber', [TenantDeviceController::class, 'linkSubscriber'])->name('devices.link-subscriber');
         });
