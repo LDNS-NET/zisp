@@ -237,7 +237,7 @@ function toggleSidebar() {
                         :class="[
                             'group flex items-center px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200',
                             route().current(item.active) 
-                                ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20' 
+                                ? 'bg-gradient-to-r from-orange-600 to-red-600 text-white shadow-md shadow-orange-500/20' 
                                 : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white'
                         ]"
                         :title="collapsed ? item.name : ''"
@@ -272,7 +272,7 @@ function toggleSidebar() {
                                     :is="item.icon" 
                                     :class="[
                                         'flex-shrink-0 w-5 h-5 transition-colors duration-200',
-                                        openGroups[item.name] ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 group-hover:text-gray-600 dark:text-gray-500 dark:group-hover:text-gray-300',
+                                        openGroups[item.name] ? 'text-orange-600 dark:text-orange-400' : 'text-gray-400 group-hover:text-gray-600 dark:text-gray-500 dark:group-hover:text-gray-300',
                                         collapsed ? 'mx-auto' : 'mr-3'
                                     ]" 
                                 />
@@ -301,11 +301,11 @@ function toggleSidebar() {
                                 :class="[
                                     'flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 relative',
                                     route().current(child.active)
-                                        ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/10'
+                                        ? 'text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/10'
                                         : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-800/50'
                                 ]"
                             >
-                                <span v-if="route().current(child.active)" class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-600 rounded-r-md"></span>
+                                <span v-if="route().current(child.active)" class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-orange-600 rounded-r-md"></span>
                                 <span class="truncate">{{ child.name }}</span>
                                 
                                 <span 
@@ -323,7 +323,7 @@ function toggleSidebar() {
             <!-- User Profile Bottom (Optional Polish) -->
             <div class="mt-auto border-t border-gray-100 dark:border-slate-800 p-4">
                  <div class="flex items-center gap-3" v-if="!collapsed">
-                    <div class="h-8 w-8 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-xs shadow-lg">
+                    <div class="h-8 w-8 rounded-full bg-gradient-to-tr from-orange-500 to-red-500 flex items-center justify-center text-white font-bold text-xs shadow-lg">
                         {{ user.name.charAt(0).toUpperCase() }}
                     </div>
                     <div class="flex-1 min-w-0 overflow-hidden">
@@ -332,7 +332,7 @@ function toggleSidebar() {
                     </div>
                  </div>
                  <div v-else class="flex justify-center">
-                    <div class="h-8 w-8 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-xs shadow-lg">
+                    <div class="h-8 w-8 rounded-full bg-gradient-to-tr from-orange-500 to-red-500 flex items-center justify-center text-white font-bold text-xs shadow-lg">
                         {{ user.name.charAt(0).toUpperCase() }}
                     </div>
                  </div>

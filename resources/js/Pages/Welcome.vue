@@ -161,10 +161,10 @@ onMounted(() => {
 
 <template>
     <Head>
-        <title>Zyraaf Cloud | Best ISP Management & Billing System</title>
-        <meta name="description" content="Zyraaf Cloud is the leading ISP management and billing system. Automate M-Pesa payments, manage Mikrotik routers, PPPoE, Hotspot vouchers, and invoices." />
-        <meta name="keywords" content="isp billing system, mikrotik hotspot management, pppoe billing, kenya isp software, mpesa integration, radius billing, wifi management software, zyraaf cloud" />
-        <meta property="og:title" content="Zyraaf Cloud | Automated ISP Billing & Management" />
+        <title>Mfire ISP Manager | Best ISP Management & Billing System</title>
+        <meta name="description" content="Mfire Enterprises is the leading ISP management and billing system. Automate M-Pesa payments, manage Mikrotik routers, PPPoE, Hotspot vouchers, and invoices." />
+        <meta name="keywords" content="isp billing system, mikrotik hotspot management, pppoe billing, kenya isp software, mpesa integration, radius billing, wifi management software, mfire enterprises, mwalinfire" />
+        <meta property="og:title" content="Mfire Enterprises | Automated ISP Billing & Management" />
         <meta property="og:description" content="Manage your ISP entirely from one dashboard. Mikrotik integration, M-Pesa payments, SMS breakdown, and more." />
         <meta property="og:type" content="website" />
         <meta property="text:json-ld">
@@ -172,7 +172,7 @@ onMounted(() => {
                 JSON.stringify({
                     "@context": "https://schema.org",
                     "@type": "SoftwareApplication",
-                    "name": "Zyraaf Cloud",
+                    "name": "Mfire ISP Manager",
                     "applicationCategory": "BusinessApplication",
                     "operatingSystem": "Web",
                     "offers": {
@@ -200,15 +200,15 @@ onMounted(() => {
         leave-from-class="opacity-100"
         leave-to-class="opacity-0"
     >
-        <div v-if="showSuccessToast" class="fixed top-5 right-5 z-[100] max-w-sm w-full bg-emerald-500/90 backdrop-blur-xl border border-emerald-400/50 rounded-2xl shadow-2xl p-4 flex items-center gap-4 text-white">
+        <div v-if="showSuccessToast" class="fixed top-5 right-5 z-[100] max-w-sm w-full bg-orange-500/90 backdrop-blur-xl border border-orange-400/50 rounded-2xl shadow-2xl p-4 flex items-center gap-4 text-white">
             <div class="flex-shrink-0 w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
                 <CheckCircle2 class="w-6 h-6" />
             </div>
             <div>
                 <p class="font-bold">Request Sent!</p>
-                <p class="text-sm text-emerald-50/90">We've received your request and will contact you soon.</p>
+                <p class="text-sm text-orange-50/90">We've received your request and will contact you soon.</p>
             </div>
-            <button @click="showSuccessToast = false" class="ml-auto text-emerald-100 hover:text-white">
+            <button @click="showSuccessToast = false" class="ml-auto text-orange-100 hover:text-white">
                 <X class="w-5 h-5" />
             </button>
         </div>
@@ -223,21 +223,22 @@ onMounted(() => {
                 <!-- LEFT: Copy -->
                 <div class="max-w-2xl text-center lg:text-left flex-1 animate-fade-in">
                     <!-- Badge -->
-                    <div class="mb-6 inline-flex items-center gap-2 rounded-full bg-white/5 px-4 py-2 text-sm font-semibold text-emerald-400 backdrop-blur border border-white/10 shadow-sm">
-                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <div class="mb-6 inline-flex items-center gap-2 rounded-full bg-white/5 px-4 py-2 text-sm font-semibold text-orange-400 backdrop-blur border border-white/10 shadow-sm">
+                        <span class="w-2 h-2 rounded-full bg-orange-400 animate-pulse"></span>
                         ✨ Top ISP Management Platform in Africa
                     </div>
 
                     <h1 class="mb-6 text-5xl sm:text-6xl lg:text-7xl font-extrabold leading-tight text-white">
                         Empower Your ISP with
-                        <span class="block mt-2 bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 bg-clip-text text-transparent">
-                            Zyraaf Cloud
+                        <span class="block mt-2 bg-gradient-to-r from-orange-400 via-red-400 to-amber-400 bg-clip-text text-transparent">
+                            Mfire ISP Manager
                         </span>
                     </h1>
 
                     <p class="mt-6 text-xl text-gray-300 max-w-xl">
                         Billing, bandwidth control, payments, and customer management —
                         built specifically for African ISPs using MikroTik.
+                        <span class="block mt-2 text-sm text-gray-400">Powered by Mfire Enterprises</span>
                     </p>
 
                     <!-- CTA -->
@@ -245,7 +246,7 @@ onMounted(() => {
                         <Link
                             v-if="canRegister"
                             :href="route('register')"
-                            class="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-8 py-4 font-bold text-white shadow-xl hover:scale-105 transition hover:shadow-emerald-500/20"
+                            class="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-orange-600 to-red-600 px-8 py-4 font-bold text-white shadow-xl hover:scale-105 transition hover:shadow-orange-500/20"
                         >
                             Start Free Trial →
                         </Link>
@@ -253,7 +254,7 @@ onMounted(() => {
                         <Link
                             v-if="canLogin"
                             :href="route('login')"
-                            class="inline-flex items-center justify-center rounded-xl border border-white/20 px-8 py-4 font-bold text-emerald-400 hover:bg-white/5 transition"
+                            class="inline-flex items-center justify-center rounded-xl border border-white/20 px-8 py-4 font-bold text-orange-400 hover:bg-white/5 transition"
                         >
                             Log In
                         </Link>
@@ -262,15 +263,15 @@ onMounted(() => {
                     <!-- Trust stats -->
                     <div class="mt-14 grid grid-cols-3 gap-6 max-w-lg mx-auto lg:mx-0">
                         <div class="rounded-xl bg-white/5 p-4 text-center backdrop-blur border border-white/10">
-                            <div class="text-2xl font-bold text-emerald-400">100+</div>
+                            <div class="text-2xl font-bold text-orange-400">100+</div>
                             <p class="text-xs text-gray-400">Active ISPs</p>
                         </div>
                         <div class="rounded-xl bg-white/5 p-4 text-center backdrop-blur border border-white/10">
-                            <div class="text-2xl font-bold text-teal-400">99.9%</div>
+                            <div class="text-2xl font-bold text-red-400">99.9%</div>
                             <p class="text-xs text-gray-400">Uptime</p>
                         </div>
                         <div class="rounded-xl bg-white/5 p-4 text-center backdrop-blur border border-white/10">
-                            <div class="text-2xl font-bold text-cyan-400">24/7</div>
+                            <div class="text-2xl font-bold text-amber-400">24/7</div>
                             <p class="text-xs text-gray-400">Support</p>
                         </div>
                     </div>
@@ -280,7 +281,7 @@ onMounted(() => {
                 <div class="flex-1 max-w-lg w-full">
                     <div class="relative rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl p-8">
                         <!-- Decorative top bar -->
-                        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 rounded-t-3xl"></div>
+                        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-500 via-red-500 to-amber-500 rounded-t-3xl"></div>
                         
                         <h3 class="text-lg font-bold text-white mb-6">
                             Everything your ISP needs
@@ -288,28 +289,28 @@ onMounted(() => {
 
                         <ul class="space-y-4 text-gray-300">
                             <li class="flex items-center gap-3">
-                                <span class="flex items-center justify-center w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 text-xs">✓</span>
+                                <span class="flex items-center justify-center w-6 h-6 rounded-full bg-orange-500/20 text-orange-400 text-xs">✓</span>
                                 PPPoE & Hotspot billing
                             </li>
                             <li class="flex items-center gap-3">
-                                <span class="flex items-center justify-center w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 text-xs">✓</span>
+                                <span class="flex items-center justify-center w-6 h-6 rounded-full bg-orange-500/20 text-orange-400 text-xs">✓</span>
                                 MikroTik router management
                             </li>
                             <li class="flex items-center gap-3">
-                                <span class="flex items-center justify-center w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 text-xs">✓</span>
+                                <span class="flex items-center justify-center w-6 h-6 rounded-full bg-orange-500/20 text-orange-400 text-xs">✓</span>
                                 Payment automation
                             </li>
                             <li class="flex items-center gap-3">
-                                <span class="flex items-center justify-center w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 text-xs">✓</span>
+                                <span class="flex items-center justify-center w-6 h-6 rounded-full bg-orange-500/20 text-orange-400 text-xs">✓</span>
                                 SMS & customer notifications
                             </li>
                             <li class="flex items-center gap-3">
-                                <span class="flex items-center justify-center w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 text-xs">✓</span>
+                                <span class="flex items-center justify-center w-6 h-6 rounded-full bg-orange-500/20 text-orange-400 text-xs">✓</span>
                                 Real-time usage & analytics
                             </li>
                         </ul>
 
-                        <div class="mt-6 rounded-xl bg-emerald-500/10 p-4 text-sm text-emerald-300 border border-emerald-500/20">
+                        <div class="mt-6 rounded-xl bg-orange-500/10 p-4 text-sm text-orange-300 border border-orange-500/20">
                             Designed for scale - from small to large Deployements.
                         </div>
                     </div>
@@ -337,7 +338,7 @@ onMounted(() => {
                     { icon: '📄', title: 'Automated Invoicing', desc: 'Digital invoices, reminders, and receipts via SMS & email.' },
                     { icon: '👥', title: 'Self-Service Portal', desc: 'Customers manage renewals, usage, and support anytime.' },
                 ]" :key="idx" class="group relative overflow-hidden rounded-2xl bg-white/5 backdrop-blur-xl p-8 shadow-lg border border-white/10 transition-all duration-500 hover:shadow-2xl hover:scale-105 hover:-translate-y-3 cursor-default hover:bg-white/10">
-                    <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/0 to-teal-500/0 group-hover:from-emerald-500/10 group-hover:to-teal-500/5 transition-all duration-500"></div>
+                    <div class="absolute inset-0 bg-gradient-to-br from-orange-500/0 to-red-500/0 group-hover:from-orange-500/10 group-hover:to-red-500/5 transition-all duration-500"></div>
                     <div class="relative">
                         <div class="text-5xl mb-4 transition-transform duration-300 group-hover:scale-125 group-hover:rotate-6">{{ feature.icon }}</div>
                         <h3 class="text-lg font-bold text-white mb-3 tracking-tight">{{ feature.title }}</h3>
@@ -351,7 +352,7 @@ onMounted(() => {
         <section id="how-it-works" class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-24">
             <div class="text-center mb-16">
                 <h2 class="text-5xl sm:text-6xl font-bold text-white mb-4 tracking-tight">
-                    How Zyraaf Cloud Works
+                    How Mfire Enterprises Works
                 </h2>
                 <p class="text-lg text-gray-400 max-w-2xl mx-auto font-light">
                     Get up and running in minutes, not weeks
@@ -361,11 +362,11 @@ onMounted(() => {
             <div class="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
                 <div v-for="(step, idx) in howItWorksSteps" :key="step.step" class="group relative" :style="{ animationDelay: idx * 100 + 'ms' }">
                     <!-- Connection Line -->
-                    <div v-if="step.step !== '4'" class="hidden lg:block absolute top-24 left-full w-1/4 h-1 bg-gradient-to-r from-emerald-500/40 via-teal-500/40 to-transparent"></div>
+                    <div v-if="step.step !== '4'" class="hidden lg:block absolute top-24 left-full w-1/4 h-1 bg-gradient-to-r from-orange-500/40 via-red-500/40 to-transparent"></div>
 
                     <div class="relative flex flex-col items-center rounded-2xl bg-white/5 backdrop-blur-xl p-8 shadow-lg border border-white/10 transition-all duration-500 hover:shadow-2xl hover:-translate-y-3 h-full group hover:bg-white/10">
                         <!-- Step Number -->
-                        <div class="absolute -top-6 left-1/2 -translate-x-1/2 h-12 w-12 rounded-full bg-gradient-to-br from-emerald-600 to-teal-600 flex items-center justify-center text-white font-bold text-lg shadow-lg transition-transform duration-300 group-hover:scale-110 border border-white/20">
+                        <div class="absolute -top-6 left-1/2 -translate-x-1/2 h-12 w-12 rounded-full bg-gradient-to-br from-orange-600 to-red-600 flex items-center justify-center text-white font-bold text-lg shadow-lg transition-transform duration-300 group-hover:scale-110 border border-white/20">
                             {{ step.step }}
                         </div>
 
@@ -393,10 +394,10 @@ onMounted(() => {
 
             <div class="grid gap-8 md:grid-cols-2">
                 <!-- Real-Time User Control -->
-                <div class="group relative overflow-hidden rounded-2xl bg-white/5 backdrop-blur-xl p-8 border border-white/10 shadow-lg transition-all duration-500 hover:shadow-2xl hover:-translate-y-3 hover:border-emerald-500/50">
-                    <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div class="group relative overflow-hidden rounded-2xl bg-white/5 backdrop-blur-xl p-8 border border-white/10 shadow-lg transition-all duration-500 hover:shadow-2xl hover:-translate-y-3 hover:border-orange-500/50">
+                    <div class="absolute inset-0 bg-gradient-to-br from-orange-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                     <div class="relative">
-                        <div class="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-emerald-500/10 mb-4 transition-transform duration-300 group-hover:scale-110 border border-emerald-500/20">
+                        <div class="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-orange-500/10 mb-4 transition-transform duration-300 group-hover:scale-110 border border-orange-500/20">
                             <span class="text-2xl">⚡</span>
                         </div>
                         <h3 class="text-xl font-bold text-white mb-3 tracking-tight">Real-Time User Control</h3>
@@ -429,10 +430,10 @@ onMounted(() => {
                 </div>
 
                 <!-- Router Monitoring -->
-                <div class="group relative overflow-hidden rounded-2xl bg-white/5 backdrop-blur-xl p-8 border border-white/10 shadow-lg transition-all duration-500 hover:shadow-2xl hover:-translate-y-3 hover:border-cyan-500/50">
-                    <div class="absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div class="group relative overflow-hidden rounded-2xl bg-white/5 backdrop-blur-xl p-8 border border-white/10 shadow-lg transition-all duration-500 hover:shadow-2xl hover:-translate-y-3 hover:border-amber-500/50">
+                    <div class="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                     <div class="relative">
-                        <div class="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-cyan-500/10 mb-4 transition-transform duration-300 group-hover:scale-110 border border-cyan-500/20">
+                        <div class="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-amber-500/10 mb-4 transition-transform duration-300 group-hover:scale-110 border border-amber-500/20">
                             <span class="text-2xl">📡</span>
                         </div>
                         <h3 class="text-xl font-bold text-white mb-3 tracking-tight">Router Monitoring & Alerts</h3>
@@ -446,7 +447,7 @@ onMounted(() => {
         <section class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-24">
             <div class="text-center mb-16">
                 <h2 class="text-5xl sm:text-6xl font-bold text-white mb-4 tracking-tight">
-                    Why Zyraaf Cloud is the Smart Choice
+                    Why Mfire Enterprises is the Smart Choice
                 </h2>
                 <p class="text-lg text-gray-400 max-w-2xl mx-auto font-light">
                     Trusted by the leading ISPs across Africa
@@ -455,7 +456,7 @@ onMounted(() => {
 
             <div class="grid gap-6 md:grid-cols-2">
                 <div v-for="(feature, idx) in detailedFeatures" :key="feature.title" class="group relative overflow-hidden rounded-2xl bg-white/5 backdrop-blur-xl p-8 shadow-lg border border-white/10 transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 hover:bg-white/10" :style="{ transitionDelay: idx * 50 + 'ms' }">
-                    <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/0 to-teal-500/0 group-hover:from-emerald-500/5 group-hover:to-teal-500/5 transition-all duration-500"></div>
+                    <div class="absolute inset-0 bg-gradient-to-br from-orange-500/0 to-red-500/0 group-hover:from-orange-500/5 group-hover:to-red-500/5 transition-all duration-500"></div>
                     
                     <div class="relative flex items-start gap-4">
                         <div class="text-4xl flex-shrink-0 mt-1 transition-transform duration-300 group-hover:scale-125 group-hover:-rotate-6">{{ feature.icon }}</div>
@@ -477,14 +478,14 @@ onMounted(() => {
             <div class="grid gap-16 lg:grid-cols-2 items-center">
                 <!-- Global Reach -->
                 <div class="relative group">
-                    <div class="absolute -inset-4 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 rounded-3xl blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    <div class="absolute -inset-4 bg-gradient-to-r from-orange-500/10 to-red-500/10 rounded-3xl blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                     <div class="relative rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 p-8 sm:p-12 shadow-2xl">
-                        <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-emerald-500/10 mb-8 border border-emerald-500/20">
+                        <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-orange-500/10 mb-8 border border-orange-500/20">
                             <span class="text-3xl">🌍</span>
                         </div>
                         <h2 class="text-4xl font-bold text-white mb-6 tracking-tight">Global Reach</h2>
                         <p class="text-lg text-gray-300 mb-8 leading-relaxed">
-                            Zyraaf Cloud is designed for the global market. We currently support multiple countries across Africa and are rapidly expanding.
+                            Mfire Enterprises is designed for the global market. We currently support multiple countries across Africa and are rapidly expanding.
                         </p>
                         <div class="flex flex-wrap gap-4">
                             <div v-for="country in countries.slice(0, 6)" :key="country.code" class="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm text-gray-300 flex items-center gap-2">
@@ -493,7 +494,7 @@ onMounted(() => {
                             </div>
                             <button 
                                 @click="showOnboardingModal = true"
-                                class="px-4 py-2 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-sm text-emerald-400 hover:bg-emerald-500/30 transition-colors"
+                                class="px-4 py-2 rounded-full bg-orange-500/20 border border-orange-500/40 text-sm text-orange-400 hover:bg-orange-500/30 transition-colors"
                             >
                                 + Request Your Country
                             </button>
@@ -503,9 +504,9 @@ onMounted(() => {
 
                 <!-- Payment Diversity -->
                 <div class="relative group">
-                    <div class="absolute -inset-4 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 rounded-3xl blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    <div class="absolute -inset-4 bg-gradient-to-r from-amber-500/10 to-orange-500/10 rounded-3xl blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                     <div class="relative rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 p-8 sm:p-12 shadow-2xl">
-                        <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-cyan-500/10 mb-8 border border-cyan-500/20">
+                        <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-amber-500/10 mb-8 border border-amber-500/20">
                             <span class="text-3xl">💳</span>
                         </div>
                         <h2 class="text-4xl font-bold text-white mb-6 tracking-tight">Payment Diversity</h2>
@@ -527,7 +528,7 @@ onMounted(() => {
             <div class="p-8 bg-gray-900 rounded-2xl border border-white/10">
                 <h3 class="text-2xl font-bold text-white mb-2">Request Onboarding</h3>
                 <p class="text-sm text-gray-400 mb-8">
-                    Don't see your country? Tell us about your ISP, and we'll work on bringing Zyraaf Cloud to your region.
+                    Don't see your country? Tell us about your ISP, and we'll work on bringing Mfire Enterprises to your region.
                 </p>
 
                 <form @submit.prevent="submitOnboarding" class="space-y-6">
@@ -538,7 +539,7 @@ onMounted(() => {
                                 v-model="onboardingForm.name"
                                 type="text" 
                                 required
-                                class="w-full rounded-xl bg-white/5 border-white/10 text-white focus:border-emerald-500 focus:ring-emerald-500"
+                                class="w-full rounded-xl bg-white/5 border-white/10 text-white focus:border-orange-500 focus:ring-orange-500"
                                 placeholder="Michael The Dev"
                             />
                         </div>
@@ -548,7 +549,7 @@ onMounted(() => {
                                 v-model="onboardingForm.email"
                                 type="email" 
                                 required
-                                class="w-full rounded-xl bg-white/5 border-white/10 text-white focus:border-emerald-500 focus:ring-emerald-500"
+                                class="w-full rounded-xl bg-white/5 border-white/10 text-white focus:border-orange-500 focus:ring-orange-500"
                                 placeholder="mikethedev@gmail.com"
                             />
                         </div>
@@ -561,7 +562,7 @@ onMounted(() => {
                                 v-model="onboardingForm.isp_name"
                                 type="text" 
                                 required
-                                class="w-full rounded-xl bg-white/5 border-white/10 text-white focus:border-emerald-500 focus:ring-emerald-500"
+                                class="w-full rounded-xl bg-white/5 border-white/10 text-white focus:border-orange-500 focus:ring-orange-500"
                                 placeholder="Your ISP Name"
                             />
                         </div>
@@ -571,7 +572,7 @@ onMounted(() => {
                                 v-model="onboardingForm.country"
                                 type="text" 
                                 required
-                                class="w-full rounded-xl bg-white/5 border-white/10 text-white focus:border-emerald-500 focus:ring-emerald-500"
+                                class="w-full rounded-xl bg-white/5 border-white/10 text-white focus:border-orange-500 focus:ring-orange-500"
                                 placeholder="Your Country"
                             />
                         </div>
@@ -582,7 +583,7 @@ onMounted(() => {
                         <textarea 
                             v-model="onboardingForm.message"
                             rows="4"
-                            class="w-full rounded-xl bg-white/5 border-white/10 text-white focus:border-emerald-500 focus:ring-emerald-500"
+                            class="w-full rounded-xl bg-white/5 border-white/10 text-white focus:border-orange-500 focus:ring-orange-500"
                             placeholder="Tell us more about your needs..."
                         ></textarea>
                     </div>
@@ -598,7 +599,7 @@ onMounted(() => {
                         <button 
                             type="submit"
                             :disabled="onboardingForm.processing"
-                            class="flex-1 px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold shadow-lg hover:scale-105 transition disabled:opacity-50"
+                            class="flex-1 px-6 py-3 rounded-xl bg-gradient-to-r from-orange-600 to-red-600 text-white font-bold shadow-lg hover:scale-105 transition disabled:opacity-50"
                         >
                             {{ onboardingForm.processing ? 'Submitting...' : 'Submit Request' }}
                         </button>
@@ -609,19 +610,19 @@ onMounted(() => {
 
         <!-- CTA -->
         <section id="demo" class="relative mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-24">
-            <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-600 p-12 sm:p-16 lg:p-20 shadow-2xl border border-white/20">
+            <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-orange-600 via-red-600 to-amber-600 p-12 sm:p-16 lg:p-20 shadow-2xl border border-white/20">
                 <div class="relative text-center">
                     <h2 class="text-4xl sm:text-5xl font-bold text-white mb-6">
                         Ready to Supercharge Your ISP?
                     </h2>
 
-                    <p class="text-lg text-emerald-100 mb-10 max-w-2xl mx-auto">
-                        Experience Zyraaf Cloud with a live demo environment.
+                    <p class="text-lg text-orange-100 mb-10 max-w-2xl mx-auto">
+                        Experience Mfire Enterprises with a live demo environment.
                     </p>
 
                     <button
                         @click="showDemoModal = true"
-                        class="inline-flex items-center justify-center rounded-xl bg-white px-8 py-4 text-base font-semibold text-emerald-700 shadow-lg hover:bg-emerald-50 transition"
+                        class="inline-flex items-center justify-center rounded-xl bg-white px-8 py-4 text-base font-semibold text-orange-700 shadow-lg hover:bg-orange-50 transition"
                     >
                         View Live Demo
                     </button>
@@ -641,17 +642,17 @@ onMounted(() => {
                     </h3>
 
                     <p class="text-sm text-gray-400 mb-6">
-                        Use the credentials below to explore the Zyraaf Cloud demo system.
+                        Use the credentials below to explore the Mfire Enterprises demo system.
                     </p>
 
                     <div class="space-y-3 mb-6">
                         <div class="flex justify-between rounded-lg bg-gray-800 px-4 py-3 border border-white/5">
                             <span class="text-sm text-gray-500">Username</span>
-                            <span class="font-mono font-semibold text-emerald-400">demo</span>
+                            <span class="font-mono font-semibold text-orange-400">demo</span>
                         </div>
                         <div class="flex justify-between rounded-lg bg-gray-800 px-4 py-3 border border-white/5">
                             <span class="text-sm text-gray-500">Password</span>
-                            <span class="font-mono font-semibold text-emerald-400">password</span>
+                            <span class="font-mono font-semibold text-orange-400">password</span>
                         </div>
                     </div>
 
@@ -665,7 +666,7 @@ onMounted(() => {
 
                         <button
                             @click="goToDemo"
-                            class="flex-1 rounded-lg bg-emerald-600 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-700"
+                            class="flex-1 rounded-lg bg-orange-600 px-4 py-3 text-sm font-semibold text-white hover:bg-orange-700"
                         >
                             Login to Demo
                         </button>
@@ -691,7 +692,7 @@ onMounted(() => {
                 v-model="selectedCountryCode"
                 class="mx-auto block w-full max-w-xs rounded-lg border-gray-700
                        bg-gray-800 px-4 py-3 text-gray-100
-                       shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm"
+                       shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm"
             >
                 <option
                     v-for="country in countries"
@@ -715,20 +716,20 @@ onMounted(() => {
                 class="group p-6 bg-gray-900/50 rounded-2xl
                        border border-white/10
                        shadow-lg transition-all duration-300
-                       hover:-translate-y-1 hover:shadow-2xl hover:border-emerald-500/30"
+                       hover:-translate-y-1 hover:shadow-2xl hover:border-orange-500/30"
             >
                 <h3 class="text-lg sm:text-xl font-bold text-white">
                     PPPoE Plan
-                    <span class="block text-sm font-medium text-emerald-400">
+                    <span class="block text-sm font-medium text-orange-400">
                         {{ selectedCountry.name }}
                     </span>
                 </h3>
 
                 <div class="mt-4 rounded-xl bg-gray-800 p-4 text-center sm:text-left border border-white/5">
-                    <span class="block text-xs uppercase tracking-wide text-cyan-400">
+                    <span class="block text-xs uppercase tracking-wide text-amber-400">
                         Price per active user
                     </span>
-                    <div class="mt-1 text-2xl font-mono font-bold text-emerald-400">
+                    <div class="mt-1 text-2xl font-mono font-bold text-orange-400">
                         {{ selectedCountry.pppoePricePerMonth }}
                         <span class="text-sm font-medium text-gray-500">
                             {{ selectedCountry.currency || 'KES' }} / month
@@ -756,20 +757,20 @@ onMounted(() => {
                 class="group p-6 bg-gray-900/50 rounded-2xl
                        border border-white/10
                        shadow-lg transition-all duration-300
-                       hover:-translate-y-1 hover:shadow-2xl hover:border-emerald-500/30"
+                       hover:-translate-y-1 hover:shadow-2xl hover:border-orange-500/30"
             >
                 <h3 class="text-lg sm:text-xl font-bold text-white">
                     Hotspot Plan
-                    <span class="block text-sm font-medium text-emerald-400">
+                    <span class="block text-sm font-medium text-orange-400">
                         {{ selectedCountry.name }}
                     </span>
                 </h3>
 
                 <div class="mt-4 rounded-xl bg-gray-800 p-4 text-center sm:text-left border border-white/5">
-                    <span class="block text-xs uppercase tracking-wide text-cyan-400">
+                    <span class="block text-xs uppercase tracking-wide text-amber-400">
                         Revenue based pricing
                     </span>
-                    <div class="mt-1 text-2xl font-mono font-bold text-emerald-400">
+                    <div class="mt-1 text-2xl font-mono font-bold text-orange-400">
                         {{ selectedCountry.hotspotPricePerMonth }}
                         <span class="text-sm font-medium text-gray-500">
                             per transaction

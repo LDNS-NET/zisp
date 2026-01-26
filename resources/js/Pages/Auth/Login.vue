@@ -42,12 +42,12 @@ const submit = () => {
     <GuestLayout>
         <Head title="Log in" />
 
-        <div v-if="status" class="mb-4 rounded-lg bg-green-50 p-4 text-sm font-medium text-green-600 dark:bg-green-900/30 dark:text-green-400">
+        <div v-if="status" class="mb-4 rounded-lg bg-orange-50 p-4 text-sm font-medium text-orange-600 dark:bg-orange-900/30 dark:text-orange-400">
             {{ status }}
         </div>
 
         <div class="mb-8 text-center">
-            <h2 v-if="tenantName" class="animate-fade-in-down bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-3xl font-bold text-transparent dark:from-blue-400 dark:to-indigo-400">
+            <h2 v-if="tenantName" class="animate-fade-in-down bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-3xl font-bold text-transparent dark:from-orange-400 dark:to-red-400">
                 {{ tenantName }}
             </h2>
             <p v-if="tenantName" class="animate-fade-in-up mt-2 text-lg text-gray-600 dark:text-gray-300">
@@ -68,7 +68,7 @@ const submit = () => {
                 <TextInput
                     id="username"
                     type="text"
-                    class="mt-1 block w-full rounded-lg border-gray-300 bg-white/50 px-4 py-3 shadow-sm transition-all focus:border-indigo-500 focus:bg-white focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900/50 dark:text-white dark:focus:border-indigo-400 dark:focus:bg-gray-900"
+                    class="mt-1 block w-full rounded-lg border-gray-300 bg-white/50 px-4 py-3 shadow-sm transition-all focus:border-orange-500 focus:bg-white focus:ring-orange-500 dark:border-gray-600 dark:bg-gray-900/50 dark:text-white dark:focus:border-orange-400 dark:focus:bg-gray-900"
                     v-model="form.username"
                     required
                     autofocus
@@ -84,7 +84,7 @@ const submit = () => {
                 <TextInput
                     id="password"
                     type="password"
-                    class="mt-1 block w-full rounded-lg border-gray-300 bg-white/50 px-4 py-3 shadow-sm transition-all focus:border-indigo-500 focus:bg-white focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900/50 dark:text-white dark:focus:border-indigo-400 dark:focus:bg-gray-900"
+                    class="mt-1 block w-full rounded-lg border-gray-300 bg-white/50 px-4 py-3 shadow-sm transition-all focus:border-orange-500 focus:bg-white focus:ring-orange-500 dark:border-gray-600 dark:bg-gray-900/50 dark:text-white dark:focus:border-orange-400 dark:focus:bg-gray-900"
                     v-model="form.password"
                     required
                     autocomplete="current-password"
@@ -95,14 +95,14 @@ const submit = () => {
 
             <div class="flex items-center justify-between animate-slide-up" style="animation-delay: 300ms;">
                 <label class="flex items-center">
-                    <Checkbox name="remember" v-model:checked="form.remember" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:ring-offset-gray-800" />
+                    <Checkbox name="remember" v-model:checked="form.remember" class="rounded border-gray-300 text-orange-600 shadow-sm focus:ring-orange-500 dark:border-gray-600 dark:bg-gray-900 dark:ring-offset-gray-800" />
                     <span class="ms-2 text-sm text-gray-600 dark:text-gray-400">Remember me</span>
                 </label>
 
                 <Link
                     v-if="canResetPassword"
                     :href="route('password.request')"
-                    class="text-sm font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
+                    class="text-sm font-medium text-orange-600 hover:text-orange-500 dark:text-orange-400 dark:hover:text-orange-300"
                 >
                     Forgot password?
                 </Link>
@@ -110,7 +110,7 @@ const submit = () => {
 
             <div class="animate-slide-up" style="animation-delay: 400ms;">
                 <PrimaryButton
-                    class="w-full justify-center rounded-lg bg-gradient-to-r from-indigo-600 to-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:from-indigo-700 hover:to-blue-700 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 dark:focus:ring-offset-gray-800"
+                    class="w-full justify-center rounded-lg bg-gradient-to-r from-orange-600 to-red-600 px-4 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:from-orange-700 hover:to-red-700 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:opacity-50 dark:focus:ring-offset-gray-800"
                     :class="{ 'opacity-25': form.processing }"
                     :disabled="form.processing"
                 >
@@ -123,7 +123,7 @@ const submit = () => {
                     Don't have an account?
                     <Link
                         :href="route('register')"
-                        class="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
+                        class="font-medium text-orange-600 hover:text-orange-500 dark:text-orange-400 dark:hover:text-orange-300"
                     >
                         Create account
                     </Link>
