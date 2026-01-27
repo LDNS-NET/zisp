@@ -23,6 +23,9 @@ Route::middleware('throttle:payment_webhook')->group(function () {
 
     // MoMo C2B (Direct Payment Callback)
     Route::post('/momo/c2b/callback', [MomoC2BController::class, 'callback']);
+    
+    // MikroTik Heartbeat for IP Discovery (Public, Token Auth)
+    Route::post('/mikrotik/heartbeat', [\App\Http\Controllers\Tenants\TenantMikrotikController::class, 'heartbeat'])->name('mikrotik.heartbeat');
 });
 
 Route::middleware([InitializeTenancyByDomain::class, PreventAccessFromCentralDomains::class])->group(function () {

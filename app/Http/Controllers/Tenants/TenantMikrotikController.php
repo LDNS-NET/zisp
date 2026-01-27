@@ -1736,6 +1736,40 @@ class TenantMikrotikController extends Controller
     }
 
     /**
+     * MikroTik Heartbeat for IP Discovery.
+     * Hits by MikroTik scheduler to report its current public IP.
+     */
+    public function heartbeat(Request $request)
+    {
+        $token = $request->header('X-Sync-Token') ?? $request->get('token');
+        
+        if (!$token) {
+            return response()->json(['error' => 'Missing token'], 401);
+        }
+
+        $router = TenantMikrotik::withoutGlobalScopes()
+            ->where('sync_token', $token)
+            ->first();
+
+        if (!$router) {
+            return response()->json(['error' => 'Invalid token'], 404);
+        }
+
+        $publicIp = $request->ip();
+        
+        $router->update([
+            'public_ip' => $publicIp,
+            'last_seen_at' => now(),
+            'status' => 'online'
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'detected_ip' => $publicIp
+        ]);
+    }
+
+    /**
      * Generate MikroTik script to upload and configure hotspot templates.
      */
     public function getHotspotUploadScript($id)

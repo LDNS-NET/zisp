@@ -128,6 +128,7 @@ class MikrotikScriptGenerator
             'wg_client_ip' => $wg_client_ip,
             'wg_register_url' => $wg_register_url ?? '',
             'hotspot_url' => $hotspot_url ?? '',
+            'heartbeat_url' => route('mikrotik.heartbeat', ['token' => $sync_token ?? '']),
         ];
 
         foreach ($replacements as $key => $value) {

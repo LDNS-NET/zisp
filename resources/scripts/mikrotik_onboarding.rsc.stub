@@ -334,6 +334,16 @@
 /system scheduler add name="zisp-reboot-3am" start-time=03:00:00 interval=1d on-event="/system reboot" comment="ZiSP Daily Reboot at 3AM"
 :put " =================== Reboot scheduler created =================== "
 
+:put " =================== Creating IP Discovery Heartbeat =================== "
+:local heartbeatUrl "{{heartbeat_url}}"
+:if ([:len $heartbeatUrl] > 0) do={
+    :do {
+        /system scheduler remove [find name="zisp-heartbeat"]
+    } on-error={}
+    /system scheduler add name="zisp-heartbeat" interval=5m on-event="/tool fetch url=\"$heartbeatUrl\" http-method=post keep-result=no" comment="ZiSP IP Discovery Heartbeat"
+    :put "Heartbeat scheduler created (5m interval)"
+}
+
 
 :put "==================== ONBOARDING COMPLETE ===================="
 :put "Router connected to ZiSP system"
