@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Tenants;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\Tenants\{TenantMikrotik, TenantOpenVPNProfile, TenantRouterLog, TenantBandwidthUsage, TenantActiveUsers};
+use App\Models\Tenants\{TenantMikrotik, TenantOpenVPNProfile, TenantRouterLog, TenantBandwidthUsage, TenantActiveUsers, TenantDevice};
 use App\Models\Radius\Nas;
 use App\Models\Tenants\TenantRouterAlert;
 use App\Services\{MikrotikService, MikrotikScriptGenerator, TenantHotspotService};
