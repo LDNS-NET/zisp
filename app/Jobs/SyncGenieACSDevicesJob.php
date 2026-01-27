@@ -28,68 +28,61 @@ class SyncGenieACSDevicesJob implements ShouldQueue
             return;
         }
 
-        // 2. Iterate through all Tenants
-        \App\Models\Tenant::all()->each(function ($tenant) use ($remoteDevices, $service) {
-            $tenant->run(function () use ($remoteDevices, $service) {
-                
-                // Get this tenant's MikroTiks IPs
-                $tenantMikrotikIps = \App\Models\Tenants\TenantMikrotik::query()
-                    ->select('public_ip', 'wireguard_address')
-                    ->get()
-                    ->flatMap(fn($m) => [$m->public_ip, $m->wireguard_address])
-                    ->filter()
-                    ->toArray();
+        // 2. Collect ALL Mikrotik IPs from the system (for fast lookup)
+        $allMikrotiks = \App\Models\Tenants\TenantMikrotik::withoutGlobalScopes()
+            ->select('id', 'tenant_id', 'public_ip', 'detected_public_ip', 'wireguard_address')
+            ->get();
 
-                foreach ($remoteDevices as $remote) {
-                    $serial = $remote['_id'] ?? null;
-                    if (!$serial) continue;
+        Log::info("TR-069 Sync: Processing " . count($remoteDevices) . " remote devices against " . count($allMikrotiks) . " known MikroTiks.");
 
-                    $deviceSourceIp = $remote['_ip'] ?? null;
-                    
-                    // Match by IP or check if already in this tenant
-                    $existing = TenantDevice::where('serial_number', $serial)->first();
-                    
-                    if ($existing || ($deviceSourceIp && in_array($deviceSourceIp, $tenantMikrotikIps))) {
-                        if (!$existing) {
-                            $existing = TenantDevice::create([
-                                'serial_number' => $serial,
-                                'tenant_id' => tenant('id'),
-                                'online' => true,
-                                'last_contact_at' => now(),
-                            ]);
-                        }
-                        
-                        $service->syncDevice($existing, $remote);
-                        Log::info("TR-069: Synced device {$serial} for tenant " . tenant('id'));
-                    }
-                }
-            });
-        });
-
-        // 3. Handle 'Global' (unassigned) devices in the Central Context
         foreach ($remoteDevices as $remote) {
             $serial = $remote['_id'] ?? null;
             if (!$serial) continue;
 
-            // Check if it was picked up by any tenant
-            $isAssigned = false;
-            // Simplified check: since we're in central, we check if ANY tenant_devices row exists
-            // This assumes the table exists in central too (for the global view)
-            try {
-                if (TenantDevice::where('serial_number', $serial)->exists()) {
+            $deviceSourceIp = $remote['_ip'] ?? null;
+            $matchedMikrotik = null;
+
+            if ($deviceSourceIp) {
+                // Find if this IP belongs to any known MikroTik
+                $matchedMikrotik = $allMikrotiks->filter(function($m) use ($deviceSourceIp) {
+                    return $m->detected_public_ip === $deviceSourceIp || 
+                           $m->public_ip === $deviceSourceIp || 
+                           $m->wireguard_address === $deviceSourceIp;
+                })->first();
+            }
+
+            // Determine context (Tenant or Central)
+            $tenantId = $matchedMikrotik?->tenant_id;
+            
+            if ($tenantId) {
+                $tenant = \App\Models\Tenant::find($tenantId);
+                if ($tenant) {
+                    $tenant->run(function() use ($service, $remote, $serial) {
+                        $this->syncToContext($service, $remote, $serial, tenant('id'));
+                    });
                     continue;
                 }
-
-                TenantDevice::create([
-                    'serial_number' => $serial,
-                    'tenant_id' => null,
-                    'online' => true,
-                    'last_contact_at' => now(),
-                ]);
-                Log::info("TR-069: Discovered unassigned device {$serial}");
-            } catch (\Exception $e) {
-                // Table might not exist in central, ignore
             }
+
+            // Fallback: Sync to Central context (Discovery Mode)
+            $this->syncToContext($service, $remote, $serial, null);
         }
+    }
+
+    private function syncToContext(GenieACSService $service, array $remote, string $serial, ?string $tenantId): void
+    {
+        $device = TenantDevice::where('serial_number', $serial)->first();
+
+        if (!$device) {
+            $device = TenantDevice::create([
+                'serial_number' => $serial,
+                'tenant_id' => $tenantId,
+                'online' => true,
+                'last_contact_at' => now(),
+            ]);
+        }
+
+        $service->syncDevice($device, $remote);
+        Log::info("TR-069: Synced device {$serial} to " . ($tenantId ? "Tenant {$tenantId}" : "Central Discovery"));
     }
 }

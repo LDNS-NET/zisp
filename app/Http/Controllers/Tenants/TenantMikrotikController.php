@@ -1758,7 +1758,7 @@ class TenantMikrotikController extends Controller
         $publicIp = $request->ip();
         
         $router->update([
-            'public_ip' => $publicIp,
+            'detected_public_ip' => $publicIp,
             'last_seen_at' => now(),
             'status' => 'online'
         ]);

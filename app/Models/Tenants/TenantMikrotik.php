@@ -46,6 +46,7 @@ class TenantMikrotik extends Model
         'cpu',
             'memory',
             'public_ip',
+            'detected_public_ip',
             'winbox_port',
             'online_since',
     ];
