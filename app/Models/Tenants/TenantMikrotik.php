@@ -14,6 +14,7 @@ class TenantMikrotik extends Model
 
     protected $fillable = [
         'name',
+        'serial_number',
         // 'ip_address', // Legacy field - removed
         'api_port',
         'ssh_port',

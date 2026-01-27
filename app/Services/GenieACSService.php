@@ -24,6 +24,9 @@ class GenieACSService
      */
     public function getDevices(array $query = [])
     {
+        // Add a limit to prevent memory issues if there are thousands of devices
+        $query['limit'] = 1000;
+        
         try {
             // Fetch projections to minimize data transfer
             $projections = [

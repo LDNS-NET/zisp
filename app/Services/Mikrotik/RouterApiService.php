@@ -190,6 +190,27 @@ class RouterApiService
     }
 
     /**
+     * Get ARP table entries.
+     *
+     * @return array
+     */
+    public function getArpTable(): array
+    {
+        try {
+            $client = $this->getClient();
+            $arp = $client->query('/ip/arp/print')->read();
+
+            return is_array($arp) ? $arp : [];
+        } catch (Exception $e) {
+            Log::error('Failed to get ARP table', [
+                'router_id' => $this->mikrotik->id,
+                'error' => $e->getMessage(),
+            ]);
+            return [];
+        }
+    }
+
+    /**
      * Get active hotspot sessions count.
      *
      * @return int

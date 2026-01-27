@@ -40,16 +40,33 @@ class SyncGenieACSDevicesJob implements ShouldQueue
             if (!$serial) continue;
 
             $deviceSourceIp = $remote['_ip'] ?? null;
+            $serial = $remote['_id'] ?? null;
             $matchedMikrotik = null;
 
-            if ($deviceSourceIp) {
-                // Find if this IP belongs to any known MikroTik
+            // 1. Try to match by Serial Number (if the TR-069 device is the router itself)
+            if ($serial) {
+                // GenieACS IDs often have URL encoding like %2D for -
+                $cleanSerial = urldecode($serial);
+                $matchedMikrotik = $allMikrotiks->filter(function($m) use ($cleanSerial) {
+                    return $m->serial_number && (
+                        $m->serial_number === $cleanSerial || 
+                        str_contains($cleanSerial, $m->serial_number)
+                    );
+                })->first();
+            }
+
+            // 2. Try to match by Public IP
+            if (!$matchedMikrotik && $deviceSourceIp) {
                 $matchedMikrotik = $allMikrotiks->filter(function($m) use ($deviceSourceIp) {
                     return $m->detected_public_ip === $deviceSourceIp || 
                            $m->public_ip === $deviceSourceIp || 
                            $m->wireguard_address === $deviceSourceIp;
                 })->first();
             }
+
+            // 3. Try Deep Discovery (if we still have no match, check subnets - optional/slow but good for local ACS)
+            // For now we keep it to Public IP and Serial matching for the global job.
+            // Site-specific deep scan is handled by the manual button or FetchDevicesBehindRouter command.
 
             // Determine context (Tenant or Central)
             $tenantId = $matchedMikrotik?->tenant_id;

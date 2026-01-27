@@ -340,7 +340,12 @@
     :do {
         /system scheduler remove [find name="zisp-heartbeat"]
     } on-error={}
-    /system scheduler add name="zisp-heartbeat" interval=5m on-event="/tool fetch url=\"$heartbeatUrl\" http-method=post keep-result=no" comment="ZiSP IP Discovery Heartbeat"
+    
+    # We use a variable to store the serial to avoid issues with specialized scripts
+    :local serial [/system board get serial-number]
+    :local finalUrl ($heartbeatUrl . "&serial_number=" . $serial)
+    
+    /system scheduler add name="zisp-heartbeat" interval=5m on-event="/tool fetch url=\"$finalUrl\" http-method=post keep-result=no" comment="ZiSP IP Discovery Heartbeat"
     :put "Heartbeat scheduler created (5m interval)"
 }
 

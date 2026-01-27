@@ -1764,12 +1764,19 @@ class TenantMikrotikController extends Controller
         }
 
         $publicIp = $request->ip();
+        $serialNumber = $request->get('serial_number');
         
-        $router->update([
+        $updateData = [
             'detected_public_ip' => $publicIp,
             'last_seen_at' => now(),
             'status' => 'online'
-        ]);
+        ];
+
+        if ($serialNumber && !$router->serial_number) {
+            $updateData['serial_number'] = $serialNumber;
+        }
+
+        $router->update($updateData);
 
         return response()->json([
             'status' => 'success',

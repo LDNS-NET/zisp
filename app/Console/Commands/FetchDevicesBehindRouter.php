@@ -61,7 +61,9 @@ class FetchDevicesBehindRouter extends Command
         // Fetch all devices from GenieACS
         $allRemoteDevices = $acs->getDevices();
         $matchedCount = 0;
+        $discoveredFromMikrotik = 0;
 
+        $this->info("Checking GenieACS for devices reporting via this site...");
         foreach ($allRemoteDevices as $remote) {
             $serial = $remote['_id'] ?? null;
             if (!$serial) continue;
@@ -69,7 +71,6 @@ class FetchDevicesBehindRouter extends Command
             $deviceIp = $remote['_ip'] ?? null;
             $root = isset($remote['InternetGatewayDevice']) ? 'InternetGatewayDevice' : 'Device';
             
-            // Check ConnectionRequestURL for IP
             if (!$deviceIp) {
                 $connUrl = $remote[$root]['ManagementServer']['ConnectionRequestURL']['_value'] ?? null;
                 if ($connUrl && preg_match('/:\/\/([0-9\.]+)/', $connUrl, $matches)) {
@@ -77,17 +78,15 @@ class FetchDevicesBehindRouter extends Command
                 }
             }
 
-            // Check ExternalIPAddress from TR-069
             if (!$deviceIp) {
                 $deviceIp = $remote[$root]['WANDevice']['1']['WANConnectionDevice']['1']['WANIPConnection']['1']['ExternalIPAddress']['_value'] ?? null;
             }
 
             if (!$deviceIp) continue;
 
-            $isMatch = in_array($deviceIp, $ips); // Match by Public IP
+            $isMatch = in_array($deviceIp, $ips); 
             
             if (!$isMatch && !empty($mikrotikNetworks)) {
-                // Match by Subnet
                 foreach ($mikrotikNetworks as $cidr) {
                     if ($this->ipInNetwork($deviceIp, $cidr)) {
                         $isMatch = true;
@@ -97,9 +96,7 @@ class FetchDevicesBehindRouter extends Command
             }
 
             if ($isMatch) {
-                $this->info("Found matching device: {$serial} (IP: {$deviceIp})");
-                
-                // Ensure it exists in our DB
+                $this->info("Found matching TR-069 device: {$serial} (IP: {$deviceIp})");
                 $device = TenantDevice::where('serial_number', $serial)->first();
                 if (!$device) {
                     $device = TenantDevice::create([
@@ -110,15 +107,62 @@ class FetchDevicesBehindRouter extends Command
                         'last_contact_at' => now(),
                     ]);
                 } else {
-                    $device->update(['wan_ip' => $deviceIp]);
+                    $device->update(['wan_ip' => $deviceIp, 'online' => true]);
                 }
-
                 $acs->syncDevice($device, $remote);
                 $matchedCount++;
             }
         }
 
-        $this->info("Scan complete. Found and synced {$matchedCount} devices.");
+        // 2. Discover devices directly from MikroTik (Local Network)
+        $this->info("Fetching connected devices from MikroTik (Leases/ARP)...");
+        try {
+            $api = new \App\Services\Mikrotik\RouterApiService($router);
+            $leases = $api->getDhcpLeases();
+            $arp = $api->getArpTable();
+
+            $discoveryList = []; // IP => MAC
+            foreach ($leases as $l) {
+                if (isset($l['address'], $l['mac-address'])) {
+                    $discoveryList[$l['address']] = $l['mac-address'];
+                }
+            }
+            foreach ($arp as $a) {
+                if (isset($a['address'], $a['mac-address']) && !isset($discoveryList[$a['address']])) {
+                    $discoveryList[$a['address']] = $a['mac-address'];
+                }
+            }
+
+            foreach ($discoveryList as $ip => $mac) {
+                // Ignore the router itself or common gateways if needed
+                if (in_array($ip, $ips)) continue;
+
+                // Create/Update "discovered" device
+                $serial = "DISC-" . str_replace(':', '', $mac);
+                $device = TenantDevice::where('mac_address', $mac)->orWhere('serial_number', $serial)->first();
+                
+                if (!$device) {
+                    $device = TenantDevice::create([
+                        'serial_number' => $serial,
+                        'mac_address' => $mac,
+                        'lan_ip' => $ip,
+                        'wan_ip' => $router->detected_public_ip ?: $router->public_ip,
+                        'tenant_id' => $router->tenant_id,
+                        'online' => false, // Discovered but not informing TR-069 yet
+                        'last_contact_at' => now(),
+                        'manufacturer' => 'Discovered',
+                        'model' => 'Network Device',
+                    ]);
+                    $discoveredFromMikrotik++;
+                } else {
+                    $device->update(['lan_ip' => $ip, 'wan_ip' => $router->detected_public_ip ?: $router->public_ip]);
+                }
+            }
+        } catch (\Exception $e) {
+            $this->warn("MikroTik Discovery failed: " . $e->getMessage());
+        }
+
+        $this->info("Scan complete. Found {$matchedCount} TR-069 devices and discovered {$discoveredFromMikrotik} new local devices.");
         return Command::SUCCESS;
     }
 
