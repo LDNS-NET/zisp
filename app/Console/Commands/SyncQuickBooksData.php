@@ -66,8 +66,9 @@ class SyncQuickBooksData extends Command
         $this->info("Syncing data for tenant: {$tenant->name} ({$tenantId})");
 
         try {
-            // Set the tenant context for Stancl Tenancy if needed
-            // However, the service uses the tenant_id explicitly in its queries
+            // Initialize tenancy to set global scopes and tenant context
+            tenancy()->initialize($tenant);
+
             $service = new QuickBooksService($tenantId);
             
             if (!$service->getDataServiceForTenant()) {
@@ -89,7 +90,14 @@ class SyncQuickBooksData extends Command
 
             $this->info("Done for tenant {$tenantId}.");
 
+            // End tenancy session
+            tenancy()->end();
+
         } catch (\Exception $e) {
+            // Ensure tenancy is ended even on failure
+            if (tenant()) {
+                tenancy()->end();
+            }
             $this->error("Failed to sync data for tenant {$tenantId}: " . $e->getMessage());
             Log::error("QuickBooks Sync Command Failed for Tenant {$tenantId}: " . $e->getMessage());
         }
