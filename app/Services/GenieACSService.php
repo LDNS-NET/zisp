@@ -30,8 +30,10 @@ class GenieACSService
                 '_id', '_lastInform', '_ip', '_lastBootstrap', '_lastConnectionRequest',
                 'InternetGatewayDevice.DeviceInfo.Manufacturer', 
                 'InternetGatewayDevice.DeviceInfo.ModelName',
+                'InternetGatewayDevice.ManagementServer.ConnectionRequestURL',
                 'Device.DeviceInfo.Manufacturer',
-                'Device.DeviceInfo.ModelName'
+                'Device.DeviceInfo.ModelName',
+                'Device.ManagementServer.ConnectionRequestURL',
             ];
             
             $response = $this->client()->get('/devices', [
@@ -150,6 +152,15 @@ class GenieACSService
         // Map GenieACS data to local model
         $root = isset($remoteData['InternetGatewayDevice']) ? 'InternetGatewayDevice' : 'Device';
         
+        $detectedIp = $remoteData['_ip'] ?? null;
+        
+        if (!$detectedIp) {
+            $connUrl = $this->getValue($remoteData, "{$root}.ManagementServer.ConnectionRequestURL");
+            if ($connUrl && preg_match('/:\/\/([0-9\.]+)/', $connUrl, $matches)) {
+                $detectedIp = $matches[1];
+            }
+        }
+
         $device->update([
             'manufacturer' => $this->getValue($remoteData, "{$root}.DeviceInfo.Manufacturer") ?? $device->manufacturer,
             'model' => $this->getValue($remoteData, "{$root}.DeviceInfo.ModelName") ?? $device->model,
@@ -157,7 +168,8 @@ class GenieACSService
             'mac_address' => $this->getValue($remoteData, "{$root}.WANDevice.1.WANConnectionDevice.1.WANIPConnection.1.MACAddress") 
                           ?? $this->getValue($remoteData, "{$root}.Ethernet.Interface.1.MACAddress") 
                           ?? $device->mac_address,
-            'wan_ip' => $this->getValue($remoteData, "{$root}.WANDevice.1.WANConnectionDevice.1.WANIPConnection.1.ExternalIPAddress") 
+            'wan_ip' => $detectedIp 
+                     ?? $this->getValue($remoteData, "{$root}.WANDevice.1.WANConnectionDevice.1.WANIPConnection.1.ExternalIPAddress") 
                      ?? $this->getValue($remoteData, "{$root}.IP.Interface.1.IPv4Address.1.IPAddress") 
                      ?? $device->wan_ip,
             'lan_ip' => $this->getValue($remoteData, "{$root}.LANHostConfigManagement.IPInterface.1.IPInterfaceIPAddress") 

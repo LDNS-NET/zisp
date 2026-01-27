@@ -169,6 +169,27 @@ class RouterApiService
     }
 
     /**
+     * Get all IP addresses configured on the router.
+     *
+     * @return array
+     */
+    public function getIpAddresses(): array
+    {
+        try {
+            $client = $this->getClient();
+            $addresses = $client->query('/ip/address/print')->read();
+
+            return is_array($addresses) ? $addresses : [];
+        } catch (Exception $e) {
+            Log::error('Failed to get IP addresses', [
+                'router_id' => $this->mikrotik->id,
+                'error' => $e->getMessage(),
+            ]);
+            return [];
+        }
+    }
+
+    /**
      * Get active hotspot sessions count.
      *
      * @return int

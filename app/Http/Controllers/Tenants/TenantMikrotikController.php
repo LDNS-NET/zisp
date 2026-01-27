@@ -1778,6 +1778,18 @@ class TenantMikrotikController extends Controller
     }
 
     /**
+     * Scan for TR-069 devices behind this router.
+     */
+    public function scanBehind($id)
+    {
+        \Illuminate\Support\Facades\Artisan::call('tr069:scan-behind', [
+            'router_id' => $id
+        ]);
+
+        return back()->with('success', 'Network scan completed.');
+    }
+
+    /**
      * Generate MikroTik script to upload and configure hotspot templates.
      */
     public function getHotspotUploadScript($id)

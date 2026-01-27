@@ -510,6 +510,8 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode', 'sta
             Route::get('mikrotiks/{mikrotik}/active-sessions', [TenantMikrotikController::class, 'getActiveSessions'])->name('mikrotiks.activeSessions');
             Route::post('mikrotiks/{mikrotik}/set-ip', [TenantMikrotikController::class, 'setIp'])->name('mikrotiks.setIp');
             Route::get('mikrotiks/{mikrotik}/download-setup-script', [TenantMikrotikController::class, 'downloadSetupScript'])->name('mikrotiks.downloadSetupScript');
+            Route::post('mikrotiks/{mikrotik}/reprovision', [TenantMikrotikController::class, 'reprovision'])->name('mikrotiks.reprovision');
+            Route::post('mikrotiks/{mikrotik}/scan-behind', [TenantMikrotikController::class, 'scanBehind'])->name('mikrotiks.scanBehind');
             Route::get('mikrotiks/{mikrotik}/download-radius-script', [TenantMikrotikController::class, 'downloadRadiusScript'])->name('mikrotiks.downloadRadiusScript');
             Route::get('mikrotiks/{mikrotik}/download-advanced-config', [TenantMikrotikController::class, 'downloadAdvancedConfig'])->name('mikrotiks.downloadAdvancedConfig');
             Route::get('mikrotiks/{mikrotik}/download-hotspot-templates', [TenantMikrotikController::class, 'downloadHotspotTemplates'])->name('mikrotiks.downloadHotspotTemplates');

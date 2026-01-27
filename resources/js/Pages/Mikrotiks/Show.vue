@@ -44,6 +44,7 @@ const props = defineProps({
 // State
 const activeTab = ref("overview");
 const isRefreshing = ref(false);
+const isScanning = ref(false);
 const showIdentityModal = ref(false);
 
 const tabs = [
@@ -332,12 +333,21 @@ const updateIdentity = () => {
                         <div class="flex justify-between items-center bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700">
                             <div>
                                 <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Devices behind this Router</h3>
-                                <p class="text-xs text-gray-500 dark:text-gray-400">Showing devices currently reporting via {{ mikrotik.detected_public_ip || mikrotik.public_ip || 'N/A' }}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">Scan for customer CPEs reporting through this site's network.</p>
                             </div>
-                            <PrimaryButton @click="inertiaRouter.post(route('devices.sync'))" class="text-xs">
-                                <RefreshCw class="mr-2 h-3 w-3" />
-                                Trigger Global Sync
-                            </PrimaryButton>
+                            <div class="flex gap-2">
+                                <PrimaryButton 
+                                    @click="isScanning = true; inertiaRouter.post(route('mikrotiks.scanBehind', mikrotik.id), {}, { onFinish: () => isScanning = false })" 
+                                    class="text-xs"
+                                    :disabled="isScanning"
+                                >
+                                    <RefreshCw class="mr-2 h-3 w-3" :class="{ 'animate-spin': isScanning }" />
+                                    {{ isScanning ? 'Scanning...' : 'Deep Network Scan' }}
+                                </PrimaryButton>
+                                <SecondaryButton @click="inertiaRouter.post(route('devices.sync'))" class="text-xs">
+                                    Global Sync
+                                </SecondaryButton>
+                            </div>
                         </div>
 
                         <div class="overflow-hidden rounded-lg bg-white shadow dark:bg-gray-800">
