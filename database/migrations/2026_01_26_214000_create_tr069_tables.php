@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('tenant_devices', function (Blueprint $table) {
             $table->id();
-            $table->string('tenant_id'); // Link to tenant
+            $table->string('tenant_id')->nullable(); // Link to tenant
             $table->unsignedBigInteger('subscriber_id')->nullable(); // Link to NetworkUser
             $table->string('serial_number')->unique();
             $table->string('model')->nullable();

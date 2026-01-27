@@ -23,73 +23,55 @@ class SyncGenieACSDevicesJob implements ShouldQueue
         // 1. Fetch ALL known devices from GenieACS NBI
         $remoteDevices = $service->getDevices();
         
-        // 2. Iterate through all Tenants in the system
-        \App\Models\Tenant::all()->each(function ($tenant) use ($remoteDevices, $service) {
-            $tenant->run(function () use ($remoteDevices, $service) {
+        if (empty($remoteDevices)) {
+            Log::info("TR-069 Sync: No devices found in GenieACS.");
+            return;
+        }
+
+        // 2. Fetch all known MikroTik IPs across all potential contexts
+        $allMikrotikIps = \App\Models\Tenants\TenantMikrotik::query()
+            ->select('public_ip', 'wireguard_address', 'tenant_id')
+            ->get();
+
+        Log::info("TR-069 Sync: Processing " . count($remoteDevices) . " remote devices.");
+
+        foreach ($remoteDevices as $remote) {
+            $serial = $remote['_id'] ?? null;
+            if (!$serial) continue;
+
+            $deviceSourceIp = $remote['_ip'] ?? null;
+            $targetTenantId = null;
+
+            // Find which tenant this device belongs to (Match by IP)
+            if ($deviceSourceIp) {
+                $match = $allMikrotikIps->where('public_ip', $deviceSourceIp)
+                    ->orWhere('wireguard_address', $deviceSourceIp)
+                    ->first();
                 
-                // Get all MikroTik IPs for this specific tenant
-                $tenantMikrotikIps = \App\Models\Tenants\TenantMikrotik::query()
-                    ->select('public_ip', 'wireguard_address')
-                    ->get()
-                    ->flatMap(fn($m) => [$m->public_ip, $m->wireguard_address])
-                    ->filter()
-                    ->unique()
-                    ->toArray();
-
-                Log::info("TR-069 Sync: Found " . count($remoteDevices) . " remote devices. Checking against " . count($tenantMikrotikIps) . " MikroTik IPs: " . implode(', ', $tenantMikrotikIps));
-
-                foreach ($remoteDevices as $remote) {
-                    $serial = $remote['_id'] ?? null;
-                    if (!$serial) continue;
-
-                    // Get the IP the device is connecting FROM (GenieACS metadata)
-                    $deviceSourceIp = $remote['_ip'] ?? null;
-                    
-                    Log::info("TR-069 Sync: Checking device {$serial} from IP {$deviceSourceIp}");
-
-                    // CHECK 1: Does this device already exist in this tenant?
-                    $existingDevice = TenantDevice::where('serial_number', $serial)->first();
-
-                    if ($existingDevice) {
-                        $service->syncDevice($existingDevice, $remote);
-                    } 
-                    // CHECK 2: If new, does its connection IP match this tenant's MikroTiks?
-                    elseif ($deviceSourceIp) {
-                        if (in_array($deviceSourceIp, $tenantMikrotikIps)) {
-                            // ATTEMPT AUTO-LINK TO SUBSCRIBER
-                            // 1. Get Device MAC from GenieACS data
-                            $root = isset($remote['InternetGatewayDevice']) ? 'InternetGatewayDevice' : 'Device';
-                            $macPath = $root == 'InternetGatewayDevice' 
-                                ? "{$root}.LANDevice.1.LANEthernetInterfaceConfig.1.MACAddress"
-                                : "{$root}.Ethernet.Interface.1.MACAddress";
-                            
-                            $mac = $remote[$macPath]['_value'] ?? null;
-                            $subscriberId = null;
-
-                            if ($mac) {
-                                $subscriber = \App\Models\Tenants\NetworkUser::where('mac_address', 'like', "%{$mac}%")->first();
-                                if ($subscriber) {
-                                    $subscriberId = $subscriber->id;
-                                }
-                            }
-
-                            $newDevice = TenantDevice::create([
-                                'serial_number' => $serial,
-                                'tenant_id' => tenant('id'),
-                                'subscriber_id' => $subscriberId,
-                                'online' => true,
-                                'last_contact_at' => now(),
-                            ]);
-                            $service->syncDevice($newDevice, $remote);
-                            
-                            Log::info("TR-069: Automatically discovered device {$serial} for tenant " . tenant('id') . ($subscriberId ? " linked to subscriber {$subscriberId}" : ""));
-                        } else {
-                            // Optional: Log skipped device for debugging
-                            Log::debug("TR-069: Skipping device {$serial} with source IP {$deviceSourceIp} - No matching MikroTik in tenant " . tenant('id'));
-                        }
-                    }
+                if ($match) {
+                    $targetTenantId = $match->tenant_id;
                 }
-            });
-        });
+            }
+
+            // CHECK: Does this device already exist?
+            $device = TenantDevice::where('serial_number', $serial)->first();
+
+            if ($device) {
+                $service->syncDevice($device, $remote);
+                Log::debug("TR-069 Sync: Updated existing device {$serial}");
+            } else {
+                // DISCOVER NEW DEVICE
+                // Even if we don't know the tenant yet, we create it so the user can see it
+                $newDevice = TenantDevice::create([
+                    'serial_number' => $serial,
+                    'tenant_id' => $targetTenantId, // Might be null if behind unknown NAT
+                    'online' => true,
+                    'last_contact_at' => now(),
+                ]);
+                
+                $service->syncDevice($newDevice, $remote);
+                Log::info("TR-069 Discovery: Found new device {$serial} (Assigned to Tenant: " . ($targetTenantId ?? 'Global/Pending') . ")");
+            }
+        }
     }
 }

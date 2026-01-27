@@ -99,7 +99,8 @@ class TenantDeviceController extends Controller
         ]);
 
         $device->update([
-            'subscriber_id' => $validated['subscriber_id']
+            'subscriber_id' => $validated['subscriber_id'],
+            'tenant_id' => $device->tenant_id ?? tenant('id')
         ]);
 
         return back()->with('success', 'Device successfully linked to subscriber.');

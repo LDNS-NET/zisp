@@ -99,6 +99,9 @@ const getStatusColor = (online) => {
                                 <span :class="['px-2.5 py-0.5 rounded-full text-xs font-medium', getStatusColor(device.online)]">
                                     {{ device.online ? 'Online' : 'Offline' }}
                                 </span>
+                                <span v-if="!device.tenant_id" class="ml-2 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+                                    Discovered
+                                </span>
                             </td>
                             <td class="px-6 py-4">
                                 <div class="text-sm font-medium text-gray-900 dark:text-white">{{ device.manufacturer }} {{ device.model }}</div>
