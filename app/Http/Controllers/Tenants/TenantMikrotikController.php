@@ -165,9 +165,17 @@ class TenantMikrotikController extends Controller
                 ]);
             }
 
+        // Fetch TR-069 devices behind this Mikrotik
+        $tr069Devices = TenantDevice::whereIn('wan_ip', array_filter([
+            $router->detected_public_ip,
+            $router->public_ip,
+            $router->wireguard_address
+        ]))->get();
+
         return Inertia::render('Mikrotiks/Show', [
             'mikrotik' => $router,
             'realtime' => $realtimeData,
+            'tr069_devices' => $tr069Devices,
         ]);
     }
 

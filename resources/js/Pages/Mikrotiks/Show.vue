@@ -31,12 +31,14 @@ import {
     Copy,
     Server,
     Globe,
-    Shield
+    Shield,
+    Smartphone
 } from "lucide-vue-next";
 
 const props = defineProps({
     mikrotik: Object,
     realtime: Object,
+    tr069_devices: Array,
 });
 
 // State
@@ -47,6 +49,7 @@ const showIdentityModal = ref(false);
 const tabs = [
     { id: "overview", name: "Overview", icon: Activity },
     { id: "interfaces", name: "Interfaces", icon: Wifi },
+    { id: "tr069", name: "TR-069 Devices", icon: Smartphone },
 ];
 
 const identityForm = useForm({
@@ -324,7 +327,67 @@ const updateIdentity = () => {
                         </div>
                     </div>
 
-                    <!-- INTERFACES TAB -->
+                    <!-- TR-069 DEVICES TAB -->
+                    <div v-if="activeTab === 'tr069'" class="space-y-4">
+                        <div class="flex justify-between items-center bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700">
+                            <div>
+                                <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Devices behind this Router</h3>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">Showing devices currently reporting via {{ mikrotik.detected_public_ip || mikrotik.public_ip || 'N/A' }}</p>
+                            </div>
+                            <PrimaryButton @click="inertiaRouter.post(route('devices.sync'))" class="text-xs">
+                                <RefreshCw class="mr-2 h-3 w-3" />
+                                Trigger Global Sync
+                            </PrimaryButton>
+                        </div>
+
+                        <div class="overflow-hidden rounded-lg bg-white shadow dark:bg-gray-800">
+                            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                <thead class="bg-gray-50 dark:bg-gray-700">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Status</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Device</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Serial Number</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400 text-right">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-800">
+                                    <tr v-for="device in tr069_devices" :key="device.id" class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span :class="[
+                                                device.online
+                                                    ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                                                    : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
+                                                'inline-flex rounded-full px-2 text-xs font-semibold'
+                                            ]">
+                                                {{ device.online ? 'Online' : 'Offline' }}
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <div class="text-sm font-medium text-gray-900 dark:text-white">{{ device.manufacturer }} {{ device.model }}</div>
+                                            <div class="text-xs text-gray-500 dark:text-gray-400">{{ device.software_version || 'N/A' }}</div>
+                                        </td>
+                                        <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400 font-mono">
+                                            {{ device.serial_number }}
+                                        </td>
+                                        <td class="px-6 py-4 text-right">
+                                            <a 
+                                                :href="route('devices.show', device.id)"
+                                                class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium"
+                                            >
+                                                Manage
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    <tr v-if="!tr069_devices?.length">
+                                        <td colspan="4" class="px-6 py-10 text-center text-gray-500 dark:text-gray-400">
+                                            < Smartphone class="mx-auto h-8 w-8 text-gray-300 mb-2" />
+                                            No TR-069 devices detected behind this router yet.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                     <div v-if="activeTab === 'interfaces'" class="overflow-hidden rounded-lg bg-white shadow dark:bg-gray-800">
                         <div class="overflow-x-auto">
                             <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
