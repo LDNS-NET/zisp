@@ -50,17 +50,30 @@ class PushDeviceActionJob implements ShouldQueue
                 $success = $service->factoryReset($deviceId);
                 break;
             case 'update_wifi':
-                $success = $service->setParameterValues($deviceId, [
-                    'InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.SSID' => $this->action->payload['ssid'] ?? '',
-                    'InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.PreSharedKey.1.PreSharedKey' => $this->action->payload['password'] ?? '',
-                    'InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.BeaconType' => '11i',
-                ]);
+                $params = [];
+                $ssid = $this->action->payload['ssid'] ?? '';
+                $pass = $this->action->payload['password'] ?? '';
+                
+                // Try both TR-098 and TR-181 paths (GenieACS will ignore invalid ones for the device)
+                $params['InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.SSID'] = $ssid;
+                $params['InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.KeyPassphrase'] = $pass;
+                $params['InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.PreSharedKey.1.PreSharedKey'] = $pass;
+                $params['Device.WiFi.SSID.1.SSID'] = $ssid;
+                $params['Device.WiFi.AccessPoint.1.Security.KeyPassphrase'] = $pass;
+                
+                $success = $service->setParameterValues($deviceId, $params);
                 break;
             case 'update_pppoe':
-                $success = $service->setParameterValues($deviceId, [
-                    'InternetGatewayDevice.WANDevice.1.WANConnectionDevice.1.WANIPConnection.1.Username' => $this->action->payload['username'] ?? '',
-                    'InternetGatewayDevice.WANDevice.1.WANConnectionDevice.1.WANIPConnection.1.Password' => $this->action->payload['password'] ?? '',
-                ]);
+                $params = [];
+                $user = $this->action->payload['username'] ?? '';
+                $pass = $this->action->payload['password'] ?? '';
+                
+                $params['InternetGatewayDevice.WANDevice.1.WANConnectionDevice.1.WANIPConnection.1.Username'] = $user;
+                $params['InternetGatewayDevice.WANDevice.1.WANConnectionDevice.1.WANIPConnection.1.Password'] = $pass;
+                $params['Device.PPP.Interface.1.Username'] = $user;
+                $params['Device.PPP.Interface.1.Password'] = $pass;
+                
+                $success = $service->setParameterValues($deviceId, $params);
                 break;
             case 'sync_params':
                 $success = $service->syncDevice($device);

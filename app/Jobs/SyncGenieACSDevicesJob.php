@@ -36,12 +36,16 @@ class SyncGenieACSDevicesJob implements ShouldQueue
                     ->unique()
                     ->toArray();
 
+                Log::info("TR-069 Sync: Found " . count($remoteDevices) . " remote devices. Checking against " . count($tenantMikrotikIps) . " MikroTik IPs: " . implode(', ', $tenantMikrotikIps));
+
                 foreach ($remoteDevices as $remote) {
                     $serial = $remote['_id'] ?? null;
                     if (!$serial) continue;
 
                     // Get the IP the device is connecting FROM (GenieACS metadata)
                     $deviceSourceIp = $remote['_ip'] ?? null;
+                    
+                    Log::info("TR-069 Sync: Checking device {$serial} from IP {$deviceSourceIp}");
 
                     // CHECK 1: Does this device already exist in this tenant?
                     $existingDevice = TenantDevice::where('serial_number', $serial)->first();
@@ -52,15 +56,33 @@ class SyncGenieACSDevicesJob implements ShouldQueue
                     // CHECK 2: If new, does its connection IP match this tenant's MikroTiks?
                     elseif ($deviceSourceIp) {
                         if (in_array($deviceSourceIp, $tenantMikrotikIps)) {
+                            // ATTEMPT AUTO-LINK TO SUBSCRIBER
+                            // 1. Get Device MAC from GenieACS data
+                            $root = isset($remote['InternetGatewayDevice']) ? 'InternetGatewayDevice' : 'Device';
+                            $macPath = $root == 'InternetGatewayDevice' 
+                                ? "{$root}.LANDevice.1.LANEthernetInterfaceConfig.1.MACAddress"
+                                : "{$root}.Ethernet.Interface.1.MACAddress";
+                            
+                            $mac = $remote[$macPath]['_value'] ?? null;
+                            $subscriberId = null;
+
+                            if ($mac) {
+                                $subscriber = \App\Models\Tenants\NetworkUser::where('mac_address', 'like', "%{$mac}%")->first();
+                                if ($subscriber) {
+                                    $subscriberId = $subscriber->id;
+                                }
+                            }
+
                             $newDevice = TenantDevice::create([
                                 'serial_number' => $serial,
                                 'tenant_id' => tenant('id'),
+                                'subscriber_id' => $subscriberId,
                                 'online' => true,
                                 'last_contact_at' => now(),
                             ]);
                             $service->syncDevice($newDevice, $remote);
                             
-                            Log::info("TR-069: Automatically discovered device {$serial} for tenant " . tenant('id'));
+                            Log::info("TR-069: Automatically discovered device {$serial} for tenant " . tenant('id') . ($subscriberId ? " linked to subscriber {$subscriberId}" : ""));
                         } else {
                             // Optional: Log skipped device for debugging
                             Log::debug("TR-069: Skipping device {$serial} with source IP {$deviceSourceIp} - No matching MikroTik in tenant " . tenant('id'));

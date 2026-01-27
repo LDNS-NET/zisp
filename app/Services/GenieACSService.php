@@ -40,7 +40,9 @@ class GenieACSService
             ]);
 
             if ($response->successful()) {
-                return $response->json();
+                $data = $response->json();
+                Log::info('GenieACS NBI: Fetched ' . count($data) . ' devices');
+                return $data;
             }
 
             Log::error('GenieACS NBI: Failed to fetch devices', [

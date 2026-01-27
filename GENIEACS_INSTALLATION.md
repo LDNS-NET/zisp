@@ -45,6 +45,13 @@ If the output is `/usr/local/bin/genieacs-nbi`, update the `ExecStart` lines in 
 ### How to use the blocks below:
 Simply **Copy the entire block** (from `sudo` to `EOF`) and paste it into your server terminal. It will automatically create the correct file with the right content.
 
+### Generating a UI Secret
+GenieACS requires a secret key for UI sessions. Generate one by running:
+```bash
+head -c 32 /dev/urandom | base64
+```
+**Keep this key handy**, you will use it in the service files below.
+
 ### A. CWMP (Port 7547) - Device Communication
 ```bash
 sudo tee /etc/systemd/system/genieacs-cwmp.service <<EOF
@@ -56,6 +63,9 @@ After=network.target mongod.service redis-server.service
 User=root
 Environment="GENIEACS_MONGODB_CONNECTION_URL=mongodb://127.0.0.1/genieacs"
 Environment="GENIEACS_REDIS_CONNECTION_URL=redis://127.0.0.1"
+Environment="GENIEACS_UI_JWT_SECRET=2iDLT3mC82f4iDj7oRsYd+iOrYi3DtDlaC71zdWsBTw="
+Environment="GENIEACS_CWMP_INTERFACE=0.0.0.0"
+Environment="GENIEACS_CWMP_PORT=7547"
 ExecStart=$(which genieacs-cwmp)
 Restart=always
 
@@ -75,6 +85,9 @@ After=network.target mongod.service redis-server.service
 User=root
 Environment="GENIEACS_MONGODB_CONNECTION_URL=mongodb://127.0.0.1/genieacs"
 Environment="GENIEACS_REDIS_CONNECTION_URL=redis://127.0.0.1"
+Environment="GENIEACS_UI_JWT_SECRET=2iDLT3mC82f4iDj7oRsYd+iOrYi3DtDlaC71zdWsBTw="
+Environment="GENIEACS_NBI_INTERFACE=0.0.0.0"
+Environment="GENIEACS_NBI_PORT=7557"
 ExecStart=$(which genieacs-nbi)
 Restart=always
 
@@ -94,6 +107,7 @@ After=network.target mongod.service redis-server.service
 User=root
 Environment="GENIEACS_MONGODB_CONNECTION_URL=mongodb://127.0.0.1/genieacs"
 Environment="GENIEACS_REDIS_CONNECTION_URL=redis://127.0.0.1"
+Environment="GENIEACS_UI_JWT_SECRET=2iDLT3mC82f4iDj7oRsYd+iOrYi3DtDlaC71zdWsBTw="
 ExecStart=$(which genieacs-fs)
 Restart=always
 
@@ -103,6 +117,9 @@ EOF
 ```
 
 ### D. UI (Port 3000) - Management Dashboard
+> [!IMPORTANT]
+> Change `YOUR_GENERATED_SECRET` to the key you generated in the step above.
+
 ```bash
 sudo tee /etc/systemd/system/genieacs-ui.service <<EOF
 [Unit]
@@ -113,6 +130,10 @@ After=network.target mongod.service redis-server.service
 User=root
 Environment="GENIEACS_MONGODB_CONNECTION_URL=mongodb://127.0.0.1/genieacs"
 Environment="GENIEACS_REDIS_CONNECTION_URL=redis://127.0.0.1"
+Environment="GENIEACS_NBI_URL=http://127.0.0.1:7557"
+Environment="GENIEACS_UI_JWT_SECRET=2iDLT3mC82f4iDj7oRsYd+iOrYi3DtDlaC71zdWsBTw="
+Environment="GENIEACS_UI_INTERFACE=0.0.0.0"
+Environment="GENIEACS_UI_PORT=3000"
 ExecStart=$(which genieacs-ui)
 Restart=always
 
