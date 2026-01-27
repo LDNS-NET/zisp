@@ -8,15 +8,12 @@ use Illuminate\Support\Facades\Log;
 
 class QuickBooksAuthController extends Controller
 {
-    protected $quickBooksService;
-
-    public function __construct()
+    /**
+     * Get the QuickBooks service instance.
+     */
+    protected function getService()
     {
-        // We'll initialize the service with the current tenant ID
-        $this->middleware(function ($request, $next) {
-            $this->quickBooksService = new QuickBooksService(tenant('id'));
-            return $next($request);
-        });
+        return new QuickBooksService(tenant('id'));
     }
 
     /**
@@ -25,7 +22,7 @@ class QuickBooksAuthController extends Controller
     public function redirect()
     {
         try {
-            $authUrl = $this->quickBooksService->getAuthorizationUrl();
+            $authUrl = $this->getService()->getAuthorizationUrl();
             return redirect()->away($authUrl);
         } catch (\Exception $e) {
             Log::error('QuickBooks Auth Redirect Failed: ' . $e->getMessage());
@@ -42,15 +39,15 @@ class QuickBooksAuthController extends Controller
         $realmId = $request->query('realmId');
 
         if (!$code || !$realmId) {
-            return redirect()->route('tenant.settings.index')->with('error', 'QuickBooks authorization failed or was canceled.');
+            return redirect()->route('settings.quickbooks.edit')->with('error', 'QuickBooks authorization failed or was canceled.');
         }
 
         try {
-            $this->quickBooksService->exchangeCodeForToken($code, $realmId);
-            return redirect()->route('tenant.settings.index')->with('success', 'QuickBooks connected successfully!');
+            $this->getService()->exchangeCodeForToken($code, $realmId);
+            return redirect()->route('settings.quickbooks.edit')->with('success', 'QuickBooks connected successfully!');
         } catch (\Exception $e) {
             Log::error('QuickBooks Auth Callback Failed: ' . $e->getMessage());
-            return redirect()->route('tenant.settings.index')->with('error', 'Failed to exchange token with QuickBooks.');
+            return redirect()->route('settings.quickbooks.edit')->with('error', 'Failed to exchange token with QuickBooks.');
         }
     }
     
