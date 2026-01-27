@@ -469,9 +469,19 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode', 'sta
             Route::get('settings/payment', [TenantPaymentGatewayController::class, 'edit'])->name('settings.payment.edit');
             Route::post('settings/payment', [TenantPaymentGatewayController::class, 'update'])->name('settings.payment.update');
 
+            // QuickBooks Settings
+            Route::get('settings/quickbooks', [App\Http\Controllers\Tenants\QuickBooksSettingsController::class, 'edit'])->name('settings.quickbooks.edit');
+
             // Domain Requests
             Route::get('domain-requests', [App\Http\Controllers\Tenants\DomainRequestController::class, 'index'])->name('domain-requests.index');
             Route::post('domain-requests', [App\Http\Controllers\Tenants\DomainRequestController::class, 'store'])->name('domain-requests.store');
+
+            // QuickBooks Online
+            Route::prefix('quickbooks')->name('quickbooks.')->group(function () {
+                Route::get('/connect', [App\Http\Controllers\QuickBooksAuthController::class, 'redirect'])->name('connect');
+                Route::get('/callback', [App\Http\Controllers\QuickBooksAuthController::class, 'callback'])->name('callback');
+                Route::post('/disconnect', [App\Http\Controllers\QuickBooksAuthController::class, 'disconnect'])->name('disconnect');
+            });
         });
 
         // Network Management - Admin Only Operations (Delete, Force Delete)

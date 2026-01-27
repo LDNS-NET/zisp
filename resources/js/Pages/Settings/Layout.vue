@@ -52,6 +52,13 @@ const settingsTabs = [
         route: 'settings.system.edit',
         roles: ['tenant_admin'],
     },
+    {
+        key: 'quickbooks',
+        label: 'QuickBooks',
+        icon: Wallet,
+        route: 'settings.quickbooks.edit',
+        roles: ['tenant_admin'],
+    },
     /*{
         key: 'whatsapp',
         label: 'WhatsApp Gateway',

@@ -15,6 +15,7 @@ class TenantInvoice extends Model
         'due_on',
         'created_by',
         'tenant_id',
+        'qbo_id',
     ];
 
     protected static function booted()

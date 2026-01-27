@@ -71,6 +71,7 @@ class TenantPayment extends Model
         "disbursement_status",
         "disbursement_transaction_id",
         "disbursement_response",
+        "qbo_id",
     ];
   protected $casts = [
         'checked' => 'boolean',

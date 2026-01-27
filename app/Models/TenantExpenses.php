@@ -12,7 +12,8 @@ class TenantExpenses extends Model
         'amount',
         'incurred_on',
         'category',
-        'created_by'
+        'created_by',
+        'qbo_id'
     ];
 
     protected static function booted()

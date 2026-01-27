@@ -19,6 +19,7 @@ class TenantEquipment extends Model
         "created_by",
         "assigned_to",
         "tenant_id",
+        "qbo_id",
     ];
 
     protected static function booted()
