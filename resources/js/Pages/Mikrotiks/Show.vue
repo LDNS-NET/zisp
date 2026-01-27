@@ -390,7 +390,7 @@ const updateIdentity = () => {
                                     </tr>
                                     <tr v-if="!tr069_devices?.length">
                                         <td colspan="4" class="px-6 py-10 text-center text-gray-500 dark:text-gray-400">
-                                            < Smartphone class="mx-auto h-8 w-8 text-gray-300 mb-2" />
+                                            <Smartphone class="mx-auto h-8 w-8 text-gray-300 mb-2" />
                                             No TR-069 devices detected behind this router yet.
                                         </td>
                                     </tr>
