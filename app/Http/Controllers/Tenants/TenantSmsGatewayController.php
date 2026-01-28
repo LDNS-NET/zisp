@@ -28,19 +28,18 @@ class TenantSmsGatewayController extends Controller
     /**
      * Show SMS gateway settings.
      */
+    /**
+     * Show SMS gateway settings.
+     */
     public function edit(Request $request)
     {
-        $tenantId = $this->getTenantId($request);
-
-        $gateway = TenantSmsGateway::where('tenant_id', $tenantId)->first();
-
-        return Inertia::render('Settings/SMS/SmsGateway', [
-            'gateway' => $gateway,
-        ]);
+        // This is still used by the route to render the page component
+        // The data loading now happens via JSON endpoint, but we can pre-load if needed
+        return Inertia::render('Settings/SMS/SmsGateway');
     }
 
     /**
-     * Save or update SMS gateway.
+     * Save or update SMS gateway per provider.
      */
     public function update(Request $request)
     {
@@ -60,12 +59,26 @@ class TenantSmsGatewayController extends Controller
             'is_active' => 'nullable|boolean',
         ]);
 
+        $shouldBeActive = $validated['is_active'] ?? false;
+
+        // If setting this gateway as active, deactivate all others first
+        if ($shouldBeActive) {
+            TenantSmsGateway::where('tenant_id', $tenantId)
+                ->update(['is_active' => false]);
+        }
+        
+        // Update or Create the specific provider setting
         TenantSmsGateway::updateOrCreate(
-            ['tenant_id' => $tenantId],
+            [
+                'tenant_id' => $tenantId, 
+                'provider' => $provider
+            ],
             array_merge($validated, [
                 'provider' => $provider,
-                'is_default' => true,
-                'is_active' => $validated['is_active'] ?? true,
+                'is_active' => $shouldBeActive,
+                // Ensure at least one is default if system logic requires, 
+                // but usually is_active is what matters. 
+                // We'll treat talksasa as system default fallback logic-wise.
             ])
         );
 
@@ -73,19 +86,18 @@ class TenantSmsGatewayController extends Controller
     }
 
     /**
-     * Return the current tenant gateway as JSON.
+     * Return all tenant gateways as JSON.
      */
-    public function getGateway(Request $request)
+    public function index(Request $request)
     {
         $tenantId = $this->getTenantId($request);
 
-        $gateway = TenantSmsGateway::where('tenant_id', $tenantId)
-            ->latest()
-            ->first();
+        $gateways = TenantSmsGateway::where('tenant_id', $tenantId)
+            ->get();
 
         return response()->json([
             'success' => true,
-            'gateway' => $gateway,
+            'gateways' => $gateways,
         ]);
     }
 }

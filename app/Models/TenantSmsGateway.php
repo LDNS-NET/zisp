@@ -15,6 +15,7 @@ class TenantSmsGateway extends Model
         'username', 
         'api_key', 
         'sender_id', 
+        'api_secret',
         'is_active', 
         'label', 
         'is_default'
@@ -26,6 +27,8 @@ class TenantSmsGateway extends Model
     protected $hidden = ['api_key'];
     public function setApiKeyAttribute($value) { $this->attributes['api_key'] = $value ? Crypt::encryptString($value) : null; }
     public function getApiKeyAttribute($value) { return $value ? Crypt::decryptString($value) : null; }
+    public function setApiSecretAttribute($value) { $this->attributes['api_secret'] = $value ? Crypt::encryptString($value) : null; }
+    public function getApiSecretAttribute($value) { return $value ? Crypt::decryptString($value) : null; }
     public function tenant() { return $this->belongsTo(Tenant::class, 'tenant_id'); }
     public function scopeActive($query) { return $query->where('is_active', true); }
 }

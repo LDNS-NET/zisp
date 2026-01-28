@@ -17,12 +17,12 @@ const toastOptions = {
 };
 
 const props = defineProps({
-    gateway: { type: Object, default: () => ({}) },
+    gateways: { type: Array, default: () => [] },
 });
 
 const showDetailsModal = ref(false);
 const detailsGateway = ref({});
-const currentGateway = ref({}); // ✅ Track the actual saved gateway
+const savedGateways = ref({}); // Map of provider -> gateway data
 
 // Default + supported gateways
 const defaultGateway = {
@@ -58,6 +58,8 @@ const form = useForm({
 
 // ✅ Fill form with gateway data
 function applyGatewayToForm(gateway) {
+    // If we are applying a saved gateway, use its values
+    // If it's a bare config object from 'allGateways', keys might be missing -> empty string
     Object.assign(form, {
         id: gateway.id || '',
         provider: gateway.provider || '',
@@ -71,23 +73,33 @@ function applyGatewayToForm(gateway) {
     });
 }
 
-// ✅ Fetch latest saved gateway from backend on mount
+// ✅ Fetch latest saved gateways from backend on mount
 onMounted(async () => {
     try {
         const response = await fetch(route('settings.sms.json'));
-        if (!response.ok) throw new Error('Failed to load saved gateway');
+        if (!response.ok) throw new Error('Failed to load saved gateways');
         const data = await response.json();
 
-        if (data.gateway) {
-            currentGateway.value = data.gateway;
+        if (data.gateways && Array.isArray(data.gateways)) {
+            // Map gateways by provider for easy lookup
+            data.gateways.forEach(g => {
+                savedGateways.value[g.provider] = g;
+            });
+            
+            // Find active gateway
+            const active = data.gateways.find(g => g.is_active);
+            if (active) {
+                applyGatewayToForm(active);
+            } else {
+                 // Fallback to default if nothing is active
+                applyGatewayToForm(defaultGateway);
+            }
         } else {
-            currentGateway.value = defaultGateway;
+            savedGateways.value = {};
+            applyGatewayToForm(defaultGateway);
         }
-
-        applyGatewayToForm(currentGateway.value);
     } catch (err) {
         console.error('Gateway load failed:', err);
-        currentGateway.value = defaultGateway;
         applyGatewayToForm(defaultGateway);
     }
 });
@@ -98,16 +110,24 @@ watch(
     (provider) => {
         if (!provider) return;
         
-        let found = defaultGateway;
-        // If the current saved gateway matches the selected provider, use it (to keep saved keys)
-        if (props.gateway && props.gateway.provider === provider) {
-            found = props.gateway;
-        } else if (currentGateway.value && currentGateway.value.provider === provider) {
-             found = currentGateway.value;
+        // Check if we have saved settings for this provider
+        const saved = savedGateways.value[provider];
+        
+        if (saved) {
+             applyGatewayToForm(saved);
         } else {
-             found = allGateways.find((g) => g.provider === provider) || defaultGateway;
+            // Reset to default structure but keep the provider selected
+            const defaults = allGateways.find(g => g.provider === provider) || defaultGateway;
+            // We want to clear keys but keep provider structure
+            form.id = '';
+            form.username = '';
+            form.api_key = '';
+            form.api_secret = '';
+            form.sender_id = '';
+            form.is_active = false;
+            // is_default is deprecated/not used the same way, but we can set false
+            form.is_default = false; 
         }
-        applyGatewayToForm(found);
     },
 );
 
@@ -187,7 +207,9 @@ function save() {
                     :key="g.provider"
                     :value="g.provider"
                 >
-                    {{ g.label }}
+                    {{ g.label }} 
+                    <span v-if="savedGateways[g.provider]?.is_active" class="font-bold text-green-600"> (Active)</span>
+                    <span v-else-if="savedGateways[g.provider]" class="text-gray-500"> (Saved)</span>
                 </option>
             </select>
 
@@ -242,6 +264,16 @@ function save() {
                             v-model="form.sender_id"
                         />
                     </template>
+
+                    <!-- Active Toggle -->
+                    <div class="flex items-center gap-2 py-2">
+                        <input 
+                            type="checkbox" 
+                            v-model="form.is_active" 
+                            class="checkbox checkbox-primary"
+                        />
+                        <span class="font-medium">Set as Active SMS Gateway</span>
+                    </div>
 
                     <!-- Actions -->
                     <div class="mt-6 flex justify-between">
