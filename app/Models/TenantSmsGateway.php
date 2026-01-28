@@ -24,6 +24,9 @@ class TenantSmsGateway extends Model
         'twilio_account_sid',
         'twilio_auth_token',
         'twilio_from_number',
+        'advanta_partner_id',
+        'advanta_api_key',
+        'advanta_shortcode',
         'is_active', 
         'label', 
         'is_default'
@@ -94,6 +97,27 @@ class TenantSmsGateway extends Model
     }
     
     public function getTwilioAuthTokenAttribute($value) 
+    { 
+        return $value ? Crypt::decryptString($value) : null; 
+    }
+    
+    // Advanta SMS Mutators/Accessors
+    public function setAdvantaPartnerIdAttribute($value) 
+    { 
+        $this->attributes['advanta_partner_id'] = $value ? Crypt::encryptString($value) : null; 
+    }
+    
+    public function getAdvantaPartnerIdAttribute($value) 
+    { 
+        return $value ? Crypt::decryptString($value) : null; 
+    }
+    
+    public function setAdvantaApiKeyAttribute($value) 
+    { 
+        $this->attributes['advanta_api_key'] = $value ? Crypt::encryptString($value) : null; 
+    }
+    
+    public function getAdvantaApiKeyAttribute($value) 
     { 
         return $value ? Crypt::decryptString($value) : null; 
     }

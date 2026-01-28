@@ -9,11 +9,22 @@ class SmsGatewayService
 {
     protected $celcomService;
     protected $talksasaService;
+    protected $africasTalkingService;
+    protected $twilioService;
+    protected $advantaService;
     
-    public function __construct(CelcomSmsService $celcomService, TalksasaSmsService $talksasaService)
-    {
+    public function __construct(
+        CelcomSmsService $celcomService,
+        TalksasaSmsService $talksasaService,
+        AfricasTalkingSmsService $africasTalkingService,
+        TwilioSmsService $twilioService,
+        AdvantaSmsService $advantaService
+    ) {
         $this->celcomService = $celcomService;
         $this->talksasaService = $talksasaService;
+        $this->africasTalkingService = $africasTalkingService;
+        $this->twilioService = $twilioService;
+        $this->advantaService = $advantaService;
     }
     
     /**
@@ -46,18 +57,13 @@ class SmsGatewayService
                 return $this->sendViaTalksasa($gateway, $phoneNumber, $message);
                 
             case 'africastalking':
-                // To be implemented
-                return [
-                    'success' => false,
-                    'message' => 'Africa\'s Talking not yet implemented in SmsGatewayService'
-                ];
+                return $this->sendViaAfricasTalking($gateway, $phoneNumber, $message);
                 
             case 'twilio':
-                // To be implemented
-                return [
-                    'success' => false,
-                    'message' => 'Twilio not yet implemented in SmsGatewayService'
-                ];
+                return $this->sendViaTwilio($gateway, $phoneNumber, $message);
+                
+            case 'advanta':
+                return $this->sendViaAdvanta($gateway, $phoneNumber, $message);
                 
             default:
                 return [
@@ -101,6 +107,48 @@ class SmsGatewayService
         ]);
         
         return $this->talksasaService->sendSMS($phoneNumber, $message);
+    }
+    
+    /**
+     * Send via Africa's Talking using tenant credentials
+     */
+    protected function sendViaAfricasTalking(TenantSmsGateway $gateway, string $phoneNumber, string $message): array
+    {
+        $this->africasTalkingService->setCredentials([
+            'username' => $gateway->africastalking_username,
+            'api_key' => $gateway->africastalking_api_key,
+            'sender_id' => $gateway->africastalking_sender_id,
+        ]);
+        
+        return $this->africasTalkingService->sendSMS($phoneNumber, $message);
+    }
+    
+    /**
+     * Send via Twilio using tenant credentials
+     */
+    protected function sendViaTwilio(TenantSmsGateway $gateway, string $phoneNumber, string $message): array
+    {
+        $this->twilioService->setCredentials([
+            'account_sid' => $gateway->twilio_account_sid,
+            'auth_token' => $gateway->twilio_auth_token,
+            'from_number' => $gateway->twilio_from_number,
+        ]);
+        
+        return $this->twilioService->sendSMS($phoneNumber, $message);
+    }
+    
+    /**
+     * Send via Advanta using tenant credentials
+     */
+    protected function sendViaAdvanta(TenantSmsGateway $gateway, string $phoneNumber, string $message): array
+    {
+        $this->advantaService->setCredentials([
+            'partner_id' => $gateway->advanta_partner_id,
+            'api_key' => $gateway->advanta_api_key,
+            'shortcode' => $gateway->advanta_shortcode,
+        ]);
+        
+        return $this->advantaService->sendSMS($phoneNumber, $message);
     }
     
     /**

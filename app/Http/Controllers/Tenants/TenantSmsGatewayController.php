@@ -49,7 +49,7 @@ class TenantSmsGatewayController extends Controller
 
         $validated = $request->validate([
             'provider' => ['required', Rule::in([
-                'talksasa', 'celcom', 'africastalking', 'twilio',
+                'talksasa', 'celcom', 'africastalking', 'twilio', 'advanta',
             ])],
             'label' => 'nullable|string|max:100',
             // Talksasa fields
@@ -67,6 +67,10 @@ class TenantSmsGatewayController extends Controller
             'twilio_account_sid' => 'nullable|string|max:255',
             'twilio_auth_token' => 'nullable|string|max:255',
             'twilio_from_number' => 'nullable|string|max:255',
+            // Advanta fields
+            'advanta_partner_id' => 'nullable|string|max:255',
+            'advanta_api_key' => 'nullable|string|max:255',
+            'advanta_shortcode' => 'nullable|string|max:255',
             'is_active' => 'nullable|boolean',
         ]);
 

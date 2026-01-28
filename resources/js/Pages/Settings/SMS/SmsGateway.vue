@@ -28,6 +28,7 @@ const allProviders = [
     { provider: 'celcom', label: 'Celcom SMS' },
     { provider: 'africastalking', label: 'Africa\'s Talking' },
     { provider: 'twilio', label: 'Twilio' },
+    { provider: 'advanta', label: 'Advanta SMS' },
 ];
 
 // Initialize form with actual gateway data (decrypted values from backend)
@@ -49,6 +50,10 @@ const form = useForm({
     twilio_account_sid: props.gateway?.twilio_account_sid || '',
     twilio_auth_token: props.gateway?.twilio_auth_token || '',
     twilio_from_number: props.gateway?.twilio_from_number || '',
+    // Advanta
+    advanta_partner_id: props.gateway?.advanta_partner_id || '',
+    advanta_api_key: props.gateway?.advanta_api_key || '',
+    advanta_shortcode: props.gateway?.advanta_shortcode || '',
     is_active: props.gateway?.is_active ?? true,
 });
 
@@ -57,6 +62,7 @@ const showTalksasaFields = computed(() => form.provider === 'talksasa');
 const showCelcomFields = computed(() => form.provider === 'celcom');
 const showAfricasTalkingFields = computed(() => form.provider === 'africastalking');
 const showTwilioFields = computed(() => form.provider === 'twilio');
+const showAdvantaFields = computed(() => form.provider === 'advanta');
 
 // Save gateway settings
 function save() {
@@ -194,6 +200,24 @@ function openDetails() {
                         <InputField
                             label="From Number"
                             v-model="form.twilio_from_number"
+                        />
+                    </template>
+
+                    <!-- Advanta SMS Fields -->
+                    <template v-if="showAdvantaFields">
+                        <InputField
+                            label="Partner ID"
+                            v-model="form.advanta_partner_id"
+                            type="password"
+                        />
+                        <InputField
+                            label="API Key"
+                            v-model="form.advanta_api_key"
+                            type="password"
+                        />
+                        <InputField
+                            label="Shortcode / Sender ID"
+                            v-model="form.advanta_shortcode"
                         />
                     </template>
 
