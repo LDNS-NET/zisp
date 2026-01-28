@@ -117,35 +117,37 @@ class TenantSmsGateway extends Model
         return $value ? Crypt::decryptString($value) : null; 
     }
     
+    
     // Accessors for has_* flags (return boolean without exposing values)
+    // These check the raw encrypted values in the database
     public function getHasTalksasaApiKeyAttribute()
     {
-        return !empty($this->attributes['talksasa_api_key']);
+        return !empty($this->getAttributeFromArray('talksasa_api_key'));
     }
     
     public function getHasCelcomPartnerIdAttribute()
     {
-        return !empty($this->attributes['celcom_partner_id']);
+        return !empty($this->getAttributeFromArray('celcom_partner_id'));
     }
     
     public function getHasCelcomApiKeyAttribute()
     {
-        return !empty($this->attributes['celcom_api_key']);
+        return !empty($this->getAttributeFromArray('celcom_api_key'));
     }
     
     public function getHasAfricastalkingApiKeyAttribute()
     {
-        return !empty($this->attributes['africastalking_api_key']);
+        return !empty($this->getAttributeFromArray('africastalking_api_key'));
     }
     
     public function getHasTwilioAccountSidAttribute()
     {
-        return !empty($this->attributes['twilio_account_sid']);
+        return !empty($this->getAttributeFromArray('twilio_account_sid'));
     }
     
     public function getHasTwilioAuthTokenAttribute()
     {
-        return !empty($this->attributes['twilio_auth_token']);
+        return !empty($this->getAttributeFromArray('twilio_auth_token'));
     }
     
     public function tenant() 
