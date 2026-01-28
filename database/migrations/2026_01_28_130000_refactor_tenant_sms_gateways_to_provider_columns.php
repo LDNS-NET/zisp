@@ -54,14 +54,18 @@ return new class extends Migration
             if (!empty($foreignKeys)) {
                 $table->dropForeign(['tenant_id']);
             }
-            
-            // Drop unique constraint if it exists
-            try {
+        });
+        
+        // Check if unique index exists before dropping
+        $uniqueIndex = DB::select("SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'tenant_sms_gateways' AND CONSTRAINT_NAME = 'tenant_sms_gateways_tenant_id_provider_unique'");
+        
+        if (!empty($uniqueIndex)) {
+            Schema::table('tenant_sms_gateways', function (Blueprint $table) {
                 $table->dropUnique(['tenant_id', 'provider']);
-            } catch (\Exception $e) {
-                // Constraint doesn't exist, continue
-            }
-            
+            });
+        }
+        
+        Schema::table('tenant_sms_gateways', function (Blueprint $table) {
             // Drop old generic columns if they exist
             $columnsToCheck = ['username', 'api_key', 'sender_id', 'api_secret'];
             $existingColumns = [];
