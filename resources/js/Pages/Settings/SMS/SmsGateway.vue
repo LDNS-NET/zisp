@@ -29,6 +29,9 @@ const allProviders = [
     { provider: 'africastalking', label: 'Africa\'s Talking' },
     { provider: 'twilio', label: 'Twilio' },
     { provider: 'advanta', label: 'Advanta SMS' },
+    { provider: 'bulksms', label: 'BulkSMS.com' },
+    { provider: 'clicksend', label: 'ClickSend' },
+    { provider: 'infobip', label: 'Infobip' },
 ];
 
 // Initialize form with actual gateway data (decrypted values from backend)
@@ -54,6 +57,16 @@ const form = useForm({
     advanta_partner_id: props.gateway?.advanta_partner_id || '',
     advanta_api_key: props.gateway?.advanta_api_key || '',
     advanta_shortcode: props.gateway?.advanta_shortcode || '',
+    // BulkSMS
+    bulksms_username: props.gateway?.bulksms_username || '',
+    bulksms_password: props.gateway?.bulksms_password || '',
+    // ClickSend
+    clicksend_username: props.gateway?.clicksend_username || '',
+    clicksend_api_key: props.gateway?.clicksend_api_key || '',
+    // Infobip
+    infobip_api_key: props.gateway?.infobip_api_key || '',
+    infobip_base_url: props.gateway?.infobip_base_url || 'https://api.infobip.com',
+    infobip_sender_id: props.gateway?.infobip_sender_id || '',
     is_active: props.gateway?.is_active ?? true,
 });
 
@@ -63,6 +76,9 @@ const showCelcomFields = computed(() => form.provider === 'celcom');
 const showAfricasTalkingFields = computed(() => form.provider === 'africastalking');
 const showTwilioFields = computed(() => form.provider === 'twilio');
 const showAdvantaFields = computed(() => form.provider === 'advanta');
+const showBulkSMSFields = computed(() => form.provider === 'bulksms');
+const showClickSendFields = computed(() => form.provider === 'clicksend');
+const showInfobipFields = computed(() => form.provider === 'infobip');
 
 // Save gateway settings
 function save() {
@@ -218,6 +234,49 @@ function openDetails() {
                         <InputField
                             label="Shortcode / Sender ID"
                             v-model="form.advanta_shortcode"
+                        />
+                    </template>
+
+                    <!-- BulkSMS Fields -->
+                    <template v-if="showBulkSMSFields">
+                        <InputField
+                            label="Username"
+                            v-model="form.bulksms_username"
+                        />
+                        <InputField
+                            label="Password"
+                            v-model="form.bulksms_password"
+                            type="password"
+                        />
+                    </template>
+
+                    <!-- ClickSend Fields -->
+                    <template v-if="showClickSendFields">
+                        <InputField
+                            label="Username"
+                            v-model="form.clicksend_username"
+                        />
+                        <InputField
+                            label="API Key"
+                            v-model="form.clicksend_api_key"
+                            type="password"
+                        />
+                    </template>
+
+                    <!-- Infobip Fields -->
+                    <template v-if="showInfobipFields">
+                        <InputField
+                            label="API Key"
+                            v-model="form.infobip_api_key"
+                            type="password"
+                        />
+                        <InputField
+                            label="Base URL"
+                            v-model="form.infobip_base_url"
+                        />
+                        <InputField
+                            label="Sender ID"
+                            v-model="form.infobip_sender_id"
                         />
                     </template>
 

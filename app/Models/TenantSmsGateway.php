@@ -27,6 +27,13 @@ class TenantSmsGateway extends Model
         'advanta_partner_id',
         'advanta_api_key',
         'advanta_shortcode',
+        'bulksms_username',
+        'bulksms_password',
+        'clicksend_username',
+        'clicksend_api_key',
+        'infobip_api_key',
+        'infobip_base_url',
+        'infobip_sender_id',
         'is_active', 
         'label', 
         'is_default'
@@ -118,6 +125,59 @@ class TenantSmsGateway extends Model
     }
     
     public function getAdvantaApiKeyAttribute($value) 
+    { 
+        return $value ? Crypt::decryptString($value) : null; 
+    }
+    
+    // BulkSMS Mutators/Accessors
+    public function setBulksmsUsernameAttribute($value) 
+    { 
+        $this->attributes['bulksms_username'] = $value ? Crypt::encryptString($value) : null; 
+    }
+    
+    public function getBulksmsUsernameAttribute($value) 
+    { 
+        return $value ? Crypt::decryptString($value) : null; 
+    }
+    
+    public function setBulksmsPasswordAttribute($value) 
+    { 
+        $this->attributes['bulksms_password'] = $value ? Crypt::encryptString($value) : null; 
+    }
+    
+    public function getBulksmsPasswordAttribute($value) 
+    { 
+        return $value ? Crypt::decryptString($value) : null; 
+    }
+    
+    // ClickSend Mutators/Accessors
+    public function setClicksendUsernameAttribute($value) 
+    { 
+        $this->attributes['clicksend_username'] = $value ? Crypt::encryptString($value) : null; 
+    }
+    
+    public function getClicksendUsernameAttribute($value) 
+    { 
+        return $value ? Crypt::decryptString($value) : null; 
+    }
+    
+    public function setClicksendApiKeyAttribute($value) 
+    { 
+        $this->attributes['clicksend_api_key'] = $value ? Crypt::encryptString($value) : null; 
+    }
+    
+    public function getClicksendApiKeyAttribute($value) 
+    { 
+        return $value ? Crypt::decryptString($value) : null; 
+    }
+    
+    // Infobip Mutators/Accessors
+    public function setInfobipApiKeyAttribute($value) 
+    { 
+        $this->attributes['infobip_api_key'] = $value ? Crypt::encryptString($value) : null; 
+    }
+    
+    public function getInfobipApiKeyAttribute($value) 
     { 
         return $value ? Crypt::decryptString($value) : null; 
     }

@@ -12,19 +12,28 @@ class SmsGatewayService
     protected $africasTalkingService;
     protected $twilioService;
     protected $advantaService;
+    protected $bulkSMSService;
+    protected $clickSendService;
+    protected $infobipService;
     
     public function __construct(
         CelcomSmsService $celcomService,
         TalksasaSmsService $talksasaService,
         AfricasTalkingSmsService $africasTalkingService,
         TwilioSmsService $twilioService,
-        AdvantaSmsService $advantaService
+        AdvantaSmsService $advantaService,
+        BulkSMSService $bulkSMSService,
+        ClickSendSmsService $clickSendService,
+        InfobipSmsService $infobipService
     ) {
         $this->celcomService = $celcomService;
         $this->talksasaService = $talksasaService;
         $this->africasTalkingService = $africasTalkingService;
         $this->twilioService = $twilioService;
         $this->advantaService = $advantaService;
+        $this->bulkSMSService = $bulkSMSService;
+        $this->clickSendService = $clickSendService;
+        $this->infobipService = $infobipService;
     }
     
     /**
@@ -64,6 +73,15 @@ class SmsGatewayService
                 
             case 'advanta':
                 return $this->sendViaAdvanta($gateway, $phoneNumber, $message);
+                
+            case 'bulksms':
+                return $this->sendViaBulkSMS($gateway, $phoneNumber, $message);
+                
+            case 'clicksend':
+                return $this->sendViaClickSend($gateway, $phoneNumber, $message);
+                
+            case 'infobip':
+                return $this->sendViaInfobip($gateway, $phoneNumber, $message);
                 
             default:
                 return [
@@ -149,6 +167,46 @@ class SmsGatewayService
         ]);
         
         return $this->advantaService->sendSMS($phoneNumber, $message);
+    }
+    
+    /**
+     * Send via BulkSMS using tenant credentials
+     */
+    protected function sendViaBulkSMS(TenantSmsGateway $gateway, string $phoneNumber, string $message): array
+    {
+        $this->bulkSMSService->setCredentials([
+            'username' => $gateway->bulksms_username,
+            'password' => $gateway->bulksms_password,
+        ]);
+        
+        return $this->bulkSMSService->sendSMS($phoneNumber, $message);
+    }
+    
+    /**
+     * Send via ClickSend using tenant credentials
+     */
+    protected function sendViaClickSend(TenantSmsGateway $gateway, string $phoneNumber, string $message): array
+    {
+        $this->clickSendService->setCredentials([
+            'username' => $gateway->clicksend_username,
+            'api_key' => $gateway->clicksend_api_key,
+        ]);
+        
+        return $this->clickSendService->sendSMS($phoneNumber, $message);
+    }
+    
+    /**
+     * Send via Infobip using tenant credentials
+     */
+    protected function sendViaInfobip(TenantSmsGateway $gateway, string $phoneNumber, string $message): array
+    {
+        $this->infobipService->setCredentials([
+            'api_key' => $gateway->infobip_api_key,
+            'base_url' => $gateway->infobip_base_url,
+            'sender_id' => $gateway->infobip_sender_id,
+        ]);
+        
+        return $this->infobipService->sendSMS($phoneNumber, $message);
     }
     
     /**

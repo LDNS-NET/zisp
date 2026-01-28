@@ -49,7 +49,7 @@ class TenantSmsGatewayController extends Controller
 
         $validated = $request->validate([
             'provider' => ['required', Rule::in([
-                'talksasa', 'celcom', 'africastalking', 'twilio', 'advanta',
+                'talksasa', 'celcom', 'africastalking', 'twilio', 'advanta', 'bulksms', 'clicksend', 'infobip',
             ])],
             'label' => 'nullable|string|max:100',
             // Talksasa fields
@@ -71,6 +71,16 @@ class TenantSmsGatewayController extends Controller
             'advanta_partner_id' => 'nullable|string|max:255',
             'advanta_api_key' => 'nullable|string|max:255',
             'advanta_shortcode' => 'nullable|string|max:255',
+            // BulkSMS fields
+            'bulksms_username' => 'nullable|string|max:255',
+            'bulksms_password' => 'nullable|string|max:255',
+            // ClickSend fields
+            'clicksend_username' => 'nullable|string|max:255',
+            'clicksend_api_key' => 'nullable|string|max:255',
+            // Infobip fields
+            'infobip_api_key' => 'nullable|string|max:255',
+            'infobip_base_url' => 'nullable|string|max:255',
+            'infobip_sender_id' => 'nullable|string|max:255',
             'is_active' => 'nullable|boolean',
         ]);
 
