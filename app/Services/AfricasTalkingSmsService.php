@@ -32,11 +32,21 @@ class AfricasTalkingSmsService
     public function sendSMS(string $phoneNumber, string $message): array
     {
         if (!$this->username || !$this->apiKey) {
+            Log::error('Africa\'s Talking: Missing credentials', [
+                'has_username' => !empty($this->username),
+                'has_api_key' => !empty($this->apiKey),
+            ]);
             return [
                 'success' => false,
                 'message' => 'Africa\'s Talking SMS credentials not properly configured.'
             ];
         }
+        
+        Log::info('Africa\'s Talking: Attempting to send SMS', [
+            'username' => $this->username,
+            'phone_number' => $phoneNumber,
+            'sender_id' => $this->senderId,
+        ]);
         
         try {
             $response = Http::withHeaders([
@@ -51,6 +61,12 @@ class AfricasTalkingSmsService
             ]);
             
             $data = $response->json();
+            $statusCode = $response->status();
+            
+            Log::info('Africa\'s Talking: Received response', [
+                'http_status' => $statusCode,
+                'response_body' => $data,
+            ]);
             
             // Africa's Talking returns SMSMessageData with Recipients array
             if ($response->successful() && isset($data['SMSMessageData']['Recipients'])) {
@@ -58,32 +74,61 @@ class AfricasTalkingSmsService
                 
                 // Check if first recipient was successful (status code 100-102)
                 if (!empty($recipients) && isset($recipients[0]['statusCode'])) {
-                    $statusCode = $recipients[0]['statusCode'];
+                    $recipientStatusCode = $recipients[0]['statusCode'];
+                    $recipientStatus = $recipients[0]['status'] ?? 'Unknown';
                     
-                    if (in_array($statusCode, [100, 101, 102])) {
+                    Log::info('Africa\'s Talking: Recipient status', [
+                        'status_code' => $recipientStatusCode,
+                        'status' => $recipientStatus,
+                        'number' => $recipients[0]['number'] ?? 'Unknown',
+                    ]);
+                    
+                    if (in_array($recipientStatusCode, [100, 101, 102])) {
                         return [
                             'success' => true,
                             'message' => 'SMS sent successfully via Africa\'s Talking.',
                             'provider_response' => $data
                         ];
                     }
+                    
+                    // Log failure with status code
+                    Log::warning('Africa\'s Talking: Message not accepted', [
+                        'status_code' => $recipientStatusCode,
+                        'status' => $recipientStatus,
+                        'cost' => $recipients[0]['cost'] ?? 'Unknown',
+                    ]);
                 }
+                
+                $errorMessage = $data['SMSMessageData']['Message'] ?? 'Failed to send SMS.';
+                Log::error('Africa\'s Talking: Send failed', [
+                    'error_message' => $errorMessage,
+                    'recipients' => $recipients,
+                ]);
                 
                 return [
                     'success' => false,
-                    'message' => $data['SMSMessageData']['Message'] ?? 'Failed to send SMS.',
+                    'message' => $errorMessage,
                     'provider_response' => $data
                 ];
             }
             
+            // Log if response structure is unexpected
+            Log::error('Africa\'s Talking: Unexpected response structure', [
+                'http_status' => $statusCode,
+                'response_body' => $data,
+            ]);
+            
             return [
                 'success' => false,
-                'message' => 'Failed to send SMS via Africa\'s Talking.',
+                'message' => 'Failed to send SMS via Africa\'s Talking. Unexpected response format.',
                 'provider_response' => $data
             ];
             
         } catch (\Exception $e) {
-            Log::error('Africa\'s Talking SMS failed: ' . $e->getMessage());
+            Log::error('Africa\'s Talking SMS failed: ' . $e->getMessage(), [
+                'exception' => get_class($e),
+                'trace' => $e->getTraceAsString(),
+            ]);
             return [
                 'success' => false,
                 'message' => 'Failed to send SMS: ' . $e->getMessage()
