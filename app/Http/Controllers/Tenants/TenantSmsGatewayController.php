@@ -71,41 +71,13 @@ class TenantSmsGatewayController extends Controller
         ]);
 
         // Update or create the gateway row (one row per tenant)
-        $gateway = TenantSmsGateway::firstOrNew(['tenant_id' => $tenantId]);
-        
-        // Update provider and label
-        $gateway->provider = $provider;
-        $gateway->label = $validated['label'] ?? null;
-        $gateway->is_active = $validated['is_active'] ?? true;
-        
-        // Update non-sensitive fields (always update)
-        $gateway->talksasa_sender_id = $validated['talksasa_sender_id'] ?? null;
-        $gateway->celcom_sender_id = $validated['celcom_sender_id'] ?? null;
-        $gateway->africastalking_username = $validated['africastalking_username'] ?? null;
-        $gateway->africastalking_sender_id = $validated['africastalking_sender_id'] ?? null;
-        $gateway->twilio_from_number = $validated['twilio_from_number'] ?? null;
-        
-        // Update sensitive fields ONLY if new non-empty values provided
-        if (!empty($validated['talksasa_api_key'])) {
-            $gateway->talksasa_api_key = $validated['talksasa_api_key'];
-        }
-        if (!empty($validated['celcom_partner_id'])) {
-            $gateway->celcom_partner_id = $validated['celcom_partner_id'];
-        }
-        if (!empty($validated['celcom_api_key'])) {
-            $gateway->celcom_api_key = $validated['celcom_api_key'];
-        }
-        if (!empty($validated['africastalking_api_key'])) {
-            $gateway->africastalking_api_key = $validated['africastalking_api_key'];
-        }
-        if (!empty($validated['twilio_account_sid'])) {
-            $gateway->twilio_account_sid = $validated['twilio_account_sid'];
-        }
-        if (!empty($validated['twilio_auth_token'])) {
-            $gateway->twilio_auth_token = $validated['twilio_auth_token'];
-        }
-        
-        $gateway->save();
+        TenantSmsGateway::updateOrCreate(
+            ['tenant_id' => $tenantId],
+            array_merge($validated, [
+                'provider' => $provider,
+                'is_active' => $validated['is_active'] ?? true,
+            ])
+        );
 
         return back()->with('success', 'SMS gateway settings saved successfully.');
     }
