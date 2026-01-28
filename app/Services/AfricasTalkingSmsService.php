@@ -46,18 +46,34 @@ class AfricasTalkingSmsService
             'username' => $this->username,
             'phone_number' => $phoneNumber,
             'sender_id' => $this->senderId,
+            'api_key_length' => strlen($this->apiKey ?? ''),
+            'endpoint' => $this->endpoint,
+        ]);
+        
+        $requestData = [
+            'username' => $this->username,
+            'to' => $phoneNumber,
+            'message' => $message,
+        ];
+        
+        // Only add 'from' if sender_id is provided
+        if ($this->senderId) {
+            $requestData['from'] = $this->senderId;
+        }
+        
+        Log::info('Africa\'s Talking: Request details', [
+            'headers' => [
+                'apiKey' => substr($this->apiKey, 0, 10) . '...' . substr($this->apiKey, -5),
+                'Accept' => 'application/json',
+            ],
+            'request_data' => $requestData,
         ]);
         
         try {
             $response = Http::withHeaders([
-                'apiKey' => $this->apiKey,  // Africa's Talking uses 'apiKey' header
+                'apiKey' => $this->apiKey,
                 'Accept' => 'application/json',
-            ])->asForm()->post($this->endpoint, [
-                'username' => $this->username,
-                'to' => $phoneNumber,
-                'message' => $message,
-                'from' => $this->senderId,
-            ]);
+            ])->asForm()->post($this->endpoint, $requestData);
             
             $data = $response->json();
             $statusCode = $response->status();
