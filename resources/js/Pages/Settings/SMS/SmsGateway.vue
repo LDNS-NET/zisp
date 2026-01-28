@@ -30,24 +30,35 @@ const allProviders = [
     { provider: 'twilio', label: 'Twilio' },
 ];
 
-// Initialize form with gateway data
+// Track which fields have saved values (for masking)
+const hasSavedValue = ref({
+    talksasa_api_key: !!props.gateway?.talksasa_api_key,
+    celcom_partner_id: !!props.gateway?.celcom_partner_id,
+    celcom_api_key: !!props.gateway?.celcom_api_key,
+    africastalking_api_key: !!props.gateway?.africastalking_api_key,
+    twilio_account_sid: !!props.gateway?.twilio_account_sid,
+    twilio_auth_token: !!props.gateway?.twilio_auth_token,
+});
+
+// Initialize form - use empty strings for sensitive fields that have saved values
+// The placeholder will show "••••••••" to indicate a value exists
 const form = useForm({
     provider: props.gateway?.provider || 'talksasa',
     label: props.gateway?.label || '',
     // Talksasa
-    talksasa_api_key: props.gateway?.talksasa_api_key || '',
+    talksasa_api_key: '', // Will show placeholder if hasSavedValue
     talksasa_sender_id: props.gateway?.talksasa_sender_id || '',
     // Celcom
-    celcom_partner_id: props.gateway?.celcom_partner_id || '',
-    celcom_api_key: props.gateway?.celcom_api_key || '',
+    celcom_partner_id: '',
+    celcom_api_key: '',
     celcom_sender_id: props.gateway?.celcom_sender_id || '',
     // Africa's Talking
     africastalking_username: props.gateway?.africastalking_username || '',
-    africastalking_api_key: props.gateway?.africastalking_api_key || '',
+    africastalking_api_key: '',
     africastalking_sender_id: props.gateway?.africastalking_sender_id || '',
     // Twilio
-    twilio_account_sid: props.gateway?.twilio_account_sid || '',
-    twilio_auth_token: props.gateway?.twilio_auth_token || '',
+    twilio_account_sid: '',
+    twilio_auth_token: '',
     twilio_from_number: props.gateway?.twilio_from_number || '',
     is_active: props.gateway?.is_active ?? true,
 });
@@ -151,11 +162,16 @@ function openDetails() {
 
                     <!-- Celcom Fields -->
                     <template v-if="showCelcomFields">
-                        <InputField label="Partner ID" v-model="form.celcom_partner_id" />
+                        <InputField 
+                            label="Partner ID" 
+                            v-model="form.celcom_partner_id"
+                            :hasSaved="hasSavedValue.celcom_partner_id"
+                        />
                         <InputField
                             label="API Key"
                             v-model="form.celcom_api_key"
                             type="password"
+                            :hasSaved="hasSavedValue.celcom_api_key"
                         />
                         <InputField
                             label="Sender ID / Shortcode"
@@ -170,6 +186,7 @@ function openDetails() {
                             label="API Key"
                             v-model="form.africastalking_api_key"
                             type="password"
+                            :hasSaved="hasSavedValue.africastalking_api_key"
                         />
                         <InputField
                             label="Sender ID"
@@ -182,11 +199,13 @@ function openDetails() {
                         <InputField
                             label="Account SID"
                             v-model="form.twilio_account_sid"
+                            :hasSaved="hasSavedValue.twilio_account_sid"
                         />
                         <InputField
                             label="Auth Token"
                             v-model="form.twilio_auth_token"
                             type="password"
+                            :hasSaved="hasSavedValue.twilio_auth_token"
                         />
                         <InputField
                             label="From Number"
@@ -271,7 +290,7 @@ function openDetails() {
 export default {
     components: {
         InputField: {
-            props: ['label', 'modelValue', 'type'],
+            props: ['label', 'modelValue', 'type', 'hasSaved'],
             emits: ['update:modelValue'],
             template: `
         <div>
@@ -279,9 +298,13 @@ export default {
           <input
             :type="type || 'text'"
             :value="modelValue"
+            :placeholder="hasSaved && !modelValue ? '••••••••' : ''"
             @input="$emit('update:modelValue', $event.target.value)"
             class="input input-bordered w-full dark:bg-gray-700"
           />
+          <p v-if="hasSaved && !modelValue" class="mt-1 text-xs text-gray-500">
+            Value is saved (hidden for security). Enter new value to update.
+          </p>
         </div>
       `,
         },
