@@ -12,27 +12,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('tenant_sms_gateways', function (Blueprint $table) {
-            // First, drop the unique constraint if it exists
-            // We need to check if there's a foreign key using it first
-            try {
-                $table->dropUnique(['tenant_id', 'provider']);
-            } catch (\Exception $e) {
-                // If it fails, it might be used by a foreign key, skip for now
-            }
+            // Drop foreign key first (it uses the unique index)
+            $table->dropForeign(['tenant_id']);
+            
+            // Now we can drop the unique constraint
+            $table->dropUnique(['tenant_id', 'provider']);
             
             // Drop old generic columns
-            if (Schema::hasColumn('tenant_sms_gateways', 'username')) {
-                $table->dropColumn('username');
-            }
-            if (Schema::hasColumn('tenant_sms_gateways', 'api_key')) {
-                $table->dropColumn('api_key');
-            }
-            if (Schema::hasColumn('tenant_sms_gateways', 'sender_id')) {
-                $table->dropColumn('sender_id');
-            }
-            if (Schema::hasColumn('tenant_sms_gateways', 'api_secret')) {
-                $table->dropColumn('api_secret');
-            }
+            $table->dropColumn(['username', 'api_key', 'sender_id', 'api_secret']);
         });
         
         Schema::table('tenant_sms_gateways', function (Blueprint $table) {
@@ -56,8 +43,11 @@ return new class extends Migration
             $table->text('twilio_auth_token')->nullable();
             $table->string('twilio_from_number')->nullable();
             
-            // Add unique constraint on tenant_id only (one row per tenant)
+            // Add tenant_id unique constraint (one row per tenant)
             $table->unique('tenant_id');
+            
+            // Re-add foreign key constraint
+            $table->foreign('tenant_id')->references('id')->on('tenants')->onDelete('cascade');
         });
     }
 
@@ -67,7 +57,8 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('tenant_sms_gateways', function (Blueprint $table) {
-            // Drop the tenant_id unique constraint
+            // Drop foreign key and unique constraint
+            $table->dropForeign(['tenant_id']);
             $table->dropUnique(['tenant_id']);
             
             // Drop provider-specific columns
@@ -93,6 +84,9 @@ return new class extends Migration
             
             // Restore the old unique constraint
             $table->unique(['tenant_id', 'provider']);
+            
+            // Restore foreign key
+            $table->foreign('tenant_id')->references('id')->on('tenants')->onDelete('cascade');
         });
     }
 };
