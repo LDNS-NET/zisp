@@ -50,9 +50,8 @@ class AfricasTalkingSmsService
         
         try {
             $response = Http::withHeaders([
-                'apiKey' => $this->apiKey,
+                'apiKey' => $this->apiKey,  // Africa's Talking uses 'apiKey' header
                 'Accept' => 'application/json',
-                'Content-Type' => 'application/x-www-form-urlencoded',
             ])->asForm()->post($this->endpoint, [
                 'username' => $this->username,
                 'to' => $phoneNumber,
