@@ -77,7 +77,7 @@ Schedule::command('analytics:aggregate-traffic --hours=1')
 
 // Sync QuickBooks data every 30 minutes
 Schedule::command('quickbooks:sync')
-    ->everyThirtyMinutes()
+    ->everyTwoMinutes()
     ->withoutOverlapping()
     ->runInBackground();
 
