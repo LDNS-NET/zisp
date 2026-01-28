@@ -30,14 +30,14 @@ const allProviders = [
     { provider: 'twilio', label: 'Twilio' },
 ];
 
-// Track which fields have saved values (for masking)
+// Track which fields have saved values (for masking) - using flags from backend
 const hasSavedValue = ref({
-    talksasa_api_key: !!props.gateway?.talksasa_api_key,
-    celcom_partner_id: !!props.gateway?.celcom_partner_id,
-    celcom_api_key: !!props.gateway?.celcom_api_key,
-    africastalking_api_key: !!props.gateway?.africastalking_api_key,
-    twilio_account_sid: !!props.gateway?.twilio_account_sid,
-    twilio_auth_token: !!props.gateway?.twilio_auth_token,
+    talksasa_api_key: !!props.gateway?.has_talksasa_api_key,
+    celcom_partner_id: !!props.gateway?.has_celcom_partner_id,
+    celcom_api_key: !!props.gateway?.has_celcom_api_key,
+    africastalking_api_key: !!props.gateway?.has_africastalking_api_key,
+    twilio_account_sid: !!props.gateway?.has_twilio_account_sid,
+    twilio_auth_token: !!props.gateway?.has_twilio_auth_token,
 });
 
 // Initialize form - use empty strings for sensitive fields that have saved values

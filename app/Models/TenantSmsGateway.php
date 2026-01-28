@@ -43,6 +43,16 @@ class TenantSmsGateway extends Model
         'twilio_auth_token',
     ];
     
+    // Append flags to indicate if sensitive fields have values (without exposing them)
+    protected $appends = [
+        'has_talksasa_api_key',
+        'has_celcom_partner_id',
+        'has_celcom_api_key',
+        'has_africastalking_api_key',
+        'has_twilio_account_sid',
+        'has_twilio_auth_token',
+    ];
+    
     // Talksasa Mutators/Accessors
     public function setTalksasaApiKeyAttribute($value) 
     { 
@@ -105,6 +115,37 @@ class TenantSmsGateway extends Model
     public function getTwilioAuthTokenAttribute($value) 
     { 
         return $value ? Crypt::decryptString($value) : null; 
+    }
+    
+    // Accessors for has_* flags (return boolean without exposing values)
+    public function getHasTalksasaApiKeyAttribute()
+    {
+        return !empty($this->attributes['talksasa_api_key']);
+    }
+    
+    public function getHasCelcomPartnerIdAttribute()
+    {
+        return !empty($this->attributes['celcom_partner_id']);
+    }
+    
+    public function getHasCelcomApiKeyAttribute()
+    {
+        return !empty($this->attributes['celcom_api_key']);
+    }
+    
+    public function getHasAfricastalkingApiKeyAttribute()
+    {
+        return !empty($this->attributes['africastalking_api_key']);
+    }
+    
+    public function getHasTwilioAccountSidAttribute()
+    {
+        return !empty($this->attributes['twilio_account_sid']);
+    }
+    
+    public function getHasTwilioAuthTokenAttribute()
+    {
+        return !empty($this->attributes['twilio_auth_token']);
     }
     
     public function tenant() 
