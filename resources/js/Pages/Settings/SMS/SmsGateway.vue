@@ -17,7 +17,7 @@ const toastOptions = {
 };
 
 const props = defineProps({
-    gateways: { type: Array, default: () => [] },
+    gateway: { type: Object, default: () => ({}) },
 });
 
 const showDetailsModal = ref(false);
@@ -78,10 +78,8 @@ onMounted(async () => {
         if (!response.ok) throw new Error('Failed to load saved gateway');
         const data = await response.json();
 
-        if (data.gateways?.length) {
-            currentGateway.value =
-                data.gateways.find((g) => g.is_default) ||
-                data.gateways[data.gateways.length - 1];
+        if (data.gateway) {
+            currentGateway.value = data.gateway;
         } else {
             currentGateway.value = defaultGateway;
         }
@@ -99,10 +97,16 @@ watch(
     () => form.provider,
     (provider) => {
         if (!provider) return;
-        const found =
-            props.gateways.find((g) => g.provider === provider) ||
-            allGateways.find((g) => g.provider === provider) ||
-            defaultGateway;
+        
+        let found = defaultGateway;
+        // If the current saved gateway matches the selected provider, use it (to keep saved keys)
+        if (props.gateway && props.gateway.provider === provider) {
+            found = props.gateway;
+        } else if (currentGateway.value && currentGateway.value.provider === provider) {
+             found = currentGateway.value;
+        } else {
+             found = allGateways.find((g) => g.provider === provider) || defaultGateway;
+        }
         applyGatewayToForm(found);
     },
 );
@@ -191,15 +195,10 @@ function save() {
             <transition name="fade">
                 <div v-if="form.provider" class="space-y-4">
                     <template v-if="form.provider === 'talksasa'">
-                        <InputField
-                            label="API Key"
-                            v-model="form.api_key"
-                            type="password"
-                        />
-                        <InputField
-                            label="Sender ID"
-                            v-model="form.sender_id"
-                        />
+                        <div class="rounded-lg bg-blue-50 p-4 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                            <p class="font-semibold">Using System Default Gateway</p>
+                            <p class="text-sm">No API keys required. Messages will be sent using the system's configured Talksasa account.</p>
+                        </div>
                     </template>
 
                     <template v-else-if="form.provider === 'africastalking'">
