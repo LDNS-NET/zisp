@@ -81,33 +81,67 @@ return new class extends Migration
             }
         });
         
-        // STEP 3: Add new provider-specific columns
+        // STEP 3: Add new provider-specific columns (with existence checks)
         Schema::table('tenant_sms_gateways', function (Blueprint $table) {
             // Talksasa
-            $table->text('talksasa_api_key')->nullable();
-            $table->string('talksasa_sender_id')->nullable();
+            if (!Schema::hasColumn('tenant_sms_gateways', 'talksasa_api_key')) {
+                $table->text('talksasa_api_key')->nullable();
+            }
+            if (!Schema::hasColumn('tenant_sms_gateways', 'talksasa_sender_id')) {
+                $table->string('talksasa_sender_id')->nullable();
+            }
             
             // Celcom
-            $table->text('celcom_partner_id')->nullable();
-            $table->text('celcom_api_key')->nullable();
-            $table->string('celcom_sender_id')->nullable();
+            if (!Schema::hasColumn('tenant_sms_gateways', 'celcom_partner_id')) {
+                $table->text('celcom_partner_id')->nullable();
+            }
+            if (!Schema::hasColumn('tenant_sms_gateways', 'celcom_api_key')) {
+                $table->text('celcom_api_key')->nullable();
+            }
+            if (!Schema::hasColumn('tenant_sms_gateways', 'celcom_sender_id')) {
+                $table->string('celcom_sender_id')->nullable();
+            }
             
             // Africa's Talking
-            $table->string('africastalking_username')->nullable();
-            $table->text('africastalking_api_key')->nullable();
-            $table->string('africastalking_sender_id')->nullable();
+            if (!Schema::hasColumn('tenant_sms_gateways', 'africastalking_username')) {
+                $table->string('africastalking_username')->nullable();
+            }
+            if (!Schema::hasColumn('tenant_sms_gateways', 'africastalking_api_key')) {
+                $table->text('africastalking_api_key')->nullable();
+            }
+            if (!Schema::hasColumn('tenant_sms_gateways', 'africastalking_sender_id')) {
+                $table->string('africastalking_sender_id')->nullable();
+            }
             
             // Twilio
-            $table->text('twilio_account_sid')->nullable();
-            $table->text('twilio_auth_token')->nullable();
-            $table->string('twilio_from_number')->nullable();
-            
-            // Add tenant_id unique constraint (one row per tenant)
-            $table->unique('tenant_id');
-            
-            // Re-add foreign key constraint
-            $table->foreign('tenant_id')->references('id')->on('tenants')->onDelete('cascade');
+            if (!Schema::hasColumn('tenant_sms_gateways', 'twilio_account_sid')) {
+                $table->text('twilio_account_sid')->nullable();
+            }
+            if (!Schema::hasColumn('tenant_sms_gateways', 'twilio_auth_token')) {
+                $table->text('twilio_auth_token')->nullable();
+            }
+            if (!Schema::hasColumn('tenant_sms_gateways', 'twilio_from_number')) {
+                $table->string('twilio_from_number')->nullable();
+            }
         });
+        
+        // Add unique constraint if it doesn't exist
+        $tenantIdUnique = DB::select("SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'tenant_sms_gateways' AND CONSTRAINT_NAME = 'tenant_sms_gateways_tenant_id_unique'");
+        
+        if (empty($tenantIdUnique)) {
+            Schema::table('tenant_sms_gateways', function (Blueprint $table) {
+                $table->unique('tenant_id');
+            });
+        }
+        
+        // Re-add foreign key if it doesn't exist
+        $foreignKeyExists = DB::select("SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'tenant_sms_gateways' AND CONSTRAINT_NAME = 'tenant_sms_gateways_tenant_id_foreign'");
+        
+        if (empty($foreignKeyExists)) {
+            Schema::table('tenant_sms_gateways', function (Blueprint $table) {
+                $table->foreign('tenant_id')->references('id')->on('tenants')->onDelete('cascade');
+            });
+        }
     }
 
     /**
