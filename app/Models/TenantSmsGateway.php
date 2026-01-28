@@ -9,26 +9,111 @@ use Illuminate\Support\Facades\Crypt;
 class TenantSmsGateway extends Model
 {
     use SoftDeletes;
+    
     protected $fillable = [
         'tenant_id', 
         'provider', 
-        'username', 
-        'api_key', 
-        'sender_id', 
-        'api_secret',
+        'talksasa_api_key',
+        'talksasa_sender_id',
+        'celcom_partner_id',
+        'celcom_api_key',
+        'celcom_sender_id',
+        'africastalking_username',
+        'africastalking_api_key',
+        'africastalking_sender_id',
+        'twilio_account_sid',
+        'twilio_auth_token',
+        'twilio_from_number',
         'is_active', 
         'label', 
         'is_default'
     ];
+    
     protected $casts = [
         'is_active' => 'boolean',
         'is_default' => 'boolean',
     ];
-    protected $hidden = ['api_key'];
-    public function setApiKeyAttribute($value) { $this->attributes['api_key'] = $value ? Crypt::encryptString($value) : null; }
-    public function getApiKeyAttribute($value) { return $value ? Crypt::decryptString($value) : null; }
-    public function setApiSecretAttribute($value) { $this->attributes['api_secret'] = $value ? Crypt::encryptString($value) : null; }
-    public function getApiSecretAttribute($value) { return $value ? Crypt::decryptString($value) : null; }
-    public function tenant() { return $this->belongsTo(Tenant::class, 'tenant_id'); }
-    public function scopeActive($query) { return $query->where('is_active', true); }
+    
+    protected $hidden = [
+        'talksasa_api_key',
+        'celcom_partner_id',
+        'celcom_api_key',
+        'africastalking_api_key',
+        'twilio_account_sid',
+        'twilio_auth_token',
+    ];
+    
+    // Talksasa Mutators/Accessors
+    public function setTalksasaApiKeyAttribute($value) 
+    { 
+        $this->attributes['talksasa_api_key'] = $value ? Crypt::encryptString($value) : null; 
+    }
+    
+    public function getTalksasaApiKeyAttribute($value) 
+    { 
+        return $value ? Crypt::decryptString($value) : null; 
+    }
+    
+    // Celcom Mutators/Accessors
+    public function setCelcomPartnerIdAttribute($value) 
+    { 
+        $this->attributes['celcom_partner_id'] = $value ? Crypt::encryptString($value) : null; 
+    }
+    
+    public function getCelcomPartnerIdAttribute($value) 
+    { 
+        return $value ? Crypt::decryptString($value) : null; 
+    }
+    
+    public function setCelcomApiKeyAttribute($value) 
+    { 
+        $this->attributes['celcom_api_key'] = $value ? Crypt::encryptString($value) : null; 
+    }
+    
+    public function getCelcomApiKeyAttribute($value) 
+    { 
+        return $value ? Crypt::decryptString($value) : null; 
+    }
+    
+    // Africa's Talking Mutators/Accessors
+    public function setAfricastalkingApiKeyAttribute($value) 
+    { 
+        $this->attributes['africastalking_api_key'] = $value ? Crypt::encryptString($value) : null; 
+    }
+    
+    public function getAfricastalkingApiKeyAttribute($value) 
+    { 
+        return $value ? Crypt::decryptString($value) : null; 
+    }
+    
+    // Twilio Mutators/Accessors
+    public function setTwilioAccountSidAttribute($value) 
+    { 
+        $this->attributes['twilio_account_sid'] = $value ? Crypt::encryptString($value) : null; 
+    }
+    
+    public function getTwilioAccountSidAttribute($value) 
+    { 
+        return $value ? Crypt::decryptString($value) : null; 
+    }
+    
+    public function setTwilioAuthTokenAttribute($value) 
+    { 
+        $this->attributes['twilio_auth_token'] = $value ? Crypt::encryptString($value) : null; 
+    }
+    
+    public function getTwilioAuthTokenAttribute($value) 
+    { 
+        return $value ? Crypt::decryptString($value) : null; 
+    }
+    
+    public function tenant() 
+    { 
+        return $this->belongsTo(Tenant::class, 'tenant_id'); 
+    }
+    
+    public function scopeActive($query) 
+    { 
+        return $query->where('is_active', true); 
+    }
 }

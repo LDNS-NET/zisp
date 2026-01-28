@@ -1,6 +1,5 @@
 <script setup>
-
-import { ref, watch, onMounted } from 'vue';
+import { ref, computed } from 'vue';
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { useToast } from 'vue-toastification';
 import Layout from '@/Pages/Settings/Layout.vue';
@@ -17,127 +16,49 @@ const toastOptions = {
 };
 
 const props = defineProps({
-    gateways: { type: Array, default: () => [] },
+    gateway: { type: Object, default: () => ({}) },
 });
 
 const showDetailsModal = ref(false);
 const detailsGateway = ref({});
-const savedGateways = ref({}); // Map of provider -> gateway data
 
-// Default + supported gateways
-const defaultGateway = {
-    provider: 'talksasa',
-    label: 'TALKSASA (Default)',
-    username: '',
-    sender_id: '',
-    api_key: '',
-    api_secret: '',
-    is_active: true,
-    is_default: true,
-};
-
-const allGateways = [
-    { provider: 'talksasa', label: 'TALKSASA (Default)', is_default: true },
-    { provider: 'africastalking', label: 'Africa’s Talking' },
+// Supported providers
+const allProviders = [
+    { provider: 'talksasa', label: 'TALKSASA (System Default)' },
     { provider: 'celcom', label: 'Celcom SMS' },
+    { provider: 'africastalking', label: 'Africa\'s Talking' },
     { provider: 'twilio', label: 'Twilio' },
 ];
 
-// ✅ Form setup
+// Initialize form with gateway data
 const form = useForm({
-    id: '',
-    provider: '',
-    label: '',
-    username: '',
-    sender_id: '',
-    api_key: '',
-    api_secret: '',
-    is_active: true,
-    is_default: true,
+    provider: props.gateway?.provider || 'talksasa',
+    label: props.gateway?.label || '',
+    // Talksasa
+    talksasa_api_key: props.gateway?.talksasa_api_key || '',
+    talksasa_sender_id: props.gateway?.talksasa_sender_id || '',
+    // Celcom
+    celcom_partner_id: props.gateway?.celcom_partner_id || '',
+    celcom_api_key: props.gateway?.celcom_api_key || '',
+    celcom_sender_id: props.gateway?.celcom_sender_id || '',
+    // Africa's Talking
+    africastalking_username: props.gateway?.africastalking_username || '',
+    africastalking_api_key: props.gateway?.africastalking_api_key || '',
+    africastalking_sender_id: props.gateway?.africastalking_sender_id || '',
+    // Twilio
+    twilio_account_sid: props.gateway?.twilio_account_sid || '',
+    twilio_auth_token: props.gateway?.twilio_auth_token || '',
+    twilio_from_number: props.gateway?.twilio_from_number || '',
+    is_active: props.gateway?.is_active ?? true,
 });
 
-// ✅ Fill form with gateway data
-function applyGatewayToForm(gateway) {
-    // If we are applying a saved gateway, use its values
-    // If it's a bare config object from 'allGateways', keys might be missing -> empty string
-    Object.assign(form, {
-        id: gateway.id || '',
-        provider: gateway.provider || '',
-        label: gateway.label || '',
-        username: gateway.username || '',
-        sender_id: gateway.sender_id || '',
-        api_key: gateway.api_key || '',
-        api_secret: gateway.api_secret || '',
-        is_active: !!gateway.is_active,
-        is_default: !!gateway.is_default,
-    });
-}
+// Show provider-specific fields
+const showTalksasaFields = computed(() => form.provider === 'talksasa');
+const showCelcomFields = computed(() => form.provider === 'celcom');
+const showAfricasTalkingFields = computed(() => form.provider === 'africastalking');
+const showTwilioFields = computed(() => form.provider === 'twilio');
 
-// ✅ Fetch latest saved gateways from backend on mount
-onMounted(async () => {
-    try {
-        const response = await fetch(route('settings.sms.json'));
-        if (!response.ok) throw new Error('Failed to load saved gateways');
-        const data = await response.json();
-
-        if (data.gateways && Array.isArray(data.gateways)) {
-            // Map gateways by provider for easy lookup
-            data.gateways.forEach(g => {
-                savedGateways.value[g.provider] = g;
-            });
-            
-            // Find active gateway
-            const active = data.gateways.find(g => g.is_active);
-            if (active) {
-                applyGatewayToForm(active);
-            } else {
-                 // Fallback to default if nothing is active
-                applyGatewayToForm(defaultGateway);
-            }
-        } else {
-            savedGateways.value = {};
-            applyGatewayToForm(defaultGateway);
-        }
-    } catch (err) {
-        console.error('Gateway load failed:', err);
-        applyGatewayToForm(defaultGateway);
-    }
-});
-
-// ✅ Watch provider and sync
-watch(
-    () => form.provider,
-    (provider) => {
-        if (!provider) return;
-        
-        // Check if we have saved settings for this provider
-        const saved = savedGateways.value[provider];
-        
-        if (saved) {
-             applyGatewayToForm(saved);
-        } else {
-            // Reset to default structure but keep the provider selected
-            const defaults = allGateways.find(g => g.provider === provider) || defaultGateway;
-            // We want to clear keys but keep provider structure
-            form.id = '';
-            form.username = '';
-            form.api_key = '';
-            form.api_secret = '';
-            form.sender_id = '';
-            form.is_active = false;
-            // is_default is deprecated/not used the same way, but we can set false
-            form.is_default = false; 
-        }
-    },
-);
-
-// ✅ Show current saved gateway details
-function openDetails() {
-    detailsGateway.value = currentGateway.value || defaultGateway;
-    showDetailsModal.value = true;
-}
-
-// ✅ Save gateway
+// Save gateway settings
 function save() {
     const provider = form.provider || 'Unknown';
     const loading = toast.info(`Saving ${provider} settings...`, toastOptions);
@@ -146,7 +67,7 @@ function save() {
         onSuccess: () => {
             toast.dismiss(loading);
             toast.success('SMS Gateway saved successfully', toastOptions);
-            router.reload({ only: ['gateways'] });
+            router.reload({ only: ['gateway'] });
         },
         onError: (errors) => {
             toast.dismiss(loading);
@@ -159,6 +80,12 @@ function save() {
             );
         },
     });
+}
+
+// Show details
+function openDetails() {
+    detailsGateway.value = props.gateway || {};
+    showDetailsModal.value = true;
 }
 
 </script>
@@ -194,74 +121,76 @@ function save() {
                 </h3>
             </header>
 
-            <!-- Select Provider -->
+            <!-- Provider Selection -->
             <label class="mb-2 block font-semibold text-indigo-600">
-                Select SMS Gateway
+                Select SMS Provider
             </label>
             <select
                 v-model="form.provider"
                 class="input input-bordered mb-6 w-full focus:ring-2 focus:ring-indigo-400 dark:bg-gray-700"
             >
                 <option
-                    v-for="g in allGateways"
-                    :key="g.provider"
-                    :value="g.provider"
+                    v-for="p in allProviders"
+                    :key="p.provider"
+                    :value="p.provider"
                 >
-                    {{ g.label }} 
-                    <span v-if="savedGateways[g.provider]?.is_active" class="font-bold text-green-600"> (Active)</span>
-                    <span v-else-if="savedGateways[g.provider]" class="text-gray-500"> (Saved)</span>
+                    {{ p.label }}
                 </option>
             </select>
 
-            <!-- Dynamic Fields -->
+            <!-- Dynamic Provider Fields -->
             <transition name="fade">
                 <div v-if="form.provider" class="space-y-4">
-                    <template v-if="form.provider === 'talksasa'">
+                    <!-- Talksasa Fields -->
+                    <template v-if="showTalksasaFields">
                         <div class="rounded-lg bg-blue-50 p-4 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-                            <p class="font-semibold">Using System Default Gateway</p>
-                            <p class="text-sm">No API keys required. Messages will be sent using the system's configured Talksasa account.</p>
+                            <p class="font-semibold">System Default Gateway</p>
+                            <p class="text-sm">Using platform-managed Talksasa account.</p>
                         </div>
                     </template>
 
-                    <template v-else-if="form.provider === 'africastalking'">
-                        <InputField label="Username" v-model="form.username" />
+                    <!-- Celcom Fields -->
+                    <template v-if="showCelcomFields">
+                        <InputField label="Partner ID" v-model="form.celcom_partner_id" />
                         <InputField
                             label="API Key"
-                            v-model="form.api_key"
-                            type="password"
-                        />
-                        <InputField
-                            label="Sender ID"
-                            v-model="form.sender_id"
-                        />
-                    </template>
-
-                    <template v-else-if="form.provider === 'celcom'">
-                        <InputField label="Partner ID" v-model="form.username" />
-                        <InputField
-                            label="API Key"
-                            v-model="form.api_key"
+                            v-model="form.celcom_api_key"
                             type="password"
                         />
                         <InputField
                             label="Sender ID / Shortcode"
-                            v-model="form.sender_id"
+                            v-model="form.celcom_sender_id"
                         />
                     </template>
 
-                    <template v-else-if="form.provider === 'twilio'">
+                    <!-- Africa's Talking Fields -->
+                    <template v-if="showAfricasTalkingFields">
+                        <InputField label="Username" v-model="form.africastalking_username" />
+                        <InputField
+                            label="API Key"
+                            v-model="form.africastalking_api_key"
+                            type="password"
+                        />
+                        <InputField
+                            label="Sender ID"
+                            v-model="form.africastalking_sender_id"
+                        />
+                    </template>
+
+                    <!-- Twilio Fields -->
+                    <template v-if="showTwilioFields">
                         <InputField
                             label="Account SID"
-                            v-model="form.username"
+                            v-model="form.twilio_account_sid"
                         />
                         <InputField
                             label="Auth Token"
-                            v-model="form.api_secret"
+                            v-model="form.twilio_auth_token"
                             type="password"
                         />
                         <InputField
                             label="From Number"
-                            v-model="form.sender_id"
+                            v-model="form.twilio_from_number"
                         />
                     </template>
 
@@ -272,7 +201,7 @@ function save() {
                             v-model="form.is_active" 
                             class="checkbox checkbox-primary"
                         />
-                        <span class="font-medium">Set as Active SMS Gateway</span>
+                        <span class="font-medium">Active (Use this gateway for sending)</span>
                     </div>
 
                     <!-- Actions -->
@@ -291,7 +220,7 @@ function save() {
                         </PrimaryButton>
                     </div>
 
-                    <!-- Modal -->
+                    <!-- Details Modal -->
                     <Modal
                         :show="showDetailsModal"
                         @close="showDetailsModal = false"
@@ -312,14 +241,6 @@ function save() {
                             <Detail
                                 label="Label"
                                 :value="detailsGateway.label"
-                            />
-                            <Detail
-                                label="Username"
-                                :value="detailsGateway.username"
-                            />
-                            <Detail
-                                label="Sender ID"
-                                :value="detailsGateway.sender_id"
                             />
                             <Detail
                                 label="Status"

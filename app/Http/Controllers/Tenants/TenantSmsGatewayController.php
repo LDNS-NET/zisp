@@ -28,18 +28,19 @@ class TenantSmsGatewayController extends Controller
     /**
      * Show SMS gateway settings.
      */
-    /**
-     * Show SMS gateway settings.
-     */
     public function edit(Request $request)
     {
-        // This is still used by the route to render the page component
-        // The data loading now happens via JSON endpoint, but we can pre-load if needed
-        return Inertia::render('Settings/SMS/SmsGateway');
+        $tenantId = $this->getTenantId($request);
+        
+        $gateway = TenantSmsGateway::where('tenant_id', $tenantId)->first();
+        
+        return Inertia::render('Settings/SMS/SmsGateway', [
+            'gateway' => $gateway,
+        ]);
     }
 
     /**
-     * Save or update SMS gateway per provider.
+     * Save or update SMS gateway settings (single row per tenant with all provider configs)
      */
     public function update(Request $request)
     {
@@ -48,37 +49,33 @@ class TenantSmsGatewayController extends Controller
 
         $validated = $request->validate([
             'provider' => ['required', Rule::in([
-                'talksasa', 'bytewave', 'africastalking',
-                'textsms', 'mobitech', 'twilio', 'custom', 'celcom',
+                'talksasa', 'celcom', 'africastalking', 'twilio',
             ])],
             'label' => 'nullable|string|max:100',
-            'api_key' => 'nullable|string|max:255',
-            'api_secret' => 'nullable|string|max:255',
-            'username' => 'nullable|string|max:255',
-            'sender_id' => 'nullable|string|max:255',
+            // Talksasa fields
+            'talksasa_api_key' => 'nullable|string|max:255',
+            'talksasa_sender_id' => 'nullable|string|max:255',
+            // Celcom fields
+            'celcom_partner_id' => 'nullable|string|max:255',
+            'celcom_api_key' => 'nullable|string|max:255',
+            'celcom_sender_id' => 'nullable|string|max:255',
+            // Africa's Talking fields
+            'africastalking_username' => 'nullable|string|max:255',
+            'africastalking_api_key' => 'nullable|string|max:255',
+            'africastalking_sender_id' => 'nullable|string|max:255',
+            // Twilio fields
+            'twilio_account_sid' => 'nullable|string|max:255',
+            'twilio_auth_token' => 'nullable|string|max:255',
+            'twilio_from_number' => 'nullable|string|max:255',
             'is_active' => 'nullable|boolean',
         ]);
 
-        $shouldBeActive = $validated['is_active'] ?? false;
-
-        // If setting this gateway as active, deactivate all others first
-        if ($shouldBeActive) {
-            TenantSmsGateway::where('tenant_id', $tenantId)
-                ->update(['is_active' => false]);
-        }
-        
-        // Update or Create the specific provider setting
+        // Update or create the gateway row (one row per tenant)
         TenantSmsGateway::updateOrCreate(
-            [
-                'tenant_id' => $tenantId, 
-                'provider' => $provider
-            ],
+            ['tenant_id' => $tenantId],
             array_merge($validated, [
                 'provider' => $provider,
-                'is_active' => $shouldBeActive,
-                // Ensure at least one is default if system logic requires, 
-                // but usually is_active is what matters. 
-                // We'll treat talksasa as system default fallback logic-wise.
+                'is_active' => $validated['is_active'] ?? true,
             ])
         );
 
@@ -86,18 +83,17 @@ class TenantSmsGatewayController extends Controller
     }
 
     /**
-     * Return all tenant gateways as JSON.
+     * Return the tenant gateway as JSON
      */
-    public function index(Request $request)
+    public function getGateway(Request $request)
     {
         $tenantId = $this->getTenantId($request);
 
-        $gateways = TenantSmsGateway::where('tenant_id', $tenantId)
-            ->get();
+        $gateway = TenantSmsGateway::where('tenant_id', $tenantId)->first();
 
         return response()->json([
             'success' => true,
-            'gateways' => $gateways,
+            'gateway' => $gateway,
         ]);
     }
 }
