@@ -13,6 +13,8 @@ use QuickBooksOnline\API\Facades\Invoice;
 use QuickBooksOnline\API\Facades\Payment;
 use QuickBooksOnline\API\Facades\Purchase;
 use QuickBooksOnline\API\Facades\Item;
+use QuickBooksOnline\API\Facades\Account;
+use QuickBooksOnline\API\Facades\Customer;
 use Illuminate\Support\Facades\Log;
 
 class QuickBooksService
@@ -114,21 +116,160 @@ class QuickBooksService
         return $accessToken;
     }
 
+    // --- Dynamic Lookup Helpers ---
+
     /**
-     * Sync Invoices to QuickBooks.
+     * Get or Create a Customer in QBO by Email.
+     */
+    protected function getOrCreateCustomer($user)
+    {
+        if (!$user) return null;
+
+        $service = $this->dataService;
+        
+        // Escape single quotes for query
+        $email = addslashes($user->email);
+        $query = "SELECT * FROM Customer WHERE PrimaryEmailAddr.Address = '{$email}' MAXRESULTS 1";
+        
+        try {
+            $result = $service->Query($query);
+            if ($result && count($result) > 0) {
+                return $result[0]->Id;
+            }
+
+            // Create new customer
+            $customerObj = Customer::create([
+                "DisplayName" => $user->name . " (" . $user->id . ")", // Ensure uniqueness
+                "PrimaryEmailAddr" => [
+                    "Address" => $user->email
+                ],
+                "GivenName" => explode(' ', $user->name)[0] ?? $user->name,
+                "FamilyName" => explode(' ', $user->name)[1] ?? '',
+                "Mobile" => [
+                    "FreeFormNumber" => $user->phone ?? ''
+                ]
+            ]);
+
+            $res = $service->Add($customerObj);
+            if ($res) return $res->Id;
+
+        } catch (\Exception $e) {
+            Log::error("QuickBooks Customer Sync Failed: " . $e->getMessage());
+        }
+
+        return null; // Should handle this error upstream
+    }
+
+    /**
+     * Get or Create an Account (Income or Expense).
+     */
+    protected function getOrCreateAccount($name, $accountType, $accountSubType = null)
+    {
+        $service = $this->dataService;
+        $cleanName = addslashes($name);
+        $query = "SELECT * FROM Account WHERE Name = '{$cleanName}' MAXRESULTS 1";
+
+        try {
+            $result = $service->Query($query);
+            if ($result && count($result) > 0) {
+                return $result[0]->Id;
+            }
+
+            // Create new account
+            $accountData = [
+                "Name" => $name,
+                "AccountType" => $accountType,
+            ];
+            
+            if ($accountSubType) {
+                $accountData["AccountSubType"] = $accountSubType;
+            }
+
+            $accountObj = Account::create($accountData);
+            $res = $service->Add($accountObj);
+            if ($res) return $res->Id;
+
+        } catch (\Exception $e) {
+            Log::error("QuickBooks Account Sync Failed: " . $e->getMessage());
+            // Fallback: Try to find ANY account of that type
+            $fallbackQuery = "SELECT * FROM Account WHERE AccountType = '{$accountType}' MAXRESULTS 1";
+            $fallback = $service->Query($fallbackQuery);
+            if ($fallback && count($fallback) > 0) return $fallback[0]->Id;
+        }
+
+        return null;
+    }
+
+    /**
+     * Get or Create an Item (Service or NonInventory).
+     */
+    protected function getOrCreateItem($name, $type, $incomeAccountId, $expenseAccountId = null, $price = 0)
+    {
+        $service = $this->dataService;
+        $cleanName = addslashes($name);
+        $query = "SELECT * FROM Item WHERE Name = '{$cleanName}' MAXRESULTS 1";
+
+        try {
+            $result = $service->Query($query);
+            if ($result && count($result) > 0) {
+                return $result[0]->Id;
+            }
+
+            // Create new item
+            $itemData = [
+                "Name" => $name,
+                "Type" => $type,
+                "UnitPrice" => $price,
+                "IncomeAccountRef" => [
+                    "value" => $incomeAccountId
+                ]
+            ];
+
+            if ($expenseAccountId) {
+                $itemData["ExpenseAccountRef"] = [
+                    "value" => $expenseAccountId
+                ];
+            }
+
+            $itemObj = Item::create($itemData);
+            $res = $service->Add($itemObj);
+            if ($res) return $res->Id;
+
+        } catch (\Exception $e) {
+            Log::error("QuickBooks Item Sync Failed ({$name}): " . $e->getMessage());
+        }
+        return null;
+    }
+
+
+    // --- Sync Methods ---
+
+    /**
+     * Sync Invoices to QuickBooks using dynamic Customers and Items.
      */
     public function syncInvoices()
     {
         $service = $this->getDataServiceForTenant();
         if (!$service) return;
 
-        // Fetch invoices that haven't been synced yet
+        // Ensure Income Account exists
+        $incomeAccountId = $this->getOrCreateAccount("Sales of Product Income", "Income", "SalesOfProductIncome");
+
         $invoices = TenantInvoice::where('tenant_id', $this->tenantId)
-            ->whereNull('qbo_id') // We'll need to add this column or store it in a map
+            ->whereNull('qbo_id')
             ->get();
 
         foreach ($invoices as $invoice) {
             try {
+                $customerId = $this->getOrCreateCustomer($invoice->user);
+                if (!$customerId) continue;
+
+                // Use the package name as the Item name, fallback to "General Service"
+                $packageName = $invoice->package ?? 'General Internet Service';
+                $itemId = $this->getOrCreateItem($packageName, 'Service', $incomeAccountId, null, $invoice->amount);
+
+                if (!$itemId) continue;
+
                 $qboInvoice = Invoice::create([
                     "Line" => [
                         [
@@ -136,14 +277,15 @@ class QuickBooksService
                             "DetailType" => "SalesItemLineDetail",
                             "SalesItemLineDetail" => [
                                 "ItemRef" => [
-                                    "value" => "1", // Fallback to "Services" item
-                                    "name" => "Services"
-                                ]
+                                    "value" => $itemId,
+                                    "name" => $packageName
+                                ],
+                                "Qty" => 1
                             ]
                         ]
                     ],
                     "CustomerRef" => [
-                        "value" => $this->getOrCreateCustomer($invoice->user)
+                        "value" => $customerId
                     ],
                     "DocNumber" => $invoice->tenant_invoice,
                     "TxnDate" => $invoice->issued_on,
@@ -161,16 +303,6 @@ class QuickBooksService
     }
 
     /**
-     * Get or create a Customer in QBO based on internal user.
-     */
-    protected function getOrCreateCustomer($userId)
-    {
-        // For now, return a placeholder or implement lookup logic
-        // Ideally, we'd search for a customer with this email/name or keep a mapping
-        return "1"; // Placeholder
-    }
-
-    /**
      * Sync Payments to QuickBooks.
      */
     public function syncPayments()
@@ -185,9 +317,13 @@ class QuickBooksService
 
         foreach ($payments as $payment) {
             try {
+                // Must have a customer to record a payment
+                $customerId = $this->getOrCreateCustomer($payment->user_id ? \App\Models\User::find($payment->user_id) : null);
+                if (!$customerId) continue;
+
                 $qboPayment = Payment::create([
                     "CustomerRef" => [
-                        "value" => $this->getOrCreateCustomer($payment->user_id)
+                        "value" => $customerId
                     ],
                     "TotalAmt" => $payment->amount,
                     "PaymentRefNum" => $payment->receipt_number,
@@ -205,22 +341,27 @@ class QuickBooksService
     }
 
     /**
-     * Sync Expenses to QuickBooks.
+     * Sync Expenses to QuickBooks using dynamic generic Account.
      */
     public function syncExpenses()
     {
         $service = $this->getDataServiceForTenant();
         if (!$service) return;
 
-        $expenses = TenantExpenses::whereNull('qbo_id')
-            ->get(); // TenantExpenses already has a global scope for created_by
+        // Ensure Expense Account exists
+        $expenseAccountId = $this->getOrCreateAccount("General Expenses", "Expense", "OtherBusinessExpenses");
+        $cashAccountId = $this->getOrCreateAccount("Cash on Hand", "Asset", "CashOnHand");
+
+        $expenses = TenantExpenses::whereNull('qbo_id')->get();
 
         foreach ($expenses as $expense) {
             try {
+                if (!$expenseAccountId) continue;
+
                 $qboPurchase = Purchase::create([
                     "PaymentType" => "Cash",
                     "AccountRef" => [
-                        "value" => "1" // Default expense account
+                        "value" => $cashAccountId ?? "1" 
                     ],
                     "Line" => [
                         [
@@ -228,7 +369,7 @@ class QuickBooksService
                             "DetailType" => "AccountBasedExpenseLineDetail",
                             "AccountBasedExpenseLineDetail" => [
                                 "AccountRef" => [
-                                    "value" => "1"
+                                    "value" => $expenseAccountId
                                 ]
                             ],
                             "Description" => $expense->description
@@ -248,12 +389,16 @@ class QuickBooksService
     }
 
     /**
-     * Sync Equipment to QuickBooks Items.
+     * Sync Equipment to QuickBooks Items with price details.
      */
     public function syncEquipment()
     {
         $service = $this->getDataServiceForTenant();
         if (!$service) return;
+
+        // Ensure Accounts exist
+        $incomeAccountId = $this->getOrCreateAccount("Sales of Product Income", "Income", "SalesOfProductIncome");
+        $expenseAccountId = $this->getOrCreateAccount("Cost of Goods Sold", "Cost of Goods Sold", "SuppliesMaterialsCogs");
 
         $equipments = TenantEquipment::where('tenant_id', $this->tenantId)
             ->whereNull('qbo_id')
@@ -261,21 +406,20 @@ class QuickBooksService
 
         foreach ($equipments as $equipment) {
             try {
-                $qboItem = Item::create([
-                    "Name" => $equipment->name . " (" . $equipment->serial_number . ")",
-                    "Type" => "NonInventory",
-                    "IncomeAccountRef" => [
-                        "value" => "1"
-                    ],
-                    "ExpenseAccountRef" => [
-                        "value" => "1"
-                    ],
-                    "PurchaseCost" => $equipment->price,
-                ]);
+                $itemName = $equipment->name . " (" . $equipment->model . ")";
+                
+                // Create item with current purchase price
+                $itemId = $this->getOrCreateItem(
+                    $itemName, 
+                    'NonInventory', 
+                    $incomeAccountId, 
+                    $expenseAccountId, 
+                    $equipment->price // Unit Price
+                );
 
-                $result = $service->Add($qboItem);
-                if ($result) {
-                    $equipment->update(['qbo_id' => $result->Id]);
+                if ($itemId) {
+                    // Update the local record to link it
+                    $equipment->update(['qbo_id' => $itemId]);
                 }
             } catch (\Exception $e) {
                 Log::error("QuickBooks Sync Equipment Failed: " . $e->getMessage());
