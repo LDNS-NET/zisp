@@ -39,6 +39,7 @@ const defaultGateway = {
 const allGateways = [
     { provider: 'talksasa', label: 'TALKSASA (Default)', is_default: true },
     { provider: 'africastalking', label: 'Africa’s Talking' },
+    { provider: 'celcom', label: 'Celcom SMS' },
     { provider: 'twilio', label: 'Twilio' },
 ];
 
@@ -210,6 +211,19 @@ function save() {
                         />
                         <InputField
                             label="Sender ID"
+                            v-model="form.sender_id"
+                        />
+                    </template>
+
+                    <template v-else-if="form.provider === 'celcom'">
+                        <InputField label="Partner ID" v-model="form.username" />
+                        <InputField
+                            label="API Key"
+                            v-model="form.api_key"
+                            type="password"
+                        />
+                        <InputField
+                            label="Sender ID / Shortcode"
                             v-model="form.sender_id"
                         />
                     </template>

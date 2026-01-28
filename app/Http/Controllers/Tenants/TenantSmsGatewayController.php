@@ -50,7 +50,7 @@ class TenantSmsGatewayController extends Controller
         $validated = $request->validate([
             'provider' => ['required', Rule::in([
                 'talksasa', 'bytewave', 'africastalking',
-                'textsms', 'mobitech', 'twilio', 'custom',
+                'textsms', 'mobitech', 'twilio', 'custom', 'celcom',
             ])],
             'label' => 'nullable|string|max:100',
             'api_key' => 'nullable|string|max:255',

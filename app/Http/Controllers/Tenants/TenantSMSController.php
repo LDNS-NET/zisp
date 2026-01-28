@@ -194,6 +194,35 @@ class TenantSMSController extends Controller
                         'error_message' => $data['message'] ?? $response->body(),
                     ]);
                 }
+            } elseif ($provider === 'celcom') {
+                // Celcom SMS Implementation
+                // Assumption: specific endpoint and structure based on common gateways in the region
+                // If the user provides a specific endpoint, this should be updated.
+                
+                $response = \Illuminate\Support\Facades\Http::post('https://isms.celcomafrica.com/api/services/sendsms', [
+                    'partnerID' => $gatewaySettings->username, // Mapped from username/partnerID field
+                    'apikey' => $apiKey,
+                    'shortcode' => $senderId,
+                    'mobile' => $phoneNumber,
+                    'message' => $personalizedMessage,
+                ]);
+
+                $data = $response->json();
+                
+                // Flexible success check as APIs vary
+                // Assuming status 200 and some success indicator
+                if ($response->successful() && (isset($data['status']) && ($data['status'] == '200' || $data['status'] === 'success'))) {
+                     $smsLog->update([
+                        'status' => 'sent',
+                        'sent_at' => now(),
+                    ]);
+                } else {
+                     $smsLog->update([
+                        'status' => 'failed',
+                        'error_message' => $data['message'] ?? $data['responses'][0]['response-description'] ?? $response->body(),
+                    ]);
+                }
+
             } else {
                 // Placeholder for other providers
                 $smsLog->update([
