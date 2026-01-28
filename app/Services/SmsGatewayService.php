@@ -82,13 +82,22 @@ class SmsGatewayService
     }
     
     /**
-     * Send via Talksasa using tenant credentials
+     * Send via Talksasa using tenant credentials or fall back to system default
      */
     protected function sendViaTalksasa(TenantSmsGateway $gateway, string $phoneNumber, string $message): array
     {
+        // Check if tenant has provided their own credentials
+        $apiKey = $gateway->talksasa_api_key;
+        $senderId = $gateway->talksasa_sender_id;
+        
+        // Fall back to system default if tenant hasn't provided credentials
+        if (empty($apiKey) || empty($senderId)) {
+            return $this->sendViaTalksasaDefault($phoneNumber, $message);
+        }
+        
         $this->talksasaService->setCredentials([
-            'api_key' => $gateway->talksasa_api_key,
-            'sender_id' => $gateway->talksasa_sender_id,
+            'api_key' => $apiKey,
+            'sender_id' => $senderId,
         ]);
         
         return $this->talksasaService->sendSMS($phoneNumber, $message);
