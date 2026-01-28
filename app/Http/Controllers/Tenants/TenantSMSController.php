@@ -124,12 +124,16 @@ class TenantSMSController extends Controller
         }
 
         // 3. Determine Credentials
-        if ($gatewaySettings) {
+        $apiKey = null;
+        $senderId = null;
+
+        if ($gatewaySettings && $gatewaySettings->api_key) {
             $apiKey = $gatewaySettings->api_key;
             $senderId = $gatewaySettings->sender_id;
-            // Add other credentials if needed based on provider
-        } else {
-            // Fallback to system env credentials for TalkSasa
+        } 
+        
+        // Fallback or System Default for TalkSasa
+        if ((!$apiKey) && $provider === 'talksasa') {
             $apiKey = env('TALKSASA_API_KEY');
             $senderId = env('TALKSASA_SENDER_ID');
         }
