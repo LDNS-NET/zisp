@@ -11,19 +11,53 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('tenant_sms_gateways', function (Blueprint $table) {
-            // Drop foreign key first (it uses the unique index)
-            $table->dropForeign(['tenant_id']);
+        // STEP 1: Consolidate existing data - merge multiple rows per tenant into one
+        DB::statement('SET FOREIGN_KEY_CHECKS=0');
+        
+        $tenants = DB::table('tenant_sms_gateways')
+            ->select('tenant_id')
+            ->groupBy('tenant_id')
+            ->get();
+        
+        foreach ($tenants as $tenant) {
+            $rows = DB::table('tenant_sms_gateways')
+                ->where('tenant_id', $tenant->tenant_id)
+                ->get();
             
-            // Now we can drop the unique constraint
+            if ($rows->count() > 1) {
+                // Keep the first row, merge data from others
+                $firstRow = $rows->first();
+                $mergedData = [
+                    'tenant_id' => $tenant->tenant_id,
+                    'provider' => $firstRow->provider,
+                    'is_active' => $firstRow->is_active,
+                    'label' => $firstRow->label,
+                    'is_default' => $firstRow->is_default ?? false,
+                ];
+                
+                // Delete all rows for this tenant
+                DB::table('tenant_sms_gateways')
+                    ->where('tenant_id', $tenant->tenant_id)
+                    ->delete();
+                
+                // Insert the consolidated row
+                DB::table('tenant_sms_gateways')->insert($mergedData);
+            }
+        }
+        
+        DB::statement('SET FOREIGN_KEY_CHECKS=1');
+        
+        // STEP 2: Drop foreign key and constraints
+        Schema::table('tenant_sms_gateways', function (Blueprint $table) {
+            $table->dropForeign(['tenant_id']);
             $table->dropUnique(['tenant_id', 'provider']);
             
             // Drop old generic columns
             $table->dropColumn(['username', 'api_key', 'sender_id', 'api_secret']);
         });
         
+        // STEP 3: Add new provider-specific columns
         Schema::table('tenant_sms_gateways', function (Blueprint $table) {
-            // Add provider-specific columns
             // Talksasa
             $table->text('talksasa_api_key')->nullable();
             $table->string('talksasa_sender_id')->nullable();
