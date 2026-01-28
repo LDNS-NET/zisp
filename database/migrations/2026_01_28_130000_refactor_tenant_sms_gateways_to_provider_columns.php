@@ -47,13 +47,34 @@ return new class extends Migration
         
         DB::statement('SET FOREIGN_KEY_CHECKS=1');
         
-        // STEP 2: Drop foreign key and constraints
+        // STEP 2: Drop foreign key and constraints (with existence checks)
         Schema::table('tenant_sms_gateways', function (Blueprint $table) {
-            $table->dropForeign(['tenant_id']);
-            $table->dropUnique(['tenant_id', 'provider']);
+            // Drop foreign key if it exists
+            $foreignKeys = DB::select("SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'tenant_sms_gateways' AND CONSTRAINT_NAME = 'tenant_sms_gateways_tenant_id_foreign'");
+            if (!empty($foreignKeys)) {
+                $table->dropForeign(['tenant_id']);
+            }
             
-            // Drop old generic columns
-            $table->dropColumn(['username', 'api_key', 'sender_id', 'api_secret']);
+            // Drop unique constraint if it exists
+            try {
+                $table->dropUnique(['tenant_id', 'provider']);
+            } catch (\Exception $e) {
+                // Constraint doesn't exist, continue
+            }
+            
+            // Drop old generic columns if they exist
+            $columnsToCheck = ['username', 'api_key', 'sender_id', 'api_secret'];
+            $existingColumns = [];
+            
+            foreach ($columnsToCheck as $column) {
+                if (Schema::hasColumn('tenant_sms_gateways', $column)) {
+                    $existingColumns[] = $column;
+                }
+            }
+            
+            if (!empty($existingColumns)) {
+                $table->dropColumn($existingColumns);
+            }
         });
         
         // STEP 3: Add new provider-specific columns
