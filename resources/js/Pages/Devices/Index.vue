@@ -87,6 +87,7 @@ const getStatusColor = (online) => {
                         <tr>
                             <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
                             <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Device Info</th>
+                            <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Firmware</th>
                             <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Subscriber</th>
                             <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Network</th>
                             <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Last Contact</th>
@@ -106,6 +107,9 @@ const getStatusColor = (online) => {
                             <td class="px-6 py-4">
                                 <div class="text-sm font-medium text-gray-900 dark:text-white">{{ device.manufacturer }} {{ device.model }}</div>
                                 <div class="text-xs text-gray-500 dark:text-gray-400">SN: {{ device.serial_number }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                                {{ device.firmware || device.software_version || 'Unknown' }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div v-if="device.subscriber" class="text-sm text-gray-900 dark:text-white">
@@ -140,7 +144,7 @@ const getStatusColor = (online) => {
                             </td>
                         </tr>
                         <tr v-if="devices.data.length === 0">
-                            <td colspan="6" class="px-6 py-10 text-center text-gray-500 dark:text-gray-400">
+                            <td colspan="7" class="px-6 py-10 text-center text-gray-500 dark:text-gray-400">
                                 No devices found. Ensure routers are configured to point to your GenieACS server.
                             </td>
                         </tr>

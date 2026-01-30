@@ -71,18 +71,23 @@ class TenantDeviceController extends Controller
 
     public function show($id)
     {
-        $device = TenantDevice::with(['subscriber', 'logs' => function($q) {
-            $q->latest()->limit(50);
-        }, 'actions' => function($q) {
-            $q->latest()->limit(50);
-        }])->findOrFail($id);
+        $device = TenantDevice::with(['subscriber.package'])->findOrFail($id);
+        
+        $logs = $device->logs()->latest()->paginate(20);
+        
+        $pendingActions = $device->actions()
+            ->whereIn('status', ['pending', 'sent'])
+            ->latest()
+            ->get();
 
-        $subscribers = \App\Models\Tenants\NetworkUser::select('id', 'full_name', 'account_number', 'username')
+        $subscribers = \App\Models\Tenants\NetworkUser::select('id', 'full_name as name', 'account_number')
             ->orderBy('full_name')
             ->get();
 
-        return Inertia::render('Devices/View', [
+        return Inertia::render('Devices/Show', [
             'device' => $device,
+            'logs' => $logs,
+            'pendingActions' => $pendingActions,
             'subscribers' => $subscribers,
         ]);
     }
@@ -119,12 +124,12 @@ class TenantDeviceController extends Controller
     /**
      * Queue a remote action/task for a device.
      */
-    public function action(Request $request, $id)
+    public function queueAction(Request $request, $id)
     {
         $device = TenantDevice::findOrFail($id);
         
         $validated = $request->validate([
-            'action' => 'required|string|in:reboot,reset,update_wifi,update_pppoe,sync_params',
+            'action' => 'required|string|in:reboot,factory_reset,update_firmware,change_wifi,change_pppoe,sync_params,refresh_object,get_parameters',
             'payload' => 'nullable|array',
         ]);
 

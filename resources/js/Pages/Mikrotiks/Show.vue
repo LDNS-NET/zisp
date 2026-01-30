@@ -84,6 +84,28 @@ const copyToClipboard = (text) => {
     });
 };
 
+const timeAgo = (date) => {
+    if (!date) return 'Never';
+    const seconds = Math.floor((new Date() - new Date(date)) / 1000);
+    
+    const intervals = {
+        year: 31536000,
+        month: 2592000,
+        week: 604800,
+        day: 86400,
+        hour: 3600,
+        minute: 60
+    };
+    
+    for (const [unit, value] of Object.entries(intervals)) {
+        const interval = Math.floor(seconds / value);
+        if (interval >= 1) {
+            return `${interval} ${unit}${interval !== 1 ? 's' : ''} ago`;
+        }
+    }
+    return 'Just now';
+};
+
 // Actions
 const refreshData = () => {
     isRefreshing.value = true;
@@ -357,6 +379,8 @@ const updateIdentity = () => {
                                         <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Status</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Device</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Serial Number</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Firmware</th>
+                                        <th class="px-6 py-3 text-left text-xs  font-medium uppercase text-gray-500 dark:text-gray-400">Last Contact</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400 text-right">Action</th>
                                     </tr>
                                 </thead>
@@ -379,6 +403,12 @@ const updateIdentity = () => {
                                         <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400 font-mono">
                                             {{ device.serial_number }}
                                         </td>
+                                        <td class="px-6 py-4 text-sm text-gray-900 dark:text-white">
+                                            {{ device.firmware || device.software_version || 'Unknown' }}
+                                        </td>
+                                        <td class="px-6 py-4 text-xs text-gray-500 dark:text-gray-400">
+                                            {{ device.last_contact_at ? timeAgo(device.last_contact_at) : 'Never' }}
+                                        </td>
                                         <td class="px-6 py-4 text-right">
                                             <a 
                                                 :href="route('devices.show', device.id)"
@@ -389,7 +419,7 @@ const updateIdentity = () => {
                                         </td>
                                     </tr>
                                     <tr v-if="!tr069_devices?.length">
-                                        <td colspan="4" class="px-6 py-10 text-center text-gray-500 dark:text-gray-400">
+                                        <td colspan="6" class="px-6 py-10 text-center text-gray-500 dark:text-gray-400">
                                             <Smartphone class="mx-auto h-8 w-8 text-gray-300 mb-2" />
                                             No TR-069 devices detected behind this router yet.
                                         </td>
