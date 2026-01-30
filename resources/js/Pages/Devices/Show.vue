@@ -11,7 +11,7 @@ import InputError from '@/Components/InputError.vue'
 import { 
     Router, Activity, Power, RefreshCw, Wifi, Key, 
     Clock, CheckCircle, XCircle, Loader, Trash2,
-    ChevronDown, ChevronUp, User
+    ChevronDown, ChevronUp, User, Network
 } from 'lucide-vue-next'
 import { useToast } from 'vue-toastification'
 
@@ -30,6 +30,9 @@ const showPPPoEModal = ref(false)
 const showLinkSubscriberModal = ref(false)
 const showRawParams = ref(false)
 const isProcessing = ref(false)
+const isScanning = ref(false)
+const ports = ref([])
+const latestScan = ref(null)
 
 // Forms
 const wifiForm = useForm({
@@ -168,6 +171,34 @@ const linkSubscriber = () => {
 
 const syncNow = () => {
     queueAction('sync_params')
+}
+
+const scanPorts = () => {
+    isScanning.value = true
+    router.post(route('devices.scan-ports', props.device.id), {}, {
+        preserveScroll: true,
+        onSuccess: () => {
+            toast.success('Port scan initiated!')
+            setTimeout(() => fetchLatestPorts(), 3000)
+        },
+        onError: () => {
+            toast.error('Failed to initiate port scan')
+        },
+        onFinish: () => {
+            isScanning.value = false
+        }
+    })
+}
+
+const fetchLatestPorts = async () => {
+    try {
+        const response = await fetch(route('devices.ports', props.device.id))
+        const data = await response.json()
+        ports.value = data.ports || []
+        latestScan.value = data.scan
+    } catch (error) {
+        console.error('Failed to fetch ports:', error)
+    }
 }
 
 const removeDevice = () => {
@@ -341,6 +372,69 @@ const removeDevice = () => {
                         <div v-if="action.error_message" class="text-xs text-red-600 dark:text-red-400 max-w-xs truncate">
                             {{ action.error_message }}
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Port Scanner -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <Network class="h-5 w-5 text-gray-400" />
+                        <h3 class="text-lg font-medium text-gray-900 dark:text-white">Port Scanner</h3>
+                        <span v-if="latestScan" class="text-xs text-gray-500 dark:text-gray-400">
+                            Last scan: {{ timeAgo(latestScan.completed_at) }}
+                        </span>
+                    </div>
+                    <SecondaryButton @click="scanPorts" :disabled="isScanning">
+                        <RefreshCw :class="['h-4 w-4 mr-2', isScanning ? 'animate-spin' : '']" />
+                        Scan Ports
+                    </SecondaryButton>
+                </div>
+                <div class="p-6">
+                    <div v-if="ports.length > 0" class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                            <thead class="bg-gray-50 dark:bg-gray-700/50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Port</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Name</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Status</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Speed</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">MAC Address</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                <tr v-for="port in ports" :key="port.port_number">
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                                        {{ port.port_number }}
+                                    </td>
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                                        {{ port.name || 'N/A' }}
+                                    </td>
+                                    <td class="px-4 py-3 whitespace-nowrap">
+                                        <span :class="[
+                                            'inline-flex px-2 py-1 text-xs font-semibold rounded-full',
+                                            port.status === 'up' 
+                                                ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' 
+                                                : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400'
+                                        ]">
+                                            {{ port.status || 'unknown' }}
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                                        {{ port.speed || 'N/A' }} {{ port.duplex ? `(${port.duplex})` : '' }}
+                                    </td>
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm font-mono text-gray-600 dark:text-gray-400">
+                                        {{ port.mac_address || 'N/A' }}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div v-else class="text-center text-gray-500 dark:text-gray-400 py-8">
+                        <Network class="mx-auto h-12 w-12 text-gray-300 mb-3" />
+                        <p>No port scan results yet</p>
+                        <p class="text-sm mt-1">Click "Scan Ports" to discover device ports</p>
                     </div>
                 </div>
             </div>
