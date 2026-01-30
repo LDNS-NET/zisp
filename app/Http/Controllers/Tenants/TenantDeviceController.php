@@ -146,6 +146,57 @@ class TenantDeviceController extends Controller
         return back()->with('success', "Action '{$validated['action']}' queued and processing.");
     }
 
+    /**
+     * Trigger a port scan for the device.
+     */
+    public function scanPorts($id)
+    {
+        $device = TenantDevice::findOrFail($id);
+        
+        $portScan = \App\Models\Tenants\TenantDevicePortScan::create([
+            'tenant_device_id' => $device->id,
+            'scan_type' => 'manual',
+            'scan_status' => 'pending',
+        ]);
+        
+        // Dispatch the port scanning job
+        \App\Jobs\ScanDevicePortsJob::dispatch($portScan);
+        
+        return back()->with('success', 'Port scan initiated. Results will be available shortly.');
+    }
+
+    /**
+     * Get port scan history for a device.
+     */
+    public function getPortScans($id)
+    {
+        $device = TenantDevice::findOrFail($id);
+        
+        $scans = $device->portScans()
+            ->latest()
+            ->paginate(10);
+        
+        return response()->json($scans);
+    }
+
+    /**
+     * Get the latest port information for a device.
+     */
+    public function getLatestPorts($id)
+    {
+        $device = TenantDevice::findOrFail($id);
+        
+        $latestScan = $device->portScans()
+            ->where('scan_status', 'completed')
+            ->latest()
+            ->first();
+        
+        return response()->json([
+            'scan' => $latestScan,
+            'ports' => $latestScan?->ports_found ?? [],
+        ]);
+    }
+
     public function destroy($id)
     {
         $device = TenantDevice::findOrFail($id);

@@ -306,6 +306,13 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode', 'sta
             Route::resource('devices', TenantDeviceController::class);
             Route::post('devices/{device}/queue-action', [TenantDeviceController::class, 'queueAction'])->name('devices.queue-action');
             Route::post('devices/{device}/link-subscriber', [TenantDeviceController::class, 'linkSubscriber'])->name('devices.link-subscriber');
+            
+            // Port scanning routes
+            Route::post('devices/{device}/scan-ports', [TenantDeviceController::class, 'scanPorts'])
+                ->middleware('throttle:port_scans')
+                ->name('devices.scan-ports');
+            Route::get('devices/{device}/port-scans', [TenantDeviceController::class, 'getPortScans'])->name('devices.port-scans');
+            Route::get('devices/{device}/ports', [TenantDeviceController::class, 'getLatestPorts'])->name('devices.ports');
         });
 
         // Installation Management

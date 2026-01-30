@@ -63,4 +63,9 @@ class TenantDevice extends Model
     {
         return $this->hasMany(TenantDeviceAction::class, 'tenant_device_id');
     }
+
+    public function portScans(): HasMany
+    {
+        return $this->hasMany(TenantDevicePortScan::class, 'tenant_device_id');
+    }
 }

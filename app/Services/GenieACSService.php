@@ -270,6 +270,101 @@ class GenieACSService
         return $count;
     }
 
+    /**
+     * Scan device ports and return port information.
+     * Works with different device types (MikroTik, ONT, ONU, OLT, etc.)
+     */
+    public function scanPorts(string $deviceId): array
+    {
+        try {
+            // Get full device data
+            $device = $this->getDevice($deviceId);
+            
+            if (!$device) {
+                Log::warning("Device not found for port scan", ['device_id' => $deviceId]);
+                return [];
+            }
+
+            $ports = [];
+            $root = isset($device['InternetGatewayDevice']) ? 'InternetGatewayDevice' : 'Device';
+
+            // Try different TR-069 parameter paths for port discovery
+            $portPaths = [
+                // Standard TR-069 paths
+                "{$root}.LANDevice.",
+                "{$root}.Ethernet.Interface.",
+                "{$root}.Ethernet.Link.",
+                // MikroTik specific
+                "{$root}.X_MIKROTIK.Interface.",
+                // Additional paths for different devices
+                "InternetGatewayDevice.LANDevice.*.LANEthernetInterfaceConfig.*",
+            ];
+
+            foreach ($device as $key => $value) {
+                // Look for ethernet/LAN interface parameters
+                if (preg_match('/^(Device|InternetGatewayDevice)\.(LANDevice|Ethernet\.Interface|Ethernet\.Link)\.(\d+)/', $key, $matches)) {
+                    $portKey = $matches[3];
+                    
+                    if (!isset($ports[$portKey])) {
+                        $ports[$portKey] = [
+                            'port_number' => (int)$portKey,
+                            'name' => null,
+                            'status' => 'unknown',
+                            'enabled' => false,
+                            'speed' => null,
+                            'duplex' => null,
+                            'mac_address' => null,
+                            'link_type' => 'ethernet',
+                            'last_change' => null,
+                        ];
+                    }
+
+                    // Extract port details from parameters
+                    if (strpos($key, 'Name') !== false && isset($value['_value'])) {
+                        $ports[$portKey]['name'] = $value['_value'];
+                    }
+                    if (strpos($key, 'Enable') !== false && isset($value['_value'])) {
+                        $ports[$portKey]['enabled'] = filter_var($value['_value'], FILTER_VALIDATE_BOOLEAN);
+                    }
+                    if (strpos($key, 'Status') !== false && isset($value['_value'])) {
+                        $status = strtolower($value['_value']);
+                        $ports[$portKey]['status'] = in_array($status, ['up', 'enabled', 'active', 'true', '1']) ? 'up' : 'down';
+                    }
+                    if (strpos($key, 'MACAddress') !== false && isset($value['_value'])) {
+                        $ports[$portKey]['mac_address'] = $value['_value'];
+                    }
+                    if (strpos($key, 'MaxBitRate') !== false && isset($value['_value'])) {
+                        $portSpeed = (int)$value['_value'];
+                        $ports[$portKey]['speed'] = $portSpeed >= 1000 ? ($portSpeed / 1000) . 'G' : $portSpeed . 'M';
+                    }
+                    if (strpos($key, 'DuplexMode') !== false && isset($value['_value'])) {
+                        $ports[$portKey]['duplex'] = strtolower($value['_value']);
+                    }
+                }
+            }
+
+            // Filter out empty ports and reindex
+            $ports = array_values(array_filter($ports, function($port) {
+                return $port['name'] !== null || $port['status'] !== 'unknown';
+            }));
+
+            Log::info("Port scan completed", [
+                'device_id' => $deviceId,
+                'ports_found' => count($ports),
+            ]);
+
+            return $ports;
+
+        } catch (\Exception $e) {
+            Log::error("Port scan failed", [
+                'device_id' => $deviceId,
+                'error' => $e->getMessage(),
+            ]);
+            
+            throw $e;
+        }
+    }
+
     protected function getValue(array $data, string $path)
     {
         // Recursively or directly find the value in the nested array
