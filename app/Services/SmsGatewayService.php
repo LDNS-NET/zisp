@@ -136,6 +136,7 @@ class SmsGatewayService
             'username' => $gateway->africastalking_username,
             'api_key' => $gateway->africastalking_api_key,
             'sender_id' => $gateway->africastalking_sender_id,
+            'environment' => $gateway->africastalking_environment ?? 'production',
         ]);
         
         return $this->africasTalkingService->sendSMS($phoneNumber, $message);

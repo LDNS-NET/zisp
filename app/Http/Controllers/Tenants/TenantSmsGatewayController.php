@@ -63,6 +63,7 @@ class TenantSmsGatewayController extends Controller
             'africastalking_username' => 'nullable|string|max:255',
             'africastalking_api_key' => 'nullable|string|max:255',
             'africastalking_sender_id' => 'nullable|string|max:255',
+            'africastalking_environment' => 'nullable|in:sandbox,production',
             // Twilio fields
             'twilio_account_sid' => 'nullable|string|max:255',
             'twilio_auth_token' => 'nullable|string|max:255',

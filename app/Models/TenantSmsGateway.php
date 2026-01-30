@@ -21,6 +21,7 @@ class TenantSmsGateway extends Model
         'africastalking_username',
         'africastalking_api_key',
         'africastalking_sender_id',
+        'africastalking_environment',
         'twilio_account_sid',
         'twilio_auth_token',
         'twilio_from_number',

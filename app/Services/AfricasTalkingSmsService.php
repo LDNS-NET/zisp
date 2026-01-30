@@ -10,7 +10,8 @@ class AfricasTalkingSmsService
     protected $username;
     protected $apiKey;
     protected $senderId;
-    protected $endpoint = 'https://api.africastalking.com/version1/messaging';
+    protected $environment;
+    protected $endpoint;
     
     /**
      * Set credentials for Africa's Talking SMS
@@ -20,6 +21,14 @@ class AfricasTalkingSmsService
         $this->username = $credentials['username'] ?? null;
         $this->apiKey = $credentials['api_key'] ?? null;
         $this->senderId = $credentials['sender_id'] ?? null;
+        $this->environment = $credentials['environment'] ?? 'production';
+        
+        // Set endpoint based on environment
+        if ($this->environment === 'sandbox') {
+            $this->endpoint = 'https://api.sandbox.africastalking.com/version1/messaging';
+        } else {
+            $this->endpoint = 'https://api.africastalking.com/version1/messaging';
+        }
     }
     
     /**

@@ -49,6 +49,7 @@ const form = useForm({
     africastalking_username: props.gateway?.africastalking_username || '',
     africastalking_api_key: props.gateway?.africastalking_api_key || '',
     africastalking_sender_id: props.gateway?.africastalking_sender_id || '',
+    africastalking_environment: props.gateway?.africastalking_environment || 'production',
     // Twilio
     twilio_account_sid: props.gateway?.twilio_account_sid || '',
     twilio_auth_token: props.gateway?.twilio_auth_token || '',
@@ -191,6 +192,16 @@ function openDetails() {
                     <!-- Africa's Talking Fields -->
                     <template v-if="showAfricasTalkingFields">
                         <InputField label="Username" v-model="form.africastalking_username" />
+                        <div>
+                            <label class="block font-semibold text-gray-700">Environment</label>
+                            <select v-model="form.africastalking_environment" class="select select-bordered w-full dark:bg-gray-700">
+                                <option value="production">Production</option>
+                                <option value="sandbox">Sandbox</option>
+                            </select>
+                            <p class="mt-1 text-xs text-gray-500">
+                                Use 'sandbox' for testing, 'production' for live messages
+                            </p>
+                        </div>
                         <InputField
                             label="API Key"
                             v-model="form.africastalking_api_key"
