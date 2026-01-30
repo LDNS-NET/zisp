@@ -179,5 +179,12 @@ class AppServiceProvider extends ServiceProvider
             $routerId = $request->route('mikrotik') ?: 'any';
             return Limit::perMinute((int) $limit)->by($routerId);
         });
+
+        // 14. Port Scans (per device)
+        RateLimiter::for('port_scans', function (Request $request) {
+            $limit = config('settings.throttle_port_scans_limit', 1);
+            $deviceId = $request->route('device') ?: 'any';
+            return Limit::perMinute((int) $limit)->by($deviceId);
+        });
     }
 }
