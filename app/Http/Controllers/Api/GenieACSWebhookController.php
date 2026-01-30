@@ -85,11 +85,13 @@ class GenieACSWebhookController extends Controller
 
     private function handleInform(string $deviceId, array $data)
     {
+        // Try to find existing device by serial number (deviceId from GenieACS)
         $device = TenantDevice::withoutGlobalScopes()
             ->where('serial_number', $deviceId)
             ->first();
             
         if ($device) {
+            // Device exists - update it
             $device->update([
                 'online' => true,
                 'last_contact_at' => now()
@@ -101,6 +103,52 @@ class GenieACSWebhookController extends Controller
                 'message' => 'Device connected (Inform received)',
                 'raw_payload' => $data
             ]);
+        } else {
+            // New device detected - try to fetch full info from GenieACS and create it
+            Log::info('New device detected on GenieACS, attempting to sync', [
+                'serial_number' => $deviceId
+            ]);
+            
+            try {
+                $deviceData = $this->genieACS->getDevice($deviceId);
+                
+                if ($deviceData) {
+                    // Determine data model root
+                    $root = isset($deviceData['InternetGatewayDevice']) ? 'InternetGatewayDevice' : 'Device';
+                    
+                    // Extract device information
+                    $manufacturer = $this->genieACS->getValue($deviceData, "{$root}.DeviceInfo.Manufacturer") ?? 'Unknown';
+                    $model = $this->genieACS->getValue($deviceData, "{$root}.DeviceInfo.ModelName") ?? 'Unknown';
+                    $softwareVersion = $this->genieACS->getValue($deviceData, "{$root}.DeviceInfo.SoftwareVersion");
+                    
+                    // Create the device (tenant_id will be set by model global scope)
+                    $newDevice = TenantDevice::create([
+                        'serial_number' => $deviceId,
+                        'manufacturer' => $manufacturer,
+                        'model' => $model,
+                        'software_version' => $softwareVersion,
+                        'online' => true,
+                        'last_contact_at' => now(),
+                    ]);
+                    
+                    TenantDeviceLog::create([
+                        'tenant_device_id' => $newDevice->id,
+                        'log_type' => 'success',
+                        'message' => 'New device automatically synced from GenieACS',
+                        'raw_payload' => ['deviceId' => $deviceId]
+                    ]);
+                    
+                    Log::info('New device created from GenieACS inform', [
+                        'device_id' => $newDevice->id,
+                        'serial' => $deviceId
+                    ]);
+                }
+            } catch (\Exception $e) {
+                Log::error('Failed to sync new device from GenieACS', [
+                    'deviceId' => $deviceId,
+                    'error' => $e->getMessage()
+                ]);
+            }
         }
     }
 
