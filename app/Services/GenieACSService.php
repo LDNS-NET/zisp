@@ -22,30 +22,49 @@ class GenieACSService
     /**
      * Get a list of devices from GenieACS.
      */
-    public function getDevices(array $query = [])
+    public function getDevices(array $query = [], array $projection = [])
     {
-        // Add a limit to prevent memory issues if there are thousands of devices
-        $query['limit'] = 1000;
-        
         try {
-            // Fetch projections to minimize data transfer
-            $projections = [
-                '_id', '_lastInform', '_ip', '_lastBootstrap', '_lastConnectionRequest',
-                'InternetGatewayDevice.DeviceInfo.Manufacturer', 
-                'InternetGatewayDevice.DeviceInfo.ModelName',
-                'InternetGatewayDevice.ManagementServer.ConnectionRequestURL',
-                'Device.DeviceInfo.Manufacturer',
-                'Device.DeviceInfo.ModelName',
-                'Device.ManagementServer.ConnectionRequestURL',
-            ];
+            // Build URL with proper query parameter encoding
+            $url = '/devices';
+            $params = [];
             
-            $response = $this->client()->get('/devices', [
-                'query' => json_encode($query),
-                'projection' => implode(',', $projections)
-            ]);
+            // Add query parameter if provided
+            if (!empty($query)) {
+                $params[] = 'query=' . urlencode(json_encode($query));
+            }
+            
+            // Default projections if none provided
+            if (empty($projection)) {
+                $projection = [
+                    '_id', '_lastInform', '_ip', '_lastBootstrap', '_lastConnectionRequest',
+                    'InternetGatewayDevice.DeviceInfo.Manufacturer', 
+                    'InternetGatewayDevice.DeviceInfo.ModelName',
+                    'InternetGatewayDevice.DeviceInfo.SoftwareVersion',
+                    'InternetGatewayDevice.ManagementServer.ConnectionRequestURL',
+                    'Device.DeviceInfo.Manufacturer',
+                    'Device.DeviceInfo.ModelName',
+                    'Device.DeviceInfo.SoftwareVersion',
+                    'Device.ManagementServer.ConnectionRequestURL',
+                ];
+            }
+            
+            // Add projection parameter
+            if (!empty($projection)) {
+                $params[] = 'projection=' . urlencode(implode(',', $projection));
+            }
+            
+            // Combine URL with parameters
+            if (!empty($params)) {
+                $url .= '?' . implode('&', $params);
+            }
+            
+            $response = $this->client()
+                ->timeout(30)
+                ->get($url);
 
             if ($response->successful()) {
-                $data = $response->json();
+                $data = $response->json() ?? [];
                 Log::info('GenieACS NBI: Fetched ' . count($data) . ' devices');
                 return $data;
             }
@@ -100,26 +119,69 @@ class GenieACSService
 
     /**
      * Update device parameters.
+     * 
+     * @param string $deviceId Device ID (serial number)
+     * @param array $parameters Array of parameters. Each can be:
+     *   - ['path' => 'value'] format (auto-converts to GenieACS format)
+     *   - ['path', 'value', 'xsd:string'] format (GenieACS native)
      */
     public function setParameterValues(string $deviceId, array $parameters): bool
     {
+        // Convert parameters to GenieACS format: [[path, value, type], ...]
+        $formattedParams = [];
+        foreach ($parameters as $key => $value) {
+            if (is_array($value) && isset($value[0])) {
+                // Already in GenieACS format [[path, value, type], ...]
+                $formattedParams[] = $value;
+            } else {
+                // Convert from ['path' => 'value'] to [path, value, type]
+                $type = is_bool($value) ? 'xsd:boolean' : (is_numeric($value) ? 'xsd:int' : 'xsd:string');
+                $formattedParams[] = [$key, $value, $type];
+            }
+        }
+        
         return $this->createTask($deviceId, 'setParameterValues', [
-            'parameterValues' => $parameters
+            'parameterValues' => $formattedParams
         ]);
     }
 
     /**
      * Generic method to create a task in GenieACS.
      */
-    protected function createTask(string $deviceId, string $name, array $properties = []): bool
+    protected function createTask(string $deviceId, string $name, array $properties = [], bool $triggerConnectionRequest = true, int $timeout = 3000): bool
     {
         try {
-            $response = $this->client()->post("/devices/" . urlencode($deviceId) . "/tasks", [
-                'name' => $name,
-                ...$properties
-            ]);
+            // Build endpoint with optional connection request and timeout
+            $endpoint = "/devices/" . urlencode($deviceId) . "/tasks";
+            $params = [];
+            
+            if ($triggerConnectionRequest) {
+                $params[] = 'connection_request';
+            }
+            
+            if ($timeout > 0) {
+                $params[] = "timeout={$timeout}";
+            }
+            
+            if (!empty($params)) {
+                $endpoint .= '?' . implode('&', $params);
+            }
+            
+            // Prepare task payload
+            $payload = array_merge(['name' => $name], $properties);
+            
+            $response = $this->client()
+                ->withHeaders(['Content-Type' => 'application/json'])
+                ->timeout(max(10, ceil($timeout / 1000) + 5)) // HTTP timeout should be longer than task timeout
+                ->post($endpoint, $payload);
 
             if ($response->successful()) {
+                $taskData = $response->json();
+                Log::info("GenieACS NBI: Task {$name} created successfully", [
+                    'deviceId' => $deviceId,
+                    'taskId' => $taskData['_id'] ?? 'unknown',
+                    'connectionRequest' => $triggerConnectionRequest
+                ]);
                 return true;
             }
 

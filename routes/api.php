@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Tenants\CaptivePortalController;
 use App\Http\Controllers\Tenants\TenantRadiusController;
+use App\Http\Controllers\API\GenieACSWebhookController;
 use Stancl\Tenancy\Middleware\InitializeTenancyByDomain;
 use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
 
@@ -35,5 +36,14 @@ Route::middleware([InitializeTenancyByDomain::class, PreventAccessFromCentralDom
 Route::middleware('throttle:mikrotik_api')->group(function () {
     Route::post('/radius/auth', [TenantRadiusController::class, 'auth']);
     Route::post('/radius/accounting', [\App\Http\Controllers\Api\RadiusAccountingController::class, 'store']);
+});
+
+// GenieACS Integration Routes
+Route::middleware('throttle:genieacs_webhook')->group(function () {
+    // Webhook for GenieACS events (inform, offline, task_completed, etc.)
+    Route::post('/genieacs/webhook', [GenieACSWebhookController::class, 'handle']);
+    
+    // Device configuration endpoint (called from GenieACS provisioning scripts)
+    Route::get('/genieacs/device-config', [GenieACSWebhookController::class, 'getDeviceConfig']);
 });
 
