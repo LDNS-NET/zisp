@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Tenants;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\Tenants\{TenantMikrotik, TenantOpenVPNProfile, TenantRouterLog, TenantBandwidthUsage, TenantActiveUsers, TenantDevice};
+use App\Models\Tenants\{TenantMikrotik, TenantOpenVPNProfile, TenantRouterLog, TenantBandwidthUsage, TenantActiveUsers};
 use App\Models\Radius\Nas;
 use App\Models\Tenants\TenantRouterAlert;
 use App\Services\{MikrotikService, MikrotikScriptGenerator, TenantHotspotService};
@@ -165,17 +165,9 @@ class TenantMikrotikController extends Controller
                 ]);
             }
 
-        // Fetch TR-069 devices behind this Mikrotik
-        $tr069Devices = TenantDevice::whereIn('wan_ip', array_filter([
-            $router->detected_public_ip,
-            $router->public_ip,
-            $router->wireguard_address
-        ]))->get();
-
         return Inertia::render('Mikrotiks/Show', [
             'mikrotik' => $router,
             'realtime' => $realtimeData,
-            'tr069_devices' => $tr069Devices,
         ]);
     }
 
@@ -1741,59 +1733,6 @@ class TenantMikrotikController extends Controller
             'Content-Type' => 'application/zip',
             'Content-Disposition' => "attachment; filename=\"{$zipFileName}\""
         ])->deleteFileAfterSend(true);
-    }
-
-    /**
-     * MikroTik Heartbeat for IP Discovery.
-     * Hits by MikroTik scheduler to report its current public IP.
-     */
-    public function heartbeat(Request $request)
-    {
-        $token = $request->header('X-Sync-Token') ?? $request->get('token');
-        
-        if (!$token) {
-            return response()->json(['error' => 'Missing token'], 401);
-        }
-
-        $router = TenantMikrotik::withoutGlobalScopes()
-            ->where('sync_token', $token)
-            ->first();
-
-        if (!$router) {
-            return response()->json(['error' => 'Invalid token'], 404);
-        }
-
-        $publicIp = $request->ip();
-        $serialNumber = $request->get('serial_number');
-        
-        $updateData = [
-            'detected_public_ip' => $publicIp,
-            'last_seen_at' => now(),
-            'status' => 'online'
-        ];
-
-        if ($serialNumber && !$router->serial_number) {
-            $updateData['serial_number'] = $serialNumber;
-        }
-
-        $router->update($updateData);
-
-        return response()->json([
-            'status' => 'success',
-            'detected_ip' => $publicIp
-        ]);
-    }
-
-    /**
-     * Scan for TR-069 devices behind this router.
-     */
-    public function scanBehind($id)
-    {
-        \Illuminate\Support\Facades\Artisan::call('tr069:scan-behind', [
-            'router_id' => $id
-        ]);
-
-        return back()->with('success', 'Network scan completed.');
     }
 
     /**
