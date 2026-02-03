@@ -59,7 +59,7 @@ class RegisteredUserController extends Controller
                 'currency' => $request->currency,
                 'currency_name' => $request->currency_name,
                 'dial_code' => $request->dial_code,
-                'subscription_expires_at' => now()->addDays(20),
+                'subscription_expires_at' => now()->addDays(30),
                 'is_suspended' => false,
             ]);
 

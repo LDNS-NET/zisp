@@ -136,7 +136,7 @@ onMounted(() => {
                 Create Your Account
             </h2>
             <p class="mt-3 text-gray-500 dark:text-gray-400 leading-relaxed">
-                Join Mfire Enterprises and start managing your ISP network with ease.
+                Join ZimaRadius Enterprises and start managing your ISP network with ease.
             </p>
         </div>
 
@@ -185,7 +185,7 @@ onMounted(() => {
                             <Globe class="w-3 h-3" />
                             Your subdomain: 
                             <span class="font-bold text-orange-600 dark:text-orange-400">
-                                {{ form.username.toLowerCase().replace(/[^a-z0-9]/g, '') }}.zispbilling.cloud
+                                {{ form.username.toLowerCase().replace(/[^a-z0-9]/g, '') }}.zimaradius.net
                             </span>
                         </p>
                     </div>
