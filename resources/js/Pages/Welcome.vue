@@ -352,7 +352,7 @@ onMounted(() => {
         <section id="how-it-works" class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-24">
             <div class="text-center mb-16">
                 <h2 class="text-5xl sm:text-6xl font-bold text-white mb-4 tracking-tight">
-                    How Mfire Enterprises Works
+                    How ZimaRadius ISP Manager Works
                 </h2>
                 <p class="text-lg text-gray-400 max-w-2xl mx-auto font-light">
                     Get up and running in minutes, not weeks
