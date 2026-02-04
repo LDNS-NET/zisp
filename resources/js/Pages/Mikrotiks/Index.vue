@@ -470,7 +470,7 @@ watch([routersList, search], () => {
                                             @click="copyHost(router.winbox_port)"
                                             title="Click to copy"
                                         >
-                                            <span>zispbilling.cloud:{{ router.winbox_port || 'N/A' }}</span>
+                                            <span>zimaradius.net:{{ router.winbox_port || 'N/A' }}</span>
                                         </div>
                                     </div>
                                 </td>
