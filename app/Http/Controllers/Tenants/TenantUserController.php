@@ -474,6 +474,8 @@ class TenantUserController extends Controller
             'file' => 'required|file|mimes:csv,txt|max:5120', // 5MB max
         ]);
 
+        set_time_limit(300); // Increase timeout to 5 minutes
+
         $file = $request->file('file');
         $path = $file->getRealPath();
         
@@ -513,6 +515,11 @@ class TenantUserController extends Controller
         $errors = [];
         $rowNumber = 1; // Header is 1
 
+        // Chunking configuration
+        $chunkSize = 50;
+        $processedInChunk = 0;
+
+        // Start first transaction
         \DB::beginTransaction();
             
         try {
@@ -577,12 +584,6 @@ class TenantUserController extends Controller
                     
                     if ($pkg) {
                         $packageId = $pkg->id;
-                        // If type mismatch, should we override user type? 
-                        // Let's trust user type from CSV, or if package type is different, maybe warn?
-                        // For simplicity, we just use the package if found.
-                    } else {
-                        // Package not found warning? 
-                        // We will just proceed without package
                     }
                 }
 
@@ -592,29 +593,29 @@ class TenantUserController extends Controller
                         'username' => $username,
                         'phone' => $phone,
                         'location' => $location,
-                        'password' => $password, // Model might hash this or handled by observer? 
-                                               // Check TenantUserController store: 'password' => $validated['password'],
-                                               // NetworkUser model observer: saving -> if isDirty('password') -> web_password = Hash::make()
-                                               // But wait, the raw password should be stored in cleartext for RADIUS somewhere?
-                                               // NetworkUser::created observer -> Radcheck::create with Cleartext-Password = $user->password
-                                               // So we store raw password in 'password' column (if that's how it works).
-                                               // Looking at database schema or previous code...
-                                               // TenantUserController:126 'password' => $validated['password'],
-                                               // NetworkUser model has 'password' and 'web_password'.
-                                               // Correct.
+                        'password' => $password, 
                         'type' => $type,
                         'package_id' => $packageId,
                         'registered_at' => now(),
                         'created_by' => Auth::id(),
                     ]);
                     $successCount++;
+                    $processedInChunk++;
                     
                 } catch (\Exception $e) {
                     $errors[] = "Row $rowNumber: " . $e->getMessage();
                     $errorCount++;
                 }
+
+                // Commit chunk if limit reached
+                if ($processedInChunk >= $chunkSize) {
+                    \DB::commit();
+                    $processedInChunk = 0;
+                    \DB::beginTransaction(); // Start new transaction for next chunk
+                }
             }
             
+            // Commit remaining
             \DB::commit();
             fclose($handle);
 
