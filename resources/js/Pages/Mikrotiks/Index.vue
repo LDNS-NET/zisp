@@ -278,7 +278,7 @@ function stopStatusPolling() {
 }
 
 const copyHost = async (port) => {
-    const host = `zispbilling.cloud:${port || 'N/A'}`;
+    const host = `zimaradius.net:${port || 'N/A'}`;
     try {
         await navigator.clipboard.writeText(host);
         toast.success(`Copied to clipboard: ${host}`);
