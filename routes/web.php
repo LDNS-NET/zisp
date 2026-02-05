@@ -268,7 +268,6 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode', 'sta
 
         //network users( wifi users )
         Route::middleware(['role_or_permission:tenant_admin|admin|customer_care|technical|view_users'])->group(function () {
-            Route::resource('users', TenantUserController::class)->middleware('throttle:user_crud');
             Route::delete('/users/bulk-delete', [TenantUserController::class, 'bulkDelete'])
                 ->middleware('throttle:bulk_actions')
                 ->name('users.bulk-delete');
@@ -276,6 +275,8 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode', 'sta
                 ->middleware('throttle:bulk_actions')
                 ->name('users.import');
             Route::post('users/details', [TenantUserController::class, 'update'])->name('users.details.update');
+            
+            Route::resource('users', TenantUserController::class)->middleware('throttle:user_crud');
         });
 
 
