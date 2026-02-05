@@ -237,7 +237,11 @@ class NetworkUser extends Authenticatable
             }
 
             if (empty($model->account_number)) {
-                $model->account_number = self::generateAccountNumber($model->tenant_id);
+                if ($model->type === 'pppoe' && !empty($model->phone)) {
+                    $model->account_number = $model->phone;
+                } else {
+                    $model->account_number = self::generateAccountNumber($model->tenant_id);
+                }
             }
         });
 
