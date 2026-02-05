@@ -440,12 +440,15 @@ class TenantUserController extends Controller
         $users = NetworkUser::whereIn('id', $ids)->get();
 
         // Update related payments in a transaction
-        \DB::transaction(function () use ($ids) {
+        // Update related payments in a transaction
+        \DB::transaction(function () use ($ids, $users) {
             TenantPayment::whereIn('user_id', $ids)
                 ->update(['user_id' => null]);
 
-            // Delete the users
-            NetworkUser::whereIn('id', $ids)->delete();
+            // Delete the users individually to trigger model events (Radius cleanup)
+            foreach ($users as $user) {
+                $user->delete();
+            }
         });
 
         // Dispatch jobs for MikroTik cleanup
