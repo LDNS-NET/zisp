@@ -190,7 +190,7 @@ class CheckIntaSendPaymentStatusJob implements ShouldQueue
             
             // Generate new user credentials
             $username = NetworkUser::generateHotspotUsername($this->payment->tenant_id);
-            $plainPassword = Str::random(8);
+            $plainPassword = NetworkUser::generateHotspotPassword();
             
             // Create new user
             $user = NetworkUser::create([

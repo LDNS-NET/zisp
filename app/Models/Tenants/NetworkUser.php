@@ -100,6 +100,22 @@ class NetworkUser extends Authenticatable
         return $prefix . str_pad((string)$nextNumber, 3, '0', STR_PAD_LEFT);
     }
 
+    /**
+     * Generate a simple hotspot password: 3 uppercase letters + 3 numbers
+     * E.g., ABC123, XYZ789
+     */
+    public static function generateHotspotPassword()
+    {
+        $letters = '';
+        for ($i = 0; $i < 3; $i++) {
+            $letters .= chr(rand(65, 90)); // A-Z (ASCII 65-90)
+        }
+        
+        $numbers = str_pad((string)rand(0, 999), 3, '0', STR_PAD_LEFT);
+        
+        return $letters . $numbers;
+    }
+
     public static function generateAccountNumber($tenantId)
     {
         $tenant = \App\Models\Tenant::find($tenantId);
@@ -139,7 +155,35 @@ class NetworkUser extends Authenticatable
         }
 
         // Format with at least 3 digits (e.g. LD001)
+        // Format with at least 3 digits (e.g. LD001)
         return $prefix . str_pad((string)$nextNumber, 3, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Normalize phone number for account number by removing country code and adding leading 0
+     * E.g., 254712345678 -> 0712345678
+     */
+    public static function normalizePhoneNumber($phone)
+    {
+        // Remove any non-digit characters
+        $phone = preg_replace('/\D/', '', $phone);
+        
+        // Common East African country codes to strip
+        $countryCodes = ['254', '255', '256', '250', '257', '211', '252'];
+        
+        foreach ($countryCodes as $code) {
+            if (strpos($phone, $code) === 0) {
+                // Remove country code and add leading 0
+                return '0' . substr($phone, strlen($code));
+            }
+        }
+        
+        // If no country code found and doesn't start with 0, add it
+        if (strpos($phone, '0') !== 0) {
+            return '0' . $phone;
+        }
+        
+        return $phone;
     }
 
     protected static function booted()
@@ -237,8 +281,8 @@ class NetworkUser extends Authenticatable
             }
 
             if (empty($model->account_number)) {
-                if ($model->type === 'pppoe' && !empty($model->phone)) {
-                    $model->account_number = $model->phone;
+                if (in_array($model->type, ['pppoe', 'static']) && !empty($model->phone)) {
+                    $model->account_number = self::normalizePhoneNumber($model->phone);
                 } else {
                     $model->account_number = self::generateAccountNumber($model->tenant_id);
                 }

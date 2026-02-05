@@ -226,7 +226,7 @@ class CheckMpesaPaymentStatusJob implements ShouldQueue
             // If it's hotspot and user doesn't exist, create new one
             if ($isHotspot) {
                 $username = NetworkUser::generateHotspotUsername($this->payment->tenant_id);
-                $plainPassword = Str::random(8);
+                $plainPassword = NetworkUser::generateHotspotPassword();
                 
                 $user = NetworkUser::create([
                     'full_name' => $package->name,

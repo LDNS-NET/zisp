@@ -140,7 +140,7 @@ class PaymentProcessingService
     protected function createNewHotspotUser($payment, $package)
     {
         $username = NetworkUser::generateHotspotUsername($payment->tenant_id);
-        $password = Str::random(8);
+        $password = NetworkUser::generateHotspotPassword();
 
         $user = NetworkUser::create([
             'tenant_id' => $payment->tenant_id,
