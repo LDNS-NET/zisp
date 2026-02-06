@@ -434,13 +434,14 @@ class TenantUserController extends Controller
 
     public function bulkDelete(Request $request)
     {
-        $ids = $request->validate([
+        $uuids = $request->validate([
             'ids' => 'required|array',
-            'ids.*' => 'integer|exists:network_users,id',
+            'ids.*' => 'string|exists:network_users,uuid',
         ])['ids'];
 
-        // Get users before deletion
-        $users = NetworkUser::whereIn('id', $ids)->get();
+        // Get users before deletion by UUID
+        $users = NetworkUser::whereIn('uuid', $uuids)->get();
+        $ids = $users->pluck('id')->toArray();
 
         // Update related payments in a transaction
         // Update related payments in a transaction
@@ -470,7 +471,7 @@ class TenantUserController extends Controller
 
         return back()->with([
             'success' => 'Selected users deleted. MikroTik cleanup is being processed in the background.',
-            'deleted_count' => count($ids)
+            'deleted_count' => count($uuids)
         ]);
     }
 
