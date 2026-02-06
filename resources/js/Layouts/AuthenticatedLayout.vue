@@ -89,16 +89,20 @@ const navigation = [
     // Dashboard link with permission check
     { name: 'Dashboard', href: route('dashboard'), icon: LayoutDashboard, active: 'dashboard' },
     { name: 'Online Users', href: route('activeusers.index'), active: 'activeusers.*', countKey: 'online_users', roles: ['tenant_admin', 'admin', 'customer_care', 'technical'], permission: 'view_online_users' },
+
+    // Settings link
+    { name: 'Team', href: route('settings.staff.index'), active: 'settings.staff.*', roles: ['tenant_admin'], permission: 'manage_staff' },
     
     // Customers group with detailed permissions
     { name: 'Customers', icon: Users, children: [
         { name: 'Users', href: route('users.index'), active: 'users.*', countKey: 'all_users', roles: ['tenant_admin', 'admin', 'customer_care', 'technical'], permission: 'view_users' },
         { name: 'My Leads', href: route('leads.index'), active: 'leads.*', countKey: 'leads', roles: ['tenant_admin', 'admin', 'marketing'], permission: 'view_leads' },
+        //packages and vouchers
+        { name: 'Packages', href: route('packages.index'), active: 'packages.*', countKey: 'packages', roles: ['tenant_admin', 'admin', 'marketing'], permission: 'view_packages' },
+        { name: 'Vouchers', href: route('vouchers.index'), active: 'vouchers.*', countKey: 'vouchers', roles: ['tenant_admin', 'admin', 'marketing', 'customer_care'], permission: 'view_vouchers' },
+    
     ]},
 
-    //packages and vouchers
-    { name: 'Packages', href: route('packages.index'), active: 'packages.*', countKey: 'packages', roles: ['tenant_admin', 'admin', 'marketing'], permission: 'view_packages' },
-    { name: 'Vouchers', href: route('vouchers.index'), active: 'vouchers.*', countKey: 'vouchers', roles: ['tenant_admin', 'admin', 'marketing', 'customer_care'], permission: 'view_vouchers' },
     
     //Finance group
     { name: 'Finance', icon: Banknote, children: [
@@ -124,8 +128,7 @@ const navigation = [
         { name: 'Equipment', href: route('equipment.index'), active: 'equipment.*', roles: ['tenant_admin', 'admin', 'network_engineer', 'technical'], permission: 'view_equipment' },
     ]},
 
-    // Settings link
-    { name: 'Team', href: route('settings.staff.index'), active: 'settings.staff.*', roles: ['tenant_admin'], permission: 'manage_staff' },
+    
 
     // Field Operations group
     { name: 'Field Ops', icon: Wrench, children: [
