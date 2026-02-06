@@ -271,7 +271,7 @@ const selectAll = ref(false);
 // Select all/deselect all logic
 watch(selectAll, (val) => {
     if (val) {
-        selectedTenantPayments.value = props.payments.data.map((p) => p.id);
+        selectedTenantPayments.value = props.payments.data.map((p) => p.uuid);
     } else {
         selectedTenantPayments.value = [];
     }
@@ -351,7 +351,7 @@ function openEditModal(payment) {
     form.amount = payment.amount;
     form.paid_at = normalizeToDatetimeLocal(payment.paid_at);
     form.phone = payment.phone ?? '';
-    editing.value = payment.id;
+    editing.value = payment.uuid;
     showModal.value = true;
 }
 
@@ -421,11 +421,11 @@ watch(
 // Select all checkboxes
 watch(selectAll, (val) => {
     selectedTenantPayments.value = val
-        ? props.payments.data.map((p) => p.id)
+        ? props.payments.data.map((p) => p.uuid)
         : [];
 });
 
-const allIds = computed(() => props.payments.data.map((p) => p.id));
+const allIds = computed(() => props.payments.data.map((p) => p.uuid));
 
 // Payment Details Modal logic
 const showDetailsModal = ref(false);
@@ -757,9 +757,9 @@ function generatePaymentConfirmation() {
                         </tr>
                     </thead>
                     <tbody class="bg-white dark:bg-slate-800">
-                        <tr v-for="item in paymentsData" :key="item.id" class="border-t border-gray-200 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-slate-700/50">
+                        <tr v-for="item in paymentsData" :key="item.uuid" class="border-t border-gray-200 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-slate-700/50">
                             <td class="px-6 py-3">
-                                <input type="checkbox" :value="item.id" v-model="selectedTenantPayments"
+                                <input type="checkbox" :value="item.uuid" v-model="selectedTenantPayments"
                                     @change="toggleSelectAll" class="rounded border-gray-300 dark:border-gray-600 dark:bg-slate-700" />
                             </td>
                             <td class="px-4 py-2 text-gray-900 dark:text-gray-100">{{ item.user }}</td>
@@ -777,7 +777,7 @@ function generatePaymentConfirmation() {
                                 <button v-if="item.editable" @click="openEditModal(item)" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
                                     <Edit class="h-4 w-4" />
                                 </button>
-                                <button v-if="item.editable" @click="confirmPaymentDeletion(item.id)" class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300">
+                                <button v-if="item.editable" @click="confirmPaymentDeletion(item.uuid)" class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300">
                                     <Trash2 class="h-4 w-4" />
                                 </button>
                                 <button @click="showPaymentDetails(item)" class="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300">

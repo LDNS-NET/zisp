@@ -319,7 +319,7 @@ function submit() {
                         >
                             <tr
                                 v-for="payment in props.payments"
-                                :key="payment.id"
+                                :key="payment.uuid"
                             >
                                 <td
                                     class="px-4 py-2 text-sm text-gray-900 dark:text-gray-100"
