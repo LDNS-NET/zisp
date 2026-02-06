@@ -36,7 +36,8 @@ import {
     ChevronDown,
     Wrench,
     Radio,
-    Router
+    Router,
+    LockIcon
 } from 'lucide-vue-next';
 
 const { theme, setTheme } = useTheme();
@@ -85,7 +86,29 @@ const toggleGroup = (groupName) => {
 };
 
 const navigation = [
+    // Dashboard link with permission check
     { name: 'Dashboard', href: route('dashboard'), icon: LayoutDashboard, active: 'dashboard' },
+    { name: 'Online Users', href: route('activeusers.index'), active: 'activeusers.*', countKey: 'online_users', roles: ['tenant_admin', 'admin', 'customer_care', 'technical'], permission: 'view_online_users' },
+    
+    // Customers group with detailed permissions
+    { name: 'Customers', icon: Users, children: [
+        { name: 'Users', href: route('users.index'), active: 'users.*', countKey: 'all_users', roles: ['tenant_admin', 'admin', 'customer_care', 'technical'], permission: 'view_users' },
+        { name: 'My Leads', href: route('leads.index'), active: 'leads.*', countKey: 'leads', roles: ['tenant_admin', 'admin', 'marketing'], permission: 'view_leads' },
+    ]},
+
+    //packages and vouchers
+    { name: 'Packages', href: route('packages.index'), active: 'packages.*', countKey: 'packages', roles: ['tenant_admin', 'admin', 'marketing'], permission: 'view_packages' },
+    { name: 'Vouchers', href: route('vouchers.index'), active: 'vouchers.*', countKey: 'vouchers', roles: ['tenant_admin', 'admin', 'marketing', 'customer_care'], permission: 'view_vouchers' },
+    
+    //Finance group
+    { name: 'Finance', icon: Banknote, children: [
+        { name: 'Packages', href: route('packages.index'), active: 'packages.*', countKey: 'packages', roles: ['tenant_admin', 'admin', 'marketing'], permission: 'view_packages' },
+        { name: 'Vouchers', href: route('vouchers.index'), active: 'vouchers.*', countKey: 'vouchers', roles: ['tenant_admin', 'admin', 'marketing', 'customer_care'], permission: 'view_vouchers' },
+        { name: 'Payments', href: route('payments.index'), active: 'payments.*', roles: ['tenant_admin'], permission: 'view_payments' },
+        { name: 'Invoices', href: route('invoices.index'), active: 'invoices.*', countKey: 'invoices', roles: ['tenant_admin', 'admin', 'customer_care'], permission: 'view_invoices' },
+    ]},
+
+    // Analytics group with more detailed permissions
     { name: 'Analytics', icon: BarChart3, children: [
         { name: 'Traffic Analytics', href: route('analytics.traffic'), active: 'analytics.traffic', roles: ['tenant_admin', 'admin', 'network_engineer', 'technical'], permission: 'view_traffic_analytics' },
         { name: 'Network Topology', href: route('analytics.topology'), active: 'analytics.topology', roles: ['tenant_admin', 'network_engineer', 'technical'], permission: 'view_topology' },
@@ -93,35 +116,35 @@ const navigation = [
         { name: 'Financial Intelligence', href: route('analytics.finance'), active: 'analytics.finance', roles: ['tenant_admin'], permission: 'view_finance' },
         { name: 'Report Builder', href: route('analytics.reports.index'), active: 'analytics.reports.*', roles: ['tenant_admin'], permission: 'view_reports' },
     ]},
-    { name: 'User Management', icon: Users, children: [
-        { name: 'Online Users', href: route('activeusers.index'), active: 'activeusers.*', countKey: 'online_users', roles: ['tenant_admin', 'admin', 'customer_care', 'technical'], permission: 'view_online_users' },
-        { name: 'All Users', href: route('users.index'), active: 'users.*', countKey: 'all_users', roles: ['tenant_admin', 'admin', 'customer_care', 'technical'], permission: 'view_users' },
-        { name: 'My Leads', href: route('leads.index'), active: 'leads.*', countKey: 'leads', roles: ['tenant_admin', 'admin', 'marketing'], permission: 'view_leads' },
-    ]},
-    { name: 'Finance', icon: Banknote, children: [
-        { name: 'Packages', href: route('packages.index'), active: 'packages.*', countKey: 'packages', roles: ['tenant_admin', 'admin', 'marketing'], permission: 'view_packages' },
-        { name: 'Vouchers', href: route('vouchers.index'), active: 'vouchers.*', countKey: 'vouchers', roles: ['tenant_admin', 'admin', 'marketing', 'customer_care'], permission: 'view_vouchers' },
-        { name: 'Payments', href: route('payments.index'), active: 'payments.*', roles: ['tenant_admin'], permission: 'view_payments' },
-        { name: 'Invoices', href: route('invoices.index'), active: 'invoices.*', countKey: 'invoices', roles: ['tenant_admin', 'admin', 'customer_care'], permission: 'view_invoices' },
-    ]},
+
+    // Network group with detailed permissions
     { name: 'Network', icon: Network, children: [
         { name: 'Mikrotiks', href: route('mikrotiks.index'), active: 'mikrotiks.*', countKey: 'mikrotiks', roles: ['tenant_admin', 'network_engineer', 'technical', 'network_admin'], permission: 'view_routers' },
         { name: 'TR-069 Devices', href: route('devices.index'), active: 'devices.*', roles: ['tenant_admin', 'network_engineer', 'technical'], permission: 'view_equipment' },
         { name: 'Equipment', href: route('equipment.index'), active: 'equipment.*', roles: ['tenant_admin', 'admin', 'network_engineer', 'technical'], permission: 'view_equipment' },
-        { name: 'Content Filter', href: route('settings.content-filter.index'), active: 'settings.content-filter.*', roles: ['tenant_admin', 'network_engineer', 'network_admin'], permission: 'manage_filters' },
     ]},
+
+    // Settings link
+    { name: 'Team', href: route('settings.staff.index'), active: 'settings.staff.*', roles: ['tenant_admin'], permission: 'manage_staff' },
+
+    // Field Operations group
     { name: 'Field Ops', icon: Wrench, children: [
         { name: 'My Installations', href: route('tenant.installations.my-installations'), active: 'tenant.installations.my-installations', roles: ['technical', 'technician'], permission: 'view_installations' },
         { name: 'Dispatch Board', href: route('tenant.installations.index'), active: 'tenant.installations.index', roles: ['tenant_admin', 'admin', 'network_engineer', 'technical', 'technician'], permission: 'view_installations' },
     ]},
+    // Support group
     { name: 'Support', icon: MessageSquare, children: [
         { name: 'SMS', href: route('sms.index'), active: 'sms.*', roles: ['tenant_admin', 'admin', 'marketing', 'customer_care'], permission: 'view_sms' },
         { name: 'Templates', href: route('smstemplates.index'), active: 'smstemplates.*', roles: ['tenant_admin', 'admin', 'marketing', 'customer_care'], permission: 'view_templates' },
         { name: 'Tickets', href: route('tickets.index'), active: 'tickets.*', countKey: 'tickets', roles: ['tenant_admin', 'admin', 'customer_care', 'technical'], permission: 'view_tickets' },
     ]},
-    { name: 'System', icon: Settings, children: [
-        { name: 'Team', href: route('settings.staff.index'), active: 'settings.staff.*', roles: ['tenant_admin'], permission: 'manage_staff' },
+
+    //security
+    { name: 'Security', icon: LockIcon, children: [
+        { name: 'Content Filter', href: route('settings.content-filter.index'), active: 'settings.content-filter.*', roles: ['tenant_admin', 'network_engineer', 'network_admin'], permission: 'manage_filters' },
     ]}
+    
+    
 ];
 
 const page = usePage();
@@ -424,7 +447,7 @@ function toggleSidebar() {
                                 <Settings class="w-4 h-4" /> Settings
                             </DropdownLink>
                             <DropdownLink v-if="canAccessDomainSettings" :href="route('domain-requests.index')" class="flex items-center gap-2">
-                                <Globe class="w-4 h-4" /> Domain Settings
+                                <Globe class="w-4 h-4" />Request Domain
                             </DropdownLink>
                             <div class="border-t border-gray-100 dark:border-slate-700 my-1"></div>
                             <DropdownLink :href="route('logout')" method="post" as="button" class="flex items-center gap-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">
