@@ -50,6 +50,10 @@ class TenantSystemUserController extends Controller
             'network_engineer', 'marketing', 'network_admin'
         ])->get();
 
+        // Debug logging
+        \Log::info('Staff Index - Roles count: ' . $roles->count());
+        \Log::info('Staff Index - Roles: ' . $roles->pluck('name')->toJson());
+
         $permissions = Permission::all();
         $activities = TenantActivity::where('tenant_id', $tenantId)->latest()->take(100)->get();
 
