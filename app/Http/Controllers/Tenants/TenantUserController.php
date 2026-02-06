@@ -563,6 +563,7 @@ class TenantUserController extends Controller
                 $location = isset($map['location']) && isset($row[$map['location']]) ? trim($row[$map['location']]) : '';
                 $password = isset($map['password']) && isset($row[$map['password']]) ? trim($row[$map['password']]) : '';
                 $packageName = isset($map['package']) && isset($row[$map['package']]) ? trim($row[$map['package']]) : '';
+                $expiryDate = isset($map['expires_at']) && isset($row[$map['expires_at']]) ? trim($row[$map['expires_at']]) : null;
                 
                 // Determine type
                 $type = 'hotspot';
@@ -599,6 +600,7 @@ class TenantUserController extends Controller
                         'password' => $password, 
                         'type' => $type,
                         'package_id' => $packageId,
+                        'expires_at' => $expiryDate,
                         'registered_at' => now(),
                         'created_by' => Auth::id(),
                     ]);
