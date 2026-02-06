@@ -49,7 +49,7 @@ const openX = () => {
 
 const openTikTok = () => {
     window.open(
-        'https://www.tiktok.com/@mfire_networks',
+        'https://www.tiktok.com/@mfirenetworks',
         '_blank',
         'noopener,noreferrer'
     );
