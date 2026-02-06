@@ -146,7 +146,7 @@ function submitImport() {
 
 function downloadSample() {
     // Generate a simple CSV content
-    const csvContent = "username,phone,full_name,location,type,package,password\njohn_doe,0712345678,John Doe,Nairobi,hotspot,Weekly Bundle,secret123\njane_smith,0723456789,Jane Smith,Mombasa,pppoe,Home Fiber,securePass";
+    const csvContent = "username,phone,full_name,location,type,package,password,expiry_at\nduncan,0712345678,Ogeno dunte,Nairobi,hotspot,Weekly Bundle,12345678\nmike the dev,0723456789,kamau Smith,Mombasa,pppoe,Home Fiber,securePass";
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
     if (link.download !== undefined) {
