@@ -296,7 +296,7 @@ const openTube = () => {
                         </p>
                         <span class="hidden md:block text-gray-600">|</span>
                         <p class="text-sm text-gray-500 font-light">
-                            Built by <a href="https://zyraafcloud.com" target="_blank" class="text-orange-500 hover:text-orange-400 transition-colors">ZyraafCloud Networks</a>
+                            Built by <a href="https://mfireisp.com" target="_blank" class="text-orange-500 hover:text-orange-400 transition-colors">ZimaRadius</a>
                         </p>
                     </div>
                     <div class="flex gap-6 mt-6 md:mt-0">
