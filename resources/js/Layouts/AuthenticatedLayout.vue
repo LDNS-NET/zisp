@@ -38,7 +38,8 @@ import {
     Radio,
     Router,
     LockIcon,
-    SubscriptIcon
+    SubscriptIcon,
+    Package
 } from 'lucide-vue-next';
 
 const { theme, setTheme } = useTheme();
