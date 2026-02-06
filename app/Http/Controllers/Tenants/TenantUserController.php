@@ -204,12 +204,12 @@ class TenantUserController extends Controller
         }
     }
 
-    public function show($id)
+    public function show($uuid)
     {
-        $user = NetworkUser::with(['package', 'hotspotPackage'])->findOrFail($id);
+        $user = NetworkUser::where('uuid', $uuid)->with(['package', 'hotspotPackage'])->firstOrFail();
 
         // Fetch user payments
-        $userPayments = TenantPayment::where('user_id', $id)
+        $userPayments = TenantPayment::where('user_id', $user->id)
             ->orderBy('paid_at', 'desc')
             ->get();
 
