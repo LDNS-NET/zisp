@@ -70,8 +70,10 @@ class TenantUserController extends Controller
                  ->where('online', true)
                  ->update(['online' => false]);
         } else {
-             // If no active users found, mark all as offline
-             NetworkUser::where('online', true)->update(['online' => false]);
+             // If no active users found, mark all as offline using chunk to prevent locks
+             NetworkUser::where('online', true)->chunkById(100, function ($users) {
+                 NetworkUser::whereIn('id', $users->pluck('id'))->update(['online' => false]);
+             });
         }
 
         // Get available packages for the form
