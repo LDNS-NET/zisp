@@ -60,6 +60,7 @@ class TenantPaymentController extends Controller
                 
                 return [
                     'id' => $payment->id,
+                    'uuid' => $payment->uuid,
                     'user' => $userDisplay,
                     'user_id' => $payment->user_id,
                     'phone' => $payment->phone ?? ($payment->user?->phone ?? 'N/A'),
@@ -111,6 +112,7 @@ class TenantPaymentController extends Controller
                 
                 return [
                     'id' => $payment->id,
+                    'uuid' => $payment->uuid,
                     'user' => $payment->user?->username ?? ($payment->user_id === null ? 'System/Manual' : 'Deleted User'),
                     'user_id' => $payment->user_id,
                     'phone' => $payment->phone ?? ($payment->user?->phone ?? 'N/A'),

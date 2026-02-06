@@ -97,6 +97,7 @@ class TenantUserController extends Controller
         return inertia('Users/index', [
             'users' => $users->through(fn($user) => [
                 'id' => $user->id,
+                'uuid' => $user->uuid,
                 'full_name' => $user->full_name,
                 'username' => $user->username,
                 'account_number' => $user->account_number,
