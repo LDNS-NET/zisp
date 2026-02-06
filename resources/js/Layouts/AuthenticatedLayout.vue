@@ -37,7 +37,8 @@ import {
     Wrench,
     Radio,
     Router,
-    LockIcon
+    LockIcon,
+    SubscriptIcon
 } from 'lucide-vue-next';
 
 const { theme, setTheme } = useTheme();
@@ -90,8 +91,6 @@ const navigation = [
     { name: 'Dashboard', href: route('dashboard'), icon: LayoutDashboard, active: 'dashboard' },
     { name: 'Online Users', href: route('activeusers.index'), icon: Activity, active: 'activeusers.*', countKey: 'online_users', roles: ['tenant_admin', 'admin', 'customer_care', 'technical'], permission: 'view_online_users' },
 
-    // Settings link
-    { name: 'Team', href: route('settings.staff.index'), icon: Users, active: 'settings.staff.*', roles: ['tenant_admin'], permission: 'manage_staff' },
     
     // Customers group with detailed permissions
     { name: 'Customers', icon: Users, children: [
@@ -101,9 +100,11 @@ const navigation = [
     ]},
 
     // Services group with detailed permissions
-    { name: 'Packages', href: route('packages.index'), active: 'packages.*', countKey: 'packages', roles: ['tenant_admin', 'admin', 'marketing'], permission: 'view_packages' },
-    { name: 'Vouchers', href: route('vouchers.index'), active: 'vouchers.*', countKey: 'vouchers', roles: ['tenant_admin', 'admin', 'marketing', 'customer_care'], permission: 'view_vouchers' },
-        
+    { name: 'Packages', href: route('packages.index'), icon: Package, active: 'packages.*', countKey: 'packages', roles: ['tenant_admin', 'admin', 'marketing'], permission: 'view_packages' },
+    { name: 'Vouchers', href: route('vouchers.index'), icon: SubscriptIcon, active: 'vouchers.*', countKey: 'vouchers', roles: ['tenant_admin', 'admin', 'marketing', 'customer_care'], permission: 'view_vouchers' },
+    // Settings link
+    { name: 'Team', href: route('settings.staff.index'), icon: Users, active: 'settings.staff.*', roles: ['tenant_admin'], permission: 'manage_staff' },
+    
 
     
     //Finance group
