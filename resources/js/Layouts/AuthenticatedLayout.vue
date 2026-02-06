@@ -88,10 +88,10 @@ const toggleGroup = (groupName) => {
 const navigation = [
     // Dashboard link with permission check
     { name: 'Dashboard', href: route('dashboard'), icon: LayoutDashboard, active: 'dashboard' },
-    { name: 'Online Users', href: route('activeusers.index'), active: 'activeusers.*', countKey: 'online_users', roles: ['tenant_admin', 'admin', 'customer_care', 'technical'], permission: 'view_online_users' },
+    { name: 'Online Users', href: route('activeusers.index'), icon: Activity, active: 'activeusers.*', countKey: 'online_users', roles: ['tenant_admin', 'admin', 'customer_care', 'technical'], permission: 'view_online_users' },
 
     // Settings link
-    { name: 'Team', href: route('settings.staff.index'), active: 'settings.staff.*', roles: ['tenant_admin'], permission: 'manage_staff' },
+    { name: 'Team', href: route('settings.staff.index'), icon: Users, active: 'settings.staff.*', roles: ['tenant_admin'], permission: 'manage_staff' },
     
     // Customers group with detailed permissions
     { name: 'Customers', icon: Users, children: [
