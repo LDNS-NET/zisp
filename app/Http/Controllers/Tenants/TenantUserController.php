@@ -477,7 +477,8 @@ class TenantUserController extends Controller
             'file' => 'required|file|mimes:csv,txt|max:5120', // 5MB max
         ]);
 
-        set_time_limit(300); // Increase timeout to 5 minutes
+        set_time_limit(600); // Increase timeout to 10 minutes for large imports
+        ini_set('memory_limit', '512M'); // Increase memory limit
 
         $file = $request->file('file');
         $path = $file->getRealPath();
@@ -519,8 +520,11 @@ class TenantUserController extends Controller
         $rowNumber = 1; // Header is 1
 
         // Chunking configuration
-        $chunkSize = 50;
+        $chunkSize = 100; // Increased from 50 to 100 for better performance
         $processedInChunk = 0;
+
+        // Disable query log to reduce memory usage
+        \DB::connection()->disableQueryLog();
 
         // Start first transaction
         \DB::beginTransaction();
@@ -563,7 +567,28 @@ class TenantUserController extends Controller
                 $location = isset($map['location']) && isset($row[$map['location']]) ? trim($row[$map['location']]) : '';
                 $password = isset($map['password']) && isset($row[$map['password']]) ? trim($row[$map['password']]) : '';
                 $packageName = isset($map['package']) && isset($row[$map['package']]) ? trim($row[$map['package']]) : '';
-                $expiryDate = isset($map['expires_at']) && isset($row[$map['expires_at']]) ? trim($row[$map['expires_at']]) : null;
+                
+                // Support both "expiry" and "expires_at" column names for backward compatibility
+                $expiryDate = null;
+                if (isset($map['expiry']) && isset($row[$map['expiry']])) {
+                    $expiryDate = trim($row[$map['expiry']]);
+                } elseif (isset($map['expires_at']) && isset($row[$map['expires_at']])) {
+                    $expiryDate = trim($row[$map['expires_at']]);
+                }
+                
+                // Parse the expiry date if present - handle ISO 8601 format with timezone
+                $parsedExpiryDate = null;
+                if (!empty($expiryDate)) {
+                    try {
+                        // Try parsing as ISO 8601 or any standard format
+                        $parsedExpiryDate = \Carbon\Carbon::parse($expiryDate);
+                    } catch (\Exception $e) {
+                        // If parsing fails, log error and skip
+                        $errors[] = "Row $rowNumber: Invalid expiry date format '$expiryDate'";
+                        $errorCount++;
+                        continue;
+                    }
+                }
                 
                 // Determine type
                 $type = 'hotspot';
@@ -600,7 +625,7 @@ class TenantUserController extends Controller
                         'password' => $password, 
                         'type' => $type,
                         'package_id' => $packageId,
-                        'expires_at' => $expiryDate,
+                        'expires_at' => $parsedExpiryDate, // Use parsed date instead of raw string
                         'registered_at' => now(),
                         'created_by' => Auth::id(),
                     ]);
