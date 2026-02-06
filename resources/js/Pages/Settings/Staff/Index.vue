@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue';
-import { Head, useForm, usePage } from '@inertiajs/vue3';
+import { Head, useForm, usePage, Link } from '@inertiajs/vue3';
 import { useToast } from 'vue-toastification';
 import { 
     Users, 
@@ -19,7 +19,10 @@ import {
     ShieldAlert, 
     Phone, 
     Pencil,
-    UserLock
+    UserLock,
+    Globe,
+    Save,
+    Smartphone
 } from 'lucide-vue-next';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Modal from '@/Components/Modal.vue';
@@ -38,6 +41,10 @@ const props = defineProps({
     activities: Array,
     management_support_phone: String,
 });
+
+// Debug logging
+console.log('Available roles:', props.roles);
+console.log('Roles count:', props.roles?.length);
 
 const showModal = ref(false);
 const showSecurityModal = ref(false);
