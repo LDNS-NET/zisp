@@ -318,9 +318,10 @@ const openActions = (user) => {
             </div>
         </template>
 
-        <div v-if="true" class="bg-gray-100 dark:bg-slate-900 p-2 text-[10px] font-mono mb-4 rounded border border-gray-200 dark:border-slate-700">
+        <!--<div v-if="true" class="bg-gray-100 dark:bg-slate-900 p-2 text-[10px] font-mono mb-4 rounded border border-gray-200 dark:border-slate-700">
             Debug Info: {{ debugInfo }} | Active Usernames: {{ activeUsernames }}
         </div>
+        -->
 
         <div class="space-y-6">
             <!-- Filters & Search -->
