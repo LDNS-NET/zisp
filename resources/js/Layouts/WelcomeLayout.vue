@@ -44,12 +44,12 @@ const handleNavClick = (e, href) => {
 };
 
 const openX = () => {
-    window.open('https://x.com/ATG_Officia', '_blank');
+    window.open('https://x.com/mfire_networks', '_blank');
 };
 
 const openTikTok = () => {
     window.open(
-        'https://www.tiktok.com/@zyraaf_cloud',
+        'https://www.tiktok.com/@mfire_networks',
         '_blank',
         'noopener,noreferrer'
     );
@@ -57,7 +57,7 @@ const openTikTok = () => {
 
 const openTube = () => {
     window.open(
-        'https://www.youtube.com/@zyraaf_cloud',
+        'https://www.youtube.com/@mfire_networks',
         '_blank',
         'noopener,noreferrer'
     );
