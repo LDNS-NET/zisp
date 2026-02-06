@@ -175,7 +175,7 @@ const bulkDelete = () => {
 };
 
 function openEdit(user) {
-    editing.value = user.id;
+    editing.value = user.uuid;
     form.full_name = user.full_name ?? '';
     form.username = user.username ?? '';
     form.password = ''; // Don't show current password
@@ -273,7 +273,7 @@ const packagesByType = computed(() => {
 
 const toggleSelectAll = (e) => {
     if (e.target.checked) {
-        selectedUsers.value = props.users.data.map(u => u.id);
+        selectedUsers.value = props.users.data.map(u => u.uuid);
     } else {
         selectedUsers.value = [];
     }
@@ -395,11 +395,11 @@ const openActions = (user) => {
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-200 dark:divide-slate-700">
-                            <tr v-for="user in users.data" :key="user.id" class="hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer" @click="$inertia.visit(route('users.show', user.id))">
+                            <tr v-for="user in users.data" :key="user.uuid" class="hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer" @click="$inertia.visit(route('users.show', user.uuid))">
                                 <td class="px-6 py-4 whitespace-nowrap" @click.stop>
                                     <input
                                         type="checkbox"
-                                        :value="user.id"
+                                        :value="user.uuid"
                                         v-model="selectedUsers"
                                         class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 dark:bg-slate-800 dark:border-slate-600"
                                     />
@@ -476,13 +476,13 @@ const openActions = (user) => {
                     </div>
 
                     <div class="divide-y divide-gray-200 dark:divide-slate-700">
-                        <div v-for="user in users.data" :key="user.id" 
+                        <div v-for="user in users.data" :key="user.uuid" 
                             class="p-3 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer"
-                            @click="$inertia.visit(route('users.show', user.id))">
+                            @click="$inertia.visit(route('users.show', user.uuid))">
                             <div class="flex items-center gap-3">
                                 <input 
                                     type="checkbox"
-                                    :value="user.id"
+                                    :value="user.uuid"
                                     v-model="selectedUsers"
                                     @click.stop
                                     class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 dark:bg-slate-800 dark:border-slate-600"
@@ -624,7 +624,7 @@ const openActions = (user) => {
                 </h3>
                 <div class="space-y-3">
                     <button 
-                        @click="$inertia.visit(route('users.show', selectedUserForActions.id)); showActionsModal = false"
+                        @click="$inertia.visit(route('users.show', selectedUserForActions.uuid)); showActionsModal = false"
                         class="w-full flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
                     >
                         <Eye class="w-4 h-4 mr-3 text-blue-500" />
@@ -640,7 +640,7 @@ const openActions = (user) => {
                     </button>
                     
                     <button 
-                        @click="remove(selectedUserForActions.id); showActionsModal = false"
+                        @click="remove(selectedUserForActions.uuid); showActionsModal = false"
                         class="w-full flex items-center px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                     >
                         <Trash2 class="w-4 h-4 mr-3" />

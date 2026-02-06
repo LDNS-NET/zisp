@@ -6,9 +6,18 @@ use Illuminate\Database\Eloquent\Model;
 
 class TenantPayment extends Model
 {
+    /**
+     * Get the route key for the model.
+     */
+    public function getRouteKeyName()
+    {
+        return 'uuid';
+    }
+
     protected $table = "tenant_payments";
 
     protected $fillable = [
+        "uuid",
         "user_id",
         "phone",
         "receipt_number",

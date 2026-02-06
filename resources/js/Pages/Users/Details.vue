@@ -40,7 +40,7 @@ const form = useForm({
 });
 
 function openEdit(user) {
-    editing.value = user.id;
+    editing.value = user.uuid;
     form.full_name = user.full_name ?? '';
     form.username = user.username ?? '';
     form.password = '';

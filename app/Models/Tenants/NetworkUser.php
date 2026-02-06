@@ -19,9 +19,19 @@ class NetworkUser extends Authenticatable
 {
     use HasFactory, Notifiable, HasRoles;
 
+    /**
+     * Get the route key for the model.
+     * This tells Laravel to use UUID instead of ID in URLs
+     */
+    public function getRouteKeyName()
+    {
+        return 'uuid';
+    }
+
     protected $table = 'network_users';
 
     protected $fillable = [
+        'uuid',
         'account_number',
         'full_name',
         'username',
@@ -258,8 +268,15 @@ class NetworkUser extends Authenticatable
             }
         });
 
-        /** Fill tenant_id, created_by + generate account number */
+        /**
+         *  Fill tenant_id, created_by + generate account number and UUID
+         */
         static::creating(function ($model) {
+            // Generate UUID for new records
+            if (empty($model->uuid)) {
+                $model->uuid = (string) \Illuminate\Support\Str::uuid();
+            }
+
             if (empty($model->tenant_id)) {
                 if (tenant()) {
                     $model->tenant_id = tenant()->id;
