@@ -538,6 +538,81 @@ class MpesaService
         return $phone;
     }
 
+
+    /**
+     * Register C2B URLs with M-Pesa
+     * This registers your validation and confirmation URLs with Safaricom
+     *
+     * @param string $validationUrl Full URL for validation endpoint
+     * @param string $confirmationUrl Full URL for confirmation endpoint
+     * @param string $responseType 'Completed' or 'Cancelled'
+     * @return array Response with success status and data
+     */
+    public function registerC2BURLS(string $validationUrl, string $confirmationUrl, string $responseType = 'Completed'): array
+    {
+        try {
+            $token = $this->getAccessToken();
+            
+            if (!$token) {
+                return [
+                    'success' => false,
+                    'message' => 'Failed to obtain access token'
+                ];
+            }
+
+            $url = $this->baseUrl . '/mpesa/c2b/v1/registerurl';
+
+            $payload = [
+                'ShortCode' => $this->shortcode,
+                'ResponseType' => $responseType,
+                'ConfirmationURL' => $confirmationUrl,
+                'ValidationURL' => $validationUrl
+            ];
+
+            Log::info('M-Pesa: Registering C2B URLs', [
+                'shortcode' => $this->shortcode,
+                'validation_url' => $validationUrl,
+                'confirmation_url' => $confirmationUrl,
+                'response_type' => $responseType
+            ]);
+
+            $response = Http::withToken($token)
+                ->post($url, $payload);
+
+            $data = $response->json();
+
+            Log::info('M-Pesa: C2B URL registration response', [
+                'status_code' => $response->status(),
+                'response' => $data
+            ]);
+
+            if ($response->successful() && isset($data['ResponseCode']) && $data['ResponseCode'] == '0') {
+                return [
+                    'success' => true,
+                    'message' => $data['ResponseDescription'] ?? 'C2B URLs registered successfully',
+                    'response' => $data
+                ];
+            }
+
+            return [
+                'success' => false,
+                'message' => $data['errorMessage'] ?? $data['ResponseDescription'] ?? 'C2B URL registration failed',
+                'response' => $data
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('M-Pesa: C2B URL registration exception', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'An error occurred: ' . $e->getMessage()
+            ];
+        }
+    }
+
     /**
      * Validate if the request is coming from a trusted M-Pesa IP address.
      * 

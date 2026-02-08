@@ -34,21 +34,37 @@ class MpesaC2BController extends Controller
         $data = $mpesa->parseC2B($request->all());
         $accountNumber = $data['bill_ref_number'];
 
-        Log::info('M-Pesa C2B Validation received', ['account_number' => $accountNumber]);
+        Log::info('M-Pesa C2B Validation received', [
+            'account_number' => $accountNumber,
+            'amount' => $data['trans_amount'],
+            'phone' => $data['msisdn'],
+            'trans_id' => $data['trans_id'],
+            'ip' => $request->ip()
+        ]);
 
         $user = NetworkUser::withoutGlobalScopes()
             ->where('account_number', $accountNumber)
             ->first();
 
         if ($user) {
-            Log::info('M-Pesa C2B Validation: User found', ['user_id' => $user->id, 'account' => $accountNumber]);
+            Log::info('M-Pesa C2B Validation: User found', [
+                'user_id' => $user->id,
+                'tenant_id' => $user->tenant_id,
+                'account' => $accountNumber,
+                'username' => $user->username,
+                'amount' => $data['trans_amount']
+            ]);
             return response()->json([
                 'ResultCode' => 0,
                 'ResultDesc' => 'Accepted'
             ]);
         }
 
-        Log::warning('M-Pesa C2B Validation: User not found', ['account' => $accountNumber]);
+        Log::warning('M-Pesa C2B Validation: User not found', [
+            'account' => $accountNumber,
+            'amount' => $data['trans_amount'],
+            'trans_id' => $data['trans_id']
+        ]);
         return response()->json([
             'ResultCode' => 1,
             'ResultDesc' => 'Rejected'
@@ -78,7 +94,10 @@ class MpesaC2BController extends Controller
         Log::info('M-Pesa C2B Confirmation received', [
             'trans_id' => $data['trans_id'],
             'account_number' => $accountNumber,
-            'amount' => $data['trans_amount']
+            'amount' => $data['trans_amount'],
+            'phone' => $data['msisdn'],
+            'business_shortcode' => $data['business_shortcode'],
+            'ip' => $request->ip()
         ]);
 
         $user = NetworkUser::withoutGlobalScopes()
@@ -86,7 +105,12 @@ class MpesaC2BController extends Controller
             ->first();
 
         if (!$user) {
-            Log::error('M-Pesa C2B Confirmation: User not found for account', ['account' => $accountNumber]);
+            Log::error('M-Pesa C2B Confirmation: User not found for account', [
+                'account' => $accountNumber,
+                'amount' => $data['trans_amount'],
+                'trans_id' => $data['trans_id'],
+                'phone' => $data['msisdn']
+            ]);
             return response()->json(['ResultCode' => 0, 'ResultDesc' => 'Success']); // M-Pesa expects 0 even if we can't process it locally
         }
 
@@ -97,7 +121,11 @@ class MpesaC2BController extends Controller
                 ->first();
 
             if ($existingPayment) {
-                Log::info('M-Pesa C2B Confirmation: Payment already processed', ['trans_id' => $data['trans_id']]);
+                Log::info('M-Pesa C2B Confirmation: Payment already processed', [
+                    'trans_id' => $data['trans_id'],
+                    'payment_id' => $existingPayment->id,
+                    'tenant_id' => $existingPayment->tenant_id
+                ]);
                 return response()->json(['ResultCode' => 0, 'ResultDesc' => 'Success']);
             }
 
@@ -123,6 +151,14 @@ class MpesaC2BController extends Controller
                 'response' => $data['raw_data']
             ]);
 
+            Log::info('M-Pesa C2B Confirmation: Payment record created', [
+                'payment_id' => $payment->id,
+                'tenant_id' => $payment->tenant_id,
+                'user_id' => $payment->user_id,
+                'amount' => $payment->amount,
+                'receipt' => $payment->receipt_number
+            ]);
+
             // Update user expiry
             $this->extendUserExpiry($user);
 
@@ -131,7 +167,11 @@ class MpesaC2BController extends Controller
 
             Log::info('M-Pesa C2B Confirmation: Payment processed successfully', [
                 'payment_id' => $payment->id,
-                'user_id' => $user->id
+                'tenant_id' => $payment->tenant_id,
+                'user_id' => $user->id,
+                'username' => $user->username,
+                'amount' => $payment->amount,
+                'expires_at' => $user->fresh()->expires_at?->toDateTimeString()
             ]);
 
         } catch (\Exception $e) {
