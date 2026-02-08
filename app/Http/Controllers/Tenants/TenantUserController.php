@@ -505,8 +505,7 @@ class TenantUserController extends Controller
             return strtolower(trim($h));
         }, $header);
 
-        // Required columns: username (phone is also required by model but we can maybe make it simpler?)
-        // Let's stick to the plan: username, phone required.
+        // Required columns
         $required = ['username', 'phone'];
         $missing = array_diff($required, $header);
         
@@ -523,22 +522,18 @@ class TenantUserController extends Controller
         $errors = [];
         $rowNumber = 1; // Header is 1
 
-        // Chunking configuration
-        $chunkSize = 100; // Increased from 50 to 100 for better performance
-        $processedInChunk = 0;
-
         // Disable query log to reduce memory usage
         \DB::connection()->disableQueryLog();
 
-        // Start first transaction
-        \DB::beginTransaction();
+        // Cache packages to avoid repeated queries
+        $packageCache = Package::all()->keyBy('name');
             
         try {
             while (($row = fgetcsv($handle)) !== false) {
                 $rowNumber++;
                 
                 // Skip empty lines
-                if (count($row) < 1 || (count($row) === 1 && is_null($row[0]))) {
+                if (count($row) < 1 || (count($row) === 1 && (empty($row[0]) || is_null($row[0])))) {
                     continue;
                 }
 
@@ -572,7 +567,7 @@ class TenantUserController extends Controller
                 $password = isset($map['password']) && isset($row[$map['password']]) ? trim($row[$map['password']]) : '';
                 $packageName = isset($map['package']) && isset($row[$map['package']]) ? trim($row[$map['package']]) : '';
                 
-                // Support both "expiry" and "expires_at" column names for backward compatibility
+                // Support both "expiry" and "expires_at" column names
                 $expiryDate = null;
                 if (isset($map['expiry']) && isset($row[$map['expiry']])) {
                     $expiryDate = trim($row[$map['expiry']]);
@@ -580,15 +575,13 @@ class TenantUserController extends Controller
                     $expiryDate = trim($row[$map['expires_at']]);
                 }
                 
-                // Parse the expiry date if present - handle ISO 8601 format with timezone
+                // Parse the expiry date if present
                 $parsedExpiryDate = null;
                 if (!empty($expiryDate)) {
                     try {
-                        // Try parsing as ISO 8601 or any standard format
                         $parsedExpiryDate = \Carbon\Carbon::parse($expiryDate);
                     } catch (\Exception $e) {
-                        // If parsing fails, log error and skip
-                        $errors[] = "Row $rowNumber: Invalid expiry date format '$expiryDate'";
+                        $errors[] = "Row $rowNumber: Invalid expiry date format '$expiryDate' - " . $e->getMessage();
                         $errorCount++;
                         continue;
                     }
@@ -606,20 +599,24 @@ class TenantUserController extends Controller
                 // Find package ID if provided
                 $packageId = null;
                 if (!empty($packageName)) {
-                    $pkg = Package::where('type', $type) // Match type or just search by name? Safer to match type if feasible.
-                        ->where('name', $packageName)
-                        ->first();
-                        
+                    // Use cached packages
+                    $pkg = $packageCache->where('name', $packageName)->where('type', $type)->first();
+                    
                     // If not found by precise type, try just name (loose matching)
                     if (!$pkg) {
-                         $pkg = Package::where('name', $packageName)->first();
+                         $pkg = $packageCache->where('name', $packageName)->first();
                     }
                     
                     if ($pkg) {
                         $packageId = $pkg->id;
+                    } else {
+                        // Log warning but continue - user will be created without package
+                        \Log::warning("Row $rowNumber: Package '$packageName' not found for user '$username'");
                     }
                 }
 
+                // Use individual transaction for each user to avoid rollback cascade
+                \DB::beginTransaction();
                 try {
                     NetworkUser::create([
                         'full_name' => $fullName,
@@ -629,42 +626,68 @@ class TenantUserController extends Controller
                         'password' => $password, 
                         'type' => $type,
                         'package_id' => $packageId,
-                        'expires_at' => $parsedExpiryDate, // Use parsed date instead of raw string
+                        'expires_at' => $parsedExpiryDate,
                         'registered_at' => now(),
                         'created_by' => Auth::id(),
                     ]);
+                    \DB::commit();
                     $successCount++;
-                    $processedInChunk++;
                     
                 } catch (\Exception $e) {
-                    $errors[] = "Row $rowNumber: " . $e->getMessage();
+                    \DB::rollBack();
+                    $errorMessage = $e->getMessage();
+                    // Extract more specific error info
+                    if (str_contains($errorMessage, 'Duplicate entry')) {
+                        $errors[] = "Row $rowNumber: Duplicate entry for '$username'";
+                    } elseif (str_contains($errorMessage, 'Data too long')) {
+                        $errors[] = "Row $rowNumber: Data too long in one or more fields";
+                    } else {
+                        $errors[] = "Row $rowNumber ($username): " . $errorMessage;
+                    }
                     $errorCount++;
-                }
-
-                // Commit chunk if limit reached
-                if ($processedInChunk >= $chunkSize) {
-                    \DB::commit();
-                    $processedInChunk = 0;
-                    \DB::beginTransaction(); // Start new transaction for next chunk
+                    
+                    // Log detailed error for debugging
+                    \Log::error("CSV Import Error - Row $rowNumber", [
+                        'username' => $username,
+                        'phone' => $phone,
+                        'error' => $errorMessage,
+                        'trace' => $e->getTraceAsString()
+                    ]);
                 }
             }
             
-            // Commit remaining
-            \DB::commit();
             fclose($handle);
 
             if ($successCount == 0 && $errorCount > 0) {
-                 return back()->withErrors(['error' => "Import failed. No users imported. " . count($errors) . " errors."]);
+                 // Show first 20 errors
+                 $errorSummary = array_slice($errors, 0, 20);
+                 return back()->withErrors([
+                     'error' => "Import failed. No users imported. Total errors: $errorCount",
+                     'details' => implode("\n", $errorSummary) . ($errorCount > 20 ? "\n... and " . ($errorCount - 20) . " more errors" : "")
+                 ]);
+            }
+
+            $message = "Imported $successCount users successfully.";
+            if ($errorCount > 0) {
+                $message .= " Failed to import $errorCount rows.";
             }
 
             return back()->with([
-                'success' => "Imported $successCount users successfully." . ($errorCount > 0 ? " Skipped $errorCount rows with errors." : ""),
-                'import_errors' => $errors // We can display these in frontend if needed
+                'success' => $message,
+                'import_stats' => [
+                    'success' => $successCount,
+                    'errors' => $errorCount,
+                    'total' => $successCount + $errorCount
+                ],
+                'import_errors' => array_slice($errors, 0, 50) // Show first 50 errors
             ]);
 
         } catch (\Exception $e) {
-            \DB::rollBack();
             fclose($handle);
+            \Log::error('CSV Import Fatal Error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
             return back()->withErrors(['error' => 'Import failed: ' . $e->getMessage()]);
         }
     }
