@@ -783,4 +783,145 @@ class TenantUserController extends Controller
             return back()->withErrors(['error' => 'Import failed: ' . $e->getMessage()]);
         }
     }
+
+    /**
+     * Sync all users to RADIUS database tables
+     */
+    public function syncToRadius(Request $request)
+    {
+        try {
+            set_time_limit(600); // 10 minutes for large user bases
+            
+            $users = NetworkUser::with(['package', 'hotspotPackage'])->get();
+            $syncedCount = 0;
+            $failedCount = 0;
+            $errors = [];
+
+            foreach ($users as $user) {
+                try {
+                    \DB::beginTransaction();
+
+                    // Clear existing RADIUS entries for this user
+                    \App\Models\Radius\Radcheck::where('username', $user->username)->delete();
+                    \App\Models\Radius\Radreply::where('username', $user->username)->delete();
+                    \App\Models\Radius\Radusergroup::where('username', $user->username)->delete();
+
+                    // 1. Create radcheck entry (password)
+                    \App\Models\Radius\Radcheck::create([
+                        'username' => $user->username,
+                        'attribute' => 'Cleartext-Password',
+                        'op' => ':=',
+                        'value' => $user->password,
+                    ]);
+
+                    // Get package (Standard or Hotspot)
+                    $package = $user->package ?: $user->hotspotPackage;
+                    
+                    if ($package) {
+                        // 2. Rate limit
+                        $rateValue = "{$package->upload_speed}M/{$package->download_speed}M";
+                        \App\Models\Radius\Radreply::create([
+                            'username' => $user->username,
+                            'attribute' => 'Mikrotik-Rate-Limit',
+                            'op' => ':=',
+                            'value' => $rateValue,
+                        ]);
+
+                        // 3. Simultaneous Use (Devices)
+                        $deviceLimit = $package->device_limit ?? 1;
+                        \App\Models\Radius\Radreply::create([
+                            'username' => $user->username,
+                            'attribute' => 'Simultaneous-Use',
+                            'op' => ':=',
+                            'value' => (string)$deviceLimit,
+                        ]);
+
+                        // 4. Session-Timeout for hotspot users
+                        if ($user->type === 'hotspot') {
+                            $seconds = 0;
+                            $val = $package->duration_value ?? $package->duration ?? 1;
+                            $unit = $package->duration_unit ?? 'days';
+                            
+                            switch ($unit) {
+                                case 'minutes': $seconds = $val * 60; break;
+                                case 'hours':   $seconds = $val * 3600; break;
+                                case 'days':    $seconds = $val * 86400; break;
+                                case 'weeks':   $seconds = $val * 604800; break;
+                                case 'months':  $seconds = $val * 2592000; break;
+                            }
+
+                            if ($seconds > 0) {
+                                \App\Models\Radius\Radreply::create([
+                                    'username' => $user->username,
+                                    'attribute' => 'Session-Timeout',
+                                    'op' => ':=',
+                                    'value' => (string)$seconds,
+                                ]);
+                            }
+                        }
+
+                        // 5. Group assignment (for non-hotspot users)
+                        if ($user->type !== 'hotspot') {
+                            \App\Models\Radius\Radusergroup::create([
+                                'username' => $user->username,
+                                'groupname' => $package->name ?? 'default',
+                                'priority' => 1,
+                            ]);
+                        }
+                    }
+
+                    // 6. Expiration date
+                    if ($user->expires_at) {
+                        \App\Models\Radius\Radcheck::create([
+                            'username' => $user->username,
+                            'attribute' => 'Expiration',
+                            'op' => ':=',
+                            'value' => $user->expires_at->format('d M Y H:i:s'),
+                        ]);
+                    }
+
+                    // 7. MAC-Auth for hotspot users
+                    if ($user->type === 'hotspot' && !empty($user->mac_address)) {
+                        \App\Models\Radius\Radcheck::updateOrCreate(
+                            ['username' => $user->mac_address, 'attribute' => 'Cleartext-Password'],
+                            ['op' => ':=', 'value' => $user->mac_address]
+                        );
+                    }
+
+                    \DB::commit();
+                    $syncedCount++;
+
+                } catch (\Exception $e) {
+                    \DB::rollBack();
+                    $failedCount++;
+                    $errors[] = "User '{$user->username}': " . $e->getMessage();
+                    \Log::error("RADIUS sync failed for user {$user->username}", [
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
+
+            $message = "RADIUS sync completed: {$syncedCount} users synced successfully";
+            if ($failedCount > 0) {
+                $message .= ", {$failedCount} failed";
+            }
+
+            return back()->with([
+                'success' => $message,
+                'sync_stats' => [
+                    'synced' => $syncedCount,
+                    'failed' => $failedCount,
+                    'total' => $users->count()
+                ],
+                'sync_errors' => array_slice($errors, 0, 20) // Show first 20 errors
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('RADIUS Sync Fatal Error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return back()->withErrors(['error' => 'RADIUS sync failed: ' . $e->getMessage()]);
+        }
+    }
 }
