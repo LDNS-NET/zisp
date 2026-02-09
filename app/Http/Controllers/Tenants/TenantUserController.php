@@ -613,6 +613,8 @@ class TenantUserController extends Controller
                     $expiryDate = trim($row['expiry_date']);
                 } elseif (isset($row['expires_at']) && !empty($row['expires_at'])) {
                     $expiryDate = trim($row['expires_at']);
+                } elseif (isset($row['expiry_at']) && !empty($row['expiry_at'])) {
+                    $expiryDate = trim($row['expiry_at']);
                 } elseif (isset($row['expiry']) && !empty($row['expiry'])) {
                     $expiryDate = trim($row['expiry']);
                 }
@@ -641,12 +643,16 @@ class TenantUserController extends Controller
                 // Find package ID if provided
                 $packageId = null;
                 if (!empty($packageName)) {
-                    // Use cached packages
-                    $pkg = $packageCache->where('name', $packageName)->where('type', $type)->first();
+                    // Use cached packages - search by name AND type first
+                    $pkg = $packageCache->filter(function($package) use ($packageName, $type) {
+                        return $package->name === $packageName && $package->type === $type;
+                    })->first();
                     
                     // If not found by precise type, try just name (loose matching)
                     if (!$pkg) {
-                         $pkg = $packageCache->where('name', $packageName)->first();
+                         $pkg = $packageCache->filter(function($package) use ($packageName) {
+                             return $package->name === $packageName;
+                         })->first();
                     }
                     
                     if ($pkg) {
@@ -656,7 +662,9 @@ class TenantUserController extends Controller
                         \Log::warning("Row $rowNumber: Package '$packageName' not found for user '$username', falling back to least costly package");
                         
                         // Get least costly package for the user's type
-                        $fallbackPkg = $packageCache->where('type', $type)->sortBy('price')->first();
+                        $fallbackPkg = $packageCache->filter(function($package) use ($type) {
+                            return $package->type === $type;
+                        })->sortBy('price')->first();
                         
                         // If no package found for type, get the overall least costly package
                         if (!$fallbackPkg) {

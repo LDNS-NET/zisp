@@ -1,4 +1,4 @@
-username,phone,full_name,location,type,account_number,package,password,expiry
+username,phone,full_name,location,type,account_no,package,password,expiry_at
 kosgeikamatuto,792004450,,kosgeikamatuto,PPPOE,792004450,Starter Package @1500,12345678,2026-02-18T19:23:05.551707Z
 danston-shikoiFAT-shikoi,724668713,,danston-shikoiFAT-shikoi,PPPOE,724668713,Starter Package @1500,12345678,2026-02-18T15:41:20.267160Z
 bwanamaana,713070574,,bwanamaana,PPPOE,713070574,Starter Package @1500,12345678,2026-03-03T19:06:12.912596Z
