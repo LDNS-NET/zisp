@@ -683,6 +683,9 @@ class TenantUserController extends Controller
                 // Use individual transaction for each user to avoid rollback cascade
                 \DB::beginTransaction();
                 try {
+                    // Check if user exists to track creates vs updates
+                    $existingUser = NetworkUser::where('username', $username)->first();
+                    
                     // Prepare data for upsert
                     $userData = [
                         'full_name' => $fullName,
@@ -693,13 +696,16 @@ class TenantUserController extends Controller
                         'expires_at' => $parsedExpiryDate,
                     ];
                     
-                    // Only set password if provided (don't overwrite with null on update)
+                    // Handle password logic
                     if (!empty($password)) {
+                        // Password provided in import - use it
                         $userData['password'] = $password;
+                    } elseif (!$existingUser) {
+                        // New user without password - use default password
+                        $userData['password'] = '12345678';
+                        \Log::info("Row $rowNumber: Using default password '12345678' for new user '$username'");
                     }
-                    
-                    // Check if user exists to track creates vs updates
-                    $existingUser = NetworkUser::where('username', $username)->first();
+                    // If existing user and no password provided, don't update password (keep existing)
                     
                     // Use updateOrCreate to insert or update
                     NetworkUser::updateOrCreate(
