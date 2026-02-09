@@ -478,7 +478,7 @@ class TenantUserController extends Controller
     public function import(Request $request)
     {
         $request->validate([
-            'file' => 'required|file|mimes:csv,txt|max:5120', // 5MB max
+            'file' => 'required|file|mimes:csv,txt,json|max:5120', // 5MB max, supports CSV and JSON
         ]);
 
         set_time_limit(600); // Increase timeout to 10 minutes for large imports
@@ -486,41 +486,91 @@ class TenantUserController extends Controller
 
         $file = $request->file('file');
         $path = $file->getRealPath();
+        $extension = strtolower($file->getClientOriginalExtension());
         
-        // Open the file
-        $handle = fopen($path, 'r');
-        if (!$handle) {
-            return back()->withErrors(['error' => 'Could not read file']);
-        }
+        $rows = [];
+        
+        // Parse file based on format
+        if ($extension === 'json') {
+            // Parse JSON file
+            $content = file_get_contents($path);
+            $data = json_decode($content, true);
+            
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                return back()->withErrors(['error' => 'Invalid JSON format: ' . json_last_error_msg()]);
+            }
+            
+            // Support both array of objects and object with data key
+            if (isset($data['data']) && is_array($data['data'])) {
+                $rows = $data['data'];
+            } elseif (is_array($data)) {
+                $rows = $data;
+            } else {
+                return back()->withErrors(['error' => 'JSON must contain an array of user objects']);
+            }
+            
+            if (empty($rows)) {
+                return back()->withErrors(['error' => 'File is empty']);
+            }
+            
+            // Normalize keys to lowercase
+            $rows = array_map(function($row) {
+                return array_change_key_case($row, CASE_LOWER);
+            }, $rows);
+            
+        } else {
+            // Parse CSV file
+            $handle = fopen($path, 'r');
+            if (!$handle) {
+                return back()->withErrors(['error' => 'Could not read file']);
+            }
 
-        // Read header row
-        $header = fgetcsv($handle);
-        if (!$header) {
+            // Read header row
+            $header = fgetcsv($handle);
+            if (!$header) {
+                fclose($handle);
+                return back()->withErrors(['error' => 'File is empty']);
+            }
+
+            // Normalize header to lowercase and trim
+            $header = array_map(function($h) {
+                return strtolower(trim($h));
+            }, $header);
+            
+            // Read all rows into array
+            while (($row = fgetcsv($handle)) !== false) {
+                // Skip empty lines
+                if (count($row) < 1 || (count($row) === 1 && (empty($row[0]) || is_null($row[0])))) {
+                    continue;
+                }
+                
+                // Convert indexed array to associative array
+                $assocRow = [];
+                foreach ($header as $index => $key) {
+                    $assocRow[$key] = isset($row[$index]) ? trim($row[$index]) : '';
+                }
+                $rows[] = $assocRow;
+            }
+            
             fclose($handle);
-            return back()->withErrors(['error' => 'File is empty']);
         }
-
-        // Normalize header to lowercase and trim
-        $header = array_map(function($h) {
-            return strtolower(trim($h));
-        }, $header);
-
-        // Required columns
+        
+        // Validate required columns
         $required = ['username', 'phone'];
-        $missing = array_diff($required, $header);
-        
-        if (!empty($missing)) {
-            fclose($handle);
-            return back()->withErrors(['error' => 'Missing required columns: ' . implode(',', $missing)]);
+        if (!empty($rows)) {
+            $firstRow = $rows[0];
+            $missing = array_diff($required, array_keys($firstRow));
+            
+            if (!empty($missing)) {
+                return back()->withErrors(['error' => 'Missing required columns: ' . implode(',', $missing)]);
+            }
         }
-
-        // Map column names to indices
-        $map = array_flip($header);
         
-        $successCount = 0;
+        $createCount = 0;
+        $updateCount = 0;
         $errorCount = 0;
         $errors = [];
-        $rowNumber = 1; // Header is 1
+        $rowNumber = 0;
 
         // Disable query log to reduce memory usage
         \DB::connection()->disableQueryLog();
@@ -529,17 +579,12 @@ class TenantUserController extends Controller
         $packageCache = Package::all()->keyBy('name');
             
         try {
-            while (($row = fgetcsv($handle)) !== false) {
+            foreach ($rows as $row) {
                 $rowNumber++;
                 
-                // Skip empty lines
-                if (count($row) < 1 || (count($row) === 1 && (empty($row[0]) || is_null($row[0])))) {
-                    continue;
-                }
-
-                // Get values using map
-                $username = isset($map['username']) && isset($row[$map['username']]) ? trim($row[$map['username']]) : '';
-                $phone = isset($map['phone']) && isset($row[$map['phone']]) ? trim($row[$map['phone']]) : '';
+                // Get values from associative array
+                $username = isset($row['username']) ? trim($row['username']) : '';
+                $phone = isset($row['phone']) ? trim($row['phone']) : '';
                 
                 if (empty($username)) {
                     $errors[] = "Row $rowNumber: Username is required";
@@ -553,26 +598,23 @@ class TenantUserController extends Controller
                     continue;
                 }
 
-                // Check duplicates in current tenant
-                $exists = NetworkUser::where('username', $username)->exists();
-                if ($exists) {
-                    $errors[] = "Row $rowNumber: Username '$username' already exists";
-                    $errorCount++;
-                    continue;
-                }
+                // Check duplicates in current tenant - REMOVED because we now use upsert
 
-                // Other fields
-                $fullName = isset($map['full_name']) && isset($row[$map['full_name']]) ? trim($row[$map['full_name']]) : '';
-                $location = isset($map['location']) && isset($row[$map['location']]) ? trim($row[$map['location']]) : '';
-                $password = isset($map['password']) && isset($row[$map['password']]) ? trim($row[$map['password']]) : '';
-                $packageName = isset($map['package']) && isset($row[$map['package']]) ? trim($row[$map['package']]) : '';
+                // Optional fields
+                $fullName = isset($row['full_name']) ? trim($row['full_name']) : $username;
+                $location = isset($row['location']) ? trim($row['location']) : null;
+                $password = isset($row['password']) ? trim($row['password']) : null;
+                $packageName = isset($row['package']) ? trim($row['package']) : null;
+                $accountNo = isset($row['account_no']) ? trim($row['account_no']) : null;
                 
-                // Support both "expiry" and "expires_at" column names
+                // Handle multiple possible column names for expiry date
                 $expiryDate = null;
-                if (isset($map['expiry']) && isset($row[$map['expiry']])) {
-                    $expiryDate = trim($row[$map['expiry']]);
-                } elseif (isset($map['expires_at']) && isset($row[$map['expires_at']])) {
-                    $expiryDate = trim($row[$map['expires_at']]);
+                if (isset($row['expiry_date']) && !empty($row['expiry_date'])) {
+                    $expiryDate = trim($row['expiry_date']);
+                } elseif (isset($row['expires_at']) && !empty($row['expires_at'])) {
+                    $expiryDate = trim($row['expires_at']);
+                } elseif (isset($row['expiry']) && !empty($row['expiry'])) {
+                    $expiryDate = trim($row['expiry']);
                 }
                 
                 // Parse the expiry date if present
@@ -589,8 +631,8 @@ class TenantUserController extends Controller
                 
                 // Determine type
                 $type = 'hotspot';
-                if (isset($map['type']) && isset($row[$map['type']])) {
-                    $rawType = strtolower(trim($row[$map['type']]));
+                if (isset($row['type'])) {
+                    $rawType = strtolower(trim($row['type']));
                     if (in_array($rawType, ['hotspot', 'pppoe', 'static'])) {
                         $type = $rawType;
                     }
@@ -633,28 +675,47 @@ class TenantUserController extends Controller
                 // Use individual transaction for each user to avoid rollback cascade
                 \DB::beginTransaction();
                 try {
-                    NetworkUser::create([
+                    // Prepare data for upsert
+                    $userData = [
                         'full_name' => $fullName,
-                        'username' => $username,
                         'phone' => $phone,
                         'location' => $location,
-                        'password' => $password, 
                         'type' => $type,
                         'package_id' => $packageId,
                         'expires_at' => $parsedExpiryDate,
-                        'registered_at' => now(),
-                        'created_by' => Auth::id(),
-                    ]);
+                    ];
+                    
+                    // Only set password if provided (don't overwrite with null on update)
+                    if (!empty($password)) {
+                        $userData['password'] = $password;
+                    }
+                    
+                    // Check if user exists to track creates vs updates
+                    $existingUser = NetworkUser::where('username', $username)->first();
+                    
+                    // Use updateOrCreate to insert or update
+                    NetworkUser::updateOrCreate(
+                        ['username' => $username], // Match condition
+                        array_merge($userData, [
+                            'registered_at' => $existingUser ? $existingUser->registered_at : now(),
+                            'created_by' => $existingUser ? $existingUser->created_by : Auth::id(),
+                        ])
+                    );
+                    
                     \DB::commit();
-                    $successCount++;
+                    
+                    // Track creates vs updates
+                    if ($existingUser) {
+                        $updateCount++;
+                    } else {
+                        $createCount++;
+                    }
                     
                 } catch (\Exception $e) {
                     \DB::rollBack();
                     $errorMessage = $e->getMessage();
                     // Extract more specific error info
-                    if (str_contains($errorMessage, 'Duplicate entry')) {
-                        $errors[] = "Row $rowNumber: Duplicate entry for '$username'";
-                    } elseif (str_contains($errorMessage, 'Data too long')) {
+                    if (str_contains($errorMessage, 'Data too long')) {
                         $errors[] = "Row $rowNumber: Data too long in one or more fields";
                     } else {
                         $errors[] = "Row $rowNumber ($username): " . $errorMessage;
@@ -662,7 +723,7 @@ class TenantUserController extends Controller
                     $errorCount++;
                     
                     // Log detailed error for debugging
-                    \Log::error("CSV Import Error - Row $rowNumber", [
+                    \Log::error("Import Error - Row $rowNumber", [
                         'username' => $username,
                         'phone' => $phone,
                         'error' => $errorMessage,
@@ -670,19 +731,19 @@ class TenantUserController extends Controller
                     ]);
                 }
             }
-            
-            fclose($handle);
 
-            if ($successCount == 0 && $errorCount > 0) {
+            $totalSuccess = $createCount + $updateCount;
+            
+            if ($totalSuccess == 0 && $errorCount > 0) {
                  // Show first 20 errors
                  $errorSummary = array_slice($errors, 0, 20);
                  return back()->withErrors([
-                     'error' => "Import failed. No users imported. Total errors: $errorCount",
+                     'error' => "Import failed. No users processed. Total errors: $errorCount",
                      'details' => implode("\n", $errorSummary) . ($errorCount > 20 ? "\n... and " . ($errorCount - 20) . " more errors" : "")
                  ]);
             }
 
-            $message = "Imported $successCount users successfully.";
+            $message = "Import completed: $createCount created, $updateCount updated.";
             if ($errorCount > 0) {
                 $message .= " Failed to import $errorCount rows.";
             }
@@ -690,9 +751,11 @@ class TenantUserController extends Controller
             return back()->with([
                 'success' => $message,
                 'import_stats' => [
-                    'success' => $successCount,
+                    'created' => $createCount,
+                    'updated' => $updateCount,
+                    'success' => $totalSuccess,
                     'errors' => $errorCount,
-                    'total' => $successCount + $errorCount
+                    'total' => $totalSuccess + $errorCount
                 ],
                 'import_errors' => array_slice($errors, 0, 50) // Show first 50 errors
             ]);

@@ -144,19 +144,55 @@ function submitImport() {
     });
 }
 
-function downloadSample() {
-    // Generate a simple CSV content
-    const csvContent = "username,phone,full_name,location,type,package,password,expiry_at\nduncan,0712345678,Ogeno dunte,Nairobi,hotspot,Weekly Bundle,12345678\nmike the dev,0723456789,kamau Smith,Mombasa,pppoe,Home Fiber,securePass";
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    if (link.download !== undefined) {
-        const url = URL.createObjectURL(blob);
-        link.setAttribute("href", url);
-        link.setAttribute("download", "users_import_sample.csv");
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+function downloadSample(format = 'csv') {
+    if (format === 'json') {
+        // Generate JSON sample
+        const jsonContent = JSON.stringify([
+            {
+                username: "duncan-ogeno",
+                phone: "0712345678",
+                full_name: "Duncan Ogeno",
+                location: "Nairobi",
+                type: "hotspot",
+                package: "Weekly Bundle",
+                password: "12345678",
+                expires_at: "2026-03-09"
+            },
+            {
+                username: "mike-the-dev",
+                phone: "0723456789",
+                full_name: "Mike The Dev",
+                location: "Mombasa",
+                type: "pppoe",
+                package: "Home Fiber",
+                expiry_date: "2026-04-15"
+            }
+        ], null, 4);
+        const blob = new Blob([jsonContent], { type: 'application/json;charset=utf-8;' });
+        const link = document.createElement("a");
+        if (link.download !== undefined) {
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", "users_import_sample.json");
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    } else {
+        // Generate CSV sample
+        const csvContent = "username,phone,full_name,location,type,package,password,expiry_at\nduncan,0712345678,Ogeno dunte,Nairobi,hotspot,Weekly Bundle,12345678\nmike the dev,0723456789,kamau Smith,Mombasa,pppoe,Home Fiber,securePass";
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        if (link.download !== undefined) {
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", "users_import_sample.csv");
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
     }
 }
 
@@ -662,7 +698,7 @@ const openActions = (user) => {
             <div class="p-6 dark:bg-slate-800 dark:text-white">
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-lg font-medium text-gray-900 dark:text-white">
-                        Import Users via CSV
+                        Import Users (CSV or JSON)
                     </h3>
                     <button @click="showImportModal = false" class="text-gray-400 hover:text-gray-500 focus:outline-none">
                         <span class="sr-only">Close</span>
@@ -677,23 +713,32 @@ const openActions = (user) => {
                         </div>
                         <div class="ml-3">
                             <p class="text-sm text-blue-700 dark:text-blue-300">
-                                Upload a CSV file with the following columns: <br>
-                                <span class="font-mono text-xs">username, phone, full_name, location, type, package, password</span>
+                                Upload a CSV or JSON file with the following fields: <br>
+                                <span class="font-mono text-xs">username, phone, full_name, location, type, package, password, expires_at</span>
                             </p>
-                            <button 
-                                type="button" 
-                                @click="downloadSample" 
-                                class="mt-2 text-sm font-medium text-blue-700 dark:text-blue-300 underline hover:text-blue-600"
-                            >
-                                Download Sample CSV
-                            </button>
+                            <div class="mt-2 flex gap-3">
+                                <button 
+                                    type="button" 
+                                    @click="downloadSample('csv')" 
+                                    class="text-sm font-medium text-blue-700 dark:text-blue-300 underline hover:text-blue-600"
+                                >
+                                    📄 Download CSV Sample
+                                </button>
+                                <button 
+                                    type="button" 
+                                    @click="downloadSample('json')" 
+                                    class="text-sm font-medium text-blue-700 dark:text-blue-300 underline hover:text-blue-600"
+                                >
+                                    📋 Download JSON Sample
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <form @submit.prevent="submitImport" class="space-y-4">
                     <div class="space-y-2">
-                        <InputLabel for="file" value="Select CSV File" />
+                        <InputLabel for="file" value="Select CSV or JSON File" />
                         <div class="relative border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-lg p-6 hover:border-blue-500 dark:hover:border-blue-500 transition-colors text-center cursor-pointer"
                              @dragover.prevent
                              @drop.prevent="(e) => importForm.file = e.dataTransfer.files[0]">
@@ -701,7 +746,7 @@ const openActions = (user) => {
                             <input 
                                 type="file" 
                                 id="file" 
-                                accept=".csv,.txt"
+                                accept=".csv,.txt,.json"
                                 class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                                 @change="(e) => importForm.file = e.target.files[0]"
                             />
@@ -711,7 +756,7 @@ const openActions = (user) => {
                                 <div class="text-sm text-gray-600 dark:text-gray-400">
                                     <span class="font-medium text-blue-600 hover:text-blue-500">Click to upload</span> or drag and drop
                                 </div>
-                                <p class="text-xs text-gray-500">CSV or TXT up to 5MB</p>
+                                <p class="text-xs text-gray-500">CSV, TXT, or JSON up to 5MB</p>
                             </div>
                             
                             <div v-else class="flex items-center justify-center gap-3">
