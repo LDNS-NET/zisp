@@ -610,8 +610,23 @@ class TenantUserController extends Controller
                     if ($pkg) {
                         $packageId = $pkg->id;
                     } else {
-                        // Log warning but continue - user will be created without package
-                        \Log::warning("Row $rowNumber: Package '$packageName' not found for user '$username'");
+                        // Package not found - fall back to least costly package
+                        \Log::warning("Row $rowNumber: Package '$packageName' not found for user '$username', falling back to least costly package");
+                        
+                        // Get least costly package for the user's type
+                        $fallbackPkg = $packageCache->where('type', $type)->sortBy('price')->first();
+                        
+                        // If no package found for type, get the overall least costly package
+                        if (!$fallbackPkg) {
+                            $fallbackPkg = $packageCache->sortBy('price')->first();
+                        }
+                        
+                        if ($fallbackPkg) {
+                            $packageId = $fallbackPkg->id;
+                            \Log::info("Row $rowNumber: Using fallback package '{$fallbackPkg->name}' (price: {$fallbackPkg->price}) for user '$username'");
+                        } else {
+                            \Log::error("Row $rowNumber: No packages available for fallback for user '$username'");
+                        }
                     }
                 }
 

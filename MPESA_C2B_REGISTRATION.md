@@ -22,7 +22,7 @@ php artisan mpesa:register-c2b
 
 This will:
 - Use default credentials from `.env` file
-- Register URLs: `https://yourdomain.com/api/mpesa/c2b/validation` and `https://yourdomain.com/api/mpesa/c2b/confirmation`
+- Register URLs: `https://zimaradius.net/api/mpesa/c2b/validation` and `https://zimaradius.net/api/mpesa/c2b/confirmation`
 - Show confirmation prompt before proceeding
 
 ### With Tenant-Specific Credentials
@@ -113,9 +113,175 @@ if ($result['success']) {
 2. Navigate to your app
 3. Go to "APIs" → "C2B"
 4. Register URLs:
-   - **Validation URL**: `https://yourdomain.com/api/mpesa/c2b/validation`
-   - **Confirmation URL**: `https://yourdomain.com/api/mpesa/c2b/confirmation`
+   - **Validation URL**: `https://zimaradius.net/api/mpesa/c2b/validation`
+   - **Confirmation URL**: `https://zimaradius.net/api/mpesa/c2b/confirmation`
    - **Response Type**: Completed
+
+---
+
+## Multi-Tenant C2B Registration
+
+### Understanding Multi-Tenant Setup
+
+Your system supports **multiple tenants** using different M-Pesa paybills. All tenants use the **SAME callback URLs** but payments are automatically routed to the correct tenant:
+
+```
+https://zimaradius.net/api/mpesa/c2b/validation
+https://zimaradius.net/api/mpesa/c2b/confirmation
+```
+
+**How it works:**
+1. Each tenant has their own paybill number (e.g., Tenant A: `600123`, Tenant B: `789456`)
+2. ALL tenants register the SAME URLs on their Daraja portals
+3. When payment comes in, system identifies tenant by looking up the user's `account_number`
+4. Payment is saved with the correct `tenant_id`
+
+### For Tenants Using Their Own M-Pesa API
+
+When a tenant wants to use their own M-Pesa credentials:
+
+#### Step 1: Tenant Configures Admin Panel
+
+1. Tenant logs into admin panel
+2. Goes to **Settings → Payment Gateway → M-Pesa**
+3. Enters their credentials:
+   - Consumer Key
+   - Consumer Secret
+   - Shortcode (their paybill number)
+   - Passkey
+   - Environment (sandbox/production)
+4. Enables **"Use Own API"** toggle
+5. Saves settings
+
+#### Step 2: Register C2B URLs (3 Options)
+
+**Option A: Automated Registration via Command (Recommended)**
+
+You or the tenant can run:
+
+```bash
+# Replace 5 with the actual tenant ID
+php artisan mpesa:register-c2b --tenant=5
+```
+
+This command:
+- Retrieves tenant's credentials from database
+- Automatically calls Safaricom's C2B registration API
+- Registers `https://zimaradius.net/api/mpesa/c2b/*` on their behalf
+- Shows confirmation of success/failure
+
+**Example Output:**
+```
+🚀 Starting M-Pesa C2B URL Registration...
+
+📋 Configuration:
+╔══════════════════╦══════════════════════════════════════════╗
+║ Setting          ║ Value                                    ║
+╠══════════════════╬══════════════════════════════════════════╣
+║ Environment      ║ production                               ║
+║ Shortcode        ║ 600123 (Tenant's paybill)               ║
+║ Validation URL   ║ https://zimaradius.net/api/mpesa/c2b/... ║
+║ Confirmation URL ║ https://zimaradius.net/api/mpesa/c2b/... ║
+║ Response Type    ║ Completed                                ║
+╚══════════════════╩══════════════════════════════════════════╝
+
+✅ C2B URLs registered successfully!
+```
+
+**Option B: Tenant Registers Manually on Daraja Portal**
+
+Provide tenant with these instructions:
+
+1. Log into [Safaricom Daraja Portal](https://developer.safaricom.co.ke/) with THEIR account
+2. Navigate to THEIR app/paybill
+3. Go to "APIs" → "C2B"
+4. Click "Register URL"
+5. Enter:
+   - **Validation URL**: `https://zimaradius.net/api/mpesa/c2b/validation`
+   - **Confirmation URL**: `https://zimaradius.net/api/mpesa/c2b/confirmation`
+   - **Response Type**: Completed
+6. Click "Submit"
+
+**Option C: Automated During Tenant Setup**
+
+You can integrate the registration into your tenant onboarding workflow:
+
+```php
+use App\Services\MpesaService;
+use App\Models\TenantPaymentGateway;
+
+// After tenant saves M-Pesa settings
+$gateway = TenantPaymentGateway::where('tenant_id', $tenantId)
+    ->where('provider', 'mpesa')
+    ->first();
+
+if ($gateway && $gateway->use_own_api) {
+    $mpesa = new MpesaService([
+        'consumer_key' => $gateway->mpesa_consumer_key,
+        'consumer_secret' => $gateway->mpesa_consumer_secret,
+        'shortcode' => $gateway->mpesa_shortcode,
+        'passkey' => $gateway->mpesa_passkey,
+        'environment' => $gateway->mpesa_env,
+    ]);
+
+    $result = $mpesa->registerC2BURLS(
+        validationUrl: config('app.url') . '/api/mpesa/c2b/validation',
+        confirmationUrl: config('app.url') . '/api/mpesa/c2b/confirmation'
+    );
+    
+    // Show result to tenant
+}
+```
+
+### For Tenants Using Default/Shared M-Pesa
+
+Tenants who don't have their own M-Pesa API:
+
+1. They use YOUR default paybill (configured in `.env`)
+2. No registration needed - you already registered the URLs
+3. Users pay using YOUR shortcode
+4. System still tracks `tenant_id` correctly via user lookup
+
+### Verifying Multi-Tenant Registration
+
+After registering URLs for a tenant, verify it's working:
+
+```bash
+# Test with tenant's user account
+curl -X POST https://zimaradius.net/api/mpesa/c2b/validation \
+  -H "Content-Type: application/json" \
+  -d '{
+    "TransactionType": "Pay Bill",
+    "BillRefNumber": "TENANT_USER_ACCOUNT_NUMBER",
+    "TransAmount": "500"
+  }'
+```
+
+Expected response:
+- `{"ResultCode":0,"ResultDesc":"Accepted"}` if user exists
+- `{"ResultCode":1,"ResultDesc":"Rejected"}` if user doesn't exist
+
+### Important Notes for Multi-Tenant
+
+> [!IMPORTANT]
+> **Each tenant using their own M-Pesa MUST register the URLs on their Daraja portal!**
+> 
+> Without registration, Safaricom won't know where to send callbacks for that specific paybill.
+
+> [!WARNING]
+> **All tenants use the SAME URLs** - `https://zimaradius.net/api/mpesa/c2b/*`
+> 
+> Do NOT create tenant-specific URLs like `https://tenant1.zimaradius.net/api/...`
+
+> [!TIP]
+> **Use the artisan command for easy registration:**
+> ```bash
+> php artisan mpesa:register-c2b --tenant=TENANT_ID
+> ```
+> This saves time and eliminates manual errors.
+
+---
+
 
 ## Environment Configuration
 
