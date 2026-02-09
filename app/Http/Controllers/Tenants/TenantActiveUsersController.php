@@ -15,7 +15,7 @@ class TenantActiveUsersController extends Controller
 {
     public function index(Request $request)
     {
-        $maxUsers = (int) ($request->input('limit', 500));
+        $perPage = (int) ($request->input('per_page', 50));
         
         // Fetch active users from local database (synced via background job or RADIUS)
         $query = \App\Models\Tenants\TenantActiveUsers::with(['user.package', 'router'])
@@ -28,11 +28,10 @@ class TenantActiveUsersController extends Controller
             $query->where('router_id', $request->input('router_id'));
         }
 
-        $activeUsersData = $query->limit($maxUsers)->get()->unique(function ($item) {
-            return strtolower($item->username);
-        });
+        // Use pagination instead of limit
+        $activeUsersData = $query->paginate($perPage);
 
-        $activeUsers = $activeUsersData->map(function ($session) {
+        $activeUsers = $activeUsersData->getCollection()->map(function ($session) {
             $user = $session->user;
             // Determine type
             $type = 'unknown';
@@ -55,11 +54,13 @@ class TenantActiveUsersController extends Controller
                 'router_name' => $session->router->name ?? 'Unknown',
                 'last_seen' => $session->last_seen_at->diffForHumans(),
             ];
-        })->values();
+        });
+
+        // Replace the collection in the paginator
+        $activeUsersData->setCollection($activeUsers);
 
         return Inertia::render('Activeusers/Index', [
-            'activeUsers' => $activeUsers,
-            'message' => $activeUsersData->count() >= $maxUsers ? "Showing first {$maxUsers} active users." : null,
+            'activeUsers' => $activeUsersData,
         ]);
     }
 }

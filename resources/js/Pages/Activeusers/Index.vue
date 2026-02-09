@@ -2,12 +2,13 @@
 import { ref, computed } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import Pagination from '@/Components/Pagination.vue';
 import { Activity, Users, Wifi, Network, Clock, User, MapPin, RefreshCw } from 'lucide-vue-next';
 
 const props = defineProps({
     activeUsers: {
-        type: Array,
-        default: () => [],
+        type: Object,
+        default: () => ({ data: [] }),
     },
     message: String,
 });
@@ -29,7 +30,7 @@ const selectedType = ref('all');
 
 // User counts by type
 const userCounts = computed(() => {
-    const users = props.activeUsers || [];
+    const users = props.activeUsers?.data || [];
     return {
         all: users.length,
         hotspot: users.filter(u => u.user_type === 'hotspot').length,
@@ -40,8 +41,9 @@ const userCounts = computed(() => {
 
 // Filtered users based on selected type
 const filteredUsers = computed(() => {
-    if (selectedType.value === 'all') return props.activeUsers || [];
-    return (props.activeUsers || []).filter(u => u.user_type === selectedType.value);
+    const users = props.activeUsers?.data || [];
+    if (selectedType.value === 'all') return users;
+    return users.filter(u => u.user_type === selectedType.value);
 });
 
 // Format uptime/session time
@@ -275,6 +277,11 @@ const formatSessionTime = (time) => {
                             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
                                 {{ selectedType === 'all' ? 'No users are currently online' : `No ${selectedType} users are currently online` }}
                             </p>
+                        </div>
+
+                        <!-- Pagination -->
+                        <div v-if="filteredUsers.length > 0 && activeUsers.last_page > 1" class="mt-6 border-t border-gray-200 pt-4 dark:border-gray-700">
+                            <Pagination :links="activeUsers.links" :from="activeUsers.from" :to="activeUsers.to" :total="activeUsers.total" />
                         </div>
                     </div>
                 </div>
