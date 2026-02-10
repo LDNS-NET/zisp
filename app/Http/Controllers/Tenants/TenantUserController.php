@@ -152,9 +152,6 @@ class TenantUserController extends Controller
 
         $validated = $request->validate($rules);
 
-        // Force lowercase username
-        $validated['username'] = strtolower($validated['username']);
-
         // Custom username uniqueness check within tenant database
         $existingUser = NetworkUser::where('username', $validated['username'])->first();
         if ($existingUser) {
@@ -346,9 +343,6 @@ class TenantUserController extends Controller
         }
 
         $validated = $request->validate($rules);
-
-        // Force lowercase username
-        $validated['username'] = strtolower($validated['username']);
 
         // Custom username uniqueness check within tenant database (excluding current user)
         $existingUser = NetworkUser::where('username', $validated['username'])
