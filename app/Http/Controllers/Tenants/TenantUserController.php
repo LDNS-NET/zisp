@@ -758,10 +758,10 @@ class TenantUserController extends Controller
                 'success' => $message,
                 'import_stats' => [
                     'created' => $createCount,
-                    'updated' => $updateCount,
-                    'success' => $totalSuccess,
+                    'skipped' => $skipCount,
+                    'success' => $totalProcessed,
                     'errors' => $errorCount,
-                    'total' => $totalSuccess + $errorCount
+                    'total' => $totalProcessed + $errorCount
                 ],
                 'import_errors' => array_slice($errors, 0, 50) // Show first 50 errors
             ]);
