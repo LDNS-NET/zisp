@@ -767,7 +767,7 @@ class TenantUserController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            fclose($handle);
+            // File handle is already closed at line 549, don't try to close it again
             \Log::error('CSV Import Fatal Error', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
