@@ -32,15 +32,21 @@ class SendExpiryNotifications extends Command
         $this->info("Found {$users->count()} expired users to notify.");
 
         foreach ($users as $user) {
-            // Get tenant-specific template
+            // Get or create tenant-specific template
             $template = TenantSMSTemplate::withoutGlobalScopes()
                 ->where('tenant_id', $user->tenant_id)
                 ->where('name', 'Internet Expiry')
                 ->first();
 
             if (!$template) {
-                Log::warning("No Internet Expiry template found for tenant {$user->tenant_id}");
-                continue;
+                // Auto-create default template
+                $template = TenantSMSTemplate::create([
+                    'tenant_id' => $user->tenant_id,
+                    'name' => 'Internet Expiry',
+                    'content' => 'Hello {full_name}, your internet (Account: {account_number}) has expired on {expiry_date}. To renew, login to {portal_url} using Username: {username}, Password: {password}. Contact: {support_number}',
+                ]);
+                
+                Log::info("Auto-created 'Internet Expiry' template for tenant {$user->tenant_id}");
             }
 
             $supportNumber = $user->tenant?->phone ?? '';
@@ -55,7 +61,7 @@ class SendExpiryNotifications extends Command
                 '{username}' => $user->username ?? '',
                 '{password}' => $user->password ?? '',
                 '{support_number}' => $supportNumber,
-                '{portal_url}' => $user->tenant?->portal_url ?? 'https://zispbilling.cloud/customer/login',
+                '{portal_url}' => $user->tenant?->portal_url ?? 'https://zimaradius.net/customer/login',
             ];
             
             $message = $template->content;

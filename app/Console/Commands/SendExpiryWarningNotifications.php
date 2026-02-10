@@ -36,15 +36,21 @@ class SendExpiryWarningNotifications extends Command
         $this->info("Found {$users->count()} users to notify.");
 
         foreach ($users as $user) {
-            // Get tenant-specific template
+            // Get or create tenant-specific template
             $template = TenantSMSTemplate::withoutGlobalScopes()
                 ->where('tenant_id', $user->tenant_id)
                 ->where('name', 'Internet Expiry Warning')
                 ->first();
 
             if (!$template) {
-                Log::warning("No Internet Expiry Warning template found for tenant {$user->tenant_id}");
-                continue;
+                // Auto-create default template
+                $template = TenantSMSTemplate::create([
+                    'tenant_id' => $user->tenant_id,
+                    'name' => 'Internet Expiry Warning',
+                    'content' => 'Hello {full_name}, your internet (Account: {account_number}) expires on {expiry_date}. To renew, login to {portal_url} using Username: {username}, Password: {password}. Contact: {support_number}',
+                ]);
+                
+                Log::info("Auto-created 'Internet Expiry Warning' template for tenant {$user->tenant_id}");
             }
 
             $supportNumber = $user->tenant?->phone ?? '';
