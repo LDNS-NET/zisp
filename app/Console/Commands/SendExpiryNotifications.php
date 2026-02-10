@@ -44,6 +44,7 @@ class SendExpiryNotifications extends Command
                     'tenant_id' => $user->tenant_id,
                     'name' => 'Internet Expiry',
                     'content' => 'Hello {full_name}, your internet (Account: {account_number}) has expired on {expiry_date}. To renew, login to {portal_url} using Username: {username}, Password: {password}. Contact: {support_number}',
+                    'created_by' => 1, // System user
                 ]);
                 
                 Log::info("Auto-created 'Internet Expiry' template for tenant {$user->tenant_id}");
