@@ -561,7 +561,7 @@ class TenantUserController extends Controller
         }
         
         $createCount = 0;
-        $updateCount = 0;
+        $skipCount = 0;  // Track skipped existing users
         $errorCount = 0;
         $errors = [];
         $rowNumber = 0;
@@ -677,47 +677,45 @@ class TenantUserController extends Controller
                 // Use individual transaction for each user to avoid rollback cascade
                 \DB::beginTransaction();
                 try {
-                    // Check if user exists to track creates vs updates
+                    // Check if user already exists - if so, SKIP
                     $existingUser = NetworkUser::where('username', $username)->first();
                     
-                    // Prepare data for upsert
+                    if ($existingUser) {
+                        // User exists - SKIP this row
+                        $skipCount++;
+                        \Log::info("Row $rowNumber: Skipping existing user '$username'");
+                        \DB::commit(); // Commit the transaction (nothing changed)
+                        continue; // Move to next row
+                    }
+                    
+                    // User doesn't exist - CREATE new user
                     $userData = [
+                        'username' => $username,
                         'full_name' => $fullName,
                         'phone' => $phone,
                         'location' => $location,
                         'type' => $type,
                         'package_id' => $packageId,
                         'expires_at' => $parsedExpiryDate,
+                        'registered_at' => now(),
+                        'created_by' => Auth::id(),
                     ];
                     
-                    // Handle password logic
+                    // Handle password logic for new users
                     if (!empty($password)) {
                         // Password provided in import - use it
                         $userData['password'] = $password;
-                    } elseif (!$existingUser) {
+                    } else {
                         // New user without password - use default password
                         $userData['password'] = '12345678';
                         \Log::info("Row $rowNumber: Using default password '12345678' for new user '$username'");
                     }
-                    // If existing user and no password provided, don't update password (keep existing)
                     
-                    // Use updateOrCreate to insert or update
-                    NetworkUser::updateOrCreate(
-                        ['username' => $username], // Match condition
-                        array_merge($userData, [
-                            'registered_at' => $existingUser ? $existingUser->registered_at : now(),
-                            'created_by' => $existingUser ? $existingUser->created_by : Auth::id(),
-                        ])
-                    );
+                    // Create the new user
+                    NetworkUser::create($userData);
                     
                     \DB::commit();
-                    
-                    // Track creates vs updates
-                    if ($existingUser) {
-                        $updateCount++;
-                    } else {
-                        $createCount++;
-                    }
+                    $createCount++; // Track as new creation
                     
                 } catch (\Exception $e) {
                     \DB::rollBack();
@@ -740,9 +738,9 @@ class TenantUserController extends Controller
                 }
             }
 
-            $totalSuccess = $createCount + $updateCount;
+            $totalProcessed = $createCount + $skipCount;
             
-            if ($totalSuccess == 0 && $errorCount > 0) {
+            if ($totalProcessed == 0 && $errorCount > 0) {
                  // Show first 20 errors
                  $errorSummary = array_slice($errors, 0, 20);
                  return back()->withErrors([
@@ -751,7 +749,7 @@ class TenantUserController extends Controller
                  ]);
             }
 
-            $message = "Import completed: $createCount created, $updateCount updated.";
+            $message = "Import completed: $createCount created, $skipCount skipped (existing).";
             if ($errorCount > 0) {
                 $message .= " Failed to import $errorCount rows.";
             }
