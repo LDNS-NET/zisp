@@ -402,7 +402,7 @@ function toggleSidebar() {
                     </button>
                     <!-- Breadcrumbs or Title could go here -->
                 </div>
-                <div class="">
+                <div class="align-left">
                     <div class="text-lg font-semibold text-gray-900 dark:text-white">{{ user.name ?? tenant.name }}</div>
                 </div>
 
