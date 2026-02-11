@@ -425,8 +425,6 @@ function toggleSidebar() {
                                 <div class="font-medium text-gray-900 dark:text-white">{{ user.name }}</div>
                                 <div class="text-sm text-gray-500 dark:text-gray-400">{{ user.email }}</div>
                             </div>
-                            
-                            <DropdownLink class="flex items-center gap-2">
                                 <button 
                                     @click="setTheme(theme === 'dark' ? 'light' : 'dark')"
                                     class="p-2 text-gray-500 hover:bg-gray-100 rounded-full dark:text-gray-400 dark:hover:bg-slate-800 transition-colors"
@@ -435,7 +433,6 @@ function toggleSidebar() {
                                     <Sun v-if="theme === 'dark'" class="w-5 h-5" />
                                     <Moon v-else class="w-5 h-5" />
                                 </button>
-                            </DropdownLink>
                             <DropdownLink :href="route('profile.edit')" class="flex items-center gap-2">
                                 <FolderEdit class="w-4 h-4" /> Profile
                             </DropdownLink>
