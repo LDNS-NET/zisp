@@ -406,31 +406,12 @@ function toggleSidebar() {
                 <!-- Right: Actions -->
                 <div class="flex items-center gap-2 sm:gap-4">
                      <!-- Theme Toggle -->
-                    <button 
-                        @click="setTheme(theme === 'dark' ? 'light' : 'dark')"
-                        class="p-2 text-gray-500 hover:bg-gray-100 rounded-full dark:text-gray-400 dark:hover:bg-slate-800 transition-colors"
-                        :title="theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
-                    >
-                        <Sun v-if="theme === 'dark'" class="w-5 h-5" />
-                        <Moon v-else class="w-5 h-5" />
-                    </button>
                     
-                    <!-- Notifications -->
-                    <Link 
-                        v-if="canAccessDomainSettings"
-                        :href="route('domain-requests.index')" 
-                        class="relative p-2 text-gray-500 hover:bg-gray-100 rounded-full dark:text-gray-400 dark:hover:bg-slate-800 transition-colors"
-                        title="Notifications"
-                    >
-                        <Bell class="w-5 h-5" />
-                        <span 
-                            v-if="user.unread_notifications_count > 0"
-                            class="absolute top-1.5 right-1.5 flex h-2 w-2 items-center justify-center rounded-full bg-red-500 ring-2 ring-white dark:ring-slate-900"
-                        >
-                        </span>
-                    </Link>
+                    
 
                     <div class="h-6 w-px bg-gray-200 dark:bg-slate-700 hidden sm:block"></div>
+
+                    <!-- User Dropdown -->
 
                     <Dropdown align="right" width="48">
                         <template #trigger>
@@ -445,6 +426,16 @@ function toggleSidebar() {
                                 <div class="text-sm text-gray-500 dark:text-gray-400">{{ user.email }}</div>
                             </div>
                             
+                            <DropdownLink class="flex items-center gap-2">
+                                <button 
+                                    @click="setTheme(theme === 'dark' ? 'light' : 'dark')"
+                                    class="p-2 text-gray-500 hover:bg-gray-100 rounded-full dark:text-gray-400 dark:hover:bg-slate-800 transition-colors"
+                                    :title="theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
+                                >
+                                    <Sun v-if="theme === 'dark'" class="w-5 h-5" />
+                                    <Moon v-else class="w-5 h-5" />
+                                </button>
+                            </DropdownLink>
                             <DropdownLink :href="route('profile.edit')" class="flex items-center gap-2">
                                 <FolderEdit class="w-4 h-4" /> Profile
                             </DropdownLink>
