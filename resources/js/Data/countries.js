@@ -11,17 +11,17 @@ export const countries = [
     minimum_pay: 500,
     payment_methods: ["mpesa", "tinypesa", "custom_mpesa", "mpesa_paybill", "mpesa_till", "bank", "airtel_money", "paystack", "flutterwave", "equitel"],
   },
+
   {
-    name: "South Sudan",
-    code: "SS",
-    flag: "🇸🇸",
-    currency: "SSP",
-    currency_name: "South Sudanese Pound",
-    dial_code: "+211",
-    pppoePricePerMonth: 680,
+    name: "Tanzania",
+    code: "TZ",
+    currency: "TZS",
+    currency_name: "Tanzanian Shilling",
+    dial_code: "+255",
+    pppoePricePerMonth: 350,
     hotspotPricePerMonth: "3%",
-    minimum_pay: 5000, // Equivalent to ~500 KES
-    payment_methods: ["momo"], // MTN MoMo is common
+    minimum_pay: 10000, // Equivalent to ~500 KES
+    payment_methods: ["mpesa", "tigo_pesa", "airtel_money", "halopesa"],
   },
 
   {
@@ -36,6 +36,7 @@ export const countries = [
     minimum_pay: 15000,
     payment_methods: ["momo", "airtel_money"],
   },
+  /*
   {
     name: "South Africa",
     code: "ZA",
@@ -84,17 +85,18 @@ export const countries = [
     minimum_pay: 50,
     payment_methods: ["momo", "paystack", "vodafone_cash"],
   },
-  /*
+  
   {
-    name: "Tanzania",
-    code: "TZ",
-    currency: "TZS",
-    currency_name: "Tanzanian Shilling",
-    dial_code: "+255",
-    pppoePricePerMonth: 350,
+    name: "South Sudan",
+    code: "SS",
+    flag: "🇸🇸",
+    currency: "SSP",
+    currency_name: "South Sudanese Pound",
+    dial_code: "+211",
+    pppoePricePerMonth: 680,
     hotspotPricePerMonth: "3%",
-    minimum_pay: 10000, // Equivalent to ~500 KES
-    payment_methods: ["mpesa", "tigo_pesa", "airtel_money", "halopesa"],
+    minimum_pay: 5000, // Equivalent to ~500 KES
+    payment_methods: ["momo"], // MTN MoMo is common
   },
   {
     name: "Rwanda",
