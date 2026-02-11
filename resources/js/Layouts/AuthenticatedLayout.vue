@@ -91,12 +91,12 @@ const toggleGroup = (groupName) => {
 const navigation = [
     // Dashboard link with permission check
     { name: 'Dashboard', href: route('dashboard'), icon: LayoutDashboard, active: 'dashboard' },
-    { name: 'Online Users', href: route('activeusers.index'), icon: Activity, active: 'activeusers.*', countKey: 'online_users', roles: ['tenant_admin', 'admin', 'customer_care', 'technical'], permission: 'view_online_users' },
+    { name: 'Online Users', href: route('activeusers.index'), icon: Activity, active: 'activeusers.*', countKey: 'online_users', roles: ['tenant_admin', 'admin','marketing', 'customer_care', 'technical'], permission: 'view_online_users' },
 
     
     // Customers group with detailed permissions
     { name: 'Customers', icon: Users, children: [
-        { name: 'Users', href: route('users.index'), active: 'users.*', countKey: 'all_users', roles: ['tenant_admin', 'admin', 'customer_care', 'technical'], permission: 'view_users' },
+        { name: 'Users', href: route('users.index'), active: 'users.*', countKey: 'all_users', roles: ['tenant_admin', 'admin', 'marketing', 'customer_care', 'technical'], permission: 'view_users' },
         { name: 'My Leads', href: route('leads.index'), active: 'leads.*', countKey: 'leads', roles: ['tenant_admin', 'admin', 'marketing'], permission: 'view_leads' },
         
     ]},
@@ -142,7 +142,7 @@ const navigation = [
     { name: 'Support', icon: MessageSquare, children: [
         { name: 'SMS', href: route('sms.index'), active: 'sms.*', roles: ['tenant_admin', 'admin', 'marketing', 'customer_care'], permission: 'view_sms' },
         { name: 'Templates', href: route('smstemplates.index'), active: 'smstemplates.*', roles: ['tenant_admin', 'admin', 'marketing', 'customer_care'], permission: 'view_templates' },
-        { name: 'Tickets', href: route('tickets.index'), active: 'tickets.*', countKey: 'tickets', roles: ['tenant_admin', 'admin', 'customer_care', 'technical'], permission: 'view_tickets' },
+        { name: 'Tickets', href: route('tickets.index'), active: 'tickets.*', countKey: 'tickets', roles: ['tenant_admin', 'admin', 'marketing', 'customer_care', 'technical'], permission: 'view_tickets' },
     ]},
 
     //security
