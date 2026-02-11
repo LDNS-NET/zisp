@@ -236,7 +236,7 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode', 'sta
             ->name('dashboard.data');
 
         //Active Users
-        Route::middleware(['role_or_permission:tenant_admin|admin|customer_care|technical|view_online_users'])->group(function () {
+        Route::middleware(['role_or_permission:tenant_admin|marketing|admin|customer_care|technical|view_online_users'])->group(function () {
             Route::resource('activeusers', TenantActiveUsersController::class)->middleware('throttle:online_users');
         });
 
@@ -267,7 +267,7 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode', 'sta
         });
 
         //network users( wifi users )
-        Route::middleware(['role_or_permission:tenant_admin|admin|customer_care|technical|view_users'])->group(function () {
+        Route::middleware(['role_or_permission:tenant_admin|marketing|admin|customer_care|technical|view_users'])->group(function () {
             Route::delete('/users/bulk-delete', [TenantUserController::class, 'bulkDelete'])
                 ->middleware('throttle:bulk_actions')
                 ->name('users.bulk-delete');
@@ -291,7 +291,7 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode', 'sta
         });
 
         //tickets
-        Route::middleware(['role_or_permission:tenant_admin|admin|customer_care|technical|view_tickets'])->group(function () {
+        Route::middleware(['role_or_permission:tenant_admin|admin|marketing|customer_care|technical|view_tickets'])->group(function () {
             Route::resource('tickets', TenantTicketController::class)->only(['index', 'store', 'update', 'destroy']);
             Route::delete('tickets/bulk-delete', [TenantTicketController::class, 'bulkDelete'])->name('tickets.bulk-delete');
             Route::put('/tickets/{ticket}/resolve', [TenantTicketController::class, 'resolve'])->name('tickets.resolve');
