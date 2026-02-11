@@ -155,7 +155,8 @@ const navigation = [
 
 const page = usePage();
 const user = page.props.auth.user;
-const tenantLogo = page.props.tenant?.logo;
+const tenant = page.props.tenant;
+const tenantLogo = tenant?.logo;
 
 // Helper to check access for a single item
 const hasAccess = (item) => {
@@ -392,7 +393,7 @@ function toggleSidebar() {
             </div>
             <header class="h-16 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between px-4 sm:px-6 lg:px-8 z-30 sticky top-0 backdrop-blur-md bg-opacity-80 dark:bg-opacity-80">
                 
-                <!-- Left: Mobile Toggle & Title -->
+                <!-- Left: Mobile Toggle & Name -->
                 <div class="flex items-center gap-4">
                     <button 
                         @click="toggleSidebar" 
@@ -400,61 +401,50 @@ function toggleSidebar() {
                     >
                         <Menu class="w-6 h-6" />
                     </button>
-                    <!-- Breadcrumbs or Title could go here -->
+                    <!-- User/Tenant Name -->
+                    <div class="text-lg font-semibold text-gray-900 dark:text-white">{{ user.name ?? tenant?.name }}</div>
                 </div>
-                <div class="justify-between">
 
-                    <div class="align-left">
-                        <div class="text-lg font-semibold text-gray-900 dark:text-white">{{ user.name ?? tenant.name }}</div>
-                    </div>
+                <!-- Right: Actions/Dropdown -->
+                <div class="flex items-center gap-2 sm:gap-4">
+                    <!-- User Dropdown -->
+                    <Dropdown align="right" width="48">
+                        <template #trigger>
+                            <button class="flex items-center gap-2 pl-2 pr-1 py-1.5 rounded-full hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors">
+                                <Cog class="w-7 h-7 text-gray-700 dark:text-gray-200" />
+                            </button>
+                        </template>
 
-                    <!-- Right: Actions -->
-                    <div class="flex items-center gap-2 sm:gap-4">
-                            <!-- Theme Toggle -->
-                        
-                        
-
-                        <!--div class="h-6 w-px bg-gray-200 dark:bg-slate-700 hidden sm:block"></div>-->
-
-                        <!-- User Dropdown -->
-
-                        <Dropdown align="right" width="48">
-                            <template #trigger>
-                                <button class="flex items-center gap-2 pl-2 pr-1 py-1.5 rounded-full hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors">
-                                    <Cog class="w-7 h-7 text-gray-700 dark:text-gray-200" />
+                        <template #content>
+                            <div class="px-4 py-3 border-b border-gray-100 dark:border-slate-700 sm:hidden">
+                                <div class="font-medium text-gray-900 dark:text-white">{{ user.name }}</div>
+                                <div class="text-sm text-gray-500 dark:text-gray-400">{{ user.email }}</div>
+                            </div>
+                                <button 
+                                    @click="setTheme(theme === 'dark' ? 'light' : 'dark')"
+                                    class="p-2 text-gray-500 hover:bg-gray-100 rounded-full dark:text-gray-400 dark:hover:bg-slate-800 transition-colors"
+                                    :title="theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
+                                >
+                                    <Sun v-if="theme === 'dark'" class="w-5 h-5" />
+                                    <Moon v-else class="w-5 h-5" />
                                 </button>
-                            </template>
-
-                            <template #content>
-                                <div class="px-4 py-3 border-b border-gray-100 dark:border-slate-700 sm:hidden">
-                                    <div class="font-medium text-gray-900 dark:text-white">{{ user.name }}</div>
-                                    <div class="text-sm text-gray-500 dark:text-gray-400">{{ user.email }}</div>
-                                </div>
-                                    <button 
-                                        @click="setTheme(theme === 'dark' ? 'light' : 'dark')"
-                                        class="p-2 text-gray-500 hover:bg-gray-100 rounded-full dark:text-gray-400 dark:hover:bg-slate-800 transition-colors"
-                                        :title="theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
-                                    >
-                                        <Sun v-if="theme === 'dark'" class="w-5 h-5" />
-                                        <Moon v-else class="w-5 h-5" />
-                                    </button>
-                                <DropdownLink :href="route('profile.edit')" class="flex items-center gap-2">
-                                    <FolderEdit class="w-4 h-4" /> Profile
-                                </DropdownLink>
-                                <DropdownLink v-if="firstAccessibleSettingsRoute" :href="route(firstAccessibleSettingsRoute)" class="flex items-center gap-2">
-                                    <Settings class="w-4 h-4" /> Settings
-                                </DropdownLink>
-                                <DropdownLink v-if="canAccessDomainSettings" :href="route('domain-requests.index')" class="flex items-center gap-2">
-                                    <Globe class="w-4 h-4" />Request Domain
-                                </DropdownLink>
-                                <div class="border-t border-gray-100 dark:border-slate-700 my-1"></div>
-                                <DropdownLink :href="route('logout')" method="post" as="button" class="flex items-center gap-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">
-                                    <LogOut class="w-4 h-4" /> Log Out
-                                </DropdownLink>
-                            </template>
-                        </Dropdown>
-                    </div>
-                </div>  
+                            <DropdownLink :href="route('profile.edit')" class="flex items-center gap-2">
+                                <FolderEdit class="w-4 h-4" /> Profile
+                            </DropdownLink>
+                            <DropdownLink v-if="firstAccessibleSettingsRoute" :href="route(firstAccessibleSettingsRoute)" class="flex items-center gap-2">
+                                <Settings class="w-4 h-4" /> Settings
+                            </DropdownLink>
+                            <DropdownLink v-if="canAccessDomainSettings" :href="route('domain-requests.index')" class="flex items-center gap-2">
+                                <Globe class="w-4 h-4" />Request Domain
+                            </DropdownLink>
+                            <div class="border-t border-gray-100 dark:border-slate-700 my-1"></div>
+                            <DropdownLink :href="route('logout')" method="post" as="button" class="flex items-center gap-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">
+                                <LogOut class="w-4 h-4" /> Log Out
+                            </DropdownLink>
+                        </template>
+                    </Dropdown>
+                </div>
+  
             </header>
 
             <!-- Page Header (Title & Actions) -->
