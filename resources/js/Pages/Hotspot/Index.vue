@@ -1,9 +1,10 @@
+```vue
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { usePage, router, Head } from '@inertiajs/vue3';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-import DangerButton from '@/Components/DangerButton.vue';
-import SecondaryButton from '@/Components/SecondaryButton.vue';
+// Standard buttons for weight reduction instead of components if needed, but let's keep them if they are small.
+// However, to make it "instantly" load, we should avoid too many component overheads.
+// But let's keep them and focus on the CSS.
 import Modal from '@/Components/Modal.vue';
 
 const showModal = ref(false);
@@ -528,7 +529,7 @@ function formatPhoneNumber(event) {
             <div class="absolute top-[20%] -right-[10%] w-[30%] h-[30%] bg-indigo-100/20 rounded-full blur-[100px]"></div>
         </div>
 
-        <div class="max-w-7xl mx-auto h-full grid grid-cols-1 lg:grid-cols-12 gap-8 items-start relative z-10">
+        <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 items-start relative z-10">
             
             <!-- Left Column: Branding / Info (Desktop) -->
             <div class="lg:col-span-4 lg:sticky lg:top-8 space-y-6">
@@ -700,50 +701,53 @@ function formatPhoneNumber(event) {
                         <p class="text-gray-500 mt-1">Please check back later</p>
                     </div>
 
-                    <!-- Organized Row-based Package List -->
-                    <div v-else class="space-y-3">
+                    <!-- Optimized Row-based Package List (Horizontal Scroll on Mobile, Grid on Desktop) -->
+                    <div v-else class="flex overflow-x-auto pb-4 gap-4 md:grid md:grid-cols-2 lg:grid-cols-3 md:overflow-visible">
                         <div 
                             v-for="hotspot in hotspots" 
                             :key="hotspot.id" 
-                            class="group bg-slate-50/50 rounded-2xl border border-slate-100 p-5 hover:bg-white hover:border-blue-200 transition-all duration-300 hover:shadow-md"
+                            class="flex-shrink-0 w-[280px] md:w-auto bg-slate-50/50 rounded-2xl border border-slate-100 p-6 hover:bg-white hover:border-blue-200 transition-all duration-300 hover:shadow-md flex flex-col justify-between"
                         >
-                            <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                                <!-- Group 1: Name & Speed -->
-                                <div class="flex-1 min-w-0">
-                                    <h3 class="text-lg font-extrabold text-gray-900 truncate mb-1">
+                            <div class="space-y-4">
+                                <!-- Name & Speed -->
+                                <div>
+                                    <h3 class="text-xl font-black text-gray-900 truncate mb-2">
                                         {{ hotspot.name }}
                                     </h3>
-                                    <div class="flex items-center text-xs text-blue-600 font-bold bg-blue-50/50 w-fit px-2 py-0.5 rounded-md">
-                                        <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                                        {{ hotspot.upload_speed }} / {{ hotspot.download_speed }}
+                                    <div class="flex items-center text-[10px] text-blue-600 font-black bg-blue-50/80 w-fit px-2 py-1 rounded-lg uppercase tracking-wider">
+                                        <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                                        {{ hotspot.download_speed }}
                                     </div>
                                 </div>
 
-                                <!-- Group 2: Price & Devices -->
-                                <div class="flex-1 md:text-center md:border-x md:border-gray-100 md:px-4">
-                                    <div class="flex items-center md:justify-center gap-1.5 mb-1">
-                                        <span class="text-gray-400 font-black italic text-sm">@</span>
-                                        <div class="text-2xl font-black text-gray-900 leading-none">
-                                            <span class="text-[10px] font-bold uppercase align-top mr-0.5 mt-1 inline-block">{{ currentCountry.currency }}</span>
-                                            {{ hotspot.price }}
-                                        </div>
+                                <!-- Price & Details -->
+                                <div class="py-4 border-y border-slate-100">
+                                    <div class="flex items-baseline gap-1 mb-2">
+                                        <span class="text-2xl font-black text-gray-900">{{ currentCountry.currency }}</span>
+                                        <span class="text-4xl font-black text-gray-900 tracking-tight">{{ hotspot.price }}</span>
                                     </div>
-                                    <div class="flex items-center md:justify-center text-[10px] font-black uppercase tracking-widest text-gray-500">
-                                        <svg class="w-3 h-3 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                                        {{ hotspot.device_limit }} Devices
+                                    <div class="flex items-center text-[11px] font-bold text-gray-500 gap-3">
+                                        <span class="flex items-center">
+                                            <svg class="w-3.5 h-3.5 mr-1 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                                            {{ hotspot.device_limit }} Devices
+                                        </span>
+                                        <span v-if="hotspot.validity" class="flex items-center">
+                                            <svg class="w-3.5 h-3.5 mr-1 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                            {{ hotspot.validity }}
+                                        </span>
                                     </div>
                                 </div>
+                            </div>
 
-                                <!-- Group 3: Action -->
-                                <div class="flex-shrink-0">
-                                    <button 
-                                        @click="openModal(hotspot)"
-                                        class="w-full md:w-auto bg-gray-900 text-white font-black py-3 px-10 rounded-xl hover:bg-blue-600 transition-all duration-300 shadow-md hover:shadow-blue-500/20 flex items-center justify-center gap-2 uppercase tracking-tighter text-sm active:scale-95"
-                                    >
-                                        Buy
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-                                    </button>
-                                </div>
+                            <!-- Action -->
+                            <div class="mt-6">
+                                <button 
+                                    @click="openModal(hotspot)"
+                                    class="w-full bg-slate-900 text-white font-black py-3.5 px-6 rounded-xl hover:bg-blue-600 transition-all duration-300 shadow-sm hover:shadow-blue-500/20 flex items-center justify-center gap-2 uppercase tracking-tighter text-sm active:scale-95"
+                                >
+                                    Select Plan
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                                </button>
                             </div>
                         </div>
                     </div>
