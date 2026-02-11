@@ -435,8 +435,7 @@ function toggleSidebar() {
                     <Dropdown align="right" width="48">
                         <template #trigger>
                             <button class="flex items-center gap-2 pl-2 pr-1 py-1.5 rounded-full hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors">
-                                <Cog class="w-4 h-4 text-gray-700 dark:text-gray-200" />
-                                <ChevronDown class="w-4 h-4 text-gray-400" />
+                                <Cog class="w-7 h-7 text-gray-700 dark:text-gray-200" />
                             </button>
                         </template>
 
