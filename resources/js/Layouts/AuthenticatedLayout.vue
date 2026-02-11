@@ -39,7 +39,8 @@ import {
     Router,
     LockIcon,
     SubscriptIcon,
-    Package
+    Package,
+    Cog
 } from 'lucide-vue-next';
 
 const { theme, setTheme } = useTheme();
@@ -434,7 +435,7 @@ function toggleSidebar() {
                     <Dropdown align="right" width="48">
                         <template #trigger>
                             <button class="flex items-center gap-2 pl-2 pr-1 py-1.5 rounded-full hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors">
-                                <span class="hidden sm:block text-sm font-medium text-gray-700 dark:text-gray-200">{{ user.name }}</span>
+                                <Cog class="w-4 h-4 text-gray-700 dark:text-gray-200" />
                                 <ChevronDown class="w-4 h-4 text-gray-400" />
                             </button>
                         </template>
