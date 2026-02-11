@@ -402,6 +402,9 @@ function toggleSidebar() {
                     </button>
                     <!-- Breadcrumbs or Title could go here -->
                 </div>
+                <div class="">
+                    <div class="text-lg font-semibold text-gray-900 dark:text-white">{{ user.name ?? tenant.name }}</div>
+                </div>
 
                 <!-- Right: Actions -->
                 <div class="flex items-center gap-2 sm:gap-4">
@@ -409,7 +412,7 @@ function toggleSidebar() {
                     
                     
 
-                    <div class="h-6 w-px bg-gray-200 dark:bg-slate-700 hidden sm:block"></div>
+                    <!--div class="h-6 w-px bg-gray-200 dark:bg-slate-700 hidden sm:block"></div>-->
 
                     <!-- User Dropdown -->
 
