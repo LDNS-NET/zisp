@@ -79,7 +79,7 @@ function openCreate() {
 }
 
 function openEdit(pkg) {
-    editing.value = pkg.id;
+    editing.value = pkg.uuid;
     form.name = pkg.name;
     form.price = pkg.price;
     form.duration_value = pkg.duration_value;
@@ -101,7 +101,7 @@ const selectAll = ref(false);
 
 watch(selectAll, (val) => {
     if (val) {
-        selectedPackages.value = props.packages.map((pkg) => pkg.id);
+        selectedPackages.value = props.packages.map((pkg) => pkg.uuid);
     } else {
         selectedPackages.value = [];
     }
@@ -151,7 +151,7 @@ function submit() {
 
 function remove(pkg) {
     if (confirm('Are you sure you want to delete this package?')) {
-        router.delete(route('packages.destroy', pkg.id), {
+        router.delete(route('packages.destroy', pkg.uuid), {
             preserveScroll: true,
             onSuccess: () => {
                 toast.success('Package deleted successfully');
@@ -229,7 +229,7 @@ function remove(pkg) {
                         <tbody class="divide-y divide-gray-200 dark:divide-slate-700">
                             <tr v-for="pkg in packages" :key="pkg.id" class="hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <input type="checkbox" :value="pkg.id" v-model="selectedPackages" class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 dark:bg-slate-900 dark:border-slate-600" />
+                                    <input type="checkbox" :value="pkg.uuid" v-model="selectedPackages" class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 dark:bg-slate-900 dark:border-slate-600" />
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="flex items-center">
