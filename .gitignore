@@ -22,3 +22,8 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+.pat
+env
+composer-setup.php
+public/phpmyadmin
