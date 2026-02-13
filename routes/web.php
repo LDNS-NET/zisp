@@ -448,8 +448,13 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode', 'sta
                 // Restricted Actions (Creation/Deletions/Generation)
                 Route::middleware(['role_or_permission:tenant_admin|admin|Finance|view_reports'])->group(function () {
                     Route::post('/reports', [App\Http\Controllers\Tenants\ReportBuilderController::class, 'store'])->name('reports.store');
+                    Route::put('/reports/{report}', [App\Http\Controllers\Tenants\ReportBuilderController::class, 'update'])->name('reports.update');
                     Route::delete('/reports/{report}', [App\Http\Controllers\Tenants\ReportBuilderController::class, 'destroy'])->name('reports.destroy');
                     Route::post('/reports/{report}/generate', [App\Http\Controllers\Tenants\ReportBuilderController::class, 'generate'])->name('reports.generate');
+                    
+                    // Data Point Management
+                    Route::put('/reports/data-points/{dataPoint}', [App\Http\Controllers\Tenants\ReportBuilderController::class, 'updateDataPoint'])->name('reports.data-point.update');
+                    Route::delete('/reports/data-points/{dataPoint}', [App\Http\Controllers\Tenants\ReportBuilderController::class, 'destroyDataPoint'])->name('reports.data-point.destroy');
                 });
                 
                 // Financial Intelligence

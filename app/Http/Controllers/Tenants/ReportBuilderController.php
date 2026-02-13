@@ -158,4 +158,67 @@ class ReportBuilderController extends Controller
 
         return back()->with('success', 'Data point recorded successfully.');
     }
+
+    /**
+     * Update a manual data point
+     */
+    public function updateDataPoint(Request $request, TenantReportDataPoint $dataPoint)
+    {
+        $this->authorizeAccess($dataPoint);
+
+        $validated = $request->validate([
+            'category' => 'required|string|max:255',
+            'value' => 'nullable|numeric',
+            'description' => 'required|string|max:1000',
+        ]);
+
+        $dataPoint->update($validated);
+
+        return back()->with('success', 'Data point updated.');
+    }
+
+    /**
+     * Delete a manual data point
+     */
+    public function destroyDataPoint(TenantReportDataPoint $dataPoint)
+    {
+        $this->authorizeAccess($dataPoint);
+        $dataPoint->delete();
+        return back()->with('success', 'Data point removed.');
+    }
+
+    /**
+     * Update report configuration
+     */
+    public function update(Request $request, TenantCustomReport $report)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'config' => 'required|array',
+            'schedule' => 'nullable|array',
+        ]);
+
+        $report->update([
+            'name' => $validated['name'],
+            'config' => $validated['config'],
+            'schedule' => $validated['schedule'],
+        ]);
+
+        return back()->with('success', 'Report configuration updated.');
+    }
+
+    /**
+     * Helper to authorize access to data points
+     */
+    private function authorizeAccess(TenantReportDataPoint $dataPoint)
+    {
+        if ($dataPoint->tenant_id !== Auth::user()->tenant_id) {
+            abort(403);
+        }
+
+        // Allow creator or admin
+        if ($dataPoint->created_by !== Auth::id() && !Auth::user()->hasRole('tenant_admin')) {
+            abort(403, 'Unauthorized to modify this data entry.');
+        }
+    }
 }
