@@ -39,6 +39,7 @@ class CelcomSmsService
         }
         
         try {
+            // According to documentation, sendsms expects these parameters
             $response = Http::asForm()->post($this->endpoint, [
                 'partnerID' => $this->partnerId,
                 'apikey' => $this->apiKey,
@@ -54,11 +55,10 @@ class CelcomSmsService
                 Log::error('Celcom SMS HTTP error: ' . $response->status() . ' - ' . $response->body());
             }
             
-            // Celcom may return different success indicators
-            $isSuccess = $response->successful() && (
-                (isset($data['status']) && ($data['status'] == '200' || $data['status'] === 'success')) ||
-                (isset($data['responses'][0]['response-code']) && $data['responses'][0]['response-code'] == 200)
-            );
+            // Celcom returns status code in the response body often
+            $statusCode = $data['status'] ?? $data['responses'][0]['response-code'] ?? null;
+            
+            $isSuccess = $response->successful() && ($statusCode == 200 || $statusCode === 'success');
             
             if ($isSuccess) {
                 return [
@@ -68,12 +68,15 @@ class CelcomSmsService
                 ];
             }
             
+            // Get human-readable error message based on Documentation
+            $errorMessage = $this->getErrorMessage($statusCode, $data);
+            
             // Log failure details
-            Log::warning('Celcom SMS failed to send. Response: ' . json_encode($data));
+            Log::warning("Celcom SMS failed (Code: {$statusCode}). Message: {$errorMessage}. Full Response: " . json_encode($data));
             
             return [
                 'success' => false,
-                'message' => $data['message'] ?? $data['responses'][0]['response-description'] ?? 'Failed to send SMS via Celcom.',
+                'message' => $errorMessage,
                 'provider_response' => $data
             ];
             
@@ -87,5 +90,31 @@ class CelcomSmsService
                 'message' => 'Failed to send SMS: ' . $e->getMessage()
             ];
         }
+    }
+
+    /**
+     * Map Celcom error codes to human-readable messages
+     */
+    protected function getErrorMessage($code, array $data): string
+    {
+        $errors = [
+            '200'  => 'Successful Request Call',
+            '1001' => 'Invalid sender id / shortcode',
+            '1002' => 'Network not allowed',
+            '1003' => 'Invalid mobile number',
+            '1004' => 'Low bulk credits',
+            '1005' => 'Failed. System error API',
+            '1006' => 'Invalid credentials (Partner ID or API Key)',
+            '1007' => 'Failed. System error',
+            '1008' => 'No Delivery Report',
+            '1009' => 'Unsupported data type',
+            '1010' => 'Unsupported request type shortcode',
+            '4090' => 'Internal Error. Try again after 5 minutes',
+            '4091' => 'No Partner ID is set',
+            '4092' => 'No API KEY provided',
+            '4093' => 'Details not found',
+        ];
+
+        return $errors[$code] ?? $data['message'] ?? $data['responses'][0]['response-description'] ?? 'Failed to send SMS via Celcom.';
     }
 }
