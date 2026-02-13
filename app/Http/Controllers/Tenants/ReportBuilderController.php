@@ -144,19 +144,26 @@ class ReportBuilderController extends Controller
                 'created_at' => $item->created_at->toDateTimeString(),
             ]);
 
-        // Revenue by Zone (Paginated)
-        $zoneRevenue = DB::table('tenant_payments')
+        // Revenue by Zone (Professional Search & Pagination)
+        $zoneSearch = $request->input('zone_search');
+        $zoneQuery = DB::table('tenant_payments')
             ->join('network_users', 'tenant_payments.user_id', '=', 'network_users.id')
             ->where('tenant_payments.tenant_id', $tenantId)
-            ->where('tenant_payments.status', 'success')
-            ->select(
+            ->where('tenant_payments.status', 'success');
+
+        if ($zoneSearch) {
+            $zoneQuery->where('network_users.location', 'like', "%{$zoneSearch}%");
+        }
+
+        $zoneRevenue = $zoneQuery->select(
                 'network_users.location as zone',
                 DB::raw('COUNT(*) as transaction_count'),
                 DB::raw('SUM(tenant_payments.amount) as total_revenue')
             )
             ->groupBy('network_users.location')
             ->orderBy('total_revenue', 'desc')
-            ->paginate(10, ['*'], 'zone_page');
+            ->paginate(12, ['*'], 'zone_page')
+            ->withQueryString();
 
         return Inertia::render('Analytics/ReportBuilder', [
             'reports' => $reports,
@@ -164,6 +171,9 @@ class ReportBuilderController extends Controller
             'recentDataPoints' => $recentDataPoints,
             'intelligence' => $intelligence,
             'zoneRevenue' => $zoneRevenue,
+            'filters' => [
+                'zone_search' => $zoneSearch
+            ]
         ]);
     }
 

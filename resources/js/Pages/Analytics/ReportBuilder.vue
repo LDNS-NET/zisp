@@ -29,9 +29,10 @@ import { Bar, Line } from 'vue-chartjs';
 
 ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale, PointElement, LineElement);
 
-const props = defineProps(['reports', 'metrics', 'recentDataPoints', 'intelligence', 'zoneRevenue']);
+const props = defineProps(['reports', 'metrics', 'recentDataPoints', 'intelligence', 'zoneRevenue', 'filters']);
 
 const activeTab = ref('library'); // 'library', 'entry', or 'zones'
+const zoneSearch = ref(props.filters?.zone_search || '');
 const showCreateModal = ref(false);
 const showEditModal = ref(false);
 const editingReport = ref(null);
@@ -190,6 +191,28 @@ const isManagement = computed(() => {
 if (!isManagement.value) {
     activeTab.value = 'entry';
 }
+
+// Zone Search Handler
+let searchTimeout;
+watch(zoneSearch, (value) => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        router.get(route('analytics.reports.index'), { zone_search: value }, { 
+            preserveState: true, 
+            preserveScroll: true,
+            only: ['zoneRevenue', 'filters']
+        });
+    }, 500);
+});
+
+const formatZoneName = (name) => {
+    if (!name) return 'Unmapped Zone';
+    // If it looks like user-namesp-FAT-ZoneName, try to extract ZoneName
+    if (name.includes('Fat-')) return name.split('Fat-')[1];
+    if (name.includes('FAT-')) return name.split('FAT-')[1];
+    if (name.includes('fat-')) return name.split('fat-')[1];
+    return name;
+};
 </script>
 
 <template>
@@ -492,15 +515,26 @@ if (!isManagement.value) {
                 <!-- Zone Insights Tab -->
                 <div v-else-if="activeTab === 'zones'" class="space-y-8">
                     <div class="rounded-[2.5rem] bg-white dark:bg-slate-900 p-8 shadow-2xl border border-slate-100 dark:border-slate-800">
-                        <div class="flex items-center justify-between mb-8">
+                        <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
                             <div class="flex items-center gap-3">
                                 <div class="h-12 w-12 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-600/30">
                                     <MapPin class="h-6 w-6" />
                                 </div>
                                 <div>
                                     <h2 class="text-2xl font-black text-slate-900 dark:text-white leading-none">Geographic Intelligence</h2>
-                                    <p class="text-xs text-slate-500 mt-1">Revenue distribution by zone / location</p>
+                                    <p class="text-xs text-slate-500 mt-1">Found {{ zoneRevenue.total }} unique location clusters</p>
                                 </div>
+                            </div>
+
+                            <!-- Search Filter -->
+                            <div class="relative max-w-sm w-full">
+                                <Search class="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                <input 
+                                    v-model="zoneSearch"
+                                    type="text" 
+                                    placeholder="Filter by zone name (e.g. Miami, Chokaa)..."
+                                    class="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl py-3 pl-12 pr-4 text-sm font-bold focus:ring-4 focus:ring-blue-500/10 transition-all"
+                                />
                             </div>
                         </div>
 
@@ -522,17 +556,25 @@ if (!isManagement.value) {
                                     <tr v-for="item in zoneRevenue.data" :key="item.zone" class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
                                         <td class="p-6">
                                             <div class="flex items-center gap-3">
-                                                <div class="h-8 w-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                                                    <MapPin class="h-4 w-4 text-blue-500" />
+                                                <div class="h-10 w-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                                                    <MapPin class="h-5 w-5 text-blue-500" />
                                                 </div>
-                                                <span class="font-bold text-slate-900 dark:text-white">{{ item.zone || 'Unmapped Zone' }}</span>
+                                                <div>
+                                                    <p class="font-black text-slate-900 dark:text-white leading-none mb-1">{{ formatZoneName(item.zone) }}</p>
+                                                    <p class="text-[0.6rem] text-slate-400 font-bold uppercase tracking-widest">{{ item.zone }}</p>
+                                                </div>
                                             </div>
                                         </td>
                                         <td class="p-6">
-                                            <span class="font-bold text-slate-600 dark:text-slate-400">{{ item.transaction_count }}</span>
+                                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-[0.65rem] font-black text-slate-600 dark:text-slate-400 uppercase tracking-tighter">
+                                                {{ item.transaction_count }} Tx
+                                            </span>
                                         </td>
                                         <td class="p-6 text-right">
-                                            <span class="text-xl font-black text-slate-900 dark:text-white">${{ parseFloat(item.total_revenue).toLocaleString() }}</span>
+                                            <div class="flex flex-col items-end">
+                                                <span class="text-lg font-black text-slate-900 dark:text-white">KES {{ parseFloat(item.total_revenue).toLocaleString() }}</span>
+                                                <span class="text-[0.6rem] text-blue-500 font-bold uppercase tracking-widest">Successful Yield</span>
+                                            </div>
                                         </td>
                                     </tr>
                                 </tbody>
