@@ -109,10 +109,9 @@ const navigation = [
     
 
     
-    //Finance group
     { name: 'Finance', icon: Banknote, children: [
-        { name: 'Payments', href: route('payments.index'), active: 'payments.*', roles: ['tenant_admin'], permission: 'view_payments' },
-        { name: 'Invoices', href: route('invoices.index'), active: 'invoices.*', countKey: 'invoices', roles: ['tenant_admin', 'admin', 'customer_care'], permission: 'view_invoices' },
+        { name: 'Payments', href: route('payments.index'), active: 'payments.*', roles: ['tenant_admin', 'Finance'], permission: 'view_payments' },
+        { name: 'Invoices', href: route('invoices.index'), active: 'invoices.*', countKey: 'invoices', roles: ['tenant_admin', 'admin', 'customer_care', 'Finance'], permission: 'view_invoices' },
     ]},
 
     // Analytics group with more detailed permissions
@@ -120,8 +119,8 @@ const navigation = [
         { name: 'Traffic Analytics', href: route('analytics.traffic'), active: 'analytics.traffic', roles: ['tenant_admin', 'admin', 'network_engineer', 'technical'], permission: 'view_traffic_analytics' },
         { name: 'Network Topology', href: route('analytics.topology'), active: 'analytics.topology', roles: ['tenant_admin', 'network_engineer', 'technical'], permission: 'view_topology' },
         { name: 'Predictive Insights', href: route('analytics.predictions'), active: 'analytics.predictions', roles: ['tenant_admin', 'admin', 'network_engineer'], permission: 'view_predictions' },
-        { name: 'Financial Intelligence', href: route('analytics.finance'), active: 'analytics.finance', roles: ['tenant_admin'], permission: 'view_finance' },
-        { name: 'Report Builder', href: route('analytics.reports.index'), active: 'analytics.reports.*', roles: ['tenant_admin'], permission: 'view_reports' },
+        { name: 'Financial Intelligence', href: route('analytics.finance'), active: 'analytics.finance', roles: ['tenant_admin', 'Finance'], permission: 'view_finance' },
+        { name: 'Report Builder', href: route('analytics.reports.index'), active: 'analytics.reports.*', roles: ['tenant_admin', 'Finance'], permission: 'view_reports' },
     ]},
 
     // Network group with detailed permissions
