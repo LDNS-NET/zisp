@@ -10,7 +10,7 @@ import {
     MessageSquare, List, History, User,
     Edit3, X, BarChart3, LineChart, PieChart,
     Search, Calendar, MoreHorizontal, ArrowUpRight,
-    TrendingDown, Activity
+    TrendingDown, Activity, MapPin
 } from 'lucide-vue-next';
 
 // Charting
@@ -29,9 +29,9 @@ import { Bar, Line } from 'vue-chartjs';
 
 ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale, PointElement, LineElement);
 
-const props = defineProps(['reports', 'metrics', 'recentDataPoints', 'intelligence']);
+const props = defineProps(['reports', 'metrics', 'recentDataPoints', 'intelligence', 'zoneRevenue']);
 
-const activeTab = ref('library'); // 'library', 'entry', or 'insights'
+const activeTab = ref('library'); // 'library', 'entry', or 'zones'
 const showCreateModal = ref(false);
 const showEditModal = ref(false);
 const editingReport = ref(null);
@@ -234,6 +234,17 @@ if (!isManagement.value) {
                         >
                             <Plus class="w-4 h-4" />
                             Data Collection
+                        </button>
+                        <button 
+                            v-if="isManagement"
+                            @click="activeTab = 'zones'"
+                            :class="[
+                                'flex items-center gap-2 px-6 py-3 text-sm font-bold rounded-2xl transition-all duration-300',
+                                activeTab === 'zones' ? 'bg-blue-600 text-white shadow-xl shadow-blue-500/40' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'
+                            ]"
+                        >
+                            <MapPin class="w-4 h-4" />
+                            Zone Insights
                         </button>
                         
                         <div v-if="isTenantAdmin" class="h-8 w-px bg-slate-200 dark:bg-slate-800 mx-2"></div>
@@ -443,6 +454,74 @@ if (!isManagement.value) {
                                 <Settings class="h-20 w-20 text-slate-300 dark:text-slate-700 animate-spin-slow relative" />
                             </div>
                             <p class="mt-8 text-xl font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest">Select Target Blueprint</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Zone Insights Tab -->
+                <div v-else-if="activeTab === 'zones'" class="space-y-8">
+                    <div class="rounded-[2.5rem] bg-white dark:bg-slate-900 p-8 shadow-2xl border border-slate-100 dark:border-slate-800">
+                        <div class="flex items-center justify-between mb-8">
+                            <div class="flex items-center gap-3">
+                                <div class="h-12 w-12 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-600/30">
+                                    <MapPin class="h-6 w-6" />
+                                </div>
+                                <div>
+                                    <h2 class="text-2xl font-black text-slate-900 dark:text-white leading-none">Geographic Intelligence</h2>
+                                    <p class="text-xs text-slate-500 mt-1">Revenue distribution by zone / location</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="overflow-hidden rounded-[2rem] border border-slate-100 dark:border-slate-800">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-slate-50 dark:bg-slate-800/50">
+                                        <th class="p-6 text-[0.65rem] font-black uppercase tracking-widest text-slate-400">Zone / Location</th>
+                                        <th class="p-6 text-[0.65rem] font-black uppercase tracking-widest text-slate-400">Transactions</th>
+                                        <th class="p-6 text-[0.65rem] font-black uppercase tracking-widest text-slate-400 text-right">Total Revenue</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                                    <tr v-if="!zoneRevenue.data?.length">
+                                        <td colspan="3" class="p-20 text-center text-slate-400 font-bold italic">
+                                            No geographic data signals detected.
+                                        </td>
+                                    </tr>
+                                    <tr v-for="item in zoneRevenue.data" :key="item.zone" class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                                        <td class="p-6">
+                                            <div class="flex items-center gap-3">
+                                                <div class="h-8 w-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                                                    <MapPin class="h-4 w-4 text-blue-500" />
+                                                </div>
+                                                <span class="font-bold text-slate-900 dark:text-white">{{ item.zone || 'Unmapped Zone' }}</span>
+                                            </div>
+                                        </td>
+                                        <td class="p-6">
+                                            <span class="font-bold text-slate-600 dark:text-slate-400">{{ item.transaction_count }}</span>
+                                        </td>
+                                        <td class="p-6 text-right">
+                                            <span class="text-xl font-black text-slate-900 dark:text-white">${{ parseFloat(item.total_revenue).toLocaleString() }}</span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Zone Pagination -->
+                        <div v-if="zoneRevenue.links?.length > 3" class="mt-8 flex justify-center gap-2">
+                            <button 
+                                v-for="link in zoneRevenue.links" 
+                                :key="link.label"
+                                @click="link.url && router.visit(link.url, { preserveScroll: true })"
+                                v-html="link.label"
+                                :disabled="!link.url"
+                                :class="[
+                                    'px-4 py-2 rounded-xl text-[0.65rem] font-black uppercase tracking-widest transition-all',
+                                    link.active ? 'bg-blue-600 text-white shadow-lg' : 'bg-white dark:bg-slate-900 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800',
+                                    !link.url ? 'opacity-30 cursor-not-allowed' : ''
+                                ]"
+                            />
                         </div>
                     </div>
                 </div>

@@ -119,7 +119,7 @@ class ReportBuilderController extends Controller
         $recentDataPoints = TenantReportDataPoint::where('tenant_id', $tenantId)
             ->with('creator:id,name')
             ->latest()
-            ->paginate(15)
+            ->paginate(15, ['*'], 'data_points_page')
             ->through(fn($item) => [
                 'id' => $item->id,
                 'category' => $item->category,
@@ -129,11 +129,26 @@ class ReportBuilderController extends Controller
                 'created_at' => $item->created_at->toDateTimeString(),
             ]);
 
+        // Revenue by Zone (Paginated)
+        $zoneRevenue = DB::table('tenant_payments')
+            ->join('network_users', 'tenant_payments.user_id', '=', 'network_users.id')
+            ->where('tenant_payments.tenant_id', $tenantId)
+            ->where('tenant_payments.status', 'success')
+            ->select(
+                'network_users.location as zone',
+                DB::raw('COUNT(*) as transaction_count'),
+                DB::raw('SUM(tenant_payments.amount) as total_revenue')
+            )
+            ->groupBy('network_users.location')
+            ->orderBy('total_revenue', 'desc')
+            ->paginate(10, ['*'], 'zone_page');
+
         return Inertia::render('Analytics/ReportBuilder', [
             'reports' => $reports,
             'metrics' => $availableMetrics,
             'recentDataPoints' => $recentDataPoints,
             'intelligence' => $intelligence,
+            'zoneRevenue' => $zoneRevenue,
         ]);
     }
 
