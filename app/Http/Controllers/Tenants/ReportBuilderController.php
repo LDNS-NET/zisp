@@ -14,13 +14,16 @@ use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use App\Exports\UniversalReportExport;
+use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Support\Facades\Storage;
 
 class ReportBuilderController extends Controller
 {
     /**
      * List saved reports and available metrics
      */
-    public function index()
+    public function index(Request $request)
     {
         $tenantId = Auth::user()->tenant_id;
         
@@ -29,49 +32,108 @@ class ReportBuilderController extends Controller
             ->latest()
             ->get();
 
+        // High-Level Intelligence Aggregation
+        $now = Carbon::now();
+        $thisMonthStart = $now->copy()->startOfMonth();
+        $lastMonthStart = $now->copy()->subMonth()->startOfMonth();
+        $lastMonthEnd = $now->copy()->subMonth()->endOfOfMonth();
+
+        // 1. Revenue Intelligence (This Month vs Last Month)
+        $thisMonthRevenue = TenantPayment::where('tenant_id', $tenantId)
+            ->where('status', 'success')
+            ->whereBetween('paid_at', [$thisMonthStart, $now])
+            ->sum('amount');
+
+        $lastMonthRevenue = TenantPayment::where('tenant_id', $tenantId)
+            ->where('status', 'success')
+            ->whereBetween('paid_at', [$lastMonthStart, $lastMonthEnd])
+            ->sum('amount');
+
+        $revenueGrowth = $lastMonthRevenue > 0 
+            ? (($thisMonthRevenue - $lastMonthRevenue) / $lastMonthRevenue) * 100 
+            : 0;
+
+        // 2. User Intelligence (New Users & Total)
+        $activeUsers = NetworkUser::where('tenant_id', $tenantId)
+            ->where('status', 'active')
+            ->count();
+
+        $newUsersThisMonth = NetworkUser::where('tenant_id', $tenantId)
+            ->whereBetween('created_at', [$thisMonthStart, $now])
+            ->count();
+
+        // 3. ARPU Intelligence
+        $arpu = $activeUsers > 0 ? $thisMonthRevenue / $activeUsers : 0;
+
+        $intelligence = [
+            'revenue' => [
+                'current' => (float)$thisMonthRevenue,
+                'growth' => round($revenueGrowth, 1),
+                'label' => 'Monthly Revenue'
+            ],
+            'users' => [
+                'current' => $activeUsers,
+                'growth' => $newUsersThisMonth, // "Growth" here as new signups
+                'label' => 'Active Subscribers'
+            ],
+            'arpu' => [
+                'current' => round($arpu, 2),
+                'label' => 'ARPU (Avg Revenue/User)'
+            ]
+        ];
+
         $availableMetrics = [
             'revenue' => [
                 'name' => 'Total Revenue',
-                'description' => 'Sum of paid payments',
+                'description' => 'Real-time sum of successful payments',
                 'table' => 'tenant_payments',
                 'dimensions' => ['date', 'payment_method'],
             ],
             'users_active' => [
-                'name' => 'Active Users',
-                'description' => 'Count of users currently active',
+                'name' => 'Subscriber Growth',
+                'description' => 'Detailed view of user registrations',
                 'table' => 'network_users',
-                'dimensions' => ['date', 'type', 'location'],
+                'dimensions' => ['date', 'type'],
             ],
             'traffic_total' => [
-                'name' => 'Data Usage',
-                'description' => 'Total bytes transferred',
+                'name' => 'Network Traffic',
+                'description' => 'Total bytes transferred (telemetry)',
                 'table' => 'tenant_traffic_analytics',
                 'dimensions' => ['date', 'hour'],
             ],
             'new_leads' => [
-                'name' => 'New Leads',
-                'description' => 'Count of new leads generated',
+                'name' => 'Marketing Leads',
+                'description' => 'Count of new sales inquiries',
                 'table' => 'tenant_leads',
                 'dimensions' => ['date', 'status'],
             ],
             'manual_data' => [
-                'name' => 'Manual Data Points',
-                'description' => 'User-inputted data metrics',
+                'name' => 'Operational Metrics',
+                'description' => 'User-inputted manual data entries',
                 'table' => 'tenant_report_data_points',
                 'dimensions' => ['date', 'category', 'created_by'],
             ]
         ];
 
+        // Paginated Collection Activity (Professional Scale)
         $recentDataPoints = TenantReportDataPoint::where('tenant_id', $tenantId)
             ->with('creator:id,name')
             ->latest()
-            ->limit(10)
-            ->get();
+            ->paginate(15)
+            ->through(fn($item) => [
+                'id' => $item->id,
+                'category' => $item->category,
+                'value' => $item->value,
+                'description' => $item->description,
+                'creator' => $item->creator ? ['name' => $item->creator->name] : null,
+                'created_at' => $item->created_at->toDateTimeString(),
+            ]);
 
         return Inertia::render('Analytics/ReportBuilder', [
             'reports' => $reports,
             'metrics' => $availableMetrics,
             'recentDataPoints' => $recentDataPoints,
+            'intelligence' => $intelligence,
         ]);
     }
 
@@ -102,6 +164,7 @@ class ReportBuilderController extends Controller
      */
     public function generate(TenantCustomReport $report)
     {
+        $tenantId = Auth::user()->tenant_id;
         $run = TenantReportRun::create([
             'report_id' => $report->id,
             'generated_at' => now(),
@@ -109,23 +172,94 @@ class ReportBuilderController extends Controller
         ]);
 
         try {
-            // Logic for data aggregation based on $report->config
-            // This would normally be dispatched to a job for large datasets
-            // For now, we'll mark as completed with a placeholder path
+            $config = $report->config;
+            $data = $this->getMetricData($tenantId, $config);
+            
+            $filename = 'reports/tenant_' . $tenantId . '/report_' . $report->id . '_' . time() . '.xlsx';
+            
+            Excel::store(new UniversalReportExport($data['results'], $data['headers']), $filename, 'public');
             
             $run->update([
                 'status' => 'completed',
-                'file_path' => 'reports/' . $report->id . '_' . time() . '.xlsx',
+                'file_path' => Storage::url($filename),
+                'generated_at' => now(),
             ]);
 
-            return back()->with('success', 'Report generation started.');
+            return back()->with('success', 'Intelligence report generated successfully.');
         } catch (\Exception $e) {
             $run->update([
                 'status' => 'failed',
                 'error_message' => $e->getMessage(),
             ]);
-            return back()->with('error', 'Report generation failed.');
+            return back()->with('error', 'Report failure: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Professional Metric Aggregation Logic
+     */
+    private function getMetricData($tenantId, $config)
+    {
+        $metric = $config['metric'];
+        $days = $this->getDateRangeDays($config['filters']['date_range'] ?? 'last_30_days');
+        $startDate = Carbon::now()->subDays($days);
+
+        $query = DB::table($this->getMetricTable($metric))
+            ->where('tenant_id', $tenantId)
+            ->where('created_at', '>=', $startDate);
+
+        switch ($metric) {
+            case 'revenue':
+                $results = $query->select(
+                    DB::raw('DATE(paid_at) as date'),
+                    DB::raw('SUM(amount) as total_revenue'),
+                    'payment_method'
+                )
+                ->where('status', 'success')
+                ->groupBy('date', 'payment_method')
+                ->get();
+                $headers = ['Date', 'Amount', 'Method'];
+                break;
+
+            case 'users_active':
+                $results = $query->select(
+                    DB::raw('DATE(created_at) as date'),
+                    DB::raw('COUNT(*) as new_subscribers')
+                )
+                ->groupBy('date')
+                ->get();
+                $headers = ['Date', 'New Subscribers'];
+                break;
+
+            default:
+                $results = $query->limit(100)->get();
+                $headers = array_keys((array) ($results[0] ?? []));
+        }
+
+        return ['results' => $results, 'headers' => $headers];
+    }
+
+    private function getMetricTable($metric)
+    {
+        $map = [
+            'revenue' => 'tenant_payments',
+            'users_active' => 'network_users',
+            'traffic_total' => 'tenant_traffic_analytics',
+            'new_leads' => 'tenant_leads',
+            'manual_data' => 'tenant_report_data_points'
+        ];
+        return $map[$metric] ?? 'tenant_report_data_points';
+    }
+
+    private function getDateRangeDays($range)
+    {
+        $ranges = [
+            'last_7_days' => 7,
+            'last_30_days' => 30,
+            'last_90_days' => 90,
+            'this_year' => 365
+        ];
+        return $ranges[$range] ?? 30;
     }
 
     /**

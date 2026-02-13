@@ -9,7 +9,8 @@ import {
     CheckCircle2, AlertCircle, Loader2,
     MessageSquare, List, History, User,
     Edit3, X, BarChart3, LineChart, PieChart,
-    Search, Calendar, MoreHorizontal, ArrowUpRight
+    Search, Calendar, MoreHorizontal, ArrowUpRight,
+    TrendingDown, Activity
 } from 'lucide-vue-next';
 
 // Charting
@@ -28,7 +29,7 @@ import { Bar, Line } from 'vue-chartjs';
 
 ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale, PointElement, LineElement);
 
-const props = defineProps(['reports', 'metrics', 'recentDataPoints']);
+const props = defineProps(['reports', 'metrics', 'recentDataPoints', 'intelligence']);
 
 const activeTab = ref('library'); // 'library', 'entry', or 'insights'
 const showCreateModal = ref(false);
@@ -141,11 +142,11 @@ const runReport = (reportId) => {
 
 // Chart Data Calculation
 const chartData = computed(() => {
-    if (activeTab.value !== 'library' || !props.recentDataPoints.length) return null;
+    if (activeTab.value !== 'library' || !props.recentDataPoints.data?.length) return null;
     
-    const categories = [...new Set(props.recentDataPoints.map(p => p.category))];
+    const categories = [...new Set(props.recentDataPoints.data.map(p => p.category))];
     const data = categories.map(cat => {
-        return props.recentDataPoints
+        return props.recentDataPoints.data
             .filter(p => p.category === cat)
             .reduce((sum, p) => sum + (parseFloat(p.value) || 0), 0);
     });
@@ -245,6 +246,29 @@ if (!isManagement.value) {
                             <Settings class="w-4 h-4 animate-spin-slow" />
                             New Architect
                         </button>
+                    </div>
+                </div>
+
+                <!-- Intelligence Quick Stats -->
+                <div v-if="intelligence && activeTab === 'library'" class="grid gap-6 mb-12 sm:grid-cols-3">
+                    <div v-for="(stat, key) in intelligence" :key="key" class="rounded-[2.5rem] bg-white dark:bg-slate-900 p-8 shadow-2xl border border-slate-100 dark:border-slate-800 relative overflow-hidden group">
+                        <div class="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
+                            <ArrowUpRight v-if="stat.growth > 0" class="h-16 w-16 text-green-500" />
+                            <TrendingDown v-else-if="stat.growth < 0" class="h-16 w-16 text-red-500" />
+                            <Activity v-else class="h-16 w-16 text-blue-500" />
+                        </div>
+                        <p class="text-[0.65rem] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">{{ stat.label }}</p>
+                        <div class="flex items-baseline gap-3">
+                            <h3 class="text-3xl font-black text-slate-900 dark:text-white">
+                                {{ key === 'revenue' ? '$' : '' }}{{ stat.current.toLocaleString() }}
+                            </h3>
+                            <span v-if="stat.growth !== undefined" :class="[
+                                'text-xs font-black px-2 py-1 rounded-lg',
+                                stat.growth > 0 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
+                            ]">
+                                {{ stat.growth > 0 ? '+' : '' }}{{ stat.growth }}%
+                            </span>
+                        </div>
                     </div>
                 </div>
 
