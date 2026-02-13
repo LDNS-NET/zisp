@@ -56,7 +56,12 @@ class CelcomSmsService
             }
             
             // Celcom returns status code in the response body often
-            $statusCode = $data['status'] ?? $data['responses'][0]['response-code'] ?? null;
+            // Logs show "response-code" or even "respose-code" (typo) at root level
+            $statusCode = $data['status'] ?? 
+                          $data['response-code'] ?? 
+                          $data['respose-code'] ?? 
+                          $data['responses'][0]['response-code'] ?? 
+                          null;
             
             $isSuccess = $response->successful() && ($statusCode == 200 || $statusCode === 'success');
             
@@ -97,11 +102,21 @@ class CelcomSmsService
      */
     protected function getErrorMessage($code, array $data): string
     {
+        // Handle validation errors first
+        if (isset($data['errors']['message']['Message'])) {
+            return $data['errors']['message']['Message'];
+        }
+
+        $description = $data['response-description'] ?? 
+                       $data['message'] ?? 
+                       $data['responses'][0]['response-description'] ?? 
+                       'Failed to send SMS via Celcom.';
+
         $errors = [
             '200'  => 'Successful Request Call',
             '1001' => 'Invalid sender id / shortcode',
             '1002' => 'Network not allowed',
-            '1003' => 'Invalid mobile number',
+            '1003' => 'Invalid mobile number or validation error',
             '1004' => 'Low bulk credits',
             '1005' => 'Failed. System error API',
             '1006' => 'Invalid credentials (Partner ID or API Key)',
@@ -115,6 +130,6 @@ class CelcomSmsService
             '4093' => 'Details not found',
         ];
 
-        return $errors[$code] ?? $data['message'] ?? $data['responses'][0]['response-description'] ?? 'Failed to send SMS via Celcom.';
+        return $errors[$code] ?? $description;
     }
 }
