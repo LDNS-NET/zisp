@@ -181,53 +181,6 @@ class TenantSMSController extends Controller
             ->with('success', 'SMS log deleted successfully.');
     }
 
-    private function sendSms(array $logIds, string $phoneNumbers, string $message)
-    {
-        try {
-            $apiKey = env('TALKSASA_API_KEY');
-            $senderId = env('TALKSASA_SENDER_ID');
-
-            if (!$apiKey || !$senderId) {
-                TenantSMS::whereIn('id', $logIds)->update([
-                    'status' => 'failed',
-                    'error_message' => 'Missing TalkSasa API credentials'
-                ]);
-                return;
-            }
-
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $apiKey,
-                'Accept' => 'application/json',
-                'Content-Type' => 'application/json',
-            ])->post('https://bulksms.talksasa.com/api/v3/sms/send', [
-                        'recipient' => $phoneNumbers,
-                        'sender_id' => $senderId,
-                        'type' => 'plain',
-                        'message' => $message,
-                    ]);
-
-            $data = $response->json();
-
-            if ($response->successful() && isset($data['status']) && $data['status'] === 'success') {
-                TenantSMS::whereIn('id', $logIds)->update([
-                    'status' => 'sent',
-                    'sent_at' => now(),
-                ]);
-            } else {
-                TenantSMS::whereIn('id', $logIds)->update([
-                    'status' => 'failed',
-                    'error_message' => $data['message'] ?? $response->body(),
-                ]);
-            }
-
-        } catch (\Exception $e) {
-            TenantSMS::whereIn('id', $logIds)->update([
-                'status' => 'failed',
-                'error_message' => $e->getMessage(),
-            ]);
-        }
-    }
-
     public function count(Request $request)
     {
         $query = NetworkUser::query();

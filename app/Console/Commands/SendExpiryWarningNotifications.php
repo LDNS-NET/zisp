@@ -83,52 +83,40 @@ class SendExpiryWarningNotifications extends Command
                 'status' => 'pending',
             ]);
 
-            // Send SMS immediately
-            $apiKey = env('TALKSASA_API_KEY');
-            $senderId = env('TALKSASA_SENDER_ID');
-            $phoneNumbers = preg_replace('/^0/', '254', trim($user->phone ?? $user->phone_number ?? ''));
+            $message = $template->content;
+            foreach ($replacements as $key => $value) {
+                $message = str_replace($key, $value, $message);
+            }
             
-            if ($apiKey && $senderId && $phoneNumbers) {
-                try {
-                    $response = Http::withHeaders([
-                        'Authorization' => 'Bearer ' . $apiKey,
-                        'Accept' => 'application/json',
-                        'Content-Type' => 'application/json',
-                    ])->post('https://bulksms.talksasa.com/api/v3/sms/send', [
-                        'recipient' => $phoneNumbers,
-                        'sender_id' => $senderId,
-                        'type' => 'plain',
-                        'message' => $message,
-                    ]);
-                    
-                    $data = $response->json();
-                    if ($response->successful() && isset($data['status']) && $data['status'] === 'success') {
-                        $smsLog->update([
-                            'status' => 'sent',
-                            'sent_at' => now(),
-                        ]);
-                    } else {
-                        $smsLog->update([
-                            'status' => 'failed',
-                            'error_message' => $data['message'] ?? $response->body(),
-                        ]);
-                    }
-                } catch (\Exception $e) {
-                    $smsLog->update([
-                        'status' => 'failed',
-                        'error_message' => $e->getMessage(),
-                    ]);
-                }
+            $smsLog = TenantSMS::create([
+                'tenant_id' => $user->tenant_id,
+                'recipient_name' => ($user->full_name ?: $user->username) ?: 'Customer',
+                'phone_number' => $user->phone ?? $user->phone_number ?? null,
+                'message' => $message,
+                'status' => 'pending',
+            ]);
+            
+            $phoneNumbers = preg_replace('/^0/', '254', trim($user->phone ?? $user->phone_number ?? ''));
+
+            // Send via SmsGatewayService
+            $smsGatewayService = app(\App\Services\SmsGatewayService::class);
+            $result = $smsGatewayService->sendSMS($user->tenant_id, $phoneNumbers, $message);
+
+            if ($result['success']) {
+                $smsLog->update([
+                    'status' => 'sent',
+                    'sent_at' => now(),
+                ]);
             } else {
                 $smsLog->update([
                     'status' => 'failed',
-                    'error_message' => 'Missing TalkSasa API credentials or phone number',
+                    'error_message' => $result['message'] ?? 'Unknown error',
                 ]);
             }
 
             $user->expiry_warning_sent_at = now();
             $user->save();
-            Log::info('Sent expiry warning SMS to user', ['user_id' => $user->id, 'tenant_id' => $user->tenant_id]);
+            Log::info('Processed expiry warning SMS for user', ['user_id' => $user->id, 'tenant_id' => $user->tenant_id]);
         }
 
         $this->info('Expiry warning notifications sent.');

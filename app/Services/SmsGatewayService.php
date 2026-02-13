@@ -46,6 +46,8 @@ class SmsGatewayService
      */
     public function sendSMS(string $tenantId, string $phoneNumber, string $message): array
     {
+        Log::info("[SMS] Initiating send for tenant {$tenantId} to {$phoneNumber}");
+
         // Get active gateway configuration
         $gateway = TenantSmsGateway::where('tenant_id', $tenantId)
             ->where('is_active', true)
@@ -53,41 +55,44 @@ class SmsGatewayService
         
         // Default to Talksasa with system credentials if no gateway configured
         if (!$gateway) {
-            return $this->sendViaTalksasaDefault($phoneNumber, $message);
+            Log::info("[SMS] No active gateway for tenant {$tenantId}. Falling back to Talksasa default.");
+            $result = $this->sendViaTalksasaDefault($phoneNumber, $message);
+            $this->logResult($tenantId, 'talksasa_default', $result);
+            return $result;
         }
         
         $provider = $gateway->provider;
+        Log::info("[SMS] Using configured provider '{$provider}' for tenant {$tenantId}");
         
-        switch ($provider) {
-            case 'celcom':
-                return $this->sendViaCelcom($gateway, $phoneNumber, $message);
-                
-            case 'talksasa':
-                return $this->sendViaTalksasa($gateway, $phoneNumber, $message);
-                
-            case 'africastalking':
-                return $this->sendViaAfricasTalking($gateway, $phoneNumber, $message);
-                
-            case 'twilio':
-                return $this->sendViaTwilio($gateway, $phoneNumber, $message);
-                
-            case 'advanta':
-                return $this->sendViaAdvanta($gateway, $phoneNumber, $message);
-                
-            case 'bulksms':
-                return $this->sendViaBulkSMS($gateway, $phoneNumber, $message);
-                
-            case 'clicksend':
-                return $this->sendViaClickSend($gateway, $phoneNumber, $message);
-                
-            case 'infobip':
-                return $this->sendViaInfobip($gateway, $phoneNumber, $message);
-                
-            default:
-                return [
-                    'success' => false,
-                    'message' => "Unsupported SMS provider: {$provider}"
-                ];
+        $result = match ($provider) {
+            'celcom' => $this->sendViaCelcom($gateway, $phoneNumber, $message),
+            'talksasa' => $this->sendViaTalksasa($gateway, $phoneNumber, $message),
+            'africastalking' => $this->sendViaAfricasTalking($gateway, $phoneNumber, $message),
+            'twilio' => $this->sendViaTwilio($gateway, $phoneNumber, $message),
+            'advanta' => $this->sendViaAdvanta($gateway, $phoneNumber, $message),
+            'bulksms' => $this->sendViaBulkSMS($gateway, $phoneNumber, $message),
+            'clicksend' => $this->sendViaClickSend($gateway, $phoneNumber, $message),
+            'infobip' => $this->sendViaInfobip($gateway, $phoneNumber, $message),
+            default => [
+                'success' => false,
+                'message' => "Unsupported SMS provider: {$provider}"
+            ],
+        };
+
+        $this->logResult($tenantId, $provider, $result);
+        return $result;
+    }
+
+    /**
+     * Helper to log SMS results
+     */
+    protected function logResult(string $tenantId, string $provider, array $result)
+    {
+        $status = $result['success'] ? 'SUCCESS' : 'FAILURE';
+        Log::info("[SMS] Result for tenant {$tenantId} via {$provider}: {$status} - " . ($result['message'] ?? 'No message'));
+        
+        if (!$result['success'] && isset($result['provider_response'])) {
+            Log::debug("[SMS] Provider response: " . json_encode($result['provider_response']));
         }
     }
     
