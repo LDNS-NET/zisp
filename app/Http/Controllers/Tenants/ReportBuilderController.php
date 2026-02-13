@@ -8,6 +8,7 @@ use App\Models\Tenants\TenantReportRun;
 use App\Models\Tenants\NetworkUser;
 use App\Models\Tenants\TenantPayment;
 use App\Models\Tenants\TenantTrafficAnalytics;
+use App\Models\Tenants\TenantReportDataPoint;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -52,12 +53,25 @@ class ReportBuilderController extends Controller
                 'description' => 'Count of new leads generated',
                 'table' => 'tenant_leads',
                 'dimensions' => ['date', 'status'],
+            ],
+            'manual_data' => [
+                'name' => 'Manual Data Points',
+                'description' => 'User-inputted data metrics',
+                'table' => 'tenant_report_data_points',
+                'dimensions' => ['date', 'category', 'created_by'],
             ]
         ];
+
+        $recentDataPoints = TenantReportDataPoint::where('tenant_id', $tenantId)
+            ->with('creator:id,name')
+            ->latest()
+            ->limit(10)
+            ->get();
 
         return Inertia::render('Analytics/ReportBuilder', [
             'reports' => $reports,
             'metrics' => $availableMetrics,
+            'recentDataPoints' => $recentDataPoints,
         ]);
     }
 
@@ -121,5 +135,27 @@ class ReportBuilderController extends Controller
     {
         $report->delete();
         return back()->with('success', 'Report deleted.');
+    }
+
+    /**
+     * Store a manual data point
+     */
+    public function storeDataPoint(Request $request)
+    {
+        $validated = $request->validate([
+            'category' => 'required|string|max:255',
+            'value' => 'nullable|numeric',
+            'description' => 'required|string|max:1000',
+        ]);
+
+        TenantReportDataPoint::create([
+            'tenant_id' => Auth::user()->tenant_id,
+            'category' => $validated['category'],
+            'value' => $validated['value'],
+            'description' => $validated['description'],
+            'created_by' => Auth::id(),
+        ]);
+
+        return back()->with('success', 'Data point recorded successfully.');
     }
 }

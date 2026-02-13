@@ -440,10 +440,17 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode', 'sta
                 Route::post('/predictions/refresh', [App\Http\Controllers\Tenants\PredictiveAnalyticsController::class, 'refresh'])->name('predictions.refresh');
             });
  
-            Route::middleware(['role_or_permission:tenant_admin|Finance|technical|network_engineer|view_finance|view_reports'])->group(function () {
-                // Report Builder
-                Route::resource('reports', App\Http\Controllers\Tenants\ReportBuilderController::class)->only(['index', 'store', 'destroy']);
-                Route::post('/reports/{report}/generate', [App\Http\Controllers\Tenants\ReportBuilderController::class, 'generate'])->name('reports.generate');
+            Route::middleware(['role_or_permission:tenant_admin|admin|Finance|technical|network_engineer|marketing|customer_care|view_finance|view_reports'])->group(function () {
+                // Report Builder - General Access
+                Route::get('/reports', [App\Http\Controllers\Tenants\ReportBuilderController::class, 'index'])->name('reports.index');
+                Route::post('/reports/data-point', [App\Http\Controllers\Tenants\ReportBuilderController::class, 'storeDataPoint'])->name('reports.data-point.store');
+                
+                // Restricted Actions (Creation/Deletions/Generation)
+                Route::middleware(['role_or_permission:tenant_admin|admin|Finance|view_reports'])->group(function () {
+                    Route::post('/reports', [App\Http\Controllers\Tenants\ReportBuilderController::class, 'store'])->name('reports.store');
+                    Route::delete('/reports/{report}', [App\Http\Controllers\Tenants\ReportBuilderController::class, 'destroy'])->name('reports.destroy');
+                    Route::post('/reports/{report}/generate', [App\Http\Controllers\Tenants\ReportBuilderController::class, 'generate'])->name('reports.generate');
+                });
                 
                 // Financial Intelligence
                 Route::get('/finance', [App\Http\Controllers\Tenants\FinancialAnalyticsController::class, 'index'])->name('finance');

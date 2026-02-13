@@ -6,13 +6,29 @@ import {
     FileText, Plus, Trash2, Download, 
     Play, Clock, Settings, Layout, 
     Filter, Database, ChevronRight,
-    CheckCircle2, AlertCircle, Loader2
+    CheckCircle2, AlertCircle, Loader2,
+    MessageSquare, List, History, User
 } from 'lucide-vue-next';
 
-const props = defineProps(['reports', 'metrics']);
+const props = defineProps(['reports', 'metrics', 'recentDataPoints']);
 
+const activeTab = ref('library'); // 'library' or 'entry'
 const showCreateModal = ref(false);
 const selectedReport = ref(null);
+
+const dataEntryForm = useForm({
+    category: '',
+    value: '',
+    description: ''
+});
+
+const submitDataPoint = () => {
+    dataEntryForm.post(route('analytics.reports.data-point.store'), {
+        onSuccess: () => {
+            dataEntryForm.reset();
+        }
+    });
+};
 
 const form = useForm({
     name: '',
@@ -59,13 +75,22 @@ const selectedMetricData = computed(() => {
 
 const user = usePage().props.auth.user;
 const isTenantAdmin = computed(() => user.roles.includes('tenant_admin'));
+const isManagement = computed(() => {
+    const roles = ['tenant_admin', 'admin', 'Finance', 'technical', 'network_engineer'];
+    return user.roles.some(role => roles.includes(role));
+});
+
+// If not management, default to entry tab
+if (!isManagement.value) {
+    activeTab.value = 'entry';
+}
 </script>
 
 <template>
     <AuthenticatedLayout>
         <Head title="Custom Report Builder" />
 
-        <div v-if="isTenantAdmin" class="min-h-screen bg-slate-50 dark:bg-slate-950 px-4 py-8 sm:px-6 lg:px-8">
+        <div class="min-h-screen bg-slate-50 dark:bg-slate-950 px-4 py-8 sm:px-6 lg:px-8">
             <div class="mx-auto max-w-7xl">
                 <!-- Header -->
                 <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -73,16 +98,42 @@ const isTenantAdmin = computed(() => user.roles.includes('tenant_admin'));
                         <h1 class="text-3xl font-bold text-slate-900 dark:text-white">Report Builder</h1>
                         <p class="mt-1 text-slate-500 dark:text-slate-400">Design and automate custom business intelligence reports.</p>
                     </div>
-                    <button 
-                        @click="showCreateModal = true"
-                        class="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/20 transition-all hover:bg-blue-700 hover:scale-105 active:scale-95"
-                    >
-                        <Plus class="h-4 w-4" />
-                        Create New Report
-                    </button>
+                    <div class="flex items-center gap-2 bg-white dark:bg-slate-900 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800">
+                        <button 
+                            v-if="isManagement"
+                            @click="activeTab = 'library'"
+                            :class="[
+                                'px-4 py-2 text-sm font-bold rounded-xl transition-all',
+                                activeTab === 'library' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                            ]"
+                        >
+                            <Layout class="inline-block w-4 h-4 mr-2" />
+                            Report Library
+                        </button>
+                        <button 
+                            @click="activeTab = 'entry'"
+                            :class="[
+                                'px-4 py-2 text-sm font-bold rounded-xl transition-all',
+                                activeTab === 'entry' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                            ]"
+                        >
+                            <Plus class="inline-block w-4 h-4 mr-2" />
+                            Data Entry
+                        </button>
+                    </div>
+
+                    <div v-if="isTenantAdmin" class="flex gap-4">
+                        <button 
+                            @click="showCreateModal = true"
+                            class="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition-all hover:bg-slate-800 hover:scale-105 active:scale-95 dark:bg-white dark:text-slate-950"
+                        >
+                            <Plus class="h-4 w-4" />
+                            New Report
+                        </button>
+                    </div>
                 </div>
 
-                <div class="grid gap-8 lg:grid-cols-3">
+                <div v-if="activeTab === 'library'" class="grid gap-8 lg:grid-cols-3">
                     <!-- Saved Reports Library -->
                     <div class="lg:col-span-1 space-y-4">
                         <h2 class="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-white">
@@ -206,6 +257,91 @@ const isTenantAdmin = computed(() => user.roles.includes('tenant_admin'));
                         </div>
                     </div>
                 </div>
+
+                <!-- Data Entry Section -->
+                <div v-else class="grid gap-8 lg:grid-cols-3">
+                    <div class="lg:col-span-1 space-y-6">
+                        <div class="rounded-3xl bg-white p-6 shadow-xl dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
+                            <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
+                                <Plus class="h-5 w-5 text-blue-500" />
+                                Record Data Point
+                            </h2>
+                            
+                            <form @submit.prevent="submitDataPoint" class="space-y-4">
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Category / Purpose</label>
+                                    <select v-model="dataEntryForm.category" class="w-full rounded-xl border-slate-200 bg-slate-50 p-3 text-slate-900 focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white" required>
+                                        <option value="" disabled>Select category...</option>
+                                        <option value="Marketing">Marketing (Leads, Outreach)</option>
+                                        <option value="Operations">Operations (Maintenance, Logs)</option>
+                                        <option value="Finance">Finance (Expenses, Collections)</option>
+                                        <option value="Field Work">Field Work (Installations, Support)</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Value (Optional)</label>
+                                    <input v-model="dataEntryForm.value" type="number" step="0.01" class="w-full rounded-xl border-slate-200 bg-slate-50 p-3 text-slate-900 focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white" placeholder="e.g. 150.00">
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Description / Details</label>
+                                    <textarea v-model="dataEntryForm.description" rows="3" class="w-full rounded-xl border-slate-200 bg-slate-50 p-3 text-slate-900 focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white" placeholder="What is this data for?" required></textarea>
+                                </div>
+
+                                <button 
+                                    type="submit" 
+                                    :disabled="dataEntryForm.processing"
+                                    class="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-all disabled:opacity-50"
+                                >
+                                    <span v-if="dataEntryForm.processing" class="flex items-center justify-center gap-2">
+                                        <Loader2 class="h-4 w-4 animate-spin" /> saving...
+                                    </span>
+                                    <span v-else>Record Entry</span>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="lg:col-span-2 space-y-6">
+                        <div class="rounded-3xl bg-white p-8 shadow-xl dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
+                            <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
+                                <History class="h-5 w-5 text-blue-500" />
+                                Recent Activity
+                            </h2>
+
+                            <div v-if="recentDataPoints.length === 0" class="py-12 text-center border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-3xl">
+                                <MessageSquare class="mx-auto h-12 w-12 text-slate-200 dark:text-slate-800 mb-2" />
+                                <p class="text-slate-500">No data points recorded yet.</p>
+                            </div>
+
+                            <div v-else class="space-y-4">
+                                <div v-for="point in recentDataPoints" :key="point.id" class="flex items-start gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                                    <div class="rounded-xl bg-blue-500/10 p-2.5 text-blue-600 dark:text-blue-400">
+                                        <Database class="h-5 w-5" />
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="flex items-center justify-between mb-1">
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[0.65rem] font-bold uppercase tracking-wider bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                                                {{ point.category }}
+                                            </span>
+                                            <span class="text-[0.65rem] font-medium text-slate-400">{{ new Date(point.created_at).toLocaleString() }}</span>
+                                        </div>
+                                        <p class="text-sm text-slate-900 dark:text-white font-medium mb-1">{{ point.description }}</p>
+                                        <div class="flex items-center gap-3">
+                                            <span v-if="point.value" class="text-xs font-mono text-slate-600 dark:text-slate-400">Value: {{ point.value }}</span>
+                                            <span class="flex items-center gap-1 text-[0.65rem] text-slate-400">
+                                                <User class="h-3 w-3" />
+                                                {{ point.creator?.name || 'Unknown' }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -257,15 +393,6 @@ const isTenantAdmin = computed(() => user.roles.includes('tenant_admin'));
                         <button type="submit" class="rounded-xl bg-blue-600 px-8 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-all">Save Report</button>
                     </div>
                 </form>
-            </div>
-        </div>
-        <div v-else class="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
-            <div class="text-center p-8 bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-800">
-                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 mb-4">
-                    <FileText class="w-8 h-8" />
-                </div>
-                <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-2">Unauthorized Access</h2>
-                <p class="text-slate-500 dark:text-slate-400">You do not have permission to build or view business reports.</p>
             </div>
         </div>
     </AuthenticatedLayout>
