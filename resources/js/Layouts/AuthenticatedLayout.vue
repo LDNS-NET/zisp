@@ -40,8 +40,12 @@ import {
     LockIcon,
     SubscriptIcon,
     Package,
-    Cog
+    Cog,
+    Download,
+    Printer,
+    BookOpen
 } from 'lucide-vue-next';
+import { PageManuals, GlobalHelp } from '@/Constants/PageManuals';
 
 const { theme, setTheme } = useTheme();
 const showingNavigationDropdown = ref(false);
@@ -203,6 +207,24 @@ const canAccessDomainSettings = computed(() => user.roles.includes('tenant_admin
 function toggleSidebar() {
     sidebarOpen.value = !sidebarOpen.value;
 }
+
+// Manual / Documentation Logic
+const showManualModal = ref(false);
+const currentPageCode = computed(() => {
+    // Exact match first, then partial match for generic info
+    const currentRoute = route().current();
+    if (PageManuals[currentRoute]) return currentRoute;
+    
+    // Fallback search for base route patterns
+    const baseRoute = currentRoute.split('.')[0];
+    return Object.keys(PageManuals).find(key => key.startsWith(baseRoute)) || null;
+});
+
+const currentManual = computed(() => PageManuals[currentPageCode.value] || GlobalHelp);
+
+const printManual = () => {
+    window.print();
+};
 </script>
 
 <template>
@@ -406,6 +428,15 @@ function toggleSidebar() {
 
                 <!-- Right: Actions/Dropdown -->
                 <div class="flex items-center gap-2 sm:gap-4">
+                    <!-- Manual Button -->
+                    <button 
+                        @click="showManualModal = true"
+                        class="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 font-black text-[0.65rem] uppercase tracking-widest hover:bg-orange-600 hover:text-white transition-all duration-300"
+                    >
+                        <HelpCircle class="w-4 h-4" />
+                        Manual
+                    </button>
+
                     <!-- User Dropdown -->
                     <Dropdown align="right" width="48">
                         <template #trigger>
@@ -461,6 +492,107 @@ function toggleSidebar() {
             </main>
         </div>
     </div>
+
+    <!-- Professional Manual Modal -->
+    <div v-if="showManualModal" class="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-950/90 backdrop-blur-md print:hidden">
+        <div class="w-full max-w-4xl rounded-[3rem] bg-white shadow-[0_32px_128px_rgba(0,0,0,0.5)] dark:bg-slate-900 border border-white/10 relative overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-orange-600 via-red-600 to-pink-600"></div>
+            
+            <div class="p-10 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between flex-shrink-0">
+                <div class="flex items-center gap-4">
+                    <div class="h-14 w-14 rounded-3xl bg-orange-600 flex items-center justify-center text-white shadow-xl shadow-orange-600/30">
+                        <BookOpen class="h-8 w-8" />
+                    </div>
+                    <div>
+                        <h2 class="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Operational Manual</h2>
+                        <p class="text-sm font-bold text-slate-400 uppercase tracking-widest">{{ currentManual.title }}</p>
+                    </div>
+                </div>
+                <div class="flex gap-3">
+                    <button @click="printManual" class="flex items-center gap-2 px-6 py-3 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-black text-xs uppercase tracking-widest hover:bg-orange-600 hover:text-white transition-all">
+                        <Download class="w-4 h-4" />
+                        Save PDF
+                    </button>
+                    <button @click="showManualModal = false" class="p-4 rounded-3xl bg-slate-50 dark:bg-slate-800 text-slate-400 hover:text-red-500 transition-all">
+                        <X class="h-6 w-6" />
+                    </button>
+                </div>
+            </div>
+
+            <div id="manual-content" class="flex-1 overflow-y-auto p-12 custom-scrollbar space-y-12">
+                <!-- Overview -->
+                <section class="space-y-4">
+                    <h3 class="text-[0.65rem] font-black uppercase tracking-[0.3em] text-orange-600 dark:text-orange-400">Section I: Tactical Overview</h3>
+                    <p class="text-xl font-bold text-slate-800 dark:text-slate-200 leading-relaxed">{{ currentManual.description }}</p>
+                </section>
+
+                <div class="grid gap-12 lg:grid-cols-2">
+                    <!-- Workflow -->
+                    <section class="space-y-6">
+                        <h3 class="text-[0.65rem] font-black uppercase tracking-[0.3em] text-orange-600 dark:text-orange-400">Section II: Operational Workflow</h3>
+                        <div class="space-y-4">
+                            <div v-for="(step, idx) in currentManual.workflow" :key="idx" class="relative pl-8">
+                                <div class="absolute left-0 top-1.5 h-3 w-3 rounded-full bg-orange-600"></div>
+                                <div v-if="idx < currentManual.workflow.length - 1" class="absolute left-[5px] top-4 w-0.5 h-full bg-slate-100 dark:bg-slate-800"></div>
+                                <h4 class="font-black text-slate-900 dark:text-white uppercase tracking-tight">{{ step.step }}</h4>
+                                <p class="text-sm text-slate-500 font-medium mt-1">{{ step.explanation }}</p>
+                                <div class="mt-2 p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900/30">
+                                    <p class="text-[0.6rem] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest">Rationale</p>
+                                    <p class="text-[0.7rem] text-slate-600 dark:text-slate-400 font-bold italic mt-0.5">{{ step.why }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Impacts -->
+                    <section class="space-y-6">
+                        <h3 class="text-[0.65rem] font-black uppercase tracking-[0.3em] text-orange-600 dark:text-orange-400">Section III: Environmental Impact</h3>
+                        <div class="p-8 rounded-[2.5rem] bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 relative overflow-hidden group">
+                            <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                                <Activity class="h-24 w-24" />
+                            </div>
+                            <p class="relative z-10 text-slate-600 dark:text-slate-300 font-bold leading-relaxed italic">
+                                "{{ currentManual.impacts || GlobalHelp.description }}"
+                            </p>
+                        </div>
+                        
+                        <div v-if="GlobalHelp.tips" class="space-y-4">
+                            <h4 class="text-[0.65rem] font-black uppercase tracking-widest text-slate-400">Mastery Tips</h4>
+                            <ul class="space-y-2">
+                                <li v-for="tip in GlobalHelp.tips" :key="tip" class="flex items-center gap-2 text-xs font-bold text-slate-500 dark:text-slate-400">
+                                    <div class="h-1 w-1 bg-blue-500 rounded-full"></div>
+                                    {{ tip }}
+                                </li>
+                            </ul>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            <!-- Print View (Hidden ordinarily) -->
+            <div class="hidden print:block fixed inset-0 bg-white text-black p-12 h-screen w-screen z-[9999]">
+                <h1 class="text-4xl font-black uppercase mb-4">{{ currentManual.title }}</h1>
+                <p class="text-xl mb-8 border-b-2 border-black pb-4">{{ currentManual.description }}</p>
+                <div class="space-y-8">
+                    <div v-for="step in currentManual.workflow" :key="step.step">
+                        <h2 class="text-2xl font-bold">{{ step.step }}</h2>
+                        <p class="text-lg">{{ step.explanation }}</p>
+                        <p class="italic text-gray-600">Why: {{ step.why }}</p>
+                    </div>
+                </div>
+                <div class="mt-12 p-8 border-t-2 border-black">
+                    <h3 class="text-xl font-bold uppercase mb-2">Impact</h3>
+                    <p>{{ currentManual.impacts }}</p>
+                </div>
+            </div>
+
+            <div class="p-10 border-t border-gray-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex justify-between items-center flex-shrink-0">
+                <span class="text-[0.6rem] font-black text-slate-400 uppercase tracking-widest">© 2026 Zimaradius Digital Archive</span>
+                <button @click="showManualModal = false" class="px-10 py-4 rounded-2xl bg-slate-900 text-white dark:bg-white dark:text-slate-900 font-black text-xs uppercase tracking-widest shadow-xl shadow-slate-900/20 hover:scale-105 active:scale-95 transition-all">Close Dossier</button>
+            </div>
+        </div>
+    </div>
+
     <Toast />
 </template>
 
