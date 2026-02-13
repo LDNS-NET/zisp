@@ -434,7 +434,7 @@ const printManual = () => {
                         class="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 font-black text-[0.65rem] uppercase tracking-widest hover:bg-orange-600 hover:text-white transition-all duration-300"
                     >
                         <HelpCircle class="w-4 h-4" />
-                        Manual
+                        {{ currentManual.title }} Manual
                     </button>
 
                     <!-- User Dropdown -->
@@ -570,25 +570,44 @@ const printManual = () => {
             </div>
 
             <!-- Print View (Hidden ordinarily) -->
-            <div class="hidden print:block fixed inset-0 bg-white text-black p-12 h-screen w-screen z-[9999]">
-                <h1 class="text-4xl font-black uppercase mb-4">{{ currentManual.title }}</h1>
-                <p class="text-xl mb-8 border-b-2 border-black pb-4">{{ currentManual.description }}</p>
-                <div class="space-y-8">
-                    <div v-for="step in currentManual.workflow" :key="step.step">
-                        <h2 class="text-2xl font-bold">{{ step.step }}</h2>
-                        <p class="text-lg">{{ step.explanation }}</p>
-                        <p class="italic text-gray-600">Why: {{ step.why }}</p>
-                    </div>
+            <div id="manual-print-section" class="hidden print:block bg-white text-black p-12 min-h-screen w-full">
+                <div class="border-b-4 border-black pb-6 mb-10">
+                    <h1 class="text-5xl font-black uppercase mb-2">{{ currentManual.title }}</h1>
+                    <p class="text-sm font-bold tracking-widest uppercase opacity-60">Zimus ISP Operational Guide — Version 2.0</p>
                 </div>
-                <div class="mt-12 p-8 border-t-2 border-black">
-                    <h3 class="text-xl font-bold uppercase mb-2">Impact</h3>
-                    <p>{{ currentManual.impacts }}</p>
+
+                <div class="space-y-12">
+                    <section>
+                        <h2 class="text-xs font-black uppercase tracking-[0.3em] mb-4 border-b border-black/10 pb-2">I. Overview & Purpose</h2>
+                        <p class="text-2xl font-bold leading-tight">{{ currentManual.description }}</p>
+                    </section>
+
+                    <section>
+                        <h2 class="text-xs font-black uppercase tracking-[0.3em] mb-6 border-b border-black/10 pb-2">II. Step-by-Step Workflow</h2>
+                        <div class="space-y-8">
+                            <div v-for="(step, idx) in currentManual.workflow" :key="idx" class="border-l-2 border-black pl-6">
+                                <h3 class="text-xl font-black uppercase">{{ idx + 1 }}. {{ step.step }}</h3>
+                                <p class="text-base mt-2">{{ step.explanation }}</p>
+                                <p class="text-sm mt-3 font-bold italic">Why: {{ step.why }}</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section v-if="currentManual.impacts">
+                        <h2 class="text-xs font-black uppercase tracking-[0.3em] mb-4 border-b border-black/10 pb-2">III. Operational Impact</h2>
+                        <p class="text-lg italic border-2 border-black p-6 rounded-2xl bg-slate-50 font-bold">"{{ currentManual.impacts }}"</p>
+                    </section>
+                </div>
+
+                <div class="mt-20 pt-10 border-t border-black/10 flex justify-between items-center text-[0.65rem] font-bold uppercase tracking-widest opacity-40">
+                    <span>Generated on {{ new Date().toLocaleDateString() }}</span>
+                    <span>Confidential Internal Document</span>
                 </div>
             </div>
 
             <div class="p-10 border-t border-gray-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex justify-between items-center flex-shrink-0">
                 <span class="text-[0.6rem] font-black text-slate-400 uppercase tracking-widest">© 2026 Zimaradius Digital Archive</span>
-                <button @click="showManualModal = false" class="px-10 py-4 rounded-2xl bg-slate-900 text-white dark:bg-white dark:text-slate-900 font-black text-xs uppercase tracking-widest shadow-xl shadow-slate-900/20 hover:scale-105 active:scale-95 transition-all">Close Dossier</button>
+                <button @click="showManualModal = false" class="px-10 py-4 rounded-2xl bg-slate-900 text-white dark:bg-white dark:text-slate-900 font-black text-xs uppercase tracking-widest shadow-xl shadow-slate-900/20 hover:scale-105 active:scale-95 transition-all">Close Manual</button>
             </div>
         </div>
     </div>
@@ -609,5 +628,21 @@ const printManual = () => {
 }
 .custom-scrollbar:hover::-webkit-scrollbar-thumb {
     background-color: rgba(156, 163, 175, 0.5);
+}
+
+@media print {
+    body * {
+        visibility: hidden !important;
+    }
+    #manual-print-section, #manual-print-section * {
+        visibility: visible !important;
+    }
+    #manual-print-section {
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        display: block !important;
+    }
 }
 </style>
