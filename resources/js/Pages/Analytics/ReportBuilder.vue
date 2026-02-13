@@ -9,8 +9,7 @@ import {
     CheckCircle2, AlertCircle, Loader2,
     MessageSquare, List, History, User,
     Edit3, X, BarChart3, LineChart, PieChart,
-    Search, Calendar, MoreHorizontal, ArrowUpRight,
-    TrendingDown, Activity, MapPin
+    Search, Calendar, MoreHorizontal, ArrowUpRight
 } from 'lucide-vue-next';
 
 // Charting
@@ -29,10 +28,9 @@ import { Bar, Line } from 'vue-chartjs';
 
 ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale, PointElement, LineElement);
 
-const props = defineProps(['reports', 'metrics', 'recentDataPoints', 'intelligence', 'zoneRevenue', 'filters']);
+const props = defineProps(['reports', 'metrics', 'recentDataPoints']);
 
-const activeTab = ref('library'); // 'library', 'entry', or 'zones'
-const zoneSearch = ref(props.filters?.zone_search || '');
+const activeTab = ref('library'); // 'library', 'entry', or 'insights'
 const showCreateModal = ref(false);
 const showEditModal = ref(false);
 const editingReport = ref(null);
@@ -143,11 +141,11 @@ const runReport = (reportId) => {
 
 // Chart Data Calculation
 const chartData = computed(() => {
-    if (activeTab.value !== 'library' || !props.recentDataPoints.data?.length) return null;
+    if (activeTab.value !== 'library' || !props.recentDataPoints.length) return null;
     
-    const categories = [...new Set(props.recentDataPoints.data.map(p => p.category))];
+    const categories = [...new Set(props.recentDataPoints.map(p => p.category))];
     const data = categories.map(cat => {
-        return props.recentDataPoints.data
+        return props.recentDataPoints
             .filter(p => p.category === cat)
             .reduce((sum, p) => sum + (parseFloat(p.value) || 0), 0);
     });
@@ -191,28 +189,6 @@ const isManagement = computed(() => {
 if (!isManagement.value) {
     activeTab.value = 'entry';
 }
-
-// Zone Search Handler
-let searchTimeout;
-watch(zoneSearch, (value) => {
-    clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(() => {
-        router.get(route('analytics.reports.index'), { zone_search: value }, { 
-            preserveState: true, 
-            preserveScroll: true,
-            only: ['zoneRevenue', 'filters']
-        });
-    }, 500);
-});
-
-const formatZoneName = (name) => {
-    if (!name) return 'Unmapped Zone';
-    // If it looks like user-namesp-FAT-ZoneName, try to extract ZoneName
-    if (name.includes('Fat-')) return name.split('Fat-')[1];
-    if (name.includes('FAT-')) return name.split('FAT-')[1];
-    if (name.includes('fat-')) return name.split('fat-')[1];
-    return name;
-};
 </script>
 
 <template>
@@ -258,17 +234,6 @@ const formatZoneName = (name) => {
                             <Plus class="w-4 h-4" />
                             Data Collection
                         </button>
-                        <button 
-                            v-if="isManagement"
-                            @click="activeTab = 'zones'"
-                            :class="[
-                                'flex items-center gap-2 px-6 py-3 text-sm font-bold rounded-2xl transition-all duration-300',
-                                activeTab === 'zones' ? 'bg-blue-600 text-white shadow-xl shadow-blue-500/40' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'
-                            ]"
-                        >
-                            <MapPin class="w-4 h-4" />
-                            Zone Insights
-                        </button>
                         
                         <div v-if="isTenantAdmin" class="h-8 w-px bg-slate-200 dark:bg-slate-800 mx-2"></div>
                         
@@ -283,44 +248,6 @@ const formatZoneName = (name) => {
                     </div>
                 </div>
 
-                <!-- Intelligence Quick Stats -->
-                <div v-if="intelligence && activeTab === 'library'" class="grid gap-6 mb-12 sm:grid-cols-4">
-                    <div v-for="(stat, key) in [intelligence.revenue, intelligence.subscribers, intelligence.arpu]" :key="key" class="rounded-[2.5rem] bg-white dark:bg-slate-900 p-8 shadow-2xl border border-slate-100 dark:border-slate-800 relative overflow-hidden group">
-                        <div class="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
-                            <ArrowUpRight v-if="stat.growth > 0" class="h-16 w-16 text-green-500" />
-                            <TrendingDown v-else-if="stat.growth < 0" class="h-16 w-16 text-red-500" />
-                            <Activity v-else class="h-16 w-16 text-blue-500" />
-                        </div>
-                        <p class="text-[0.65rem] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">{{ stat.label }}</p>
-                        <div class="flex items-baseline gap-3">
-                            <h3 class="text-2xl font-black text-slate-900 dark:text-white">
-                                {{ stat.label.includes('ARPU') || stat.label.includes('MRR') ? '$' : '' }}{{ stat.current.toLocaleString() }}
-                            </h3>
-                            <span v-if="stat.growth !== undefined && !stat.label.includes('ARPU')" :class="[
-                                'text-[0.65rem] font-black px-2 py-1 rounded-lg',
-                                stat.growth > 0 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
-                            ]">
-                                {{ stat.growth > 0 ? '+' : '' }}{{ stat.growth }}%
-                            </span>
-                        </div>
-                    </div>
-
-                    <!-- Top Zones Summary Card (Prevents "Stupidly Long List") -->
-                    <div v-if="intelligence.top_zones" class="rounded-[2.5rem] bg-slate-900 p-8 shadow-2xl border border-slate-800 relative overflow-hidden group">
-                        <div class="absolute top-0 right-0 p-6 opacity-10">
-                            <MapPin class="h-16 w-16 text-blue-500" />
-                        </div>
-                        <p class="text-[0.65rem] font-black uppercase tracking-[0.2em] text-blue-400 mb-4">Top Geographic Clusters</p>
-                        <div class="space-y-3">
-                            <div v-for="zone in intelligence.top_zones" :key="zone.zone" class="flex items-center justify-between">
-                                <span class="text-[0.65rem] font-bold text-slate-300 truncate max-w-[100px]">{{ zone.zone || 'Unmapped' }}</span>
-                                <span class="text-[0.65rem] font-black text-white">${{ parseFloat(zone.revenue).toLocaleString() }}</span>
-                            </div>
-                        </div>
-                        <button @click="activeTab = 'zones'" class="mt-4 text-[0.55rem] font-black uppercase tracking-[0.2em] text-blue-500 hover:text-white transition-colors">Analyze All Zones →</button>
-                    </div>
-                </div>
-
                 <div v-if="activeTab === 'library'" class="grid gap-10 lg:grid-cols-3">
                     <!-- Sidebar: Saved Reports -->
                     <div class="lg:col-span-1 space-y-6">
@@ -330,7 +257,7 @@ const formatZoneName = (name) => {
                                 Inventory
                             </h2>
                             <span class="text-xs font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-lg">
-                                {{ reports.total || reports.length }} Active
+                                {{ reports.length }} Active
                             </span>
                         </div>
                         
@@ -341,7 +268,7 @@ const formatZoneName = (name) => {
                         </div>
 
                         <div class="space-y-3">
-                            <div v-for="report in (reports.data || reports)" :key="report.id" 
+                            <div v-for="report in reports" :key="report.id" 
                                 @click="selectedReport = report"
                                 :class="[
                                     'group relative cursor-pointer rounded-[1.5rem] border p-1 transition-all duration-500',
@@ -375,22 +302,6 @@ const formatZoneName = (name) => {
                                     </div>
                                 </div>
                             </div>
-                        </div>
-
-                        <!-- Inventory Pagination -->
-                        <div v-if="reports.links?.length > 3" class="mt-8 flex justify-center gap-1">
-                            <button 
-                                v-for="link in reports.links" 
-                                :key="link.label"
-                                @click="link.url && router.visit(link.url, { preserveScroll: true })"
-                                v-html="link.label"
-                                :disabled="!link.url"
-                                :class="[
-                                    'px-2 py-1 rounded-lg text-[0.55rem] font-black uppercase transition-all',
-                                    link.active ? 'bg-blue-600 text-white' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800',
-                                    !link.url ? 'opacity-30 cursor-not-allowed' : ''
-                                ]"
-                            />
                         </div>
                     </div>
 
@@ -508,93 +419,6 @@ const formatZoneName = (name) => {
                                 <Settings class="h-20 w-20 text-slate-300 dark:text-slate-700 animate-spin-slow relative" />
                             </div>
                             <p class="mt-8 text-xl font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest">Select Target Blueprint</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Zone Insights Tab -->
-                <div v-else-if="activeTab === 'zones'" class="space-y-8">
-                    <div class="rounded-[2.5rem] bg-white dark:bg-slate-900 p-8 shadow-2xl border border-slate-100 dark:border-slate-800">
-                        <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
-                            <div class="flex items-center gap-3">
-                                <div class="h-12 w-12 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-600/30">
-                                    <MapPin class="h-6 w-6" />
-                                </div>
-                                <div>
-                                    <h2 class="text-2xl font-black text-slate-900 dark:text-white leading-none">Geographic Intelligence</h2>
-                                    <p class="text-xs text-slate-500 mt-1">Found {{ zoneRevenue.total }} unique location clusters</p>
-                                </div>
-                            </div>
-
-                            <!-- Search Filter -->
-                            <div class="relative max-w-sm w-full">
-                                <Search class="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                                <input 
-                                    v-model="zoneSearch"
-                                    type="text" 
-                                    placeholder="Filter by zone name (e.g. Miami, Chokaa)..."
-                                    class="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl py-3 pl-12 pr-4 text-sm font-bold focus:ring-4 focus:ring-blue-500/10 transition-all"
-                                />
-                            </div>
-                        </div>
-
-                        <div class="overflow-hidden rounded-[2rem] border border-slate-100 dark:border-slate-800">
-                            <table class="w-full text-left border-collapse">
-                                <thead>
-                                    <tr class="bg-slate-50 dark:bg-slate-800/50">
-                                        <th class="p-6 text-[0.65rem] font-black uppercase tracking-widest text-slate-400">Zone / Location</th>
-                                        <th class="p-6 text-[0.65rem] font-black uppercase tracking-widest text-slate-400">Transactions</th>
-                                        <th class="p-6 text-[0.65rem] font-black uppercase tracking-widest text-slate-400 text-right">Total Revenue</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-                                    <tr v-if="!zoneRevenue.data?.length">
-                                        <td colspan="3" class="p-20 text-center text-slate-400 font-bold italic">
-                                            No geographic data signals detected.
-                                        </td>
-                                    </tr>
-                                    <tr v-for="item in zoneRevenue.data" :key="item.zone" class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                                        <td class="p-6">
-                                            <div class="flex items-center gap-3">
-                                                <div class="h-10 w-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                                                    <MapPin class="h-5 w-5 text-blue-500" />
-                                                </div>
-                                                <div>
-                                                    <p class="font-black text-slate-900 dark:text-white leading-none mb-1">{{ formatZoneName(item.zone) }}</p>
-                                                    <p class="text-[0.6rem] text-slate-400 font-bold uppercase tracking-widest">{{ item.zone }}</p>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td class="p-6">
-                                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-[0.65rem] font-black text-slate-600 dark:text-slate-400 uppercase tracking-tighter">
-                                                {{ item.transaction_count }} Tx
-                                            </span>
-                                        </td>
-                                        <td class="p-6 text-right">
-                                            <div class="flex flex-col items-end">
-                                                <span class="text-lg font-black text-slate-900 dark:text-white">KES {{ parseFloat(item.total_revenue).toLocaleString() }}</span>
-                                                <span class="text-[0.6rem] text-blue-500 font-bold uppercase tracking-widest">Successful Yield</span>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <!-- Zone Pagination -->
-                        <div v-if="zoneRevenue.links?.length > 3" class="mt-8 flex justify-center gap-2">
-                            <button 
-                                v-for="link in zoneRevenue.links" 
-                                :key="link.label"
-                                @click="link.url && router.visit(link.url, { preserveScroll: true })"
-                                v-html="link.label"
-                                :disabled="!link.url"
-                                :class="[
-                                    'px-4 py-2 rounded-xl text-[0.65rem] font-black uppercase tracking-widest transition-all',
-                                    link.active ? 'bg-blue-600 text-white shadow-lg' : 'bg-white dark:bg-slate-900 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800',
-                                    !link.url ? 'opacity-30 cursor-not-allowed' : ''
-                                ]"
-                            />
                         </div>
                     </div>
                 </div>
