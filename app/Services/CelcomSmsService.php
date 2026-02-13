@@ -10,7 +10,7 @@ class CelcomSmsService
     protected $partnerId;
     protected $apiKey;
     protected $shortcode;
-    protected $endpoint = 'https://isms.celcomafrica.com/api/services/sendsms';
+    protected $endpoint = 'https://isms.celcomafrica.com/api/services/sendsms/';
     
     /**
      * Set credentials for Celcom SMS
@@ -39,7 +39,7 @@ class CelcomSmsService
         }
         
         try {
-            $response = Http::post($this->endpoint, [
+            $response = Http::asForm()->post($this->endpoint, [
                 'partnerID' => $this->partnerId,
                 'apikey' => $this->apiKey,
                 'shortcode' => $this->shortcode,
@@ -48,6 +48,11 @@ class CelcomSmsService
             ]);
             
             $data = $response->json();
+            
+            // Log full response if not successful for debugging
+            if (!$response->successful()) {
+                Log::error('Celcom SMS HTTP error: ' . $response->status() . ' - ' . $response->body());
+            }
             
             // Celcom may return different success indicators
             $isSuccess = $response->successful() && (
@@ -63,6 +68,9 @@ class CelcomSmsService
                 ];
             }
             
+            // Log failure details
+            Log::warning('Celcom SMS failed to send. Response: ' . json_encode($data));
+            
             return [
                 'success' => false,
                 'message' => $data['message'] ?? $data['responses'][0]['response-description'] ?? 'Failed to send SMS via Celcom.',
@@ -70,7 +78,10 @@ class CelcomSmsService
             ];
             
         } catch (\Exception $e) {
-            Log::error('Celcom SMS failed: ' . $e->getMessage());
+            Log::error('Celcom SMS exception: ' . $e->getMessage(), [
+                'exception' => $e,
+                'phone' => $phoneNumber
+            ]);
             return [
                 'success' => false,
                 'message' => 'Failed to send SMS: ' . $e->getMessage()
