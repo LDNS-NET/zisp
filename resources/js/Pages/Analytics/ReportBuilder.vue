@@ -261,8 +261,8 @@ if (!isManagement.value) {
                 </div>
 
                 <!-- Intelligence Quick Stats -->
-                <div v-if="intelligence && activeTab === 'library'" class="grid gap-6 mb-12 sm:grid-cols-3">
-                    <div v-for="(stat, key) in intelligence" :key="key" class="rounded-[2.5rem] bg-white dark:bg-slate-900 p-8 shadow-2xl border border-slate-100 dark:border-slate-800 relative overflow-hidden group">
+                <div v-if="intelligence && activeTab === 'library'" class="grid gap-6 mb-12 sm:grid-cols-4">
+                    <div v-for="(stat, key) in [intelligence.revenue, intelligence.subscribers, intelligence.arpu]" :key="key" class="rounded-[2.5rem] bg-white dark:bg-slate-900 p-8 shadow-2xl border border-slate-100 dark:border-slate-800 relative overflow-hidden group">
                         <div class="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
                             <ArrowUpRight v-if="stat.growth > 0" class="h-16 w-16 text-green-500" />
                             <TrendingDown v-else-if="stat.growth < 0" class="h-16 w-16 text-red-500" />
@@ -270,16 +270,31 @@ if (!isManagement.value) {
                         </div>
                         <p class="text-[0.65rem] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">{{ stat.label }}</p>
                         <div class="flex items-baseline gap-3">
-                            <h3 class="text-3xl font-black text-slate-900 dark:text-white">
-                                {{ key === 'revenue' ? '$' : '' }}{{ stat.current.toLocaleString() }}
+                            <h3 class="text-2xl font-black text-slate-900 dark:text-white">
+                                {{ stat.label.includes('ARPU') || stat.label.includes('MRR') ? '$' : '' }}{{ stat.current.toLocaleString() }}
                             </h3>
-                            <span v-if="stat.growth !== undefined" :class="[
-                                'text-xs font-black px-2 py-1 rounded-lg',
+                            <span v-if="stat.growth !== undefined && !stat.label.includes('ARPU')" :class="[
+                                'text-[0.65rem] font-black px-2 py-1 rounded-lg',
                                 stat.growth > 0 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
                             ]">
                                 {{ stat.growth > 0 ? '+' : '' }}{{ stat.growth }}%
                             </span>
                         </div>
+                    </div>
+
+                    <!-- Top Zones Summary Card (Prevents "Stupidly Long List") -->
+                    <div v-if="intelligence.top_zones" class="rounded-[2.5rem] bg-slate-900 p-8 shadow-2xl border border-slate-800 relative overflow-hidden group">
+                        <div class="absolute top-0 right-0 p-6 opacity-10">
+                            <MapPin class="h-16 w-16 text-blue-500" />
+                        </div>
+                        <p class="text-[0.65rem] font-black uppercase tracking-[0.2em] text-blue-400 mb-4">Top Geographic Clusters</p>
+                        <div class="space-y-3">
+                            <div v-for="zone in intelligence.top_zones" :key="zone.zone" class="flex items-center justify-between">
+                                <span class="text-[0.65rem] font-bold text-slate-300 truncate max-w-[100px]">{{ zone.zone || 'Unmapped' }}</span>
+                                <span class="text-[0.65rem] font-black text-white">${{ parseFloat(zone.revenue).toLocaleString() }}</span>
+                            </div>
+                        </div>
+                        <button @click="activeTab = 'zones'" class="mt-4 text-[0.55rem] font-black uppercase tracking-[0.2em] text-blue-500 hover:text-white transition-colors">Analyze All Zones →</button>
                     </div>
                 </div>
 
@@ -292,7 +307,7 @@ if (!isManagement.value) {
                                 Inventory
                             </h2>
                             <span class="text-xs font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-lg">
-                                {{ reports.length }} Active
+                                {{ reports.total || reports.length }} Active
                             </span>
                         </div>
                         
@@ -303,7 +318,7 @@ if (!isManagement.value) {
                         </div>
 
                         <div class="space-y-3">
-                            <div v-for="report in reports" :key="report.id" 
+                            <div v-for="report in (reports.data || reports)" :key="report.id" 
                                 @click="selectedReport = report"
                                 :class="[
                                     'group relative cursor-pointer rounded-[1.5rem] border p-1 transition-all duration-500',
@@ -337,6 +352,22 @@ if (!isManagement.value) {
                                     </div>
                                 </div>
                             </div>
+                        </div>
+
+                        <!-- Inventory Pagination -->
+                        <div v-if="reports.links?.length > 3" class="mt-8 flex justify-center gap-1">
+                            <button 
+                                v-for="link in reports.links" 
+                                :key="link.label"
+                                @click="link.url && router.visit(link.url, { preserveScroll: true })"
+                                v-html="link.label"
+                                :disabled="!link.url"
+                                :class="[
+                                    'px-2 py-1 rounded-lg text-[0.55rem] font-black uppercase transition-all',
+                                    link.active ? 'bg-blue-600 text-white' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800',
+                                    !link.url ? 'opacity-30 cursor-not-allowed' : ''
+                                ]"
+                            />
                         </div>
                     </div>
 

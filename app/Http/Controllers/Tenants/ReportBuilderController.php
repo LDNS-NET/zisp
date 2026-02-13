@@ -28,9 +28,11 @@ class ReportBuilderController extends Controller
         $tenantId = Auth::user()->tenant_id;
         
         $reports = TenantCustomReport::where('tenant_id', $tenantId)
-            ->with('latestRun')
+            ->with(['runs' => function($q) {
+                $q->latest()->limit(5);
+            }])
             ->latest()
-            ->get();
+            ->paginate(10, ['*'], 'reports_page');
 
         // High-Level Intelligence Aggregation
         $now = Carbon::now();
@@ -38,14 +40,13 @@ class ReportBuilderController extends Controller
         $lastMonthStart = $now->copy()->subMonth()->startOfMonth();
         $lastMonthEnd = $now->copy()->subMonth()->endOfMonth();
 
-        // 1. Revenue Intelligence (This Month vs Last Month)
-        $thisMonthRevenue = TenantPayment::where('tenant_id', $tenantId)
-            ->where('status', 'success')
+        $tenantPayments = TenantPayment::where('tenant_id', $tenantId)->where('status', 'success');
+
+        $thisMonthRevenue = (clone $tenantPayments)
             ->whereBetween('paid_at', [$thisMonthStart, $now])
             ->sum('amount');
 
-        $lastMonthRevenue = TenantPayment::where('tenant_id', $tenantId)
-            ->where('status', 'success')
+        $lastMonthRevenue = (clone $tenantPayments)
             ->whereBetween('paid_at', [$lastMonthStart, $lastMonthEnd])
             ->sum('amount');
 
@@ -53,33 +54,47 @@ class ReportBuilderController extends Controller
             ? (($thisMonthRevenue - $lastMonthRevenue) / $lastMonthRevenue) * 100 
             : 0;
 
-        // 2. User Intelligence (New Users & Total)
-        $activeUsers = NetworkUser::where('tenant_id', $tenantId)
+        $activeSubscribers = NetworkUser::where('tenant_id', $tenantId)
             ->where('status', 'active')
             ->count();
 
-        $newUsersThisMonth = NetworkUser::where('tenant_id', $tenantId)
-            ->whereBetween('created_at', [$thisMonthStart, $now])
+        $newSubscribersLast30 = NetworkUser::where('tenant_id', $tenantId)
+            ->where('created_at', '>=', $now->copy()->subDays(30))
             ->count();
 
-        // 3. ARPU Intelligence
-        $arpu = $activeUsers > 0 ? $thisMonthRevenue / $activeUsers : 0;
+        $subscriberGrowth = $activeSubscribers > 0 
+            ? ($newSubscribersLast30 / $activeSubscribers) * 100 
+            : 0;
+
+        $arpu = $activeSubscribers > 0 ? $thisMonthRevenue / $activeSubscribers : 0;
+
+        // Top 3 Zones for Dashboard Summary
+        $topZones = DB::table('tenant_payments')
+            ->join('network_users', 'tenant_payments.user_id', '=', 'network_users.id')
+            ->where('tenant_payments.tenant_id', $tenantId)
+            ->where('tenant_payments.status', 'success')
+            ->select('network_users.location as zone', DB::raw('SUM(amount) as revenue'))
+            ->groupBy('network_users.location')
+            ->orderBy('revenue', 'desc')
+            ->limit(3)
+            ->get();
 
         $intelligence = [
             'revenue' => [
                 'current' => (float)$thisMonthRevenue,
                 'growth' => round($revenueGrowth, 1),
-                'label' => 'Monthly Revenue'
+                'label' => 'Monthly Revenue (MRR)'
             ],
-            'users' => [
-                'current' => $activeUsers,
-                'growth' => $newUsersThisMonth, // "Growth" here as new signups
+            'subscribers' => [
+                'current' => $activeSubscribers,
+                'growth' => round($subscriberGrowth, 1),
                 'label' => 'Active Subscribers'
             ],
             'arpu' => [
                 'current' => round($arpu, 2),
-                'label' => 'ARPU (Avg Revenue/User)'
-            ]
+                'label' => 'Avg Revenue Per User (ARPU)'
+            ],
+            'top_zones' => $topZones
         ];
 
         $availableMetrics = [

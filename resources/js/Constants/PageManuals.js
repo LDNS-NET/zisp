@@ -145,7 +145,12 @@ export const PageManuals = {
                 why: 'To decide where to expand your fiber or wireless network next.'
             }
         ],
-        impacts: 'Using these numbers helps you make smart decisions about where to invest your capital.'
+        impacts: 'Using these numbers helps you make smart decisions about where to invest your capital.',
+        definitions: [
+            { term: 'MRR', definition: 'Monthly Recurring Revenue. The total predictable income from all active subscriptions.' },
+            { term: 'ARPU', definition: 'Average Revenue Per User. Total Revenue divided by the number of active customers.' },
+            { term: 'Churn Rate', definition: 'The percentage of customers who stop subscribing each month.' }
+        ]
     },
     'invoices.index': {
         title: 'Invoices & Billing',
