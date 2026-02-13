@@ -36,7 +36,7 @@ class ReportBuilderController extends Controller
         $now = Carbon::now();
         $thisMonthStart = $now->copy()->startOfMonth();
         $lastMonthStart = $now->copy()->subMonth()->startOfMonth();
-        $lastMonthEnd = $now->copy()->subMonth()->endOfOfMonth();
+        $lastMonthEnd = $now->copy()->subMonth()->endOfMonth();
 
         // 1. Revenue Intelligence (This Month vs Last Month)
         $thisMonthRevenue = TenantPayment::where('tenant_id', $tenantId)
