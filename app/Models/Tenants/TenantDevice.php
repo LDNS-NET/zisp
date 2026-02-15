@@ -33,10 +33,7 @@ class TenantDevice extends Model
     {
         static::addGlobalScope('tenant', function ($query) {
             if (tenant()) {
-                $query->where(function ($q) {
-                    $q->where('tenant_id', tenant()->id)
-                      ->orWhereNull('tenant_id');
-                });
+                $query->where('tenant_id', tenant()->id);
             }
         });
 
