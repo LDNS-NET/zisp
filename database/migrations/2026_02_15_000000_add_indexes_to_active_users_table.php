@@ -121,12 +121,10 @@ return new class extends Migration
      */
     private function hasIndex(string $table, string $indexName): bool
     {
-        $conn = Schema::getConnection();
-        $dbSchemaManager = $conn->getDoctrineSchemaManager();
-        $indexes = $dbSchemaManager->listTableIndexes($table);
+        $indexes = Schema::getIndexes($table);
 
         foreach ($indexes as $index) {
-            if ($index->getName() === $indexName) {
+            if ($index['name'] === $indexName) {
                 return true;
             }
         }
