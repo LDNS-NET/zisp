@@ -14,9 +14,9 @@ Schedule::command('sms:send-expiry-notifications')->everyFiveMinutes();
 // Send expiry warnings every 6 hours
 Schedule::command('sms:send-expiry-warnings')->everySixHours();
 
-// Sync Mikrotik active users every 4 minutes
+// Sync Mikrotik active users every 5 minutes (offset by 1)
 Schedule::command('routers:sync')
-    ->everyFiveMinutes()
+    ->cron('1-59/5 * * * *')
     ->withoutOverlapping()
     ->runInBackground();
 
@@ -26,22 +26,22 @@ Schedule::command('wireguard:sync-peers')
     ->withoutOverlapping()
     ->runInBackground();
 
-    // Disconnect expired users every minute
+    // Disconnect expired users every 10 minutes (offset by 2)
 Schedule::command('users:disconnect-expired')
-    ->everyTenMinutes()
+    ->cron('2-59/10 * * * *')
     ->withoutOverlapping()
     ->runInBackground();
 
-// Sync Winbox sessions every 2 minutes
+// Sync Winbox sessions every 10 minutes (offset by 3)
 Schedule::command('winbox:sync')
-    ->everyTenMinutes()
+    ->cron('3-59/10 * * * *')
     ->withoutOverlapping()
     ->runInBackground();
 
 
-    // Clean up stale sessions every 5 minutes
+    // Clean up stale sessions every 10 minutes (offset by 4)
 Schedule::command('app:cleanup-stale-sessions')
-    ->everyTenMinutes()
+    ->cron('4-59/10 * * * *')
     ->withoutOverlapping()
     ->runInBackground();
 
@@ -51,14 +51,14 @@ Schedule::command('app:sync-online-status')
     ->withoutOverlapping()
     ->runInBackground();  
 
-    // Process pending user upgrades every minute. this handles time-based upgrades for customers who upgrade their packages
+    // Process pending user upgrades every 10 minutes (offset by 6)
 Schedule::command('network:process-upgrades')
-    ->everyTenMinutes()
+    ->cron('6-59/10 * * * *')
     ->withoutOverlapping();
 
-// Poll Mikrotik routers for active users and sync every 3 minutes (reduces DB/API load for large deployments)
+// Poll Mikrotik routers for active users and sync every 10 minutes (offset by 7)
 Schedule::command('app:poll-mikrotik-users')
-    ->everyTenMinutes()
+    ->cron('7-59/10 * * * *')
     ->withoutOverlapping()
     ->runInBackground();
 

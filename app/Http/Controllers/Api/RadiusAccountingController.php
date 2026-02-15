@@ -18,7 +18,8 @@ class RadiusAccountingController extends Controller
             // We assume standard form data or JSON with specific keys.
             
             $data = $request->all();
-            Log::info('RADIUS Accounting Webhook:', $data);
+            // Log only critical events or use debug level for all data
+            // Log::info('RADIUS Accounting Webhook:', $data);
 
             // Helper to extract value from RADIUS JSON format
             $extract = function($value) {
@@ -104,10 +105,7 @@ class RadiusAccountingController extends Controller
             // Use withoutGlobalScopes to ensure we find the user regardless of current context
             $user = NetworkUser::withoutGlobalScopes()
                 ->where('tenant_id', $router->tenant_id)
-                ->where(function($q) use ($username) {
-                    $q->where('username', $username)
-                      ->orWhere(\DB::raw('lower(username)'), strtolower($username));
-                })
+                ->where('username', $username)
                 ->first();
 
             if (!$user) {
