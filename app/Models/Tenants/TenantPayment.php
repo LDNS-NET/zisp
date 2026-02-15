@@ -100,6 +100,12 @@ class TenantPayment extends Model
 
     protected static function booted()
     {
+        static::creating(function ($model) {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) \Illuminate\Support\Str::uuid();
+            }
+        });
+
         static::addGlobalScope('tenant', function ($query) {
             if (tenant()) {
                 $query->where('tenant_id', tenant()->id);
