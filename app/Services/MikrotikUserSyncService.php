@@ -39,23 +39,18 @@ class MikrotikUserSyncService
         $usersToMarkOnline = array_diff($currentOnline, $previouslyOnlineOnRouter);
         $usersToMarkOffline = array_diff($previouslyOnlineOnRouter, $currentOnline);
 
-        // Update EXISTING online sessions (refresh MAC/IP even if already online)
+        // Update EXISTING online sessions (refresh last_seen_at in bulk for performance)
         $usersStillOnline = array_intersect($currentOnline, $previouslyOnlineOnRouter);
-        foreach ($usersStillOnline as $username) {
-            $data = $activeSessions[$username];
+        if (!empty($usersStillOnline)) {
             TenantActiveUsers::where('tenant_id', $tenantId)
                 ->where('router_id', $router->id)
-                ->where('username', $username)
                 ->where('status', 'active')
-                ->update([
-                    'mac_address' => $data['mac_address'] ?? null,
-                    'ip_address' => $data['ip_address'] ?? null,
-                    'last_seen_at' => now()
-                ]);
+                ->whereIn(\DB::raw('lower(trim(username))'), $usersStillOnline)
+                ->update(['last_seen_at' => now()]);
         }
 
         // Only update status changed records
-        $updated = 0;
+        $updated = count($usersToMarkOnline) + count($usersToMarkOffline);
         
         if (!empty($usersToMarkOnline)) {
             // Update session records for this router

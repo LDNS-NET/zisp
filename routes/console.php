@@ -51,9 +51,9 @@ Schedule::command('network:process-upgrades')
     ->cron('6-59/10 * * * *')
     ->withoutOverlapping();
 
-// Poll Mikrotik routers for active users and sync every 10 minutes (offset by 7)
+// Poll Mikrotik routers for active users and sync every minute
 Schedule::command('app:poll-mikrotik-users')
-    ->cron('7-59/10 * * * *')
+    ->everyMinute()
     ->withoutOverlapping()
     ->runInBackground();
 
