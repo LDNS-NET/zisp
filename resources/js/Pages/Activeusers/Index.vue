@@ -10,6 +10,10 @@ const props = defineProps({
         type: Object,
         default: () => ({ data: [] }),
     },
+    stats: {
+        type: Object,
+        default: () => ({ all: 0, hotspot: 0, pppoe: 0, static: 0 }),
+    },
     message: String,
 });
 
@@ -28,16 +32,13 @@ const refreshData = () => {
 // Filter state
 const selectedType = ref('all');
 
-// User counts by type
-const userCounts = computed(() => {
-    const users = props.activeUsers?.data || [];
-    return {
-        all: users.length,
-        hotspot: users.filter(u => u.user_type === 'hotspot').length,
-        pppoe: users.filter(u => u.user_type === 'pppoe').length,
-        static: users.filter(u => u.user_type === 'static').length,
-    };
-});
+// User counts by type (now from stats prop instead of current page data)
+const userCounts = computed(() => ({
+    all: props.stats.all,
+    hotspot: props.stats.hotspot,
+    pppoe: props.stats.pppoe,
+    static: props.stats.static,
+}));
 
 // Filtered users based on selected type
 const filteredUsers = computed(() => {
@@ -190,7 +191,7 @@ const formatSessionTime = (time) => {
                         </h3>
                         <div class="flex items-center gap-3">
                             <span class="rounded-full bg-blue-100 px-3 py-1 text-sm font-semibold text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
-                                {{ filteredUsers.length }} online
+                                {{ userCounts[selectedType] }} online
                             </span>
                             <button 
                                 @click="refreshData" 

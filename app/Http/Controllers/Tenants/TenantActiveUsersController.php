@@ -31,6 +31,26 @@ class TenantActiveUsersController extends Controller
         // Use pagination instead of limit
         $activeUsersData = $query->paginate($perPage);
 
+        // Calculate total stats across all pages
+        $stats = [
+            'all' => (clone $query)->count(),
+            'hotspot' => (clone $query)->where(function($q) {
+                $q->whereHas('user', fn($sq) => $sq->where('type', 'hotspot'))
+                  ->orWhere(function($sq) {
+                      $sq->whereNull('user_id')
+                         ->where('username', 'REGEXP', '^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$');
+                  });
+            })->count(),
+            'pppoe' => (clone $query)->where(function($q) {
+                $q->whereHas('user', fn($sq) => $sq->where('type', 'pppoe'))
+                  ->orWhere(function($sq) {
+                      $sq->whereNull('user_id')
+                         ->where('username', 'NOT REGEXP', '^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$');
+                  });
+            })->count(),
+            'static' => (clone $query)->whereHas('user', fn($sq) => $sq->where('type', 'static'))->count(),
+        ];
+
         $activeUsers = $activeUsersData->getCollection()->map(function ($session) {
             $user = $session->user;
             // Determine type
@@ -61,6 +81,7 @@ class TenantActiveUsersController extends Controller
 
         return Inertia::render('Activeusers/Index', [
             'activeUsers' => $activeUsersData,
+            'stats' => $stats,
         ]);
     }
 }
