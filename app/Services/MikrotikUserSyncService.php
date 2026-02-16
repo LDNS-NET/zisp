@@ -58,13 +58,6 @@ class MikrotikUserSyncService
         $updated = 0;
         
         if (!empty($usersToMarkOnline)) {
-            // Mark online in NetworkUser (if not already)
-            $count = NetworkUser::where('tenant_id', $tenantId)
-                ->whereIn(\DB::raw('lower(trim(username))'), $usersToMarkOnline)
-                ->where('online', false)
-                ->update(['online' => true]);
-            $updated += $count;
-
             // Update session records for this router
             foreach ($usersToMarkOnline as $username) {
                 $data = $activeSessions[$username];
@@ -81,28 +74,10 @@ class MikrotikUserSyncService
         }
 
         if (!empty($usersToMarkOffline)) {
-            // Deactivate session records for this router
             TenantActiveUsers::where('tenant_id', $tenantId)
                 ->where('router_id', $router->id)
                 ->whereIn(\DB::raw('lower(trim(username))'), $usersToMarkOffline)
                 ->update(['status' => 'deactivated', 'last_seen_at' => now()]);
-
-            // For each user being marked offline on this router, 
-            // check if they are still active on ANY other router before marking them offline globally
-            foreach ($usersToMarkOffline as $username) {
-                $stillActiveElsewhere = TenantActiveUsers::where('tenant_id', $tenantId)
-                    ->where('username', $username)
-                    ->where('status', 'active')
-                    ->exists();
-                
-                if (!$stillActiveElsewhere) {
-                    NetworkUser::where('tenant_id', $tenantId)
-                        ->where(\DB::raw('lower(trim(username))'), $username)
-                        ->where('online', true)
-                        ->update(['online' => false]);
-                    $updated++;
-                }
-            }
         }
 
         Log::info("Mikrotik sync optimized for router {$router->id}: {$updated} status changes", [

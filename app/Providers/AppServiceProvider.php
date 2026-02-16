@@ -57,6 +57,7 @@ class AppServiceProvider extends ServiceProvider
 
         // Register model observers
         \App\Models\Tenants\TenantMikrotik::observe(\App\Observers\TenantMikrotikObserver::class);
+        \App\Models\Tenants\TenantActiveUsers::observe(\App\Observers\TenantActiveUsersObserver::class);
 
         // Load System Settings
         try {

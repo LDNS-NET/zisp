@@ -45,11 +45,6 @@ Schedule::command('app:cleanup-stale-sessions')
     ->withoutOverlapping()
     ->runInBackground();
 
-// Sync online flags from tenant_active_sessions to network_users
-Schedule::command('app:sync-online-status')
-    ->everyTenMinutes()
-    ->withoutOverlapping()
-    ->runInBackground();  
 
     // Process pending user upgrades every 10 minutes (offset by 6)
 Schedule::command('network:process-upgrades')
