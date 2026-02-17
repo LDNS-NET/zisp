@@ -110,6 +110,7 @@ class TenantTicketController extends Controller
      */
     public function destroy(TenantTickets $ticket)
     {
+        $this->authorizeAccess($ticket);
         $ticket->delete();
 
         return redirect()->route('tickets.index')->with('success', 'Ticket deleted successfully.');
@@ -158,4 +159,10 @@ class TenantTicketController extends Controller
         return back()->with('success', 'Ticket resolved');
     }
 
+    protected function authorizeAccess(TenantTickets $ticket): void
+    {
+        if ($ticket->created_by !== auth()->id()) {
+            abort(403, 'Unauthorized. You do not own this ticket.');
+        }
+    }
 }

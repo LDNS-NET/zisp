@@ -150,7 +150,7 @@ watch(search, (value) => {
             { search: value, status: props.statusFilter },
             { preserveState: true, preserveScroll: true, replace: true }
         );
-    }, 300);
+    }, 500);
 });
 
 //bulk delete

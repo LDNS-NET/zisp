@@ -72,7 +72,7 @@ watch(search, debounce((value) => {
         preserveScroll: true, 
         replace: true 
     });
-}, 300));
+}, 500));
 
 watch(selectAllLogs, (val) => {
     if (val) {
