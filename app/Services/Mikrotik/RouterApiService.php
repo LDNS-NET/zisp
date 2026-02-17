@@ -471,7 +471,7 @@ class RouterApiService
                 'pass' => $password,
                 'port' => $this->mikrotik->api_port ?? 8728,
                 'ssl' => $this->mikrotik->use_ssl ?? false,
-                'timeout' => 3, // 3 second timeout as per requirements
+                'timeout' => 10, // Increased from 3 to 10 second timeout for stability
                 'attempts' => 1,
             ];
 

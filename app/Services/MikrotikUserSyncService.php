@@ -20,6 +20,16 @@ class MikrotikUserSyncService
     public function syncActiveUsers(TenantMikrotik $router)
     {
         $activeSessions = $this->fetchActiveSessionsFromMikrotik($router);
+        
+        if ($activeSessions === null) {
+            Log::warning("Skipping active user sync for router {$router->id} due to connection issue.");
+            return [
+                'synced' => 0,
+                'online' => [],
+                'offline' => [],
+            ];
+        }
+
         $tenantId = $router->tenant_id;
         
         // Extract usernames for the diff logic
@@ -72,6 +82,7 @@ class MikrotikUserSyncService
             TenantActiveUsers::where('tenant_id', $tenantId)
                 ->where('router_id', $router->id)
                 ->whereIn(\DB::raw('lower(trim(username))'), $usersToMarkOffline)
+                ->where('last_seen_at', '<', now()->subMinutes(5)) // Implementation of deactivation grace period
                 ->update(['status' => 'deactivated', 'last_seen_at' => now()]);
         }
 
@@ -100,7 +111,7 @@ class MikrotikUserSyncService
             // Check if router is reachable
             if (!$apiService->isOnline()) {
                 Log::warning("Mikrotik router offline", ['router_id' => $router->id]);
-                return [];
+                return null;
             }
 
             $sessions = [];
@@ -138,7 +149,7 @@ class MikrotikUserSyncService
                 'router_id' => $router->id,
                 'error' => $e->getMessage(),
             ]);
-            return [];
+            return null;
         }
     }
 }
