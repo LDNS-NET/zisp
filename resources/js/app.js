@@ -81,10 +81,14 @@ createInertiaApp({
         vueApp.mount(el);
 
         // Remove initial loader with fade out
-        const loader = document.getElementById('app-loader');
-        if (loader) {
-            loader.style.opacity = '0';
-            setTimeout(() => loader.remove(), 500);
+        if (typeof window.removeAppLoader === 'function') {
+            window.removeAppLoader();
+        } else {
+            const loader = document.getElementById('app-loader');
+            if (loader) {
+                loader.style.opacity = '0';
+                setTimeout(() => loader.remove(), 500);
+            }
         }
     },
     progress: {

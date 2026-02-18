@@ -124,5 +124,42 @@
             <div class="loader-text">Loading ZimaRadius</div>
         </div>
     </div>
+
+    <script>
+        // Safety Fallback: Remove loader if app fails to load or on global errors
+        (function() {
+            const loader = document.getElementById('app-loader');
+            if (!loader) return;
+
+            const removeLoader = () => {
+                if (loader.parentNode) {
+                    loader.style.opacity = '0';
+                    setTimeout(() => loader.remove(), 600);
+                    // Cleanup listeners
+                    window.removeEventListener('error', handleError);
+                    window.removeEventListener('unhandledrejection', handleError);
+                    clearTimeout(safetyTimeout);
+                }
+            };
+
+            const handleError = (error) => {
+                console.warn('App initialization encountered an issue, removing loader.', error);
+                removeLoader();
+            };
+
+            // Global error listeners
+            window.addEventListener('error', handleError);
+            window.addEventListener('unhandledrejection', handleError);
+
+            // Safety timeout: 15 seconds max for initial load
+            const safetyTimeout = setTimeout(() => {
+                console.warn('App load timed out, forcing loader removal.');
+                removeLoader();
+            }, 15000);
+
+            // Expose for app.js to call if needed
+            window.removeAppLoader = removeLoader;
+        })();
+    </script>
     @inertia
 </html>
