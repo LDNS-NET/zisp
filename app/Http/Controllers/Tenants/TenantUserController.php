@@ -776,6 +776,110 @@ class TenantUserController extends Controller
         }
     }
 
+    public function updateFromCsv(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:csv,txt|max:5120',
+        ]);
+
+        set_time_limit(600);
+        ini_set('memory_limit', '512M');
+
+        $file = $request->file('file');
+        $path = $file->getRealPath();
+        
+        $handle = fopen($path, 'r');
+        if (!$handle) {
+            return back()->withErrors(['error' => 'Could not read file']);
+        }
+
+        $header = fgetcsv($handle);
+        if (!$header) {
+            fclose($handle);
+            return back()->withErrors(['error' => 'File is empty']);
+        }
+
+        $header = array_map(function($h) {
+            return strtolower(trim($h));
+        }, $header);
+        
+        $rows = [];
+        while (($row = fgetcsv($handle)) !== false) {
+            if (count($row) < 1 || (count($row) === 1 && empty($row[0]))) {
+                continue;
+            }
+            $assocRow = [];
+            foreach ($header as $index => $key) {
+                $assocRow[$key] = isset($row[$index]) ? trim($row[$index]) : '';
+            }
+            $rows[] = $assocRow;
+        }
+        fclose($handle);
+
+        // Required column for update is full_name
+        if (!empty($rows) && !isset($rows[0]['full_name'])) {
+            return back()->withErrors(['error' => 'Missing required column: full_name']);
+        }
+
+        $updateCount = 0;
+        $errorCount = 0;
+        $errors = [];
+        $rowNumber = 1; // Header was row 0
+
+        \DB::connection()->disableQueryLog();
+
+        foreach ($rows as $row) {
+            $rowNumber++;
+            $fullName = $row['full_name'] ?? '';
+            $phone = $row['phone'] ?? '';
+
+            if (empty($fullName)) {
+                $errors[] = "Row $rowNumber: Full Name is required";
+                $errorCount++;
+                continue;
+            }
+
+            $user = NetworkUser::where('full_name', $fullName)->first();
+            if (!$user) {
+                $errors[] = "Row $rowNumber: User not found for name '$fullName'";
+                $errorCount++;
+                continue;
+            }
+
+            try {
+                \DB::beginTransaction();
+                
+                $dataToUpdate = [];
+                if (!empty($phone)) {
+                    $dataToUpdate['phone'] = $phone;
+                    // Auto-update account number using the normalized phone number
+                    $dataToUpdate['account_number'] = NetworkUser::normalizePhoneNumber($phone);
+                }
+
+                if (!empty($dataToUpdate)) {
+                    $user->update($dataToUpdate);
+                    $updateCount++;
+                }
+
+                \DB::commit();
+            } catch (\Exception $e) {
+                \DB::rollBack();
+                $errors[] = "Row $rowNumber ($fullName): " . $e->getMessage();
+                $errorCount++;
+            }
+        }
+
+        $message = "CSV Update completed: $updateCount users updated.";
+        if ($errorCount > 0) {
+            $message .= " $errorCount rows had errors or were not found.";
+        }
+
+        return back()->with([
+            'success' => $message,
+            'update_errors' => array_slice($errors, 0, 50)
+        ]);
+    }
+
     /**
      * Sync all users to RADIUS database tables
      */

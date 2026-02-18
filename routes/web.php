@@ -274,6 +274,9 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode', 'sta
             Route::post('/users/import', [TenantUserController::class, 'import'])
                 ->middleware('throttle:bulk_actions')
                 ->name('users.import');
+            Route::post('/users/update-from-csv', [TenantUserController::class, 'updateFromCsv'])
+                ->middleware('throttle:bulk_actions')
+                ->name('users.update-from-csv');
             Route::post('/users/sync-to-radius', [TenantUserController::class, 'syncToRadius'])
                 ->middleware('throttle:bulk_actions')
                 ->name('users.sync-to-radius');

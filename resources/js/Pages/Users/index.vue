@@ -46,6 +46,7 @@ const props = defineProps({
 
 const showModal = ref(false);
 const showImportModal = ref(false);
+const showUpdateModal = ref(false);
 const showPasswordModal = ref(false); // Password confirmation modal
 const editing = ref(null);
 const viewing = ref(null);
@@ -70,6 +71,10 @@ const passwordForm = useForm({
 });
 
 const importForm = useForm({
+    file: null,
+});
+
+const updateForm = useForm({
     file: null,
 });
 
@@ -173,6 +178,44 @@ function submitImport() {
         },
         forceFormData: true,
     });
+}
+
+function openUpdate() {
+    updateForm.reset();
+    showUpdateModal.value = true;
+}
+
+function submitUpdate() {
+    updateForm.post(route('users.update-from-csv'), {
+        onSuccess: (page) => {
+            showUpdateModal.value = false;
+            updateForm.reset();
+            toast.success('Update process completed');
+            
+            if (page.props.flash?.update_errors && page.props.flash.update_errors.length > 0) {
+                 toast.warning(`Some rows had errors. Check the success message.`);
+            }
+        },
+        onError: () => {
+            toast.error('Failed to update users from CSV.');
+        },
+        forceFormData: true,
+    });
+}
+
+function downloadUpdateSample() {
+    const csvContent = "full_name,phone,account_no\nJohn Doe,0712345678,ACC001\nJane Smith,0723456789,ACC002";
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    if (link.download !== undefined) {
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", "users_update_sample.csv");
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
 }
 
 function downloadSample(format = 'csv') {
@@ -383,6 +426,13 @@ const openActions = (user) => {
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                         </svg>
                         <span>{{ syncingToRadius ? 'Syncing...' : 'Sync to RADIUS' }}</span>
+                    </button>
+                    <button 
+                        @click="openUpdate"
+                        class="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-slate-600 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    >
+                        <FileText class="w-4 h-4" />
+                        <span>Update Users</span>
                     </button>
                     <button 
                         @click="openImport"
@@ -839,6 +889,103 @@ const openActions = (user) => {
                 </form>
             </div>
         </Modal>
+
+        <!-- CSV Update Modal -->
+        <Modal :show="showUpdateModal" @close="showUpdateModal = false">
+            <div class="p-6 dark:bg-slate-800 dark:text-white">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-white">
+                        Update Users (CSV)
+                    </h3>
+                    <button @click="showUpdateModal = false" class="text-gray-400 hover:text-gray-500 focus:outline-none">
+                        <span class="sr-only">Close</span>
+                        <XCircle class="w-6 h-6" />
+                    </button>
+                </div>
+
+                <div class="mb-6 bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-400 p-4 rounded-r-md">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <AlertCircle class="h-5 w-5 text-blue-400" />
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm text-blue-700 dark:text-blue-300">
+                                Upload a CSV file to update existing users. <br>
+                                Required columns: <span class="font-mono text-xs">full_name, phone</span> <br>
+                                <span class="text-xs italic">* Account number will be automatically updated from the phone number.</span>
+                            </p>
+                            <div class="mt-2 flex gap-3">
+                                <button 
+                                    type="button" 
+                                    @click="downloadUpdateSample" 
+                                    class="text-sm font-medium text-blue-700 dark:text-blue-300 underline hover:text-blue-600"
+                                >
+                                    📄 Download Update Sample
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <form @submit.prevent="submitUpdate" class="space-y-4">
+                    <div class="space-y-2">
+                        <InputLabel for="update_file" value="Select CSV File" />
+                        <div class="relative border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-lg p-6 hover:border-blue-500 dark:hover:border-blue-500 transition-colors text-center cursor-pointer"
+                             @dragover.prevent
+                             @drop.prevent="(e) => updateForm.file = e.dataTransfer.files[0]">
+                            
+                            <input 
+                                type="file" 
+                                id="update_file" 
+                                accept=".csv,.txt"
+                                class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                @change="(e) => updateForm.file = e.target.files[0]"
+                            />
+                            
+                            <div class="space-y-2" v-if="!updateForm.file">
+                                <Upload class="mx-auto h-10 w-10 text-gray-400" />
+                                <div class="text-sm text-gray-600 dark:text-gray-400">
+                                    <span class="font-medium text-blue-600 hover:text-blue-500">Click to upload</span> or drag and drop
+                                </div>
+                                <p class="text-xs text-gray-500">CSV or TXT up to 5MB</p>
+                            </div>
+                            
+                            <div v-else class="flex items-center justify-center gap-3">
+                                <FileText class="h-8 w-8 text-blue-500" />
+                                <div class="text-left">
+                                    <p class="text-sm font-medium text-gray-900 dark:text-white">{{ updateForm.file.name }}</p>
+                                    <p class="text-xs text-gray-500">{{ (updateForm.file.size / 1024).toFixed(1) }} KB</p>
+                                </div>
+                                <button type="button" @click.stop="updateForm.file = null" class="p-1 hover:bg-gray-200 dark:hover:bg-slate-700 rounded-full">
+                                    <XCircle class="w-5 h-5 text-gray-500" />
+                                </button>
+                            </div>
+                        </div>
+                        <InputError :message="updateForm.errors.file" />
+                    </div>
+
+                    <!-- Update Errors Display -->
+                    <div v-if="$page.props.flash.update_errors && $page.props.flash.update_errors.length > 0" class="mt-4 p-4 bg-red-50 dark:bg-red-900/20 rounded-md">
+                         <h4 class="text-sm font-medium text-red-800 dark:text-red-300 mb-2">Update Warnings/Errors</h4>
+                         <ul class="list-disc pl-5 text-xs text-red-700 dark:text-red-400 max-h-32 overflow-y-auto">
+                             <li v-for="(err, idx) in $page.props.flash.update_errors" :key="idx">{{ err }}</li>
+                         </ul>
+                    </div>
+                
+                    <div class="mt-6 flex justify-end gap-3">
+                        <DangerButton type="button" @click="showUpdateModal = false">Cancel</DangerButton>
+                        <PrimaryButton 
+                            :disabled="updateForm.processing || !updateForm.file"
+                            :class="{ 'opacity-25': updateForm.processing || !updateForm.file }"
+                        >
+                            <span v-if="updateForm.processing">Updating...</span>
+                            <span v-else>Start Update</span>
+                        </PrimaryButton>
+                    </div>
+                </form>
+            </div>
+        </Modal>
+
         <!-- Password Confirmation Modal -->
         <Modal :show="showPasswordModal" @close="showPasswordModal = false">
             <div class="p-6 dark:bg-slate-800 dark:text-white">
