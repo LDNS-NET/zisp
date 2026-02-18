@@ -18,18 +18,33 @@ class TenantActiveUsersController extends Controller
         $perPage = (int) ($request->input('per_page', 50));
         
         // Fetch active users from local database (synced via background job or RADIUS)
-        $query = \App\Models\Tenants\TenantActiveUsers::with(['user.package', 'router'])
+        $query = \App\Models\Tenants\TenantActiveUsers::with(['user:id,account_number,full_name,username,type', 'user.package', 'router'])
             ->where('status', 'active')
-            ->where('last_seen_at', '>', now()->subHours(24))
-            ->orderBy('last_seen_at', 'desc');
+            ->where('last_seen_at', '>', now()->subHours(24));
+
+        // Search filtering
+        if ($search = $request->input('search')) {
+            $query->where(function($q) use ($search) {
+                $q->where('username', 'like', "%{$search}%")
+                  ->orWhere('ip_address', 'like', "%{$search}%")
+                  ->orWhere('mac_address', 'like', "%{$search}%")
+                  ->orWhereHas('user', function($sq) use ($search) {
+                      $sq->where('full_name', 'like', "%{$search}%")
+                        ->orWhere('username', 'like', "%{$search}%")
+                        ->orWhere('account_number', 'like', "%{$search}%");
+                  });
+            });
+        }
 
         // Optional: Filter by router if needed
         if ($request->has('router_id')) {
             $query->where('router_id', $request->input('router_id'));
         }
 
+        $query->orderBy('last_seen_at', 'desc');
+
         // Use pagination instead of limit
-        $activeUsersData = $query->paginate($perPage);
+        $activeUsersData = $query->paginate($perPage)->withQueryString();
 
         // Calculate total stats across all pages
         $stats = [
@@ -65,6 +80,8 @@ class TenantActiveUsersController extends Controller
 
             return [
                 'username' => $user->username ?? $session->username ?? $session->ip_address, // Fallback for static
+                'full_name' => $user->full_name ?? 'N/A',
+                'account_number' => $user->account_number ?? 'N/A',
                 'user_type' => $type,
                 'ip' => $session->ip_address,
                 'mac' => $session->mac_address,

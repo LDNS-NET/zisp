@@ -49,14 +49,22 @@ class MikrotikUserSyncService
         $usersToMarkOnline = array_diff($currentOnline, $previouslyOnlineOnRouter);
         $usersToMarkOffline = array_diff($previouslyOnlineOnRouter, $currentOnline);
 
-        // Update EXISTING online sessions (refresh last_seen_at in bulk for performance)
+        // Update EXISTING online sessions (refresh last_seen_at and usage in bulk for performance)
         $usersStillOnline = array_intersect($currentOnline, $previouslyOnlineOnRouter);
         if (!empty($usersStillOnline)) {
-            TenantActiveUsers::where('tenant_id', $tenantId)
-                ->where('router_id', $router->id)
-                ->where('status', 'active')
-                ->whereIn(\DB::raw('lower(trim(username))'), $usersStillOnline)
-                ->update(['last_seen_at' => now()]);
+            // We need to update usage per user as they differ
+            foreach ($usersStillOnline as $username) {
+                $data = $activeSessions[$username];
+                TenantActiveUsers::where('tenant_id', $tenantId)
+                    ->where('router_id', $router->id)
+                    ->where('status', 'active')
+                    ->where(\DB::raw('lower(trim(username))'), $username)
+                    ->update([
+                        'last_seen_at' => now(),
+                        'bytes_in' => $data['bytes_in'] ?? 0,
+                        'bytes_out' => $data['bytes_out'] ?? 0,
+                    ]);
+            }
         }
 
         // Only update status changed records
@@ -72,6 +80,8 @@ class MikrotikUserSyncService
                         'status' => 'active', 
                         'mac_address' => $data['mac_address'] ?? null,
                         'ip_address' => $data['ip_address'] ?? null,
+                        'bytes_in' => $data['bytes_in'] ?? 0,
+                        'bytes_out' => $data['bytes_out'] ?? 0,
                         'last_seen_at' => now()
                     ]
                 );
@@ -124,6 +134,8 @@ class MikrotikUserSyncService
                     $sessions[strtolower(trim($username))] = [
                         'mac_address' => $user['mac-address'] ?? null,
                         'ip_address' => $user['address'] ?? null,
+                        'bytes_in' => (int) ($user['bytes-in'] ?? 0),
+                        'bytes_out' => (int) ($user['bytes-out'] ?? 0),
                     ];
                 }
             }
@@ -138,6 +150,8 @@ class MikrotikUserSyncService
                         $sessions[$username] = [
                             'mac_address' => $user['caller-id'] ?? null,
                             'ip_address' => $user['address'] ?? null,
+                            'bytes_in' => (int) ($user['bytes-in'] ?? 0),
+                            'bytes_out' => (int) ($user['bytes-out'] ?? 0),
                         ];
                     }
                 }

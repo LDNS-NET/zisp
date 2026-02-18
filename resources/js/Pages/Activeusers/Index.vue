@@ -3,7 +3,7 @@ import { ref, computed } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Pagination from '@/Components/Pagination.vue';
-import { Activity, Users, Wifi, Network, Clock, User, MapPin, RefreshCw } from 'lucide-vue-next';
+import { Activity, Users, Wifi, Network, Clock, User, MapPin, RefreshCw, Search } from 'lucide-vue-next';
 
 const props = defineProps({
     activeUsers: {
@@ -15,7 +15,25 @@ const props = defineProps({
         default: () => ({ all: 0, hotspot: 0, pppoe: 0, static: 0 }),
     },
     message: String,
+    filters: {
+        type: Object,
+        default: () => ({ search: '' })
+    }
 });
+
+const search = ref(props.filters.search || '');
+
+// Search logic
+const handleSearch = () => {
+    router.get(route('active-users.index'), { 
+        search: search.value,
+        // router_id can be added here if we had a router filter
+    }, {
+        preserveState: true,
+        replace: true,
+        preserveScroll: true,
+    });
+};
 
 // Refresh logic
 const isRefreshing = ref(false);
@@ -204,6 +222,22 @@ const formatSessionTime = (time) => {
                         </div>
                     </div>
 
+                    <!-- Search Bar -->
+                    <div class="mb-6">
+                        <div class="relative max-w-md">
+                            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                <Search class="h-4 w-4 text-gray-400" />
+                            </div>
+                            <input
+                                v-model="search"
+                                type="text"
+                                @input="handleSearch"
+                                placeholder="Search by name, username, IP or account #..."
+                                class="block w-full rounded-xl border-gray-300 pl-10 text-sm focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:placeholder-gray-400"
+                            />
+                        </div>
+                    </div>
+
                     <!-- Message if no Mikrotik -->
                     <div v-if="message" class="rounded-lg bg-yellow-50 p-4 dark:bg-yellow-900/20">
                         <p class="text-sm text-yellow-800 dark:text-yellow-200">{{ message }}</p>
@@ -222,6 +256,9 @@ const formatSessionTime = (time) => {
                                     </th>
                                     <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
                                         Type
+                                    </th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                                        Account #
                                     </th>
                                     <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
                                         IP Address
@@ -244,8 +281,13 @@ const formatSessionTime = (time) => {
                                             <div class="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30">
                                                 <User class="h-5 w-5 text-blue-600 dark:text-blue-400" />
                                             </div>
-                                            <div class="font-medium text-gray-900 dark:text-white">
-                                                {{ user.username || 'Unknown' }}
+                                            <div>
+                                                <div class="font-medium text-gray-900 dark:text-white">
+                                                    {{ user.username || 'Unknown' }}
+                                                </div>
+                                                <div class="text-xs text-gray-500 dark:text-gray-400">
+                                                    {{ user.full_name }}
+                                                </div>
                                             </div>
                                         </div>
                                     </td>
@@ -257,6 +299,9 @@ const formatSessionTime = (time) => {
                                         }" class="inline-flex rounded-full px-3 py-1 text-xs font-semibold">
                                             {{ user.user_type }}
                                         </span>
+                                    </td>
+                                    <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-300">
+                                        {{ user.account_number || 'N/A' }}
                                     </td>
                                     <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-900 dark:text-gray-300">
                                         {{ user.ip || 'N/A' }}
