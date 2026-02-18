@@ -76,43 +76,16 @@ class SendExpiryWarningNotifications extends Command
 
             $smsLog = TenantSMS::create([
                 'tenant_id' => $user->tenant_id,
-                'tenant_id' => $user->tenant_id,
                 'recipient_name' => ($user->full_name ?: $user->username) ?: 'Customer',
                 'phone_number' => $user->phone ?? $user->phone_number ?? null,
                 'message' => $message,
                 'status' => 'pending',
             ]);
 
-            $message = $template->content;
-            foreach ($replacements as $key => $value) {
-                $message = str_replace($key, $value, $message);
-            }
-            
-            $smsLog = TenantSMS::create([
-                'tenant_id' => $user->tenant_id,
-                'recipient_name' => ($user->full_name ?: $user->username) ?: 'Customer',
-                'phone_number' => $user->phone ?? $user->phone_number ?? null,
-                'message' => $message,
-                'status' => 'pending',
-            ]);
-            
             $phoneNumbers = preg_replace('/^0/', '254', trim($user->phone ?? $user->phone_number ?? ''));
 
-            // Send via SmsGatewayService
-            $smsGatewayService = app(\App\Services\SmsGatewayService::class);
-            $result = $smsGatewayService->sendSMS($user->tenant_id, $phoneNumbers, $message);
-
-            if ($result['success']) {
-                $smsLog->update([
-                    'status' => 'sent',
-                    'sent_at' => now(),
-                ]);
-            } else {
-                $smsLog->update([
-                    'status' => 'failed',
-                    'error_message' => $result['message'] ?? 'Unknown error',
-                ]);
-            }
+            // Dispatch background job
+            \App\Jobs\SendSmsJob::dispatch($smsLog, $phoneNumbers, $message);
 
             $user->expiry_warning_sent_at = now();
             $user->save();
