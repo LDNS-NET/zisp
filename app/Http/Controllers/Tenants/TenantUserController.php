@@ -888,7 +888,7 @@ class TenantUserController extends Controller
         try {
             set_time_limit(600); // 10 minutes for large user bases
             
-            $users = NetworkUser::with(['package', 'hotspotPackage'])->get();
+            $users = NetworkUser::with(['package', 'hotspotPackage', 'devices'])->get();
             $syncedCount = 0;
             $failedCount = 0;
             $errors = [];
@@ -976,12 +976,26 @@ class TenantUserController extends Controller
                         ]);
                     }
 
-                    // 7. MAC-Auth for hotspot users
-                    if ($user->type === 'hotspot' && !empty($user->mac_address)) {
-                        \App\Models\Radius\Radcheck::updateOrCreate(
-                            ['username' => $user->mac_address, 'attribute' => 'Cleartext-Password'],
-                            ['op' => ':=', 'value' => $user->mac_address]
-                        );
+                    // 7. MAC-Auth for hotspot users (Primary and linked devices)
+                    if ($user->type === 'hotspot') {
+                        if (!empty($user->mac_address)) {
+                            \App\Models\Radius\Radcheck::updateOrCreate(
+                                ['username' => $user->mac_address, 'attribute' => 'Cleartext-Password'],
+                                ['op' => ':=', 'value' => $user->mac_address]
+                            );
+                        }
+
+                        foreach ($user->devices as $device) {
+                            if (!empty($device->mac_address)) {
+                                \App\Models\Radius\Radcheck::updateOrCreate(
+                                    [
+                                        'username' => $device->mac_address, 
+                                        'attribute' => 'Cleartext-Password'
+                                    ],
+                                    ['op' => ':=', 'value' => $device->mac_address]
+                                );
+                            }
+                        }
                     }
 
                     \DB::commit();

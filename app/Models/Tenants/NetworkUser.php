@@ -86,6 +86,11 @@ class NetworkUser extends Authenticatable
         return $this->belongsTo(\App\Models\Tenant::class, 'tenant_id');
     }
 
+    public function devices()
+    {
+        return $this->hasMany(\App\Models\Tenants\TenantDevice::class, 'subscriber_id');
+    }
+
     public static function generateHotspotUsername($tenantId)
     {
         $tenant = \App\Models\Tenant::find($tenantId);
@@ -375,12 +380,26 @@ class NetworkUser extends Authenticatable
                     ]);
                 }
 
-                // MAC-Auth synchronization
-                if ($user->type === 'hotspot' && !empty($user->mac_address)) {
-                    Radcheck::updateOrCreate(
-                        ['username' => $user->mac_address, 'attribute' => 'Cleartext-Password'],
-                        ['op' => ':=', 'value' => $user->mac_address]
-                    );
+                // MAC-Auth synchronization (Primary and linked devices)
+                if ($user->type === 'hotspot') {
+                    if (!empty($user->mac_address)) {
+                        Radcheck::updateOrCreate(
+                            ['username' => $user->mac_address, 'attribute' => 'Cleartext-Password'],
+                            ['op' => ':=', 'value' => $user->mac_address]
+                        );
+                    }
+
+                    foreach ($user->devices as $device) {
+                        if (!empty($device->mac_address)) {
+                            Radcheck::updateOrCreate(
+                                [
+                                    'username' => $device->mac_address, 
+                                    'attribute' => 'Cleartext-Password'
+                                ],
+                                ['op' => ':=', 'value' => $device->mac_address]
+                            );
+                        }
+                    }
                 }
 
                 // Group (Only for non-hotspot or if specifically needed)
@@ -462,12 +481,27 @@ class NetworkUser extends Authenticatable
                     Radcheck::where('username', $user->username)->where('attribute', 'Expiration')->delete();
                 }
 
-                // MAC-Auth synchronization
-                if ($user->type === 'hotspot' && !empty($user->mac_address)) {
-                    Radcheck::updateOrCreate(
-                        ['username' => $user->mac_address, 'attribute' => 'Cleartext-Password'],
-                        ['op' => ':=', 'value' => $user->mac_address]
-                    );
+                // MAC-Auth synchronization (Primary and linked devices)
+                if ($user->type === 'hotspot') {
+                    if (!empty($user->mac_address)) {
+                        Radcheck::updateOrCreate(
+                            ['username' => $user->mac_address, 'attribute' => 'Cleartext-Password'],
+                            ['op' => ':=', 'value' => $user->mac_address]
+                        );
+                    }
+
+                    $user->load('devices');
+                    foreach ($user->devices as $device) {
+                        if (!empty($device->mac_address)) {
+                            Radcheck::updateOrCreate(
+                                [
+                                    'username' => $device->mac_address, 
+                                    'attribute' => 'Cleartext-Password'
+                                ],
+                                ['op' => ':=', 'value' => $device->mac_address]
+                            );
+                        }
+                    }
                 }
 
                 // Cleanup old Access-Period if it exists

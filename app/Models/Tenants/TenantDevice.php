@@ -44,6 +44,30 @@ class TenantDevice extends Model
                 }
             }
         });
+
+        static::created(function ($device) {
+            if ($device->subscriber) {
+                $device->subscriber->touch(); // Trigger NetworkUser updated event
+            }
+        });
+
+        static::updated(function ($device) {
+            if ($device->isDirty('mac_address') && $device->subscriber) {
+                $device->subscriber->touch(); // Trigger NetworkUser updated event
+            }
+        });
+
+        static::deleted(function ($device) {
+            if ($device->subscriber) {
+                // When a device is deleted, we should ideally remove it from Radcheck
+                if ($device->mac_address) {
+                    \App\Models\Radius\Radcheck::where('username', $device->mac_address)
+                        ->where('attribute', 'Cleartext-Password')
+                        ->delete();
+                }
+                $device->subscriber->touch();
+            }
+        });
     }
 
     public function subscriber(): BelongsTo
