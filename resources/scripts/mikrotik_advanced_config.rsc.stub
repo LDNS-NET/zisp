@@ -153,7 +153,7 @@
 
 
 :put " =================== Creating PPPoE profile =================== "
-/ppp profile add dns-server=8.8.8.8,8.8.4.4 local-address=$poolName name=$pppoeProfile remote-address=$poolName change-mss=yes
+/ppp profile add dns-server=8.8.8.8,8.8.4.4 local-address=$poolName name=$pppoeProfile remote-address=$poolName change-tcp-mss=yes
 :put " =================== PPPoE profile created =================== "
 
 
