@@ -80,3 +80,9 @@ Schedule::command('quickbooks:sync')
 Schedule::job(new \App\Jobs\SyncGenieACSDevicesJob)
     ->everyTwoMinutes()
     ->withoutOverlapping();
+
+// Sync NetworkUser online status from active sessions
+Schedule::command('app:sync-online-status')
+    ->everyTwoMinutes()
+    ->withoutOverlapping()
+    ->runInBackground();

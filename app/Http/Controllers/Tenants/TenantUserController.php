@@ -77,7 +77,8 @@ class TenantUserController extends Controller
             ->values()
             ->all();
 
-        // Sync 'online' column based on this source of truth
+        // Sync 'online' column based on this source of truth - REMOVED: Handled by background job SyncOnlineStatus
+        /*
         if (!empty($activeUsernames)) {
              NetworkUser::whereIn(\DB::raw('lower(trim(username))'), $activeUsernames)
                  ->where('online', false)
@@ -92,6 +93,7 @@ class TenantUserController extends Controller
                  NetworkUser::whereIn('id', $users->pluck('id'))->update(['online' => false]);
              });
         }
+        */
 
         // Get available packages for the form
         $packages = [

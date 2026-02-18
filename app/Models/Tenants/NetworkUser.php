@@ -417,6 +417,12 @@ class NetworkUser extends Authenticatable
          *  Update RADIUS entries when user is updated
          */
         static::updated(function ($user) {
+            // If ONLY the online status changed, skip the expensive RADIUS sync
+            // This is crucial for performance when background jobs update online status
+            if ($user->wasChanged('online') && count($user->getChanges()) === 1) {
+                return;
+            }
+
             // Update password if changed
             Radcheck::updateOrCreate(
                 ['username' => $user->username, 'attribute' => 'Cleartext-Password'],
