@@ -29,11 +29,23 @@ class TenantUserController extends Controller
     {
         $type = $request->get('type', 'all');
         $search = $request->get('search');
+        $status = $request->get('status', 'all');
+        $expiry = $request->get('expiry', 'all');
+        $sort_expiry = $request->get('sort_expiry');
 
         $query = NetworkUser::query()
             ->with(['package', 'hotspotPackage'])
             ->when($type !== 'all', function ($q) use ($type) {
                 return $q->where('type', $type);
+            })
+            ->when($status === 'online', function ($q) {
+                return $q->where('online', true);
+            })
+            ->when($status === 'offline', function ($q) {
+                return $q->where('online', false);
+            })
+            ->when($expiry === 'nearing', function ($q) {
+                return $q->whereBetween('expires_at', [now(), now()->addDays(2)]);
             })
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($subQ) use ($search) {
@@ -42,8 +54,13 @@ class TenantUserController extends Controller
                         ->orWhere('phone', 'like', "%{$search}%")
                         ->orWhere('account_number', 'like', "%{$search}%");
                 });
-            })
-            ->latest();
+            });
+
+        if ($sort_expiry) {
+            $query->orderBy('expires_at', $sort_expiry);
+        } else {
+            $query->latest();
+        }
 
         $perPage = $request->get('per_page', 20);
         $users = $query->paginate($perPage);
@@ -118,6 +135,9 @@ class TenantUserController extends Controller
             'filters' => [
                 'type' => $type,
                 'search' => $search,
+                'status' => $status,
+                'expiry' => $expiry,
+                'sort_expiry' => $sort_expiry,
             ],
             'counts' => $counts,
             'packages' => $packages,

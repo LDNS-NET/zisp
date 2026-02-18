@@ -52,6 +52,9 @@ const editing = ref(null);
 const viewing = ref(null);
 const selectedFilter = ref(props.filters?.type || 'all');
 const search = ref(props.filters?.search || '');
+const selectedStatus = ref(props.filters?.status || 'all');
+const selectedExpiry = ref(props.filters?.expiry || 'all');
+const sortExpiry = ref(props.filters?.sort_expiry || '');
 
 const form = useForm({
     full_name: '',
@@ -78,29 +81,32 @@ const updateForm = useForm({
     file: null,
 });
 
-// Watchers for filters
-watch(selectedFilter, (value) => {
+// Unified filter function
+const applyFilters = () => {
     router.get(
         route('users.index'), 
-        { type: value, search: search.value }, 
-        { preserveScroll: true, preserveState: true }
+        { 
+            type: selectedFilter.value, 
+            search: search.value,
+            status: selectedStatus.value,
+            expiry: selectedExpiry.value,
+            sort_expiry: sortExpiry.value
+        }, 
+        { 
+            preserveScroll: true, 
+            preserveState: true,
+            replace: true
+        }
     );
-});
+};
+
+// Watchers for filters
+watch([selectedFilter, selectedStatus, selectedExpiry, sortExpiry], applyFilters);
 
 let searchTimeout;
 watch(search, (value) => {
     clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(() => {
-        router.get(
-            route('users.index'),
-            { type: selectedFilter.value, search: value },
-            { 
-                preserveScroll: true, 
-                preserveState: true,
-                replace: true 
-            }
-        );
-    }, 500);
+    searchTimeout = setTimeout(applyFilters, 500);
 });
 
 onMounted(() => {
@@ -413,34 +419,40 @@ const openActions = (user) => {
                     </p>
                 </div>
                 <div class="flex items-center gap-3">
-                    <button 
-                        @click="syncToRadius"
-                        :disabled="syncingToRadius"
-                        class="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-slate-600 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        <svg v-if="syncingToRadius" class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                        <span>{{ syncingToRadius ? 'Syncing...' : 'Sync to RADIUS' }}</span>
-                    </button>
-                    <button 
-                        @click="openUpdate"
-                        class="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-slate-600 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                    >
-                        <FileText class="w-4 h-4" />
-                        <span>Update Users</span>
-                    </button>
-                    <button 
-                        @click="openImport"
-                        class="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-slate-600 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                    >
-                        <Upload class="w-4 h-4" />
-                        <span>Import CSV</span>
-                    </button>
+                    <!-- Functions Dropdown -->
+                    <Dropdown align="right" width="48">
+                        <template #trigger>
+                            <button class="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-slate-600 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                <Filter class="w-4 h-4" />
+                                <span>Functions</span>
+                                <svg class="ml-2 -mr-0.5 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                        </template>
+
+                        <template #content>
+                            <button @click="syncToRadius" :disabled="syncingToRadius" class="w-full text-left block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition duration-150 ease-in-out disabled:opacity-50">
+                                <div class="flex items-center gap-2">
+                                    <Wifi class="w-4 h-4" />
+                                    <span>{{ syncingToRadius ? 'Syncing...' : 'Sync to RADIUS' }}</span>
+                                </div>
+                            </button>
+                            <button @click="openImport" class="w-full text-left block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition duration-150 ease-in-out">
+                                <div class="flex items-center gap-2">
+                                    <Upload class="w-4 h-4" />
+                                    <span>Import CSV</span>
+                                </div>
+                            </button>
+                            <button @click="openUpdate" class="w-full text-left block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition duration-150 ease-in-out">
+                                <div class="flex items-center gap-2">
+                                    <FileText class="w-4 h-4" />
+                                    <span>Update Users</span>
+                                </div>
+                            </button>
+                        </template>
+                    </Dropdown>
+
                     <PrimaryButton @click="openCreate" class="flex items-center gap-2">
                         <UserPlus class="w-4 h-4" />
                         <span>Add User</span>
@@ -456,9 +468,9 @@ const openActions = (user) => {
 
         <div class="space-y-6">
             <!-- Filters & Search -->
-            <div class="flex flex-col sm:flex-row gap-4 justify-between items-center bg-white dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm">
+            <div class="flex flex-col lg:flex-row gap-4 justify-between items-center bg-white dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm">
                 <!-- Tabs -->
-                <div class="flex p-1 space-x-1 bg-gray-100 dark:bg-slate-900 rounded-lg w-full sm:w-auto overflow-x-auto">
+                <div class="flex p-1 space-x-1 bg-gray-100 dark:bg-slate-900 rounded-lg w-full lg:w-auto overflow-x-auto">
                     <button
                         v-for="type in ['all', 'hotspot', 'pppoe', 'static']"
                         :key="type"
@@ -477,8 +489,39 @@ const openActions = (user) => {
                     </button>
                 </div>
 
+                <!-- Secondary Filters -->
+                <div class="flex items-center gap-2 w-full lg:w-auto justify-center">
+                    <select v-model="selectedStatus" class="text-xs border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                        <option value="all">All Status</option>
+                        <option value="online">Online</option>
+                        <option value="offline">Offline</option>
+                    </select>
+
+                    <button 
+                        @click="selectedExpiry = selectedExpiry === 'nearing' ? 'all' : 'nearing'"
+                        :class="[
+                            'px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors flex items-center gap-1',
+                            selectedExpiry === 'nearing'
+                                ? 'bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-900/20 dark:border-amber-800 dark:text-amber-400'
+                                : 'bg-white border-gray-300 text-gray-700 dark:bg-slate-900 dark:border-slate-600 dark:text-gray-300 hover:bg-gray-50'
+                        ]"
+                    >
+                        <AlertCircle class="w-3.5 h-3.5" />
+                        Nearing Expiry
+                    </button>
+
+                    <button 
+                        @click="sortExpiry = sortExpiry === 'asc' ? 'desc' : (sortExpiry === 'desc' ? '' : 'asc')"
+                        class="px-3 py-1.5 text-xs font-medium bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-1 transition-colors"
+                        :title="'Sort by Expiry' + (sortExpiry ? ': ' + sortExpiry : '')"
+                    >
+                        <Calendar class="w-3.5 h-3.5" />
+                        Sort {{ sortExpiry === 'asc' ? '↑' : (sortExpiry === 'desc' ? '↓' : '') }}
+                    </button>
+                </div>
+
                 <!-- Search -->
-                <div class="relative w-full sm:w-72">
+                <div class="relative w-full lg:w-64">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <Search class="h-4 w-4 text-gray-400" />
                     </div>
