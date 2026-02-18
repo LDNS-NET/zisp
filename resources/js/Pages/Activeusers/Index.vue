@@ -258,9 +258,6 @@ const formatSessionTime = (time) => {
                                         Type
                                     </th>
                                     <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                                        Account #
-                                    </th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
                                         IP Address
                                     </th>
                                     <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
@@ -285,9 +282,6 @@ const formatSessionTime = (time) => {
                                                 <div class="font-medium text-gray-900 dark:text-white">
                                                     {{ user.username || 'Unknown' }}
                                                 </div>
-                                                <div class="text-xs text-gray-500 dark:text-gray-400">
-                                                    {{ user.full_name }}
-                                                </div>
                                             </div>
                                         </div>
                                     </td>
@@ -299,9 +293,6 @@ const formatSessionTime = (time) => {
                                         }" class="inline-flex rounded-full px-3 py-1 text-xs font-semibold">
                                             {{ user.user_type }}
                                         </span>
-                                    </td>
-                                    <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-300">
-                                        {{ user.account_number || 'N/A' }}
                                     </td>
                                     <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-900 dark:text-gray-300">
                                         {{ user.ip || 'N/A' }}
