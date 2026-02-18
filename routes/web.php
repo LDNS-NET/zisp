@@ -401,6 +401,8 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode', 'sta
             Route::resource('sms', TenantSMSController::class)
                 ->only(['index', 'create', 'store', 'destroy'])
                 ->middleware('throttle:sms_sending');
+            Route::post('/sms/resend-failed', [TenantSMSController::class, 'resendFailed'])
+                ->name('sms.resend-failed');
             Route::delete('/sms/bulk-delete', [TenantSMSController::class, 'bulkDelete'])
                 ->middleware('throttle:bulk_actions')
                 ->name('sms.bulk-delete');

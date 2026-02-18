@@ -12,6 +12,9 @@ import Modal from '@/Components/Modal.vue';
 import Pagination from '@/Components/Pagination.vue';
 import { useToast } from 'vue-toastification';
 import debounce from 'lodash/debounce';
+import Dropdown from '@/Components/Dropdown.vue';
+import DropdownLink from '@/Components/DropdownLink.vue';
+import { ChevronDown } from 'lucide-vue-next';
 
 const props = defineProps({
     smsLogs: Object,
@@ -63,6 +66,10 @@ const form = useForm({
         search: '',
     },
     message: '',
+});
+
+const resendForm = useForm({
+    duration: '',
 });
 
 // --- Watchers ---
@@ -128,6 +135,20 @@ const sendSms = () => {
         onError: () => {
             toast.error('Failed to start campaign. Please check inputs.');
         },
+    });
+};
+
+const resendFailed = (duration) => {
+    if (!confirm(`Resend failed/stuck messages from the last ${duration}?`)) return;
+    
+    resendForm.duration = duration;
+    resendForm.post(route('sms.resend-failed'), {
+        onSuccess: () => {
+            toast.success('Messages have been requeued for resending.');
+        },
+        onError: () => {
+            toast.error('Failed to initiate resending.');
+        }
     });
 };
 
@@ -204,6 +225,26 @@ const formatDate = (date) => {
                             Delete ({{ selectedLogs.length }})
                         </button>
 
+                        <Dropdown align="right" width="48">
+                            <template #trigger>
+                                <button class="flex items-center px-4 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                    <RefreshCw class="w-4 h-4 mr-2" />
+                                    Resend Failed
+                                    <ChevronDown class="w-4 h-4 ml-2" />
+                                </button>
+                            </template>
+                            <template #content>
+                                <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-100 dark:border-gray-700">
+                                    Select Duration
+                                </div>
+                                <DropdownLink @click="resendFailed('1h')" as="button">Last 1 Hour</DropdownLink>
+                                <DropdownLink @click="resendFailed('3h')" as="button">Last 3 Hours</DropdownLink>
+                                <DropdownLink @click="resendFailed('6h')" as="button">Last 6 Hours</DropdownLink>
+                                <DropdownLink @click="resendFailed('12h')" as="button">Last 12 Hours</DropdownLink>
+                                <DropdownLink @click="resendFailed('24h')" as="button">Last 24 Hours</DropdownLink>
+                            </template>
+                        </Dropdown>
+
                         <button 
                             @click="openCompose"
                             class="flex-1 sm:flex-none flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-lg hover:shadow-xl transition-all font-medium"
@@ -256,10 +297,14 @@ const formatDate = (date) => {
                                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize"
                                             :class="{
                                                 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400': log.status === 'sent',
+                                                'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400': log.status === 'delivered',
                                                 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400': log.status === 'pending',
                                                 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400': log.status === 'failed'
                                             }"
                                         >
+                                            <CheckCircle v-if="log.status === 'sent' || log.status === 'delivered'" class="w-3 h-3 mr-1" />
+                                            <Clock v-if="log.status === 'pending'" class="w-3 h-3 mr-1" />
+                                            <AlertCircle v-if="log.status === 'failed'" class="w-3 h-3 mr-1" />
                                             {{ log.status }}
                                         </span>
                                     </td>
@@ -487,6 +532,16 @@ const formatDate = (date) => {
                         <div>
                             <label class="text-xs uppercase text-gray-500 dark:text-gray-400">Message</label>
                             <p class="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-sm">{{ selectedSms.message }}</p>
+                        </div>
+                        <div v-if="selectedSms.status === 'failed' && selectedSms.error_message">
+                            <label class="text-xs uppercase text-red-500 font-bold">Error Message</label>
+                            <p class="p-3 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded-lg text-sm border border-red-100 dark:border-red-900/50 italic">
+                                {{ selectedSms.error_message }}
+                            </p>
+                        </div>
+                        <div v-if="selectedSms.provider_message_id">
+                            <label class="text-xs uppercase text-gray-500 dark:text-gray-400">Provider Message ID</label>
+                            <p class="text-sm font-mono text-gray-600 dark:text-gray-300">{{ selectedSms.provider_message_id }}</p>
                         </div>
                     </div>
                     <div class="mt-6 flex justify-end">

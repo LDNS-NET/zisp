@@ -11,6 +11,8 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Auth;
+use App\Jobs\SendSmsJob;
+use Carbon\Carbon;
 
 class TenantSMSController extends Controller
 {
@@ -140,24 +142,43 @@ class TenantSMSController extends Controller
             $rawPhone = $renter->phone ?? $renter->phone_number ?? '';
             $phoneNumber = preg_replace('/^0/', '254', trim($rawPhone));
 
-            // Send via SmsGatewayService
-            $result = $smsGatewayService->sendSMS($tenant->id, $phoneNumber, $personalizedMessage);
-            
-            if ($result['success']) {
-                $smsLog->update([
-                    'status' => 'sent',
-                    'sent_at' => now(),
-                ]);
-            } else {
-                $smsLog->update([
-                    'status' => 'failed',
-                    'error_message' => $result['message'] ?? 'Unknown error',
-                ]);
-            }
+            // Dispatch background job
+            SendSmsJob::dispatch($smsLog, $phoneNumber, $personalizedMessage);
         }
 
         return redirect()->route('sms.index')
-            ->with('success', 'SMS batch processed.');
+            ->with('success', 'SMS batch queued for sending.');
+    }
+
+    public function resendFailed(Request $request)
+    {
+        $validated = $request->validate([
+            'duration' => 'required|string|in:1h,3h,6h,12h,24h',
+        ]);
+
+        $hours = (int) str_replace('h', '', $validated['duration']);
+        $threshold = now()->subHours($hours);
+
+        $pendingSms = TenantSMS::where(function ($q) {
+            $q->where('status', 'failed')
+              ->orWhere('status', 'pending');
+        })
+        ->where('created_at', '>=', $threshold)
+        ->get();
+
+        if ($pendingSms->isEmpty()) {
+            return redirect()->back()->with('info', 'No messages found to resend for the selected duration.');
+        }
+
+        foreach ($pendingSms as $sms) {
+            // Reset status for resending
+            $sms->update(['status' => 'pending', 'error_message' => null]);
+            
+            SendSmsJob::dispatch($sms, $sms->phone_number, $sms->message);
+        }
+
+        return redirect()->route('sms.index')
+            ->with('success', count($pendingSms) . ' messages have been requeued.');
     }
 
     public function bulkDelete(Request $request)

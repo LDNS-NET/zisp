@@ -553,14 +553,14 @@ const openActions = (user) => {
                     <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
                         <thead class="bg-gray-50 dark:bg-slate-900/50">
                             <tr>
-                                <th scope="col" class="px-6 py-3 text-left">
+                                <!--<th scope="col" class="px-6 py-3 text-left">
                                     <input
                                         type="checkbox"
                                         :checked="selectedUsers.length === users.data.length && users.data.length > 0"
                                         @change="toggleSelectAll"
                                         class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 dark:bg-slate-800 dark:border-slate-600"
                                     />
-                                </th>
+                                </th>-->
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">User Details</th>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Contact</th>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Package</th>
@@ -570,14 +570,14 @@ const openActions = (user) => {
                         </thead>
                         <tbody class="divide-y divide-gray-200 dark:divide-slate-700">
                             <tr v-for="user in users.data" :key="user.uuid" class="hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer" @click="$inertia.visit(route('users.show', user.uuid))">
-                                <td class="px-6 py-4 whitespace-nowrap" @click.stop>
+                                <!--<td class="px-6 py-4 whitespace-nowrap" @click.stop>
                                     <input
                                         type="checkbox"
                                         :value="user.uuid"
                                         v-model="selectedUsers"
                                         class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 dark:bg-slate-800 dark:border-slate-600"
                                     />
-                                </td>
+                                </td>-->
                                 <td class="px-6 py-4">
                                     <div class="flex items-center group">
                                         <div class="h-10 w-10 flex-shrink-0 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm group-hover:ring-2 group-hover:ring-blue-500 transition-all">

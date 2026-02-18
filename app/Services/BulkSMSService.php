@@ -50,6 +50,7 @@ class BulkSMSService
                 return [
                     'success' => true,
                     'message' => 'SMS sent successfully via BulkSMS.',
+                    'message_id' => $data[0]['id'] ?? null,
                     'provider_response' => $data
                 ];
             }

@@ -89,7 +89,8 @@ class SmsGatewayService
     protected function logResult(string $tenantId, string $provider, array $result)
     {
         $status = $result['success'] ? 'SUCCESS' : 'FAILURE';
-        Log::info("[SMS] Result for tenant {$tenantId} via {$provider}: {$status} - " . ($result['message'] ?? 'No message'));
+        $messageId = $result['provider_response']['id'] ?? $result['provider_response']['message_id'] ?? 'N/A';
+        Log::info("[SMS] Result for tenant {$tenantId} via {$provider}: {$status} - ID: {$messageId} - " . ($result['message'] ?? 'No message'));
         
         if (!$result['success'] && isset($result['provider_response'])) {
             Log::debug("[SMS] Provider response: " . json_encode($result['provider_response']));

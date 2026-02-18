@@ -14,6 +14,8 @@ class TenantSMS extends Model
         'phone_number',
         'message',
         'status',
+        'error_message',
+        'provider_message_id',
         'sent_at',
         'created_by',
         'tenant_id',
