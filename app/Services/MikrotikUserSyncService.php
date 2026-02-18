@@ -54,7 +54,8 @@ class MikrotikUserSyncService
         if (!empty($usersStillOnline)) {
             // Pre-fetch users to resolve IDs only for those who don't have them yet or for all to be safe?
             // Better to fetch all relevant users to handle potential missing IDs
-            $stillOnlineUsers = NetworkUser::where('tenant_id', $tenantId)
+            $stillOnlineUsers = NetworkUser::withoutGlobalScopes()
+                ->where('tenant_id', $tenantId)
                 ->whereIn(\DB::raw('lower(username)'), $stillOnlineLower = array_map('strtolower', $usersStillOnline))
                 ->pluck('id', \DB::raw('lower(username)'))
                 ->toArray();
@@ -81,7 +82,8 @@ class MikrotikUserSyncService
         
         if (!empty($usersToMarkOnline)) {
             // Resolve IDs for new online users
-            $newOnlineUsers = NetworkUser::where('tenant_id', $tenantId)
+            $newOnlineUsers = NetworkUser::withoutGlobalScopes()
+                ->where('tenant_id', $tenantId)
                 ->whereIn(\DB::raw('lower(username)'), $newOnlineLower = array_map('strtolower', $usersToMarkOnline))
                 ->pluck('id', \DB::raw('lower(username)'))
                 ->toArray();
