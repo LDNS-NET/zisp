@@ -25,7 +25,7 @@ const search = ref(props.filters.search || '');
 
 // Search logic
 const handleSearch = () => {
-    router.get(route('active-users.index'), { 
+    router.get(route('activeusers.index'), { 
         search: search.value,
         // router_id can be added here if we had a router filter
     }, {

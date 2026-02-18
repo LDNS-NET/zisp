@@ -52,15 +52,24 @@ class MikrotikUserSyncService
         // Update EXISTING online sessions (refresh last_seen_at and usage in bulk for performance)
         $usersStillOnline = array_intersect($currentOnline, $previouslyOnlineOnRouter);
         if (!empty($usersStillOnline)) {
+            // Pre-fetch users to resolve IDs only for those who don't have them yet or for all to be safe?
+            // Better to fetch all relevant users to handle potential missing IDs
+            $stillOnlineUsers = NetworkUser::where('tenant_id', $tenantId)
+                ->whereIn(\DB::raw('lower(username)'), $stillOnlineLower = array_map('strtolower', $usersStillOnline))
+                ->pluck('id', \DB::raw('lower(username)'))
+                ->toArray();
+
             // We need to update usage per user as they differ
             foreach ($usersStillOnline as $username) {
                 $data = $activeSessions[$username];
+                $loweredUsername = strtolower($username);
                 TenantActiveUsers::where('tenant_id', $tenantId)
                     ->where('router_id', $router->id)
                     ->where('status', 'active')
                     ->where(\DB::raw('lower(trim(username))'), $username)
                     ->update([
                         'last_seen_at' => now(),
+                        'user_id' => $stillOnlineUsers[$loweredUsername] ?? null,
                         'bytes_in' => $data['bytes_in'] ?? 0,
                         'bytes_out' => $data['bytes_out'] ?? 0,
                     ]);
@@ -71,12 +80,20 @@ class MikrotikUserSyncService
         $updated = count($usersToMarkOnline) + count($usersToMarkOffline);
         
         if (!empty($usersToMarkOnline)) {
+            // Resolve IDs for new online users
+            $newOnlineUsers = NetworkUser::where('tenant_id', $tenantId)
+                ->whereIn(\DB::raw('lower(username)'), $newOnlineLower = array_map('strtolower', $usersToMarkOnline))
+                ->pluck('id', \DB::raw('lower(username)'))
+                ->toArray();
+
             // Update session records for this router
             foreach ($usersToMarkOnline as $username) {
                 $data = $activeSessions[$username];
+                $loweredUsername = strtolower($username);
                 TenantActiveUsers::updateOrCreate(
                     ['tenant_id' => $tenantId, 'username' => $username, 'router_id' => $router->id],
                     [
+                        'user_id' => $newOnlineUsers[$loweredUsername] ?? null,
                         'status' => 'active', 
                         'mac_address' => $data['mac_address'] ?? null,
                         'ip_address' => $data['ip_address'] ?? null,
