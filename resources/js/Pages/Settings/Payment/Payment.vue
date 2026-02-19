@@ -229,10 +229,10 @@ const save = () => {
     form.post(route('settings.payment.update'), {
         preserveScroll: true,
         onSuccess: () => {
-            toast.success('Payment settings saved successfully.');
+            // Success handled by global Toast component
         },
         onError: () => {
-            toast.error('Failed to save payment settings.');
+            // Error handled by global Toast component or field errors
         },
     });
 };
