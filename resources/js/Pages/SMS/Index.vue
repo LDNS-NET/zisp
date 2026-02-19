@@ -6,7 +6,8 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { 
     MessageSquare, Search, Filter, Trash2, Send, 
     Users, MapPin, Box, CheckCircle, AlertCircle, 
-    X, Phone, Calendar, Clock, RefreshCw, Smartphone
+    X, Phone, Calendar, Clock, RefreshCw, Smartphone,
+    CreditCard, Coins, Zap
 } from 'lucide-vue-next';
 import Modal from '@/Components/Modal.vue';
 import Pagination from '@/Components/Pagination.vue';
@@ -31,14 +32,24 @@ const toast = useToast();
 
 const showBuySmsModal = ref(false);
 const buyAmount = ref(100);
+const customAmount = ref('');
+const showCustomAmount = ref(false);
 const isInitializing = ref(false);
 
 const handlePurchase = async () => {
     if (isInitializing.value) return;
+    
+    const finalAmount = showCustomAmount.value ? parseFloat(customAmount.value) : buyAmount.value;
+    
+    if (!finalAmount || finalAmount < 50) {
+        toast.error('Minimum purchase amount is KES 50');
+        return;
+    }
+
     isInitializing.value = true;
     
     try {
-        const response = await axios.post(route('sms.purchase.initialize'), { amount: buyAmount.value });
+        const response = await axios.post(route('sms.purchase.initialize'), { amount: finalAmount });
         if (response.data.success && response.data.authorization_url) {
             window.location.href = response.data.authorization_url;
         } else {
@@ -575,33 +586,122 @@ const formatDate = (date) => {
             </Modal>
 
             <!-- Buy SMS Credits Modal -->
-            <Modal :show="showBuySmsModal" @close="showBuySmsModal = false">
-                <div class="p-6 dark:bg-gray-800 dark:text-white">
-                    <h3 class="text-lg font-bold mb-2">Buy SMS Credits</h3>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-6">Select an amount to purchase SMS credits via Paystack.</p>
+            <Modal :show="showBuySmsModal" @close="showBuySmsModal = false" max-width="2xl">
+                <div class="relative overflow-hidden bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700">
+                    <!-- Premium Header Background -->
+                    <div class="absolute top-0 left-0 right-0 h-32 bg-gradient-to-r from-blue-600 to-indigo-700 opacity-10 pointer-events-none"></div>
                     
-                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
-                        <button 
-                            v-for="amt in [50, 80, 100, 200, 500, 1000, 1500, 3000, 5000, 10000]" 
-                            :key="amt"
-                            type="button"
-                            @click="buyAmount = amt"
-                            class="rounded-lg border-2 p-3 text-center transition-all"
-                            :class="buyAmount === amt ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 font-bold' : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 text-gray-600 dark:text-gray-300'"
-                        >
-                            KES {{ amt }}
-                        </button>
-                    </div>
+                    <div class="p-8 relative">
+                        <div class="flex justify-between items-start mb-8">
+                            <div>
+                                <h3 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                    <Zap class="w-6 h-6 text-yellow-500 fill-yellow-500" />
+                                    Top Up SMS Credits
+                                </h3>
+                                <p class="text-gray-500 dark:text-gray-400 mt-1">Select a package to instantly recharge your account.</p>
+                            </div>
+                            <button @click="showBuySmsModal = false" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors text-gray-400">
+                                <X class="w-5 h-5" />
+                            </button>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8 max-h-[400px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-700">
+                            <!-- Preset Amount Cards -->
+                            <div 
+                                v-for="amt in [100, 200, 500, 1000, 2000, 5000, 10000]" 
+                                :key="amt"
+                                @click="buyAmount = amt; showCustomAmount = false"
+                                class="group relative p-5 rounded-2xl border-2 transition-all duration-300 cursor-pointer overflow-hidden"
+                                :class="(!showCustomAmount && buyAmount === amt) 
+                                    ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-900/10 shadow-lg shadow-blue-500/10 scale-[1.02]' 
+                                    : 'border-gray-100 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-800 bg-white dark:bg-gray-800'"
+                            >
+                                <div class="relative z-10">
+                                    <div class="flex justify-between items-center mb-3">
+                                        <div class="p-2 rounded-lg" :class="(!showCustomAmount && buyAmount === amt) ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-500'">
+                                            <Coins class="w-5 h-5" />
+                                        </div>
+                                        <span v-if="!showCustomAmount && buyAmount === amt" class="flex h-2 w-2 relative">
+                                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                                            <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                                        </span>
+                                    </div>
+                                    <div class="text-xl font-extrabold text-gray-900 dark:text-white">KES {{ amt.toLocaleString() }}</div>
+                                    <div class="text-xs font-medium text-gray-500 dark:text-gray-400 mt-1 uppercase tracking-wider">
+                                        ~{{ Math.floor(amt / 0.39) }} SMS
+                                    </div>
+                                </div>
+                                <!-- Hover Gradient Effect -->
+                                <div class="absolute inset-0 bg-gradient-to-br from-blue-600/5 to-indigo-600/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+                            </div>
 
-                    <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100 dark:border-gray-700">
-                        <button @click="showBuySmsModal = false" class="px-4 py-2 text-gray-500 hover:text-gray-700 dark:text-gray-400">Cancel</button>
-                        <button 
-                            class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow font-medium disabled:opacity-50" 
-                            :disabled="isInitializing"
-                            @click="handlePurchase"
-                        >
-                            {{ isInitializing ? 'Initializing...' : 'Pay via Paystack' }}
-                        </button>
+                            <!-- Custom Amount Card -->
+                            <div 
+                                @click="showCustomAmount = true"
+                                class="group relative p-5 rounded-2xl border-2 transition-all duration-300 cursor-pointer overflow-hidden"
+                                :class="showCustomAmount 
+                                    ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-900/10 shadow-lg shadow-blue-500/10' 
+                                    : 'border-gray-100 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-800 bg-white dark:bg-gray-800'"
+                            >
+                                <div class="relative z-10 flex flex-col h-full justify-between">
+                                    <div class="flex justify-between items-center mb-3">
+                                        <div class="p-2 rounded-lg" :class="showCustomAmount ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-500'">
+                                            <CreditCard class="w-5 h-5" />
+                                        </div>
+                                    </div>
+                                    <div v-if="!showCustomAmount" class="font-bold text-gray-700 dark:text-gray-300">Custom Amount</div>
+                                    <div v-else class="space-y-2">
+                                        <input 
+                                            v-model="customAmount"
+                                            type="number"
+                                            placeholder="Min 50"
+                                            class="w-full bg-transparent border-0 border-b border-blue-500 focus:ring-0 text-xl font-bold p-0 text-gray-900 dark:text-white"
+                                            autofocus
+                                            @click.stop
+                                        />
+                                        <div class="text-[10px] font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-widest">Enter KES</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Info Alert -->
+                        <div class="mb-8 p-4 bg-gray-50 dark:bg-gray-900/40 rounded-xl border border-gray-100 dark:border-gray-800 flex gap-3 items-start">
+                            <AlertCircle class="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
+                            <p class="text-xs leading-relaxed text-gray-600 dark:text-gray-400">
+                                Credits are billed at <span class="font-bold text-gray-900 dark:text-white">KES 0.39</span> per SMS unit. Payments are processed securely via Paystack. Credits do not expire.
+                            </p>
+                        </div>
+
+                        <!-- Action Bar -->
+                        <div class="flex items-center justify-between pt-6 border-t border-gray-100 dark:border-gray-700">
+                            <div class="flex flex-col">
+                                <span class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Selected Total</span>
+                                <span class="text-2xl font-black text-gray-900 dark:text-white">
+                                    KES {{ (showCustomAmount ? (customAmount || 0) : buyAmount).toLocaleString() }}
+                                </span>
+                            </div>
+                            
+                            <div class="flex gap-3">
+                                <button 
+                                    @click="showBuySmsModal = false" 
+                                    class="px-5 py-2.5 text-sm font-semibold text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                                >
+                                    Cancel
+                                </button>
+                                <button 
+                                    class="relative group px-8 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-xl shadow-blue-500/20 font-bold transition-all duration-300 disabled:opacity-50 flex items-center gap-2 overflow-hidden" 
+                                    :disabled="isInitializing || (showCustomAmount && !customAmount)"
+                                    @click="handlePurchase"
+                                >
+                                    <span class="relative z-10 flex items-center gap-2">
+                                        <RefreshCw v-if="isInitializing" class="w-4 h-4 animate-spin" />
+                                        {{ isInitializing ? 'Launching...' : 'Proceed to Payment' }}
+                                    </span>
+                                    <div class="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-indigo-400/20 -translate-x-full group-hover:translate-x-0 transition-transform duration-500 pointer-events-none"></div>
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </Modal>
