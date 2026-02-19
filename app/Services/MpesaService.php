@@ -578,18 +578,24 @@ class MpesaService
                 'token_sample' => substr($token, 0, 10) . '...' . substr($token, -5)
             ]);
 
-            $response = Http::withToken($token)
-                ->post($url, $payload);
+            $response = Http::withHeaders([
+                'Accept' => 'application/json',
+            ])->withToken($token)->post($url, $payload);
 
             $data = $response->json();
 
             // Retry on Invalid Access Token (401.003.01)
             if ($response->status() === 401 && isset($data['errorCode']) && $data['errorCode'] === '401.003.01') {
-                Log::warning('M-Pesa: Invalid Access Token during registration. Clearing cache and retrying...');
+                Log::warning('M-Pesa: Invalid Access Token during registration. Clearing cache and retrying in 2 seconds...');
+                
+                sleep(2); // Wait for token propagation
+                
                 $token = $this->getAccessToken(true); // Force refresh
                 
                 if ($token) {
-                    $response = Http::withToken($token)->post($url, $payload);
+                    $response = Http::withHeaders([
+                        'Accept' => 'application/json',
+                    ])->withToken($token)->post($url, $payload);
                     $data = $response->json();
                 }
             }
