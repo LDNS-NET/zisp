@@ -173,7 +173,7 @@ class TenantPaymentGatewayController extends Controller
                     ]);
                     // Don't show technical error to user, just the success of the gateway update itself
                     // Optionally add a generic manual setup hint
-                    $message .= " M-Pesa URLs may require manual registration if automatic setup fails.";
+                    //$message .= " M-Pesa URLs may require manual registration if automatic setup fails.";
                 }
             } catch (\Exception $e) {
                 \Illuminate\Support\Facades\Log::error('Automated M-Pesa C2B Registration Exception: ' . $e->getMessage());
