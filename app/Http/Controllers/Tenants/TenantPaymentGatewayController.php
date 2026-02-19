@@ -150,10 +150,10 @@ class TenantPaymentGatewayController extends Controller
         if ($validated['provider'] === 'mpesa' && ($validated['use_own_api'] ?? false)) {
             try {
                 $mpesa = new MpesaService([
-                    'consumer_key' => $validated['mpesa_consumer_key'],
-                    'consumer_secret' => $validated['mpesa_consumer_secret'],
-                    'shortcode' => $validated['mpesa_shortcode'],
-                    'passkey' => $validated['mpesa_passkey'],
+                    'consumer_key' => trim($validated['mpesa_consumer_key']),
+                    'consumer_secret' => trim($validated['mpesa_consumer_secret']),
+                    'shortcode' => trim($validated['mpesa_shortcode']),
+                    'passkey' => trim($validated['mpesa_passkey']),
                     'environment' => $validated['mpesa_env'] ?? 'sandbox',
                 ]);
 

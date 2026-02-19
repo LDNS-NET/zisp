@@ -27,11 +27,11 @@ class MpesaService
      */
     public function setCredentials(array $credentials = []): self
     {
-        $this->consumerKey = $credentials['consumer_key'] ?? config('mpesa.consumer_key');
-        $this->consumerSecret = $credentials['consumer_secret'] ?? config('mpesa.consumer_secret');
-        $this->shortcode = $credentials['shortcode'] ?? config('mpesa.shortcode');
-        $this->passkey = $credentials['passkey'] ?? config('mpesa.passkey');
-        $this->environment = strtolower($credentials['environment'] ?? config('mpesa.environment', 'sandbox'));
+        $this->consumerKey = trim($credentials['consumer_key'] ?? config('mpesa.consumer_key'));
+        $this->consumerSecret = trim($credentials['consumer_secret'] ?? config('mpesa.consumer_secret'));
+        $this->shortcode = trim($credentials['shortcode'] ?? config('mpesa.shortcode'));
+        $this->passkey = trim($credentials['passkey'] ?? config('mpesa.passkey'));
+        $this->environment = strtolower(trim($credentials['environment'] ?? config('mpesa.environment', 'sandbox')));
         
         $this->baseUrl = $this->environment === 'production' 
             ? 'https://api.safaricom.co.ke' 
@@ -573,7 +573,9 @@ class MpesaService
                 'shortcode' => $this->shortcode,
                 'validation_url' => $validationUrl,
                 'confirmation_url' => $confirmationUrl,
-                'response_type' => $responseType
+                'response_type' => $responseType,
+                'url' => $url,
+                'token_sample' => substr($token, 0, 10) . '...' . substr($token, -5)
             ]);
 
             $response = Http::withToken($token)
