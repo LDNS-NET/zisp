@@ -32,10 +32,12 @@ class TenantSmsGatewayController extends Controller
     {
         $tenantId = $this->getTenantId($request);
         
+        $tenant = Tenant::find($tenantId);
         $gateway = TenantSmsGateway::where('tenant_id', $tenantId)->first();
         
         return Inertia::render('Settings/SMS/SmsGateway', [
             'gateway' => $gateway,
+            'sms_balance' => $tenant->sms_balance ?? 0.00,
         ]);
     }
 

@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { useToast } from 'vue-toastification';
+import axios from 'axios';
 import Layout from '@/Pages/Settings/Layout.vue';
 import Modal from '@/Components/Modal.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
@@ -17,6 +18,7 @@ const toastOptions = {
 
 const props = defineProps({
     gateway: { type: Object, default: () => ({}) },
+    sms_balance: { type: [Number, String], default: 0.00 },
 });
 
 const showDetailsModal = ref(false);
@@ -111,6 +113,57 @@ function openDetails() {
     showDetailsModal.value = true;
 }
 
+const showBuySmsModal = ref(false);
+const buyAmount = ref(100);
+const amounts = [50, 80, 100, 200, 500, 1000, 1500, 3000, 5000, 10000];
+const isInitializing = ref(false);
+
+function buySms() {
+    if (isInitializing.value) return;
+    
+    isInitializing.value = true;
+    router.post(route('sms.purchase.initialize'), { amount: buyAmount.value }, {
+        onSuccess: (page) => {
+            const url = page.props.flash?.authorization_url || page.props.authorization_url;
+            if (url) {
+                window.location.href = url;
+            } else if (page.props.jetstream?.flash?.authorization_url) {
+                 window.location.href = page.props.jetstream.flash.authorization_url;
+            } else {
+                 // Fallback if not in props directly (inertia might have it in response)
+                 if (page.data?.authorization_url) {
+                     window.location.href = page.data.authorization_url;
+                 }
+            }
+        },
+        onFinish: () => {
+            isInitializing.value = false;
+        }
+    });
+}
+
+// Intercept for manual handling if Inertia doesn't auto-redirect (though it should given the controller returns JSON or similar)
+// actually, our controller returns a JSON response. router.post might not handle the redirect if it expects an Inertia response.
+// Let's use axios for the initialize call to be safer and more direct.
+
+async function handlePurchase() {
+    if (isInitializing.value) return;
+    isInitializing.value = true;
+    
+    try {
+        const response = await axios.post(route('sms.purchase.initialize'), { amount: buyAmount.value });
+        if (response.data.success && response.data.authorization_url) {
+            window.location.href = response.data.authorization_url;
+        } else {
+            toast.error(response.data.message || 'Failed to initialize payment');
+        }
+    } catch (error) {
+        toast.error(error.response?.data?.message || 'An error occurred during payment initialization');
+    } finally {
+        isInitializing.value = false;
+    }
+}
+
 </script>
 
 <template>
@@ -142,6 +195,13 @@ function openDetails() {
                 <h3 class="text-2xl font-bold text-indigo-700">
                     SMS Gateway Settings
                 </h3>
+                <div class="ml-auto flex flex-col items-end">
+                    <span class="text-xs font-semibold uppercase text-gray-500">Balance</span>
+                    <span class="text-xl font-bold text-green-600">KES {{ Number(sms_balance).toFixed(2) }}</span>
+                    <button @click="showBuySmsModal = true" class="mt-1 text-sm font-semibold text-indigo-600 hover:text-indigo-800 underline">
+                        Buy Credits
+                    </button>
+                </div>
             </header>
 
             <!-- Provider Selection -->
@@ -360,6 +420,55 @@ function openDetails() {
                     </Modal>
                 </div>
             </transition>
+
+            <!-- Buy SMS Modal -->
+            <Modal :show="showBuySmsModal" @close="showBuySmsModal = false">
+                <template #header>
+                    <h3 class="text-xl font-bold text-indigo-700">Buy SMS Credits</h3>
+                </template>
+
+                <div class="p-6">
+                    <p class="mb-4 text-gray-600">
+                        Top up your SMS balance to continue sending messages via the system gateway. 
+                        <strong>Rate: 0.45 KES per 40 characters.</strong>
+                    </p>
+
+                    <label class="mb-2 block font-semibold text-gray-700">Select Amount (KES)</label>
+                    <div class="grid grid-cols-3 gap-3 mb-6">
+                        <button 
+                            v-for="amt in amounts" 
+                            :key="amt"
+                            @click="buyAmount = amt"
+                            :class="[
+                                'py-2 px-4 rounded-lg border-2 transition-all font-bold',
+                                buyAmount === amt ? 'border-indigo-600 bg-indigo-50 text-indigo-700' : 'border-gray-200 hover:border-indigo-300'
+                            ]"
+                        >
+                            {{ amt }}
+                        </button>
+                    </div>
+
+                    <div class="rounded-lg bg-indigo-50 p-4 border border-indigo-100 mb-6">
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-700">Units (approx. 160 chars):</span>
+                            <span class="font-bold text-indigo-700">~{{ Math.floor(buyAmount / (0.45 * 4)) }} Units</span>
+                        </div>
+                    </div>
+                </div>
+
+                <template #footer>
+                    <div class="flex justify-end gap-3">
+                        <button @click="showBuySmsModal = false" class="btn btn-ghost">Cancel</button>
+                        <PrimaryButton 
+                            class="btn btn-indigo" 
+                            :disabled="isInitializing"
+                            @click="handlePurchase"
+                        >
+                            {{ isInitializing ? 'Initializing...' : 'Pay via Paystack' }}
+                        </PrimaryButton>
+                    </div>
+                </template>
+            </Modal>
         </div>
     </Layout>
 </template>

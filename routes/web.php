@@ -43,6 +43,7 @@ use App\Http\Controllers\Tenants\TenantDeviceController;
 use App\Http\Controllers\Tenants\TenantInstallationController;
 use App\Http\Controllers\Tenants\TenantInstallationPhotoController;
 use App\Http\Controllers\Tenants\TenantInstallationChecklistController;
+use App\Http\Controllers\Tenants\SmsPurchaseController;
 
 // SuperAdmin controllers
 use App\Http\Controllers\SuperAdmin\SuperAdminController;
@@ -410,6 +411,10 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode', 'sta
             // SMS Templates
             Route::resource('smstemplates', TenantSMSTemplateController::class)->only(['index', 'create', 'update', 'store', 'destroy']);
             Route::delete('/smstemplates/bulk-delete', [TenantSMSTemplateController::class, 'bulkDelete'])->name('smstemplates.bulk-delete');
+            
+            // SMS Purchase
+            Route::post('/sms/purchase/initialize', [SmsPurchaseController::class, 'initialize'])->name('sms.purchase.initialize');
+            Route::get('/sms/purchase/callback', [SmsPurchaseController::class, 'handleCallback'])->name('sms.purchase.callback');
         });
 
         // Multi-Role Settings

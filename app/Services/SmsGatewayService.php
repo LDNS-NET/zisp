@@ -56,7 +56,7 @@ class SmsGatewayService
         // Default to Talksasa with system credentials if no gateway configured
         if (!$gateway) {
             Log::info("[SMS] No active gateway for tenant {$tenantId}. Falling back to Talksasa default.");
-            $result = $this->sendViaTalksasaDefault($phoneNumber, $message);
+            $result = $this->sendViaTalksasaDefault($tenantId, $phoneNumber, $message);
             $this->logResult($tenantId, 'talksasa_default', $result);
             return $result;
         }
@@ -122,7 +122,7 @@ class SmsGatewayService
         
         // Fall back to system default if tenant hasn't provided credentials
         if (empty($apiKey) || empty($senderId)) {
-            return $this->sendViaTalksasaDefault($phoneNumber, $message);
+            return $this->sendViaTalksasaDefault($gateway->tenant_id, $phoneNumber, $message);
         }
         
         $this->talksasaService->setCredentials([
@@ -219,13 +219,44 @@ class SmsGatewayService
     /**
      * Send via Talksasa using system default credentials from .env
      */
-    protected function sendViaTalksasaDefault(string $phoneNumber, string $message): array
+    protected function sendViaTalksasaDefault(string $tenantId, string $phoneNumber, string $message): array
     {
+        $tenant = \App\Models\Tenant::find($tenantId);
+        
+        if (!$tenant) {
+            return [
+                'success' => false,
+                'message' => "Tenant context not found."
+            ];
+        }
+
+        // Calculate cost: 0.45 per 40 characters
+        $charCount = mb_strlen($message);
+        $units = ceil($charCount / 40);
+        $cost = $units * 0.45;
+
+        // Check balance
+        if ($tenant->sms_balance < $cost) {
+            return [
+                'success' => false,
+                'message' => "Insufficient SMS balance (Cost: {$cost}, Balance: {$tenant->sms_balance}). Please top up."
+            ];
+        }
+
         $this->talksasaService->setCredentials([
             'api_key' => env('TALKSASA_API_KEY'),
             'sender_id' => env('TALKSASA_SENDER_ID'),
         ]);
         
-        return $this->talksasaService->sendSMS($phoneNumber, $message);
+        $result = $this->talksasaService->sendSMS($phoneNumber, $message);
+
+        // Deduct balance on success
+        if ($result['success']) {
+            $tenant->sms_balance -= $cost;
+            $tenant->save();
+            Log::info("[SMS] Deducted {$cost} from tenant {$tenantId} for SMS to {$phoneNumber}. Remaining balance: {$tenant->sms_balance}");
+        }
+
+        return $result;
     }
 }
