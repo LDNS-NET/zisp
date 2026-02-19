@@ -48,7 +48,7 @@ class MpesaService
      */
     public function getAccessToken($forceRetrieved = false): ?string
     {
-        $cacheKey = 'mpesa_access_token_' . md5($this->consumerKey . $this->consumerSecret);
+        $cacheKey = 'mpesa_access_token_' . md5($this->consumerKey . $this->consumerSecret . $this->environment);
 
         if ($forceRetrieved) {
             Cache::forget($cacheKey);
@@ -580,6 +580,17 @@ class MpesaService
                 ->post($url, $payload);
 
             $data = $response->json();
+
+            // Retry on Invalid Access Token (401.003.01)
+            if ($response->status() === 401 && isset($data['errorCode']) && $data['errorCode'] === '401.003.01') {
+                Log::warning('M-Pesa: Invalid Access Token during registration. Clearing cache and retrying...');
+                $token = $this->getAccessToken(true); // Force refresh
+                
+                if ($token) {
+                    $response = Http::withToken($token)->post($url, $payload);
+                    $data = $response->json();
+                }
+            }
 
             Log::info('M-Pesa: C2B URL registration response', [
                 'status_code' => $response->status(),
