@@ -167,11 +167,16 @@ class TenantPaymentGatewayController extends Controller
                 if ($result['success']) {
                     $message .= " M-Pesa C2B URLs registered successfully.";
                 } else {
-                    return back()->with('warning', $message . " However, M-Pesa C2B URL registration failed: " . ($result['message'] ?? 'Unknown error'));
+                    \Illuminate\Support\Facades\Log::warning('Automated M-Pesa C2B Registration Failed: ' . ($result['message'] ?? 'Unknown error'), [
+                        'tenant_id' => $tenantId,
+                        'response' => $result['response'] ?? null
+                    ]);
+                    // Don't show technical error to user, just the success of the gateway update itself
+                    // Optionally add a generic manual setup hint
+                    $message .= " M-Pesa URLs may require manual registration if automatic setup fails.";
                 }
             } catch (\Exception $e) {
-                \Illuminate\Support\Facades\Log::error('Automated M-Pesa C2B Registration Error: ' . $e->getMessage());
-                return back()->with('warning', $message . " However, an error occurred during M-Pesa URL registration. Please check logs.");
+                \Illuminate\Support\Facades\Log::error('Automated M-Pesa C2B Registration Exception: ' . $e->getMessage());
             }
         }
 
