@@ -64,7 +64,7 @@ class StaffSecurityMiddleware
         }
 
         // 3. Proxy/VPN Blocking
-        $this->checkForProxies($request);
+        // $this->checkForProxies($request);
 
         // 4. Device Locking & Single Session Enforcement
         if ($user->is_device_lock_enabled) {
