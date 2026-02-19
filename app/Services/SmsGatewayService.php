@@ -217,6 +217,28 @@ class SmsGatewayService
     }
     
     /**
+     * Check if the tenant is using the system default gateway (Talksasa with platform credentials)
+     */
+    public function isUsingSystemGateway(string $tenantId): bool
+    {
+        $gateway = TenantSmsGateway::where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->first();
+
+        // If no active gateway, it defaults to system Talksasa
+        if (!$gateway) {
+            return true;
+        }
+
+        // If provider is talksasa but credentials are empty, it uses system defaults
+        if ($gateway->provider === 'talksasa' && (empty($gateway->talksasa_api_key) || empty($gateway->talksasa_sender_id))) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
      * Send via Talksasa using system default credentials from .env
      */
     protected function sendViaTalksasaDefault(string $tenantId, string $phoneNumber, string $message): array

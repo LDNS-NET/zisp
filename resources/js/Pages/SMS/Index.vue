@@ -24,6 +24,7 @@ const props = defineProps({
     packages: Array,
     locations: Array,
     sms_balance: [Number, String],
+    is_using_system_gateway: Boolean,
 });
 
 const toast = useToast();
@@ -214,7 +215,7 @@ const formatDate = (date) => {
             <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
                 <!-- Header Stats -->
                 <div class="p-6 pb-0 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                    <div v-if="is_using_system_gateway" class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-between">
                         <div>
                             <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">SMS Balance</p>
                             <h3 class="text-2xl font-bold text-green-600 mt-1">KES {{ Number(sms_balance).toFixed(2) }}</h3>

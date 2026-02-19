@@ -33,6 +33,7 @@ class TenantSMSController extends Controller
         $locations = NetworkUser::whereNotNull('location')->distinct()->pluck('location');
 
         $tenant = \App\Models\Tenant::find(Auth::user()->tenant_id);
+        $smsGatewayService = app(\App\Services\SmsGatewayService::class);
 
         return Inertia::render('SMS/Index', [
             'smsLogs' => $smsLogs,
@@ -41,6 +42,7 @@ class TenantSMSController extends Controller
             'packages' => $packages,
             'locations' => $locations,
             'sms_balance' => $tenant->sms_balance ?? 0,
+            'is_using_system_gateway' => $smsGatewayService->isUsingSystemGateway($tenant->id),
             'filters' => [
                 'search' => $request->search,
             ],
@@ -108,12 +110,19 @@ class TenantSMSController extends Controller
         }
 
         $tenant = \App\Models\Tenant::find(Auth::user()->tenant_id);
-
-        $supportNumber = Auth::user()->phone ?? '';
         
         // Use SmsGatewayService for sending
         $smsGatewayService = app(\App\Services\SmsGatewayService::class);
-        
+
+        // Strict balance check for system gateway users
+        if ($smsGatewayService->isUsingSystemGateway($tenant->id)) {
+            if (($tenant->sms_balance ?? 0) <= 0) {
+                return redirect()->back()->withErrors(['message' => 'Insufficient SMS balance. Please recharge your account to send messages.']);
+            }
+        }
+
+        $supportNumber = Auth::user()->phone ?? '';
+
         foreach ($renters as $renter) {
             $personalizedMessage = $validated['message'];
             $packageName = '';
