@@ -25,6 +25,7 @@ class TenantPaymentGateway extends Model
         'mpesa_consumer_key',
         'mpesa_consumer_secret',
         'mpesa_shortcode',
+        'mpesa_shortcode_type',
         'mpesa_passkey',
         'mpesa_env',
         'use_own_api',

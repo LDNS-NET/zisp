@@ -74,6 +74,7 @@ const form = useForm({
     mpesa_consumer_key: initialGateway.mpesa_consumer_key || '',
     mpesa_consumer_secret: initialGateway.mpesa_consumer_secret || '',
     mpesa_shortcode: initialGateway.mpesa_shortcode || '',
+    mpesa_shortcode_type: initialGateway.mpesa_shortcode_type || 'paybill',
     mpesa_passkey: initialGateway.mpesa_passkey || '',
     mpesa_env: initialGateway.mpesa_env || 'sandbox',
     paystack_public_key: initialGateway.paystack_public_key || '',
@@ -138,6 +139,7 @@ watch(() => form.collection_method, (newMethod) => {
         form.mpesa_consumer_key = recordToLoad.mpesa_consumer_key || '';
         form.mpesa_consumer_secret = recordToLoad.mpesa_consumer_secret || '';
         form.mpesa_shortcode = recordToLoad.mpesa_shortcode || '';
+        form.mpesa_shortcode_type = recordToLoad.mpesa_shortcode_type || 'paybill';
         form.mpesa_passkey = recordToLoad.mpesa_passkey || '';
         form.mpesa_env = recordToLoad.mpesa_env || 'sandbox';
         form.paystack_public_key = recordToLoad.paystack_public_key || '';
@@ -496,12 +498,25 @@ const save = () => {
                             />
                         </div>
                         <div>
+                            <InputLabel value="Shortcode Type" />
+                            <select
+                                v-model="form.mpesa_shortcode_type"
+                                class="mt-1 block w-full rounded border-gray-300 dark:bg-gray-800"
+                            >
+                                <option value="paybill">Paybill</option>
+                                <option value="till">Buy Goods (Till)</option>
+                            </select>
+                        </div>
+                        <div>
                             <InputLabel value="Shortcode" />
                             <TextInput
                                 v-model="form.mpesa_shortcode"
                                 class="mt-1 block w-full"
-                                placeholder="e.g., 174379"
+                                placeholder="Enter M-Pesa Shortcode"
                             />
+                            <p v-if="form.mpesa_shortcode_type === 'till'" class="mt-1 text-xs text-blue-600 dark:text-blue-400">
+                                <strong>Note:</strong> For Buy Goods, use the <strong>Store Number</strong> (found in your M-Pesa portal), not the Till number customer dials.
+                            </p>
                         </div>
                         <div>
                             <InputLabel value="Passkey" />

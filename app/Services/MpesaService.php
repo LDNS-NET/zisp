@@ -13,6 +13,7 @@ class MpesaService
     protected $consumerSecret;
     protected $shortcode;
     protected $passkey;
+    protected $shortcodeType;
     protected $baseUrl;
     protected $callbackUrl;
     protected $environment;
@@ -30,6 +31,7 @@ class MpesaService
         $this->consumerKey = trim($credentials['consumer_key'] ?? config('mpesa.consumer_key'));
         $this->consumerSecret = trim($credentials['consumer_secret'] ?? config('mpesa.consumer_secret'));
         $this->shortcode = trim($credentials['shortcode'] ?? config('mpesa.shortcode'));
+        $this->shortcodeType = strtolower(trim($credentials['shortcode_type'] ?? 'paybill'));
         $this->passkey = trim($credentials['passkey'] ?? config('mpesa.passkey'));
         $this->environment = strtolower(trim($credentials['environment'] ?? config('mpesa.environment', 'sandbox')));
         
@@ -112,24 +114,29 @@ class MpesaService
 
             $url = $this->baseUrl . '/mpesa/stkpush/v1/processrequest';
 
+            // Determine CommandID based on Shortcode Type
+            $commandId = ($this->shortcodeType === 'till') ? 'CustomerBuyGoodsOnline' : 'CustomerPayBillOnline';
+
             $payload = [
                 'BusinessShortCode' => $this->shortcode,
                 'Password' => $password,
                 'Timestamp' => $timestamp,
-                'TransactionType' => 'CustomerPayBillOnline',
-                'Amount' => round($amount),
+                'TransactionType' => $commandId,
+                'Amount' => $amount,
                 'PartyA' => $phone,
                 'PartyB' => $this->shortcode,
                 'PhoneNumber' => $phone,
                 'CallBackURL' => $this->callbackUrl,
                 'AccountReference' => $reference,
-                'TransactionDesc' => $description
+                'TransactionDesc' => $description,
             ];
 
             Log::info('M-Pesa: Initiating STK Push', [
                 'phone' => $phone,
                 'amount' => $amount,
                 'reference' => $reference,
+                'type' => $this->shortcodeType,
+                'command_id' => $commandId,
                 'shortcode' => $this->shortcode,
                 'env' => $this->environment,
                 'base_url' => $this->baseUrl,
@@ -563,15 +570,14 @@ class MpesaService
             $url = $this->baseUrl . '/mpesa/c2b/v1/registerurl';
 
             $payload = [
-                'ShortCode' => $this->shortcode,
-                'ResponseType' => $responseType,
-                'ConfirmationURL' => $confirmationUrl,
-                'ValidationURL' => $validationUrl
+                'ShortCode' => (string) $this->shortcode,
+                'ResponseType' => (string) $responseType,
+                'ConfirmationURL' => (string) $confirmationUrl,
+                'ValidationURL' => (string) $validationUrl
             ];
 
             Log::info('M-Pesa: Registering C2B URLs', [
                 'shortcode' => (string) $this->shortcode,
-                'shortcode_len' => strlen((string) $this->shortcode),
                 'validation_url' => $validationUrl,
                 'confirmation_url' => $confirmationUrl,
                 'response_type' => $responseType,
@@ -584,12 +590,7 @@ class MpesaService
             $response = Http::withHeaders([
                 'Accept' => 'application/json',
                 'Content-Type' => 'application/json',
-            ])->withToken($token)->post($url, [
-                'ShortCode' => (string) $this->shortcode,
-                'ResponseType' => $responseType,
-                'ConfirmationURL' => $confirmationUrl,
-                'ValidationURL' => $validationUrl
-            ]);
+            ])->withToken($token)->post($url, $payload);
 
             $data = $response->json();
 

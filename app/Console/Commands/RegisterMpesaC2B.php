@@ -16,6 +16,7 @@ class RegisterMpesaC2B extends Command
     protected $signature = 'mpesa:register-c2b 
                             {--tenant= : Tenant ID to register C2B URLs for (optional)}
                             {--shortcode= : M-Pesa Shortcode (optional)}
+                            {--shortcode-type=paybill : M-Pesa Shortcode Type (paybill/till)}
                             {--consumer-key= : M-Pesa Consumer Key (optional)}
                             {--consumer-secret= : M-Pesa Consumer Secret (optional)}
                             {--env= : M-Pesa Environment (sandbox/production, optional)}
@@ -120,6 +121,7 @@ class RegisterMpesaC2B extends Command
                 'consumer_key' => $this->option('consumer-key') ?? config('mpesa.consumer_key'),
                 'consumer_secret' => $this->option('consumer-secret') ?? config('mpesa.consumer_secret'),
                 'shortcode' => $this->option('shortcode') ?? config('mpesa.shortcode'),
+                'shortcode_type' => $this->option('shortcode-type') ?? 'paybill',
                 'environment' => $this->option('env') ?? config('mpesa.environment', 'sandbox'),
             ];
         }
@@ -142,6 +144,7 @@ class RegisterMpesaC2B extends Command
                 'consumer_key' => $gateway->mpesa_consumer_key,
                 'consumer_secret' => $gateway->mpesa_consumer_secret,
                 'shortcode' => $gateway->mpesa_shortcode,
+                'shortcode_type' => $gateway->mpesa_shortcode_type ?? 'paybill',
                 'passkey' => $gateway->mpesa_passkey,
                 'environment' => $gateway->mpesa_env ?? 'sandbox',
             ];

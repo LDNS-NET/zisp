@@ -76,6 +76,7 @@ class TenantPaymentGatewayController extends Controller
             'mpesa_consumer_key' => 'nullable|string',
             'mpesa_consumer_secret' => 'nullable|string',
             'mpesa_shortcode' => 'nullable|string|max:20',
+            'mpesa_shortcode_type' => 'nullable|string|in:paybill,till',
             'mpesa_passkey' => 'nullable|string',
             'mpesa_env' => 'nullable|in:sandbox,production',
             'paystack_public_key' => 'nullable|string',
@@ -153,6 +154,7 @@ class TenantPaymentGatewayController extends Controller
                     'consumer_key' => trim($validated['mpesa_consumer_key']),
                     'consumer_secret' => trim($validated['mpesa_consumer_secret']),
                     'shortcode' => trim($validated['mpesa_shortcode']),
+                    'shortcode_type' => $validated['mpesa_shortcode_type'] ?? 'paybill',
                     'passkey' => trim($validated['mpesa_passkey']),
                     'environment' => $validated['mpesa_env'] ?? 'sandbox',
                 ]);
