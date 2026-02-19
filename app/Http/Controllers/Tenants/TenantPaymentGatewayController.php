@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\TenantPaymentGateway;
 use App\Models\Tenant;
+use App\Services\MpesaService;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Cache;
 
@@ -129,7 +130,7 @@ class TenantPaymentGatewayController extends Controller
                 ->update(['is_active' => false]);
         }
 
-        TenantPaymentGateway::updateOrCreate(
+        $gateway = TenantPaymentGateway::updateOrCreate(
             [
                 'tenant_id' => $tenantId,
                 'provider' => $validated['provider'],
@@ -143,6 +144,35 @@ class TenantPaymentGatewayController extends Controller
 
         Cache::forget("tenant_payment_gateways_{$tenantId}");
 
-        return back()->with('success', 'Payment gateway updated successfully.');
+        $message = 'Payment gateway updated successfully.';
+
+        // ✅ Handle Automated M-Pesa C2B Registration
+        if ($validated['provider'] === 'mpesa' && ($validated['use_own_api'] ?? false)) {
+            try {
+                $mpesa = new MpesaService([
+                    'consumer_key' => $validated['mpesa_consumer_key'],
+                    'consumer_secret' => $validated['mpesa_consumer_secret'],
+                    'shortcode' => $validated['mpesa_shortcode'],
+                    'passkey' => $validated['mpesa_passkey'],
+                    'environment' => $validated['mpesa_env'] ?? 'sandbox',
+                ]);
+
+                $validationUrl = config('app.url') . '/api/mpesa/c2b/validation';
+                $confirmationUrl = config('app.url') . '/api/mpesa/c2b/confirmation';
+
+                $result = $mpesa->registerC2BURLS($validationUrl, $confirmationUrl);
+
+                if ($result['success']) {
+                    $message .= " M-Pesa C2B URLs registered successfully.";
+                } else {
+                    return back()->with('warning', $message . " However, M-Pesa C2B URL registration failed: " . ($result['message'] ?? 'Unknown error'));
+                }
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Automated M-Pesa C2B Registration Error: ' . $e->getMessage());
+                return back()->with('warning', $message . " However, an error occurred during M-Pesa URL registration. Please check logs.");
+            }
+        }
+
+        return back()->with('success', $message);
     }
 }
