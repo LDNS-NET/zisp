@@ -127,6 +127,8 @@ class DashboardController extends Controller
 
                 // Top Consumers (Tenant Specific via Global Scope)
                 'top_consumers' => TenantActiveUsers::with('user:id,username,type,phone') // Eager load phone
+                    ->where('status', 'active')
+                    ->where('last_seen_at', '>', now()->subHours(24))
                     ->orderByRaw('(bytes_in + bytes_out) DESC')
                     ->take(5)
                     ->get()

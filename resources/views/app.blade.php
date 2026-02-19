@@ -143,6 +143,24 @@
             };
 
             const handleError = (error) => {
+                const errorMessage = error?.reason?.message || error?.message || '';
+                const isAssetError = errorMessage.includes('Failed to fetch dynamically imported module') || 
+                                   errorMessage.includes('Importing a module script failed');
+
+                if (isAssetError) {
+                    console.error('Asset loading failed. Attempting recovery reload...', error);
+                    
+                    // Prevent infinite reload loops
+                    const lastReload = sessionStorage.getItem('last_asset_reload');
+                    const now = Date.now();
+                    
+                    if (!lastReload || (now - parseInt(lastReload)) > 30000) { // 30s cooldown
+                        sessionStorage.setItem('last_asset_reload', now.toString());
+                        window.location.reload();
+                        return;
+                    }
+                }
+
                 console.warn('App initialization encountered an issue, removing loader.', error);
                 removeLoader();
             };

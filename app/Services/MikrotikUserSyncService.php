@@ -64,16 +64,26 @@ class MikrotikUserSyncService
             foreach ($usersStillOnline as $username) {
                 $data = $activeSessions[$username];
                 $loweredUsername = strtolower($username);
+                
+                $updateData = [
+                    'last_seen_at' => now(),
+                    'user_id' => $stillOnlineUsers[$loweredUsername] ?? null,
+                ];
+
+                // Only update bytes if they are greater than zero to avoid overwriting RADIUS accounting data
+                // MikroTik API sometimes returns 0 for bytes in active PPPoE sessions
+                if (($data['bytes_in'] ?? 0) > 0) {
+                    $updateData['bytes_in'] = $data['bytes_in'];
+                }
+                if (($data['bytes_out'] ?? 0) > 0) {
+                    $updateData['bytes_out'] = $data['bytes_out'];
+                }
+
                 TenantActiveUsers::where('tenant_id', $tenantId)
                     ->where('router_id', $router->id)
                     ->where('status', 'active')
                     ->where(\DB::raw('lower(trim(username))'), $username)
-                    ->update([
-                        'last_seen_at' => now(),
-                        'user_id' => $stillOnlineUsers[$loweredUsername] ?? null,
-                        'bytes_in' => $data['bytes_in'] ?? 0,
-                        'bytes_out' => $data['bytes_out'] ?? 0,
-                    ]);
+                    ->update($updateData);
             }
         }
 
@@ -92,17 +102,22 @@ class MikrotikUserSyncService
             foreach ($usersToMarkOnline as $username) {
                 $data = $activeSessions[$username];
                 $loweredUsername = strtolower($username);
+                
+                $sessionData = [
+                    'user_id' => $newOnlineUsers[$loweredUsername] ?? null,
+                    'status' => 'active', 
+                    'mac_address' => $data['mac_address'] ?? null,
+                    'ip_address' => $data['ip_address'] ?? null,
+                    'last_seen_at' => now()
+                ];
+
+                // Only set bytes if they are positive
+                if (($data['bytes_in'] ?? 0) > 0) $sessionData['bytes_in'] = $data['bytes_in'];
+                if (($data['bytes_out'] ?? 0) > 0) $sessionData['bytes_out'] = $data['bytes_out'];
+
                 TenantActiveUsers::updateOrCreate(
                     ['tenant_id' => $tenantId, 'username' => $username, 'router_id' => $router->id],
-                    [
-                        'user_id' => $newOnlineUsers[$loweredUsername] ?? null,
-                        'status' => 'active', 
-                        'mac_address' => $data['mac_address'] ?? null,
-                        'ip_address' => $data['ip_address'] ?? null,
-                        'bytes_in' => $data['bytes_in'] ?? 0,
-                        'bytes_out' => $data['bytes_out'] ?? 0,
-                        'last_seen_at' => now()
-                    ]
+                    $sessionData
                 );
             }
         }
