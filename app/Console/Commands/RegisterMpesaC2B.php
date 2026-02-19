@@ -14,7 +14,11 @@ class RegisterMpesaC2B extends Command
      * @var string
      */
     protected $signature = 'mpesa:register-c2b 
-                            {--tenant= : Tenant ID to register C2B URLs for (optional, will use default credentials if not provided)}
+                            {--tenant= : Tenant ID to register C2B URLs for (optional)}
+                            {--shortcode= : M-Pesa Shortcode (optional)}
+                            {--consumer-key= : M-Pesa Consumer Key (optional)}
+                            {--consumer-secret= : M-Pesa Consumer Secret (optional)}
+                            {--env= : M-Pesa Environment (sandbox/production, optional)}
                             {--validation-url= : Custom validation URL (optional)}
                             {--confirmation-url= : Custom confirmation URL (optional)}
                             {--response-type=Completed : Response type (Completed or Cancelled)}';
@@ -55,6 +59,7 @@ class RegisterMpesaC2B extends Command
             [
                 ['Environment', $credentials['environment'] ?? 'N/A'],
                 ['Shortcode', $credentials['shortcode'] ?? 'N/A'],
+                ['Consumer Key', substr($credentials['consumer_key'], 0, 5) . '...'],
                 ['Validation URL', $validationUrl],
                 ['Confirmation URL', $confirmationUrl],
                 ['Response Type', $responseType],
@@ -104,10 +109,22 @@ class RegisterMpesaC2B extends Command
     }
 
     /**
-     * Get M-Pesa credentials from tenant or config
+     * Get M-Pesa credentials from options, tenant or config
      */
     private function getCredentials(?string $tenantId): ?array
     {
+        // Priority 1: Direct options
+        if ($this->option('shortcode') || $this->option('consumer-key')) {
+            $this->info('🔍 Using M-Pesa credentials from command options...');
+            return [
+                'consumer_key' => $this->option('consumer-key') ?? config('mpesa.consumer_key'),
+                'consumer_secret' => $this->option('consumer-secret') ?? config('mpesa.consumer_secret'),
+                'shortcode' => $this->option('shortcode') ?? config('mpesa.shortcode'),
+                'environment' => $this->option('env') ?? config('mpesa.environment', 'sandbox'),
+            ];
+        }
+
+        // Priority 2: Tenant
         if ($tenantId) {
             $this->info("🔍 Retrieving credentials for tenant ID: {$tenantId}");
             
