@@ -111,33 +111,11 @@ watch(search, (value) => {
 
 onMounted(() => {
     // Poll for real-time status updates every 5 seconds
-    let errorCount = 0;
-    const maxErrors = 3;
-    
     const interval = setInterval(() => {
-        // Stop polling if we encounter too many consecutive errors
-        if (errorCount >= maxErrors) {
-            console.warn('Periodic reload paused due to consecutive errors.');
-            clearInterval(interval);
-            return;
-        }
-
         router.reload({
             only: ['users', 'counts'],
             preserveScroll: true,
             preserveState: true,
-            onError: (errors) => {
-                errorCount++;
-                console.error('Periodic reload failed:', errors);
-            },
-            onFinish: (visit) => {
-                // reset error count on any response (even if it's an error, 
-                // but usually we want to reset on success)
-                // actually let's reset on successful completion of the request lifecycle
-                if (!visit?.cancelled) {
-                    errorCount = 0;
-                }
-            }
         });
     }, 5000);
 
