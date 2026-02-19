@@ -230,10 +230,10 @@ class SmsGatewayService
             ];
         }
 
-        // Calculate cost: 0.45 per 40 characters
+        // Calculate cost: 0.39 per 40 characters
         $charCount = mb_strlen($message);
         $units = ceil($charCount / 40);
-        $cost = $units * 0.45;
+        $cost = $units * 0.39;
 
         // Check balance
         if ($tenant->sms_balance < $cost) {

@@ -23,9 +23,32 @@ const props = defineProps({
     templates: Array,
     packages: Array,
     locations: Array,
+    sms_balance: [Number, String],
 });
 
 const toast = useToast();
+
+const showBuySmsModal = ref(false);
+const buyAmount = ref(100);
+const isInitializing = ref(false);
+
+const handlePurchase = async () => {
+    if (isInitializing.value) return;
+    isInitializing.value = true;
+    
+    try {
+        const response = await axios.post(route('sms.purchase.initialize'), { amount: buyAmount.value });
+        if (response.data.success && response.data.authorization_url) {
+            window.location.href = response.data.authorization_url;
+        } else {
+            toast.error(response.data.message || 'Failed to initialize payment');
+        }
+    } catch (error) {
+        toast.error(error.response?.data?.message || 'An error occurred during payment initialization');
+    } finally {
+        isInitializing.value = false;
+    }
+};
 
 // --- State ---
 const search = ref(props.filters?.search || '');
@@ -193,14 +216,14 @@ const formatDate = (date) => {
                 <div class="p-6 pb-0 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                     <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-between">
                         <div>
-                            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total Sent</p>
-                            <h3 class="text-2xl font-bold text-gray-900 dark:text-white mt-1">{{ smsLogs.total }}</h3>
+                            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">SMS Balance</p>
+                            <h3 class="text-2xl font-bold text-green-600 mt-1">KES {{ Number(sms_balance).toFixed(2) }}</h3>
+                            <button @click="showBuySmsModal = true" class="text-xs font-semibold text-blue-600 hover:text-blue-800 underline mt-1">Buy Credits</button>
                         </div>
-                        <div class="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-blue-600 dark:text-blue-400">
-                            <Send class="w-6 h-6" />
+                        <div class="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg text-green-600 dark:text-green-400">
+                            <Smartphone class="w-6 h-6" />
                         </div>
                     </div>
-                    <!-- Add more stats here if available (Balance, Failed, etc) -->
                 </div>
 
                 <!-- Toolbar -->
@@ -550,6 +573,37 @@ const formatDate = (date) => {
                 </div>
             </Modal>
 
+            <!-- Buy SMS Credits Modal -->
+            <Modal :show="showBuySmsModal" @close="showBuySmsModal = false">
+                <div class="p-6 dark:bg-gray-800 dark:text-white">
+                    <h3 class="text-lg font-bold mb-2">Buy SMS Credits</h3>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-6">Select an amount to purchase SMS credits via Paystack.</p>
+                    
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
+                        <button 
+                            v-for="amt in [50, 80, 100, 200, 500, 1000, 1500, 3000, 5000, 10000]" 
+                            :key="amt"
+                            type="button"
+                            @click="buyAmount = amt"
+                            class="rounded-lg border-2 p-3 text-center transition-all"
+                            :class="buyAmount === amt ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 font-bold' : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 text-gray-600 dark:text-gray-300'"
+                        >
+                            KES {{ amt }}
+                        </button>
+                    </div>
+
+                    <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100 dark:border-gray-700">
+                        <button @click="showBuySmsModal = false" class="px-4 py-2 text-gray-500 hover:text-gray-700 dark:text-gray-400">Cancel</button>
+                        <button 
+                            class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow font-medium disabled:opacity-50" 
+                            :disabled="isInitializing"
+                            @click="handlePurchase"
+                        >
+                            {{ isInitializing ? 'Initializing...' : 'Pay via Paystack' }}
+                        </button>
+                    </div>
+                </div>
+            </Modal>
         </div>
     </AuthenticatedLayout>
 </template>

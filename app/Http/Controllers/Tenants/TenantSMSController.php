@@ -32,12 +32,15 @@ class TenantSMSController extends Controller
         $packages = Package::all(['id', 'name']);
         $locations = NetworkUser::whereNotNull('location')->distinct()->pluck('location');
 
+        $tenant = \App\Models\Tenant::find(Auth::user()->tenant_id);
+
         return Inertia::render('SMS/Index', [
             'smsLogs' => $smsLogs,
             'renters' => $renters,
             'templates' => $templates,
             'packages' => $packages,
             'locations' => $locations,
+            'sms_balance' => $tenant->sms_balance ?? 0,
             'filters' => [
                 'search' => $request->search,
             ],

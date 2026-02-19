@@ -18,7 +18,6 @@ const toastOptions = {
 
 const props = defineProps({
     gateway: { type: Object, default: () => ({}) },
-    sms_balance: { type: [Number, String], default: 0.00 },
 });
 
 const showDetailsModal = ref(false);
@@ -113,56 +112,6 @@ function openDetails() {
     showDetailsModal.value = true;
 }
 
-const showBuySmsModal = ref(false);
-const buyAmount = ref(100);
-const amounts = [50, 80, 100, 200, 500, 1000, 1500, 3000, 5000, 10000];
-const isInitializing = ref(false);
-
-function buySms() {
-    if (isInitializing.value) return;
-    
-    isInitializing.value = true;
-    router.post(route('sms.purchase.initialize'), { amount: buyAmount.value }, {
-        onSuccess: (page) => {
-            const url = page.props.flash?.authorization_url || page.props.authorization_url;
-            if (url) {
-                window.location.href = url;
-            } else if (page.props.jetstream?.flash?.authorization_url) {
-                 window.location.href = page.props.jetstream.flash.authorization_url;
-            } else {
-                 // Fallback if not in props directly (inertia might have it in response)
-                 if (page.data?.authorization_url) {
-                     window.location.href = page.data.authorization_url;
-                 }
-            }
-        },
-        onFinish: () => {
-            isInitializing.value = false;
-        }
-    });
-}
-
-// Intercept for manual handling if Inertia doesn't auto-redirect (though it should given the controller returns JSON or similar)
-// actually, our controller returns a JSON response. router.post might not handle the redirect if it expects an Inertia response.
-// Let's use axios for the initialize call to be safer and more direct.
-
-async function handlePurchase() {
-    if (isInitializing.value) return;
-    isInitializing.value = true;
-    
-    try {
-        const response = await axios.post(route('sms.purchase.initialize'), { amount: buyAmount.value });
-        if (response.data.success && response.data.authorization_url) {
-            window.location.href = response.data.authorization_url;
-        } else {
-            toast.error(response.data.message || 'Failed to initialize payment');
-        }
-    } catch (error) {
-        toast.error(error.response?.data?.message || 'An error occurred during payment initialization');
-    } finally {
-        isInitializing.value = false;
-    }
-}
 
 </script>
 
@@ -195,13 +144,6 @@ async function handlePurchase() {
                 <h3 class="text-2xl font-bold text-indigo-700">
                     SMS Gateway Settings
                 </h3>
-                <div class="ml-auto flex flex-col items-end">
-                    <span class="text-xs font-semibold uppercase text-gray-500">Balance</span>
-                    <span class="text-xl font-bold text-green-600">KES {{ Number(sms_balance).toFixed(2) }}</span>
-                    <button @click="showBuySmsModal = true" class="mt-1 text-sm font-semibold text-indigo-600 hover:text-indigo-800 underline">
-                        Buy Credits
-                    </button>
-                </div>
             </header>
 
             <!-- Provider Selection -->
