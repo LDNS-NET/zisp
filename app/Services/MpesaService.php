@@ -570,17 +570,26 @@ class MpesaService
             ];
 
             Log::info('M-Pesa: Registering C2B URLs', [
-                'shortcode' => $this->shortcode,
+                'shortcode' => (string) $this->shortcode,
+                'shortcode_len' => strlen((string) $this->shortcode),
                 'validation_url' => $validationUrl,
                 'confirmation_url' => $confirmationUrl,
                 'response_type' => $responseType,
                 'url' => $url,
-                'token_sample' => substr($token, 0, 10) . '...' . substr($token, -5)
+                'token_sample' => substr($token, 0, 10) . '...' . substr($token, -5),
+                'key_len' => strlen($this->consumerKey),
+                'secret_len' => strlen($this->consumerSecret),
             ]);
 
             $response = Http::withHeaders([
                 'Accept' => 'application/json',
-            ])->withToken($token)->post($url, $payload);
+                'Content-Type' => 'application/json',
+            ])->withToken($token)->post($url, [
+                'ShortCode' => (string) $this->shortcode,
+                'ResponseType' => $responseType,
+                'ConfirmationURL' => $confirmationUrl,
+                'ValidationURL' => $validationUrl
+            ]);
 
             $data = $response->json();
 
@@ -595,14 +604,21 @@ class MpesaService
                 if ($token) {
                     $response = Http::withHeaders([
                         'Accept' => 'application/json',
-                    ])->withToken($token)->post($url, $payload);
+                        'Content-Type' => 'application/json',
+                    ])->withToken($token)->post($url, [
+                        'ShortCode' => (string) $this->shortcode,
+                        'ResponseType' => $responseType,
+                        'ConfirmationURL' => $confirmationUrl,
+                        'ValidationURL' => $validationUrl
+                    ]);
                     $data = $response->json();
                 }
             }
 
             Log::info('M-Pesa: C2B URL registration response', [
                 'status_code' => $response->status(),
-                'response' => $data
+                'response' => $data,
+                'body' => $response->body() // Capture raw body just in case JSON parsing hides something
             ]);
 
             if ($response->successful() && isset($data['ResponseCode']) && $data['ResponseCode'] == '0') {
