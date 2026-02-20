@@ -580,7 +580,7 @@ function confirmSubmit() {
             </div>
         </div>
 
-        <!-- Edit Modal -->
+        <!-- Edit Modal 
         <Modal :show="showModal" @close="showModal = false">
             <div class="p-6 dark:bg-slate-800 dark:text-white">
                 <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
@@ -608,11 +608,11 @@ function confirmSubmit() {
                             <TextInput v-model="form.phone" id="phone" class="mt-1 block w-full" />
                             <InputError :message="form.errors.phone" />
                         </div>
-                        <!-- <div>
+                         <div>
                             <InputLabel for="email" value="Email Address" />
                             <TextInput v-model="form.email" id="email" type="email" class="mt-1 block w-full" />
                             <InputError :message="form.errors.email" />
-                        </div> -->
+                        </div>
                         <div>
                             <InputLabel for="location" value="Location" />
                             <TextInput v-model="form.location" id="location" class="mt-1 block w-full" />
@@ -650,6 +650,6 @@ function confirmSubmit() {
                     </div>
                 </form>
             </div>
-        </Modal>
+        </Modal>-->
     </AuthenticatedLayout>
 </template>
