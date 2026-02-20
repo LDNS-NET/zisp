@@ -64,7 +64,7 @@ const form = useForm({
     // email: '',
     location: '',
     package_id: '',
-    type: 'hotspot',
+    type: 'PPPoE', // Default to PPPoE, can be changed to 'hotspot' or 'static'
     expires_at: '',
     admin_password: '', // For validation
 });
@@ -210,7 +210,7 @@ function submitUpdate() {
 }
 
 function downloadUpdateSample() {
-    const csvContent = "full_name,phone,account_no\nJohn Doe,0712345678,ACC001\nJane Smith,0723456789,ACC002";
+    const csvContent = "full_name,phone,account_no\nDuncan Ogeno,0712345678,OGDunte\nBrahm ,0723456789,Brahm22";
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
     if (link.download !== undefined) {
@@ -299,7 +299,7 @@ function openEdit(user) {
     // form.email = user.email ?? '';
     form.location = user.location ?? '';
     form.package_id = user.package_id ?? '';
-    form.type = user.type ?? 'hotspot';
+    form.type = user.type ?? 'PPPoE';
     form.expires_at = user.expires_at ? user.expires_at.slice(0, 16) : '';
     showModal.value = true;
 }

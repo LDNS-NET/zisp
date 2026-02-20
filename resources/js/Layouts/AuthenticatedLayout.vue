@@ -95,7 +95,7 @@ const toggleGroup = (groupName) => {
 const navigation = [
     // Dashboard link with permission check
     { name: 'Dashboard', href: route('dashboard'), icon: LayoutDashboard, active: 'dashboard' },
-    { name: 'Online Users', href: route('activeusers.index'), icon: Activity, active: 'activeusers.*', countKey: 'online_users', roles: ['tenant_admin', 'admin','marketing', 'customer_care', 'technical'], permission: 'view_online_users' },
+    { name: 'Online Users', href: route('activeusers.index'), icon: Activity, active: 'activeusers.*', countKey: 'online_users', roles: ['tenant_admin', 'admin', 'customer_care'], permission: 'view_online_users' },
 
     
     // Customers group with detailed permissions
