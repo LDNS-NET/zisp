@@ -232,11 +232,9 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode', 'sta
 
 
         // Dashboard
-        Route::middleware(['role_or_permission:tenant_admin|admin|view_dashboard'])->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
         Route::get('/dashboard/data', [DashboardController::class, 'data'])
             ->name('dashboard.data');
-        });
 
         //Active Users
         Route::middleware(['role_or_permission:tenant_admin|Finance|admin|customer_care|view_online_users'])->group(function () {
