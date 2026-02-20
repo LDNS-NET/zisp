@@ -39,37 +39,70 @@ const form = useForm({
     expires_at: '',
 });
 
+
 function openEdit(user) {
     editing.value = user.uuid;
     form.full_name = user.full_name ?? '';
     form.username = user.username ?? '';
-    form.password = '';
+    form.password = ''; // Don't show current password
     form.phone = user.phone ?? '';
     // form.email = user.email ?? '';
     form.location = user.location ?? '';
     form.package_id = user.package_id ?? '';
-    form.type = user.type ?? 'hotspot';
+    form.type = user.type ?? 'PPPoE';
     form.expires_at = user.expires_at ? user.expires_at.slice(0, 16) : '';
     showModal.value = true;
 }
+function submitWithoutPassword() {
+    const options = {
+        onSuccess: () => {
+            showModal.value = false;
+            toast.success(editing.value ? 'User updated successfully' : 'User created successfully');
+            form.reset();
+        },
+        onError: () => {
+            toast.error('Please check the form for errors.');
+        },
+    };
 
-function submit() {
     if (editing.value) {
-        form.put(route('users.update', { user: editing.value }), {
-            onSuccess: () => {
-                showModal.value = false;
-                toast.success('User updated successfully');
-            },
-            onError: () => toast.error('Failed to update user'),
-        });
+        form.put(route('users.update', editing.value), options);
     } else {
-        form.post(route('users.store'), {
-            onSuccess: () => {
-                showModal.value = false;
-                toast.success('User created successfully');
-            },
-            onError: () => toast.error('Failed to create user'),
-        });
+        form.post(route('users.store'), options);
+    }
+}
+
+function confirmSubmit() {
+    form.admin_password = passwordForm.password;
+    
+    const options = {
+        onSuccess: () => {
+            showModal.value = false;
+            showPasswordModal.value = false;
+            toast.success(editing.value ? 'User updated successfully' : 'User created successfully');
+            passwordForm.reset();
+            form.reset();
+        },
+        onError: (errors) => {
+            if (errors.admin_password) {
+                toast.error(errors.admin_password);
+                passwordForm.setError('password', errors.admin_password); // key might be admin_password, but we show on password field
+                // actually we can just show toast and keep password modal open?
+                // If it's a password error, we keep password modal open.
+                // If it's a form error (e.g. username taken), we should close password modal?
+                // If admin_password error, keep password modal open.
+            } else {
+                // If other errors, close password modal to show form errors
+                showPasswordModal.value = false;
+                toast.error('Please check the form for errors.');
+            }
+        },
+    };
+
+    if (editing.value) {
+        form.put(route('users.update', editing.value), options);
+    } else {
+        form.post(route('users.store'), options);
     }
 }
 </script>
@@ -549,64 +582,74 @@ function submit() {
 
         <!-- Edit Modal -->
         <Modal :show="showModal" @close="showModal = false">
-            <form @submit.prevent="submit" class="space-y-4 p-6">
-                <div>
-                    <label class="block text-sm font-medium">Full Name</label>
-                    <TextInput v-model="form.full_name" type="text" />
-                    <InputError :message="form.errors.full_name" />
-                </div>
+            <div class="p-6 dark:bg-slate-800 dark:text-white">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                    {{ editing ? 'Edit User' : 'Create New User' }}
+                </h3>
+                <form @submit.prevent="initiateSubmit" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <InputLabel for="full_name" value="Full Name" />
+                            <TextInput v-model="form.full_name" id="full_name" class="mt-1 block w-full" />
+                            <InputError :message="form.errors.full_name" />
+                        </div>
+                        <div>
+                            <InputLabel for="username" value="Username" />
+                            <TextInput v-model="form.username" id="username" class="mt-1 block w-full" />
+                            <InputError :message="form.errors.username" />
+                        </div>
+                        <div>
+                            <InputLabel for="password" value="Password" />
+                            <TextInput v-model="form.password" id="password" type="password" class="mt-1 block w-full" placeholder="Leave empty to keep current" autocomplete="new-password" />
+                            <InputError :message="form.errors.password" />
+                        </div>
+                        <div>
+                            <InputLabel for="phone" value="Phone Number" />
+                            <TextInput v-model="form.phone" id="phone" class="mt-1 block w-full" />
+                            <InputError :message="form.errors.phone" />
+                        </div>
+                        <!-- <div>
+                            <InputLabel for="email" value="Email Address" />
+                            <TextInput v-model="form.email" id="email" type="email" class="mt-1 block w-full" />
+                            <InputError :message="form.errors.email" />
+                        </div> -->
+                        <div>
+                            <InputLabel for="location" value="Location" />
+                            <TextInput v-model="form.location" id="location" class="mt-1 block w-full" />
+                            <InputError :message="form.errors.location" />
+                        </div>
+                        <div>
+                            <InputLabel for="type" value="User Type" />
+                            <select v-model="form.type" id="type" class="mt-1 block w-full border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white focus:border-blue-500 focus:ring-blue-500 rounded-md shadow-sm">
+                                <option value="hotspot">Hotspot</option>
+                                <option value="pppoe">PPPoE</option>
+                                <option value="static">Static</option>
+                            </select>
+                            <InputError :message="form.errors.type" />
+                        </div>
+                        <div>
+                            <InputLabel for="package_id" value="Package" />
+                            <select v-model="form.package_id" id="package_id" class="mt-1 block w-full border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white focus:border-blue-500 focus:ring-blue-500 rounded-md shadow-sm">
+                                <option value="">Select Package</option>
+                                <option v-for="pkg in packagesByType" :key="pkg.id" :value="pkg.id">
+                                    {{ pkg.name }}
+                                </option>
+                            </select>
+                            <InputError :message="form.errors.package_id" />
+                        </div>
+                        <div class="md:col-span-2">
+                            <InputLabel for="expires_at" value="Expiry Date" />
+                            <TextInput id="expires_at" type="datetime-local" v-model="form.expires_at" class="mt-1 block w-full" />
+                            <InputError :message="form.errors.expires_at" />
+                        </div>
+                    </div>
 
-                <div>
-                    <label class="block text-sm font-medium">Username</label>
-                    <TextInput v-model="form.username" type="text" />
-                    <InputError :message="form.errors.username" />
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium">Password</label>
-                    <TextInput v-model="form.password" type="password" autocomplete="new-password" />
-                    <InputError :message="form.errors.password" />
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium">Phone</label>
-                    <TextInput v-model="form.phone" type="text" />
-                    <InputError :message="form.errors.phone" />
-                </div>
-
-                <!-- <div>
-                    <label class="block text-sm font-medium">Email</label>
-                    <TextInput v-model="form.email" type="email" />
-                    <InputError :message="form.errors.email" />
-                </div> -->
-
-                <div>
-                    <label class="block text-sm font-medium">Location</label>
-                    <TextInput v-model="form.location" type="text" />
-                    <InputError :message="form.errors.location" />
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium">Package</label>
-                    <TextInput v-model="form.package_id" type="text" />
-                    <InputError :message="form.errors.package_id" />
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium">Type</label>
-                    <TextInput v-model="form.type" type="text" />
-                    <InputError :message="form.errors.type" />
-                </div>
-
-                <div class="mt-6 flex justify-end gap-3">
-                    <DangerButton @click="showModal = false" type="button"
-                        >Cancel</DangerButton
-                    >
-                    <PrimaryButton :disabled="form.processing">
-                        {{ editing ? 'Update' : 'Save' }}
-                    </PrimaryButton>
-                </div>
-            </form>
+                    <div class="mt-6 flex justify-end gap-3">
+                        <DangerButton type="button" @click="showModal = false">Cancel</DangerButton>
+                        <PrimaryButton :disabled="form.processing">{{ editing ? 'Update User' : 'Create User' }}</PrimaryButton>
+                    </div>
+                </form>
+            </div>
         </Modal>
     </AuthenticatedLayout>
 </template>
