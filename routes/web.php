@@ -237,7 +237,7 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode', 'sta
             ->name('dashboard.data');
 
         //Active Users
-        Route::middleware(['role_or_permission:tenant_admin|Finance|marketing|admin|customer_care|technical|view_online_users'])->group(function () {
+        Route::middleware(['role_or_permission:tenant_admin|Finance|admin|customer_care|view_online_users'])->group(function () {
             Route::resource('activeusers', TenantActiveUsersController::class)->middleware('throttle:online_users');
         });
 
@@ -287,6 +287,10 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode', 'sta
         });
 
         // network users (permision for edit and delete to remain only to admin and tenant
+        Route::middleware(['role:tenant_admin|admin'])->group(function () {
+            Route::delete('/users/{user}', [TenantUserController::class, 'destroy'])->name('users.destroy');
+            Route::put('/users/{user}', [TenantUserController::class, 'update'])->name('users.update');
+        });
 
 
 
