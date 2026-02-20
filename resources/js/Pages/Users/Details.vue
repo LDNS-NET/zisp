@@ -120,9 +120,9 @@ function confirmSubmit() {
                         >({{ props.user.username }})</span
                     >
                 </h2>
-                <PrimaryButton @click="openEdit(props.user)">
+                <!---<PrimaryButton @click="openEdit(props.user)">
                     Edit User
-                </PrimaryButton>
+                </PrimaryButton>-->
             </div>
         </template>
 
