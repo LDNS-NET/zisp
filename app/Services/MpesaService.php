@@ -567,7 +567,10 @@ class MpesaService
                 ];
             }
 
-            $url = $this->baseUrl . '/mpesa/c2b/v1/registerurl';
+            // Use v2 endpoint as per Daraja documentation
+            // Production: https://api.safaricom.co.ke/mpesa/c2b/v2/registerurl
+            // Sandbox:    https://sandbox.safaricom.co.ke/mpesa/c2b/v2/registerurl
+            $url = $this->baseUrl . '/mpesa/c2b/v2/registerurl';
 
             $payload = [
                 'ShortCode' => (string) $this->shortcode,
@@ -622,7 +625,16 @@ class MpesaService
                 'body' => $response->body() // Capture raw body just in case JSON parsing hides something
             ]);
 
-            if ($response->successful() && isset($data['ResponseCode']) && $data['ResponseCode'] == '0') {
+            // Safaricom can return success in multiple ways:
+            // 1. ResponseCode = '0' (most common)
+            // 2. ResponseDescription containing 'Success' (some environments)
+            // 3. HTTP 200 with no ResponseCode on some builds
+            $isSuccess = $response->successful() && (
+                (isset($data['ResponseCode']) && $data['ResponseCode'] == '0') ||
+                (isset($data['ResponseDescription']) && stripos($data['ResponseDescription'], 'success') !== false)
+            );
+
+            if ($isSuccess) {
                 return [
                     'success' => true,
                     'message' => $data['ResponseDescription'] ?? 'C2B URLs registered successfully',
@@ -632,7 +644,7 @@ class MpesaService
 
             return [
                 'success' => false,
-                'message' => $data['errorMessage'] ?? $data['ResponseDescription'] ?? 'C2B URL registration failed',
+                'message' => $data['errorMessage'] ?? $data['ResponseDescription'] ?? 'C2B URL registration failed (HTTP ' . $response->status() . ')',
                 'response' => $data
             ];
 

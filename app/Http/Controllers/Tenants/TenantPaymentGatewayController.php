@@ -149,34 +149,48 @@ class TenantPaymentGatewayController extends Controller
 
         // ✅ Handle Automated M-Pesa C2B Registration
         if ($validated['provider'] === 'mpesa' && ($validated['use_own_api'] ?? false)) {
-            try {
-                $mpesa = new MpesaService([
-                    'consumer_key' => trim($validated['mpesa_consumer_key']),
-                    'consumer_secret' => trim($validated['mpesa_consumer_secret']),
-                    'shortcode' => trim($validated['mpesa_shortcode']),
-                    'shortcode_type' => $validated['mpesa_shortcode_type'] ?? 'paybill',
-                    'passkey' => trim($validated['mpesa_passkey']),
-                    'environment' => $validated['mpesa_env'] ?? 'sandbox',
-                ]);
-
-                $validationUrl = config('app.url') . '/api/mpesa/c2b/validation';
-                $confirmationUrl = config('app.url') . '/api/mpesa/c2b/confirmation';
-
-                $result = $mpesa->registerC2BURLS($validationUrl, $confirmationUrl);
-
-                if ($result['success']) {
-                    $message .= " M-Pesa C2B URLs registered successfully.";
-                } else {
-                    \Illuminate\Support\Facades\Log::warning('Automated M-Pesa C2B Registration Failed: ' . ($result['message'] ?? 'Unknown error'), [
-                        'tenant_id' => $tenantId,
-                        'response' => $result['response'] ?? null
+            if (!empty($validated['mpesa_consumer_key']) && !empty($validated['mpesa_consumer_secret']) && !empty($validated['mpesa_shortcode'])) {
+                try {
+                    $mpesa = new MpesaService([
+                        'consumer_key'    => trim($validated['mpesa_consumer_key']),
+                        'consumer_secret' => trim($validated['mpesa_consumer_secret']),
+                        'shortcode'       => trim($validated['mpesa_shortcode']),
+                        'shortcode_type'  => $validated['mpesa_shortcode_type'] ?? 'paybill',
+                        'passkey'         => trim($validated['mpesa_passkey'] ?? ''),
+                        'environment'     => $validated['mpesa_env'] ?? 'production',
                     ]);
-                    // Don't show technical error to user, just the success of the gateway update itself
-                    // Optionally add a generic manual setup hint
-                    //$message .= " M-Pesa URLs may require manual registration if automatic setup fails.";
+
+                    $validationUrl    = config('app.url') . '/api/mpesa/c2b/validation';
+                    $confirmationUrl  = config('app.url') . '/api/mpesa/c2b/confirmation';
+
+                    \Illuminate\Support\Facades\Log::info('M-Pesa C2B auto-registration triggered on credential save', [
+                        'tenant_id'        => $tenantId,
+                        'shortcode'        => $validated['mpesa_shortcode'],
+                        'env'              => $validated['mpesa_env'] ?? 'production',
+                        'validation_url'   => $validationUrl,
+                        'confirmation_url' => $confirmationUrl,
+                    ]);
+
+                    $result = $mpesa->registerC2BURLS($validationUrl, $confirmationUrl);
+
+                    if ($result['success']) {
+                        $message .= ' ✅ M-Pesa C2B URLs registered with Safaricom successfully – payments will now be sent to this application.';
+                    } else {
+                        $errorMsg = $result['message'] ?? 'Unknown error';
+                        \Illuminate\Support\Facades\Log::warning('Automated M-Pesa C2B Registration Failed', [
+                            'tenant_id' => $tenantId,
+                            'error'     => $errorMsg,
+                            'response'  => $result['response'] ?? null,
+                        ]);
+                        $message .= " ⚠️ Credentials saved, but C2B URL registration failed: {$errorMsg}. Use the 'Register C2B URLs' button to retry.";
+                    }
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error('Automated M-Pesa C2B Registration Exception', [
+                        'tenant_id' => $tenantId,
+                        'error'     => $e->getMessage(),
+                    ]);
+                    $message .= ' ⚠️ Credentials saved. C2B URL auto-registration threw an exception: ' . $e->getMessage();
                 }
-            } catch (\Exception $e) {
-                \Illuminate\Support\Facades\Log::error('Automated M-Pesa C2B Registration Exception: ' . $e->getMessage());
             }
         }
 
