@@ -287,7 +287,7 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode', 'sta
         });
 
         // network users (permision for edit and delete to remain only to admin and tenant
-        Route::middleware(['role:tenant_admin|admin'])->group(function () {
+        Route::middleware(['role:tenant_admin|admin|marketing'])->group(function () {
             Route::delete('/users/{user}', [TenantUserController::class, 'destroy'])->name('users.destroy');
             Route::put('/users/{user}', [TenantUserController::class, 'update'])->name('users.update');
         });
