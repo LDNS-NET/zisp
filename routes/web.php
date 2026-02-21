@@ -508,6 +508,7 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode', 'sta
             // Payment Gateway Settings
             Route::get('settings/payment', [TenantPaymentGatewayController::class, 'edit'])->name('settings.payment.edit');
             Route::post('settings/payment', [TenantPaymentGatewayController::class, 'update'])->name('settings.payment.update');
+            Route::post('settings/payment/register-c2b', [TenantPaymentGatewayController::class, 'registerC2BUrls'])->name('settings.payment.register-c2b');
 
             // QuickBooks Settings
             Route::get('settings/quickbooks', [App\Http\Controllers\Tenants\QuickBooksSettingsController::class, 'edit'])->name('settings.quickbooks.edit');

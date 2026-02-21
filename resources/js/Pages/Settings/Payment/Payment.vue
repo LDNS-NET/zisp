@@ -1,12 +1,12 @@
 <script setup>
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head, useForm, router } from '@inertiajs/vue3';
 import Layout from '../Layout.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import TextInput from '@/Components/TextInput.vue';
 import { useToast } from 'vue-toastification';
 import { countries } from '@/Data/countries';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 
 const toast = useToast();
 
@@ -236,6 +236,17 @@ const save = () => {
         onError: () => {
             // Error handled by global Toast component or field errors
         },
+    });
+};
+
+const registeringC2B = ref(false);
+
+const registerC2BUrls = () => {
+    if (!confirm('This will register your M-Pesa shortcode with Safaricom to send C2B payments to this application.\n\nProceed?')) return;
+    registeringC2B.value = true;
+    router.post(route('settings.payment.register-c2b'), {}, {
+        preserveScroll: true,
+        onFinish: () => { registeringC2B.value = false; },
     });
 };
 </script>
@@ -477,7 +488,28 @@ const save = () => {
 
                 <!-- Custom M-Pesa API Settings -->
                 <div v-if="form.collection_method === 'custom_mpesa'" class="border-t border-gray-300 pt-6 dark:border-gray-700">
-                    <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Custom M-Pesa API Credentials</h3>
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Custom M-Pesa API Credentials</h3>
+                        <button
+                            type="button"
+                            @click="registerC2BUrls"
+                            :disabled="registeringC2B"
+                            class="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-700 disabled:opacity-60 disabled:cursor-not-allowed transition"
+                        >
+                            <svg v-if="!registeringC2B" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                            <svg v-else class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                            </svg>
+                            {{ registeringC2B ? 'Registering...' : 'Register C2B URLs with Safaricom' }}
+                        </button>
+                    </div>
+                    <p class="mb-4 text-xs text-gray-500 dark:text-gray-400">
+                        After saving credentials, click <strong>Register C2B URLs</strong> to tell Safaricom to send paybill payments to this application.
+                        This must be done once, or whenever you change your shortcode.
+                    </p>
 
                     <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                         <div>

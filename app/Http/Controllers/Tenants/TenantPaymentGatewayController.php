@@ -182,4 +182,65 @@ class TenantPaymentGatewayController extends Controller
 
         return back()->with('success', $message);
     }
+
+    /**
+     * Manually trigger M-Pesa C2B URL registration for this tenant.
+     * This registers the validation and confirmation URLs with Safaricom
+     * so that C2B payments (paybill payments) are routed to our application.
+     */
+    public function registerC2BUrls(Request $request)
+    {
+        $tenantId = $this->resolveTenantId($request);
+
+        $gateway = TenantPaymentGateway::where('tenant_id', $tenantId)
+            ->where('provider', 'mpesa')
+            ->where('use_own_api', true)
+            ->where('is_active', true)
+            ->first();
+
+        if (!$gateway) {
+            return back()->with('error', 'No active Custom M-Pesa API found. Please save your M-Pesa credentials first.');
+        }
+
+        if (empty($gateway->mpesa_consumer_key) || empty($gateway->mpesa_consumer_secret) || empty($gateway->mpesa_shortcode)) {
+            return back()->with('error', 'Incomplete M-Pesa credentials. Please ensure Consumer Key, Consumer Secret, and Shortcode are all filled in.');
+        }
+
+        try {
+            $mpesa = new MpesaService([
+                'consumer_key' => trim($gateway->mpesa_consumer_key),
+                'consumer_secret' => trim($gateway->mpesa_consumer_secret),
+                'shortcode' => trim($gateway->mpesa_shortcode),
+                'shortcode_type' => $gateway->mpesa_shortcode_type ?? 'paybill',
+                'passkey' => trim($gateway->mpesa_passkey ?? ''),
+                'environment' => $gateway->mpesa_env ?? 'sandbox',
+            ]);
+
+            $validationUrl = config('app.url') . '/api/mpesa/c2b/validation';
+            $confirmationUrl = config('app.url') . '/api/mpesa/c2b/confirmation';
+
+            \Illuminate\Support\Facades\Log::info('Tenant M-Pesa C2B Registration triggered from UI', [
+                'tenant_id' => $tenantId,
+                'shortcode' => $gateway->mpesa_shortcode,
+                'env' => $gateway->mpesa_env,
+                'validation_url' => $validationUrl,
+                'confirmation_url' => $confirmationUrl,
+            ]);
+
+            $result = $mpesa->registerC2BURLS($validationUrl, $confirmationUrl);
+
+            if ($result['success']) {
+                return back()->with('success', '✅ M-Pesa C2B URLs registered successfully! Safaricom will now send all payments to this application.');
+            }
+
+            return back()->with('error', '❌ C2B Registration failed: ' . ($result['message'] ?? 'Unknown error. Check logs for details.'));
+
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Tenant M-Pesa C2B Registration Exception', [
+                'tenant_id' => $tenantId,
+                'error' => $e->getMessage()
+            ]);
+            return back()->with('error', 'An error occurred during registration: ' . $e->getMessage());
+        }
+    }
 }
