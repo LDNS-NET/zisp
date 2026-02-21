@@ -650,6 +650,87 @@ class MpesaService
     }
 
     /**
+     * Simulate a C2B transaction (Sandbox only)
+     *
+     * @param float $amount Amount to simulate
+     * @param string $msisdn Test phone number
+     * @param string $billRefNumber Account number / Bill reference
+     * @param string $commandId CustomerPayBillOnline or CustomerBuyGoodsOnline
+     * @return array Response with success status and data
+     */
+    public function simulateC2B(float $amount, string $msisdn, string $billRefNumber, string $commandId = 'CustomerPayBillOnline'): array
+    {
+        try {
+            if ($this->environment === 'production') {
+                return [
+                    'success' => false,
+                    'message' => 'Simulation is not supported in production environment'
+                ];
+            }
+
+            $token = $this->getAccessToken();
+            
+            if (!$token) {
+                return [
+                    'success' => false,
+                    'message' => 'Failed to obtain access token'
+                ];
+            }
+
+            $url = $this->baseUrl . '/mpesa/c2b/v1/simulate';
+
+            $payload = [
+                'ShortCode' => (string) $this->shortcode,
+                'CommandID' => $commandId,
+                'Amount' => round($amount),
+                'Msisdn' => $this->normalizePhoneNumber($msisdn),
+                'BillRefNumber' => $billRefNumber
+            ];
+
+            Log::info('M-Pesa: Simulating C2B transaction', [
+                'shortcode' => $this->shortcode,
+                'amount' => $amount,
+                'msisdn' => $msisdn,
+                'bill_ref' => $billRefNumber,
+                'command_id' => $commandId
+            ]);
+
+            $response = Http::withToken($token)->post($url, $payload);
+            $data = $response->json();
+
+            Log::info('M-Pesa: C2B Simulation response', [
+                'status_code' => $response->status(),
+                'response' => $data
+            ]);
+
+            if ($response->successful() && isset($data['ResponseCode']) && $data['ResponseCode'] == '0') {
+                return [
+                    'success' => true,
+                    'message' => $data['ResponseDescription'] ?? 'Simulation request accepted successfully',
+                    'response' => $data
+                ];
+            }
+
+            return [
+                'success' => false,
+                'message' => $data['errorMessage'] ?? $data['ResponseDescription'] ?? 'C2B Simulation failed',
+                'response' => $data
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('M-Pesa: C2B Simulation exception', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'An error occurred: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
      * Validate if the request is coming from a trusted M-Pesa IP address.
      * 
      * @param string $ip

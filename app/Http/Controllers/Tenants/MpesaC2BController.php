@@ -109,10 +109,19 @@ class MpesaC2BController extends Controller
                 'account' => $accountNumber,
                 'amount' => $data['trans_amount'],
                 'trans_id' => $data['trans_id'],
-                'phone' => $data['msisdn']
+                'phone' => $data['msisdn'],
+                'business_shortcode' => $data['business_shortcode']
             ]);
-            return response()->json(['ResultCode' => 0, 'ResultDesc' => 'Success']); // M-Pesa expects 0 even if we can't process it locally
+            // Still return success to M-Pesa to prevent retries of invalid data
+            return response()->json(['ResultCode' => 0, 'ResultDesc' => 'Success']);
         }
+
+        Log::info('M-Pesa C2B Confirmation: User identified', [
+            'user_id' => $user->id,
+            'username' => $user->username,
+            'tenant_id' => $user->tenant_id,
+            'account' => $accountNumber
+        ]);
 
         try {
             // Check if payment already exists
