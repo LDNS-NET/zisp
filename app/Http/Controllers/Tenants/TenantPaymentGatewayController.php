@@ -160,8 +160,8 @@ class TenantPaymentGatewayController extends Controller
                         'environment'     => $validated['mpesa_env'] ?? 'production',
                     ]);
 
-                    $validationUrl    = config('app.url') . '/api/mpesa/c2b/validation';
-                    $confirmationUrl  = config('app.url') . '/api/mpesa/c2b/confirmation';
+                    $validationUrl    = config('app.url') . '/api/payments/c2b/validate';
+                    $confirmationUrl  = config('app.url') . '/api/payments/c2b/confirm';
 
                     \Illuminate\Support\Facades\Log::info('M-Pesa C2B auto-registration triggered on credential save', [
                         'tenant_id'        => $tenantId,
@@ -230,8 +230,8 @@ class TenantPaymentGatewayController extends Controller
                 'environment' => $gateway->mpesa_env ?? 'sandbox',
             ]);
 
-            $validationUrl = config('app.url') . '/api/mpesa/c2b/validation';
-            $confirmationUrl = config('app.url') . '/api/mpesa/c2b/confirmation';
+            $validationUrl = config('app.url') . '/api/payments/c2b/validate';
+            $confirmationUrl = config('app.url') . '/api/payments/c2b/confirm';
 
             \Illuminate\Support\Facades\Log::info('Tenant M-Pesa C2B Registration triggered from UI', [
                 'tenant_id' => $tenantId,

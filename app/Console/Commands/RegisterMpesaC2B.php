@@ -51,8 +51,8 @@ class RegisterMpesaC2B extends Command
         }
 
         // Get URLs
-        $validationUrl = $this->option('validation-url') ?? config('app.url') . '/api/mpesa/c2b/validation';
-        $confirmationUrl = $this->option('confirmation-url') ?? config('app.url') . '/api/mpesa/c2b/confirmation';
+        $validationUrl = $this->option('validation-url') ?? config('app.url') . '/api/payments/c2b/validate';
+        $confirmationUrl = $this->option('confirmation-url') ?? config('app.url') . '/api/payments/c2b/confirm';
 
         $this->info('📋 Configuration:');
         $this->table(
