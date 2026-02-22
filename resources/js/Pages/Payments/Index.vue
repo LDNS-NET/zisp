@@ -561,84 +561,92 @@ function generatePaymentConfirmation(p = null) {
             <!-- Stats Cards Grid -->
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <!-- Daily Income -->
-                <div class="group relative rounded-2xl bg-white p-4 shadow-sm border border-slate-100 dark:bg-slate-800 dark:border-slate-700 hover:shadow-md transition-all">
-                    <div class="flex items-center gap-3">
-                        <div class="rounded-xl bg-blue-50 p-2 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 font-bold group-hover:scale-110 transition-transform">
-                            <TrendingUp class="h-5 w-5" />
+                <div class="group relative overflow-hidden rounded-2xl bg-white p-5 shadow-sm border border-slate-100 dark:bg-slate-800 dark:border-slate-700 hover:shadow-md transition-all duration-300">
+                    <div class="flex items-center gap-4">
+                        <div class="rounded-xl bg-blue-50 p-3 text-blue-600 dark:bg-blue-400/10 dark:text-blue-400 font-bold group-hover:scale-110 transition-transform">
+                            <TrendingUp class="h-6 w-6" />
                         </div>
-                        <div>
-                            <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Daily Income</p>
-                            <h3 class="text-lg font-black tracking-tight text-slate-900 dark:text-white">
+                        <div class="min-w-0 flex-1">
+                            <p class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 truncate">Daily Income</p>
+                            <h3 class="text-xl font-black tracking-tight text-slate-900 dark:text-white mt-0.5 truncate">
                                 {{ showStats ? currency + ' ' + dailyIncome.toLocaleString() : '••••••' }}
                             </h3>
                         </div>
                     </div>
-                    <div class="mt-3 flex justify-end">
-                        <input type="date" v-model="selectedDay" class="h-5 border-none bg-transparent p-0 text-[10px] font-bold text-blue-600 focus:ring-0 dark:text-blue-400 cursor-pointer" />
+                    <div class="mt-4 pt-3 border-t border-slate-50 dark:border-slate-700/50 flex items-center justify-between gap-2">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Select Date</span>
+                        <input type="date" v-model="selectedDay" class="w-auto max-w-[130px] border-none bg-blue-50/50 dark:bg-blue-400/5 px-2 py-1 text-[11px] font-extrabold text-blue-600 dark:text-blue-400 focus:ring-1 focus:ring-blue-500/20 rounded-lg cursor-pointer" />
                     </div>
                 </div>
 
                 <!-- Weekly Income -->
-                <div class="group relative rounded-2xl bg-white p-4 shadow-sm border border-slate-100 dark:bg-slate-800 dark:border-slate-700 hover:shadow-md transition-all">
-                    <div class="flex items-center gap-3">
-                        <div class="rounded-xl bg-emerald-50 p-2 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400 font-bold group-hover:scale-110 transition-transform">
-                            <BarChart2 class="h-5 w-5" />
+                <div class="group relative overflow-hidden rounded-2xl bg-white p-5 shadow-sm border border-slate-100 dark:bg-slate-800 dark:border-slate-700 hover:shadow-md transition-all duration-300">
+                    <div class="flex items-center gap-4">
+                        <div class="rounded-xl bg-emerald-50 p-3 text-emerald-600 dark:bg-emerald-400/10 dark:text-emerald-400 font-bold group-hover:scale-110 transition-transform">
+                            <BarChart2 class="h-6 w-6" />
                         </div>
-                        <div>
-                            <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Weekly Income</p>
-                            <h3 class="text-lg font-black tracking-tight text-slate-900 dark:text-white">
+                        <div class="min-w-0 flex-1">
+                            <p class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 truncate">Weekly Income</p>
+                            <h3 class="text-xl font-black tracking-tight text-slate-900 dark:text-white mt-0.5 truncate">
                                 {{ showStats ? currency + ' ' + weeklyIncome.toLocaleString() : '••••••' }}
                             </h3>
                         </div>
                     </div>
-                    <div class="mt-3 flex justify-end gap-2">
-                        <select v-model="selectedWeek" class="h-5 border-none bg-transparent p-0 text-[10px] font-bold text-emerald-600 focus:ring-0 dark:text-emerald-400 cursor-pointer">
-                            <option v-for="w in 52" :key="w" :value="w">Week {{ w }}</option>
-                        </select>
-                        <select v-model="selectedWeekYear" class="h-5 border-none bg-transparent p-0 text-[10px] font-bold text-emerald-600 focus:ring-0 dark:text-emerald-400 cursor-pointer">
-                            <option v-for="y in 5" :key="y" :value="today.getFullYear() - y + 1">{{ today.getFullYear() - y + 1 }}</option>
-                        </select>
+                    <div class="mt-4 pt-3 border-t border-slate-50 dark:border-slate-700/50 flex items-center justify-between gap-1.5 overflow-x-auto scrollbar-hide">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Period</span>
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            <select v-model="selectedWeek" class="border-none bg-emerald-50/50 dark:bg-emerald-400/5 px-2 pr-6 py-1 text-[11px] font-extrabold text-emerald-600 dark:text-emerald-400 focus:ring-1 focus:ring-emerald-500/20 rounded-lg cursor-pointer">
+                                <option v-for="w in 52" :key="w" :value="w">Wk {{ w }}</option>
+                            </select>
+                            <select v-model="selectedWeekYear" class="border-none bg-emerald-50/50 dark:bg-emerald-400/5 px-2 pr-6 py-1 text-[11px] font-extrabold text-emerald-600 dark:text-emerald-400 focus:ring-1 focus:ring-emerald-500/20 rounded-lg cursor-pointer">
+                                <option v-for="y in 5" :key="y" :value="today.getFullYear() - y + 1">{{ today.getFullYear() - y + 1 }}</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Monthly Income -->
-                <div class="group relative rounded-2xl bg-white p-4 shadow-sm border border-slate-100 dark:bg-slate-800 dark:border-slate-700 hover:shadow-md transition-all">
-                    <div class="flex items-center gap-3">
-                        <div class="rounded-xl bg-indigo-50 p-2 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400 font-bold group-hover:scale-110 transition-transform">
-                            <Calendar class="h-5 w-5" />
+                <div class="group relative overflow-hidden rounded-2xl bg-white p-5 shadow-sm border border-slate-100 dark:bg-slate-800 dark:border-slate-700 hover:shadow-md transition-all duration-300">
+                    <div class="flex items-center gap-4">
+                        <div class="rounded-xl bg-indigo-50 p-3 text-indigo-600 dark:bg-indigo-400/10 dark:text-indigo-400 font-bold group-hover:scale-110 transition-transform">
+                            <Calendar class="h-6 w-6" />
                         </div>
-                        <div>
-                            <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Monthly Income</p>
-                            <h3 class="text-lg font-black tracking-tight text-slate-900 dark:text-white">
+                        <div class="min-w-0 flex-1">
+                            <p class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 truncate">Monthly Income</p>
+                            <h3 class="text-xl font-black tracking-tight text-slate-900 dark:text-white mt-0.5 truncate">
                                 {{ showStats ? currency + ' ' + monthlyIncome.toLocaleString() : '••••••' }}
                             </h3>
                         </div>
                     </div>
-                    <div class="mt-3 flex justify-end gap-2">
-                        <select v-model="selectedMonth" class="h-5 border-none bg-transparent p-0 text-[10px] font-bold text-indigo-600 focus:ring-0 dark:text-indigo-400 cursor-pointer">
-                            <option v-for="m in 12" :key="m" :value="m">{{ new Date(2000, m-1, 1).toLocaleString(locale, { month: 'short' }) }}</option>
-                        </select>
-                        <select v-model="selectedMonthYear" class="h-5 border-none bg-transparent p-0 text-[10px] font-bold text-indigo-600 focus:ring-0 dark:text-indigo-400 cursor-pointer">
-                            <option v-for="y in 5" :key="y" :value="today.getFullYear() - y + 1">{{ today.getFullYear() - y + 1 }}</option>
-                        </select>
+                    <div class="mt-4 pt-3 border-t border-slate-50 dark:border-slate-700/50 flex items-center justify-between gap-1.5 overflow-x-auto scrollbar-hide">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Month</span>
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            <select v-model="selectedMonth" class="border-none bg-indigo-50/50 dark:bg-indigo-400/5 px-2 pr-6 py-1 text-[11px] font-extrabold text-indigo-600 dark:text-indigo-400 focus:ring-1 focus:ring-indigo-500/20 rounded-lg cursor-pointer">
+                                <option v-for="m in 12" :key="m" :value="m">{{ new Date(2000, m-1, 1).toLocaleString(locale, { month: 'short' }) }}</option>
+                            </select>
+                            <select v-model="selectedMonthYear" class="border-none bg-indigo-50/50 dark:bg-indigo-400/5 px-2 pr-6 py-1 text-[11px] font-extrabold text-indigo-600 dark:text-indigo-400 focus:ring-1 focus:ring-indigo-500/20 rounded-lg cursor-pointer">
+                                <option v-for="y in 5" :key="y" :value="today.getFullYear() - y + 1">{{ today.getFullYear() - y + 1 }}</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Yearly Income -->
-                <div class="group relative rounded-2xl bg-white p-4 shadow-sm border border-slate-100 dark:bg-slate-800 dark:border-slate-700 hover:shadow-md transition-all">
-                    <div class="flex items-center gap-3">
-                        <div class="rounded-xl bg-orange-50 p-2 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400 font-bold group-hover:scale-110 transition-transform">
-                            <PieChart class="h-5 w-5" />
+                <div class="group relative overflow-hidden rounded-2xl bg-white p-5 shadow-sm border border-slate-100 dark:bg-slate-800 dark:border-slate-700 hover:shadow-md transition-all duration-300">
+                    <div class="flex items-center gap-4">
+                        <div class="rounded-xl bg-orange-50 p-3 text-orange-600 dark:bg-orange-400/10 dark:text-orange-400 font-bold group-hover:scale-110 transition-transform">
+                            <PieChart class="h-6 w-6" />
                         </div>
-                        <div>
-                            <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Yearly Income</p>
-                            <h3 class="text-lg font-black tracking-tight text-slate-900 dark:text-white">
+                        <div class="min-w-0 flex-1">
+                            <p class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 truncate">Yearly Income</p>
+                            <h3 class="text-xl font-black tracking-tight text-slate-900 dark:text-white mt-0.5 truncate">
                                 {{ showStats ? currency + ' ' + yearlyIncome.toLocaleString() : '••••••' }}
                             </h3>
                         </div>
                     </div>
-                    <div class="mt-3 flex justify-end">
-                        <select v-model="selectedYear" class="h-5 border-none bg-transparent p-0 text-[10px] font-bold text-orange-600 focus:ring-0 dark:text-orange-400 cursor-pointer">
+                    <div class="mt-4 pt-3 border-t border-slate-50 dark:border-slate-700/50 flex items-center justify-between gap-2">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Year</span>
+                        <select v-model="selectedYear" class="border-none bg-orange-50/50 dark:bg-orange-400/5 px-2 pr-6 py-1 text-[11px] font-extrabold text-orange-600 dark:text-orange-400 focus:ring-1 focus:ring-orange-500/20 rounded-lg cursor-pointer">
                             <option v-for="y in 5" :key="y" :value="today.getFullYear() - y + 1">{{ today.getFullYear() - y + 1 }}</option>
                         </select>
                     </div>
