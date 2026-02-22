@@ -50,6 +50,14 @@ class CompensationController extends Controller
             ->latest()
             ->paginate(10, ['*'], 'compensations_page');
 
+        // Summary Statistics
+        $stats = [
+            'total_users' => NetworkUser::count(),
+            'suspended_users' => NetworkUser::where('status', 'suspended')->count(),
+            'total_compensations' => Compensation::count(),
+            'today_compensations' => Compensation::whereDate('created_at', now()->toDateString())->count(),
+        ];
+
         return inertia('Compensations/Index', [
             'users' => $users->through(fn($user) => [
                 'id' => $user->id,
@@ -66,6 +74,7 @@ class CompensationController extends Controller
             'compensations' => $recentCompensations,
             'locations' => $locations,
             'routers' => $routers,
+            'stats' => $stats,
             'filters' => [
                 'search' => $search,
                 'location' => $location,
