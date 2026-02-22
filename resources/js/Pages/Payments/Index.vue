@@ -75,8 +75,8 @@ const filterStatus = ref(props.filters.disbursement || '');
 const showFilters = ref(false);
 
 const getInitials = (name) => {
-    if (!name) return '?';
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+    if (!name || typeof name !== 'string') return '?';
+    return name.split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase().slice(0, 2);
 };
 
 // Use all payments for summary calculations, not just paginated page
@@ -769,8 +769,8 @@ function generatePaymentConfirmation() {
                                     </td>
                                     <td class="px-6 py-4 hidden lg:table-cell">
                                         <div class="flex flex-col">
-                                            <span class="text-sm font-medium text-slate-600 dark:text-slate-300">{{ item.paid_at.split(' ')[0] }}</span>
-                                            <span class="text-[10px] text-slate-400">{{ item.paid_at.split(' ')[1] || '' }}</span>
+                                            <span class="text-sm font-medium text-slate-600 dark:text-slate-300">{{ item.paid_at?.split(' ')[0] || 'N/A' }}</span>
+                                            <span class="text-[10px] text-slate-400">{{ item.paid_at?.split(' ')[1] || '' }}</span>
                                         </div>
                                     </td>
                                     <td class="px-6 py-4 text-right" @click.stop>
