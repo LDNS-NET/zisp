@@ -39,6 +39,15 @@ import { useToast } from 'vue-toastification';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
 
+const props = defineProps({
+    payments: { type: Object, default: () => ({ data: [], allData: [] }) },
+    filters: { type: Object, default: () => ({}) },
+    users: { type: Array, default: () => [] },
+    currency: String,
+});
+
+const toast = useToast();
+
 const isMobile = ref(false);
 const checkMobile = () => {
     isMobile.value = window.innerWidth < 768;
@@ -59,6 +68,7 @@ const locale = 'en-KE'; // Could be dynamic too if needed, but keeping fixed for
 
 
 const today = new Date();
+const filterYear = ref(today.getFullYear());
 const filterMonth = ref(0); // 0 means all months
 const filterWeek = ref(0); // 0 means all weeks
 
@@ -68,7 +78,7 @@ const getInitials = (name) => {
 };
 
 // Use all payments for summary calculations, not just paginated page
-const allPayments = computed(() => props.payments.allData ?? []);
+const allPayments = computed(() => props.payments?.allData ?? []);
 
 // Daily
 const selectedDay = ref(new Date(today.getTime() - today.getTimezoneOffset() * 60000).toISOString().slice(0, 10));
@@ -138,6 +148,10 @@ const yearlyIncome = computed(() => {
         })
         .reduce((sum, p) => sum + Number(p.amount), 0);
 });
+
+const isLoading = ref(false);
+const globalSearch = ref('');
+const filterStatus = ref('');
 
 // Advanced filters and export
 
@@ -210,7 +224,7 @@ const filterStatus = ref('');
 const isLoading = ref(false);
 
 const paymentsData = computed(() => {
-    let all = props.payments.data || [];
+    let all = props.payments?.data || [];
     if (filterYear.value) {
         all = all.filter((p) => {
             const paid = new Date(p.paid_at);
@@ -226,7 +240,7 @@ const paymentsData = computed(() => {
     if (filterWeek.value) {
         all = all.filter((p) => {
             const paid = new Date(p.paid_at);
-            return getWeek(paid) === filterWeek.value;
+            return getWeekOfYear(paid) === filterWeek.value;
         });
     }
     if (globalSearch.value) {
@@ -278,15 +292,6 @@ function exportToExcel() {
     isLoading.value = false;
 }
 
-const toast = useToast();
-
-const props = defineProps({
-    payments: Object,
-    filters: Object,
-    users: Array, // [{ id, username, phone }]
-    currency: String,
-});
-
 const currency = computed(() => props.currency || page.props.tenant?.currency || 'KES');
 
 const showModal = ref(false);
@@ -305,7 +310,8 @@ watch(selectAll, (val) => {
 
 // Individual selection logic
 const toggleSelectAll = () => {
-    if (selectedTenantPayments.value.length === props.payments.data.length) {
+    const dataCount = props.payments?.data?.length || 0;
+    if (dataCount > 0 && selectedTenantPayments.value.length === dataCount) {
         selectAll.value = true;
     } else {
         selectAll.value = false;
@@ -446,12 +452,12 @@ watch(
 
 // Select all checkboxes
 watch(selectAll, (val) => {
-    selectedTenantPayments.value = val
+    selectedTenantPayments.value = (val && props.payments?.data)
         ? props.payments.data.map((p) => p.uuid)
         : [];
 });
 
-const allIds = computed(() => props.payments.data.map((p) => p.uuid));
+const allIds = computed(() => props.payments?.data?.map((p) => p.uuid) || []);
 
 // Payment Details Modal logic
 const showDetailsModal = ref(false);
