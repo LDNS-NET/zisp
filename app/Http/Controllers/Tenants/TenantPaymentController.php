@@ -47,6 +47,12 @@ class TenantPaymentController extends Controller
                     $q->where('disbursement_type', $request->disbursement);
                 }
             })
+            ->when($request->year, function ($q) use ($request) {
+                $q->whereYear('paid_at', $request->year);
+            })
+            ->when($request->month, function ($q) use ($request) {
+                $q->whereMonth('paid_at', $request->month);
+            })
             ->orderBy('created_at', 'desc')
             ->paginate($request->get('per_page', 20))
             ->through(function ($payment) use ($businessName) {
@@ -103,6 +109,12 @@ class TenantPaymentController extends Controller
                     $q->where('disbursement_type', $request->disbursement);
                 }
             })
+            ->when($request->year, function ($q) use ($request) {
+                $q->whereYear('paid_at', $request->year);
+            })
+            ->when($request->month, function ($q) use ($request) {
+                $q->whereMonth('paid_at', $request->month);
+            })
             ->get()->map(function ($payment) use ($businessName) {
                 $disb = $payment->disbursement_type ?? 'pending';
                 $status = $payment->disbursement_status ?? 'pending';
@@ -132,7 +144,7 @@ class TenantPaymentController extends Controller
 
         return Inertia::render('Payments/Index', [
             'payments' => array_merge($payments->toArray(), ['allData' => $allPayments]),
-            'filters' => $request->only('search', 'disbursement'),
+            'filters' => $request->only('search', 'disbursement', 'year', 'month'),
             'users' => NetworkUser::select('id', 'username', 'phone')->get(),
             'currency' => auth()->user()?->tenant?->currency ?? 'KES',
         ]);
