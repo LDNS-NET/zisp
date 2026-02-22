@@ -878,56 +878,85 @@ function generatePaymentConfirmation() {
                 </div>
             </div>
                         <!-- Payment Details Modal -->
-                        <Modal :show="showDetailsModal" @close="closeDetailsModal">
-                            <div v-if="paymentDetails" class="space-y-2 p-6">
-                                <h2 class="mb-2 text-lg font-bold">
-                                    Payment Details
-                                </h2>
-                                <div v-if="paymentDetails.business_name">
-                                    <strong>Business:</strong>
-                                    {{ paymentDetails.business_name }}
+                        <Modal :show="showDetailsModal" @close="closeDetailsModal" max-width="lg">
+                            <div v-if="paymentDetails" class="p-0 overflow-hidden">
+                                <!-- Header -->
+                                <div class="bg-slate-50 dark:bg-slate-900/50 px-6 py-4 border-b border-slate-100 dark:border-slate-700">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center gap-3">
+                                            <div class="rounded-xl bg-blue-600 p-2 text-white">
+                                                <Banknote class="h-5 w-5" />
+                                            </div>
+                                            <div>
+                                                <h3 class="text-lg font-bold text-slate-900 dark:text-white leading-tight">Transaction Details</h3>
+                                                <p class="text-xs text-slate-500 dark:text-slate-400">{{ paymentDetails.receipt_number }}</p>
+                                            </div>
+                                        </div>
+                                        <button @click="closeDetailsModal" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+                                            <X class="h-5 w-5" />
+                                        </button>
+                                    </div>
                                 </div>
-                                <div v-if="paymentDetails.package">
-                                    <strong>Package:</strong>
-                                    {{ paymentDetails.package.type }}<br />
-                                    <strong>Package Price:</strong> {{ currency }}
-                                    {{ paymentDetails.package.price }}
+
+                                <!-- Body -->
+                                <div class="p-6 space-y-6">
+                                    <!-- Amount Card -->
+                                    <div class="p-4 rounded-2xl bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100/50 dark:border-blue-800/20 text-center">
+                                        <p class="text-xs font-bold uppercase tracking-widest text-blue-600 dark:text-blue-400 mb-1">Paid Amount</p>
+                                        <h4 class="text-3xl font-black text-slate-900 dark:text-white">
+                                            {{ currency }} {{ paymentDetails.amount }}
+                                        </h4>
+                                    </div>
+
+                                    <!-- Details Grid -->
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-5 gap-x-8">
+                                        <div v-if="paymentDetails.business_name">
+                                            <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Business</p>
+                                            <p class="text-sm font-semibold text-slate-700 dark:text-slate-200">{{ paymentDetails.business_name }}</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">User</p>
+                                            <p class="text-sm font-semibold text-slate-700 dark:text-slate-200">{{ paymentDetails.user }}</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Phone Number</p>
+                                            <p class="text-sm font-semibold text-slate-700 dark:text-slate-200">{{ paymentDetails.phone }}</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Paid Date</p>
+                                            <p class="text-sm font-semibold text-slate-700 dark:text-slate-200">{{ paymentDetails.paid_at }}</p>
+                                        </div>
+                                        <div v-if="paymentDetails.package">
+                                            <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Service Package</p>
+                                            <p class="text-sm font-semibold text-slate-700 dark:text-slate-200">{{ paymentDetails.package.type }} ({{ currency }} {{ paymentDetails.package.price }})</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Verified</p>
+                                            <p :class="['text-xs font-bold inline-flex items-center px-2 py-0.5 rounded-full', paymentDetails.checked_label === 'Yes' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300']">
+                                                {{ paymentDetails.checked_label }}
+                                            </p>
+                                        </div>
+                                        <div class="sm:col-span-2">
+                                            <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Disbursement Status</p>
+                                            <div class="flex items-center gap-2">
+                                                <p class="text-sm font-semibold text-slate-700 dark:text-slate-200">{{ paymentDetails.disbursement_label }}</p>
+                                                <span v-if="paymentDetails.disbursement_ref" class="text-[10px] font-mono bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded text-slate-500 dark:text-slate-400">
+                                                    Ref: {{ paymentDetails.disbursement_ref }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div>
-                                    <strong>User:</strong> {{ paymentDetails.user }}
-                                </div>
-                                <div>
-                                    <strong>Phone:</strong>
-                                    {{ paymentDetails.phone }}
-                                </div>
-                                <div>
-                                    <strong>Receipt Number:</strong>
-                                    {{ paymentDetails.receipt_number }}
-                                </div>
-                                <div>
-                                    <strong>Amount:</strong>
-                                    {{ paymentDetails.amount }}
-                                </div>
-                                <div>
-                                    <strong>Checked:</strong>
-                                    {{ paymentDetails.checked_label }}
-                                </div>
-                                <div>
-                                    <strong>Paid At:</strong>
-                                    {{ paymentDetails.paid_at }}
-                                </div>
-                                <div>
-                                    <strong>Disbursement:</strong>
-                                    {{ paymentDetails.disbursement_label }}
-                                </div>
-                                <div v-if="paymentDetails.disbursement_ref">
-                                    <strong>Disbursement Ref:</strong>
-                                    {{ paymentDetails.disbursement_ref }}
-                                </div>
-                                <div class="mt-4 flex justify-end gap-2">
-                                    <PrimaryButton @click="generatePaymentConfirmation">Generate Payment
-                                        Confirmation</PrimaryButton>
-                                    <PrimaryButton @click="closeDetailsModal">Close</PrimaryButton>
+
+                                <!-- Footer -->
+                                <div class="bg-slate-50 dark:bg-slate-900/50 px-6 py-4 flex flex-col sm:flex-row justify-end gap-3">
+                                    <PrimaryButton @click="generatePaymentConfirmation" class="w-full sm:w-auto flex items-center justify-center gap-2">
+                                        <Download class="h-4 w-4" />
+                                        <span>Download Confirmation</span>
+                                    </PrimaryButton>
+                                    <button @click="closeDetailsModal" class="w-full sm:w-auto px-4 py-2 text-sm font-bold text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors">
+                                        Close
+                                    </button>
                                 </div>
                             </div>
                         </Modal>
@@ -943,75 +972,74 @@ function generatePaymentConfirmation() {
                 />
             </div>
 
-        <!-- Modal -->
-        <Modal :show="showModal" @close="showModal = false">
-            <form @submit.prevent="submit" class="space-y-4 p-6">
-                <h2 class="mb-4 text-xl font-semibold">
-                    {{ editing ? 'Edit Payment' : 'Add Payment' }}
-                </h2>
-
-                <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <!-- User select with filter -->
-                    <div>
-                        <InputLabel for="user_id" value="User" />
-
-                        <!-- Search Input -->
-                        <TextInput v-model="userSearch" type="text" placeholder="Search user by name or phone..." class="mb-2 mt-1 block w-full rounded-md border-gray-300 shadow-sm 
-           focus:border-blue-500 focus:ring-blue-500
-           dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400" />
-
-                        <!-- Select Dropdown -->
-                        <select v-model="form.user_id" id="user_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm 
-           focus:border-blue-500 focus:ring-blue-500
-           dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400">
-                            <option value="" class="bg-white text-gray-700 dark:bg-gray-700 dark:text-gray-300">
-                                Select User
-                            </option>
-                            <option v-for="u in filteredUsers" :key="u.id" :value="u.id"
-                                class="bg-white text-gray-700 dark:bg-gray-700 dark:text-gray-300">
-                                {{ u.username }} ({{ u.phone }})
-                            </option>
-                        </select>
-
-                        <InputError :message="form.errors.user_id" class="mt-2" />
+        <!-- Add/Edit Modal -->
+        <Modal :show="showModal" @close="showModal = false" max-width="lg">
+            <form @submit.prevent="submit" class="p-0 overflow-hidden">
+                <!-- Header -->
+                <div class="bg-slate-50 dark:bg-slate-900/50 px-6 py-4 border-b border-slate-100 dark:border-slate-700">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="rounded-xl bg-blue-600 p-2 text-white">
+                                <component :is="editing ? Edit : Plus" class="h-5 w-5" />
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-bold text-slate-900 dark:text-white leading-tight">
+                                    {{ editing ? 'Edit Payment Record' : 'Record New Payment' }}
+                                </h3>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">Manual transaction entry</p>
+                            </div>
+                        </div>
+                        <button @click="showModal = false" type="button" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+                            <X class="h-5 w-5" />
+                        </button>
                     </div>
-
-
-                    <!-- Auto-filled phone (readonly) -->
-                    <div>
-                        <InputLabel for="phone" value="Phone" />
-                        <TextInput v-model="form.phone" id="phone" class="mt-1 block w-full" readonly />
-                    </div>
-
-                    <div>
-                        <InputLabel for="receipt_number" value="Receipt Number" />
-                        <TextInput v-model="form.receipt_number" id="receipt_number" class="mt-1 block w-full" />
-                        <InputError :message="form.errors.receipt_number" class="mt-2" />
-                    </div>
-
-                    <div>
-                        <InputLabel for="amount" value="Amount" />
-                        <TextInput v-model="form.amount" id="amount" type="number" step="0.01"
-                            class="mt-1 block w-full" />
-                        <InputError :message="form.errors.amount" class="mt-2" />
-                    </div>
-
-                    <!-- Note: Checked is automatically set to 'true' for manual payments -->
-
-                    <div>
-                        <InputLabel for="paid_at" value="Paid At" />
-                        <TextInput v-model="form.paid_at" id="paid_at" type="datetime-local"
-                            class="mt-1 block w-full" />
-                        <InputError :message="form.errors.paid_at" class="mt-2" />
-                    </div>
-
-                    <!-- Note: Disbursement status is automatically set to 'completed' for manual payments -->
-
                 </div>
 
-                <div class="mt-4 text-right">
-                    <PrimaryButton :disabled="form.processing">
-                        {{ editing ? 'Update' : 'Save' }}
+                <!-- Form Body -->
+                <div class="p-6 space-y-5">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <div class="sm:col-span-2">
+                            <InputLabel for="user_id" value="Select User" class="dark:text-slate-300" />
+                            <select id="user_id" v-model="form.user_id" 
+                                class="mt-1 block w-full rounded-xl border-slate-200 bg-slate-50 py-2.5 text-sm font-medium transition-focus focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-900/50 dark:text-white dark:focus:border-blue-500" required>
+                                <option value="" disabled>Choose a customer...</option>
+                                <option v-for="user in users" :key="user.id" :value="user.id">
+                                    {{ user.name }} ({{ user.phone }})
+                                </option>
+                            </select>
+                            <InputError :message="form.errors.user_id" class="mt-1" />
+                        </div>
+
+                        <div>
+                            <InputLabel for="amount" value="Amount" class="dark:text-slate-300" />
+                            <TextInput id="amount" v-model="form.amount" type="number" step="0.01" 
+                                class="mt-1 block w-full rounded-xl" placeholder="0.00" required />
+                            <InputError :message="form.errors.amount" class="mt-1" />
+                        </div>
+
+                        <div>
+                            <InputLabel for="phone" value="Phone Number" class="dark:text-slate-300" />
+                            <TextInput id="phone" v-model="form.phone" type="text" 
+                                class="mt-1 block w-full rounded-xl" placeholder="254..." required />
+                            <InputError :message="form.errors.phone" class="mt-1" />
+                        </div>
+
+                        <div class="sm:col-span-2">
+                            <InputLabel for="receipt_number" value="Receipt / Transaction Number" class="dark:text-slate-300" />
+                            <TextInput id="receipt_number" v-model="form.receipt_number" type="text" 
+                                class="mt-1 block w-full rounded-xl" placeholder="e.g. QWE123RTY" required />
+                            <InputError :message="form.errors.receipt_number" class="mt-1" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="bg-slate-50 dark:bg-slate-900/50 px-6 py-4 flex justify-end gap-3 border-t border-slate-100 dark:border-slate-700">
+                    <button @click="showModal = false" type="button" class="px-4 py-2 text-sm font-bold text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors">
+                        Cancel
+                    </button>
+                    <PrimaryButton :class="{ 'opacity-25': form.processing }" :disabled="form.processing">
+                        {{ editing ? 'Update Record' : 'Save Payment' }}
                     </PrimaryButton>
                 </div>
             </form>
