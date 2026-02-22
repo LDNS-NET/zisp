@@ -25,6 +25,7 @@ class TenantPaymentController extends Controller
         
         $payments = TenantPayment::query()
             ->where('tenant_id', $tenantId)
+            ->whereNotNull('paid_at')
             ->with('user')
             ->when($request->search, function ($q) use ($request) {
                 $q->where(function($sub) use ($request) {
@@ -79,7 +80,8 @@ class TenantPaymentController extends Controller
                     'is_manual' => $isManual,
                     'editable' => $isManual,
                     'checked_label' => $checkedBool ? 'Yes' : 'No',
-                    'disbursement_label' => $status === 'testing' ? 'Testing Mode' : ucfirst($status),
+                    'disbursement_label' => $status === 'testing' ? 'Testing Mode' : ($status === 'pending' ? 'Awaiting Disbursement' : ($status === 'completed' ? 'Disbursed / Direct' : ucfirst($status))),
+                    'disbursement_ref' => $payment->disbursement_transaction_id,
                     'business_name' => $businessName,
                 ];
             });
@@ -87,6 +89,7 @@ class TenantPaymentController extends Controller
         // Get all payments for summary (no pagination, ignore pagination and filters except search/disbursement)
         $allPayments = TenantPayment::query()
             ->where('tenant_id', $tenantId)
+            ->whereNotNull('paid_at')
             ->with('user')
             ->when($request->search, function ($q) use ($request) {
                 $q->where(function($sub) use ($request) {

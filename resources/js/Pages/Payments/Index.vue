@@ -887,6 +887,10 @@ function generatePaymentConfirmation() {
                                     <strong>Disbursement:</strong>
                                     {{ paymentDetails.disbursement_label }}
                                 </div>
+                                <div v-if="paymentDetails.disbursement_ref">
+                                    <strong>Disbursement Ref:</strong>
+                                    {{ paymentDetails.disbursement_ref }}
+                                </div>
                                 <div class="mt-4 flex justify-end gap-2">
                                     <PrimaryButton @click="generatePaymentConfirmation">Generate Payment
                                         Confirmation</PrimaryButton>
