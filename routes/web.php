@@ -316,6 +316,10 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode', 'sta
         Route::middleware(['role_or_permission:tenant_admin|Finance|admin|network_engineer|technical'])->group(function () {
             Route::resource('equipment', TenantEquipmentController::class)->only(['index', 'store', 'update', 'destroy']);
             Route::delete('/equipment/bulk-delete', [TenantEquipmentController::class, 'bulkDelete'])->name('equipment.bulk-delete');
+            Route::post('/equipment/{equipment}/assign', [TenantEquipmentController::class, 'assign'])->name('equipment.assign');
+            Route::post('/equipment/{equipment}/release', [TenantEquipmentController::class, 'release'])->name('equipment.release');
+            Route::get('/equipment/{equipment}/history', [TenantEquipmentController::class, 'history'])->name('equipment.history');
+            Route::get('/equipment-users/search', [TenantEquipmentController::class, 'searchUsers'])->name('equipment.users.search');
         });
 
         // TR-069 Devices

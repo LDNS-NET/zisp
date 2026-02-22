@@ -4,9 +4,12 @@ namespace App\Http\Controllers\Tenants;
 
 use App\Http\Controllers\Controller;
 use App\Models\Tenants\TenantEquipment;
+use App\Models\Tenants\TenantEquipmentLog;
+use App\Models\Tenants\NetworkUser;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\DB;
 
 class TenantEquipmentController extends Controller
 {
@@ -14,17 +17,23 @@ class TenantEquipmentController extends Controller
     {
         $tenantId = auth()->user()->tenant_id;
         
-        $equipment = TenantEquipment::where('tenant_id', $tenantId)
+        $equipment = TenantEquipment::with(['assignedUser', 'creator'])
             ->when($request->search, function ($q) use ($request) {
                 $q->where(function ($query) use ($request) {
                     $query->where('name', 'like', "%{$request->search}%")
+                          ->orWhere('brand', 'like', "%{$request->search}%")
                           ->orWhere('type', 'like', "%{$request->search}%")
                           ->orWhere('serial_number', 'like', "%{$request->search}%")
+                          ->orWhere('mac_address', 'like', "%{$request->search}%")
                           ->orWhere('model', 'like', "%{$request->search}%");
                 });
             })
+            ->when($request->status, function ($q) use ($request) {
+                $q->where('status', $request->status);
+            })
             ->latest()
-            ->paginate($request->get('per_page', 20));
+            ->paginate($request->get('per_page', 20))
+            ->withQueryString();
             
         $totalPrice = (float) TenantEquipment::where('tenant_id', $tenantId)->sum('total_price');
 
@@ -41,16 +50,32 @@ class TenantEquipmentController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'brand' => 'nullable|string|max:255',
             'type' => 'required|string|max:255',
             'serial_number' => 'required|string|max:255|unique:tenant_equipments',
+            'mac_address' => 'nullable|string|max:255|unique:tenant_equipments',
+            'status' => 'required|in:in_stock,assigned,faulty,retired,lost',
+            'condition' => 'required|in:new,used,refurbished',
             'location' => 'nullable|string|max:255',
             'model' => 'nullable|string|max:255',
             'price' => 'nullable|numeric|min:0',
             'total_price' => 'nullable|numeric|min:0',
-            'assigned_to' => 'nullable|string|max:255',
+            'purchase_date' => 'nullable|date',
+            'warranty_expiry' => 'nullable|date',
+            'notes' => 'nullable|string',
         ]);
 
-        TenantEquipment::create($validated);
+        DB::transaction(function() use ($validated) {
+            $equipment = TenantEquipment::create($validated);
+
+            TenantEquipmentLog::create([
+                'equipment_id' => $equipment->id,
+                'action' => 'created',
+                'new_status' => $equipment->status,
+                'performed_by' => auth()->id(),
+                'description' => 'Initial inventory entry',
+            ]);
+        });
 
         return redirect()->back()->with('success', 'Equipment added successfully.');
     }
@@ -62,20 +87,39 @@ class TenantEquipmentController extends Controller
 
     public function update(Request $request, TenantEquipment $equipment)
     {
-        $this->authorizeAccess($equipment);
-
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'brand' => 'nullable|string|max:255',
             'type' => 'required|string|max:255',
             'serial_number' => 'required|string|max:255|unique:tenant_equipments,serial_number,' . $equipment->id,
+            'mac_address' => 'nullable|string|max:255|unique:tenant_equipments,mac_address,' . $equipment->id,
+            'status' => 'required|in:in_stock,assigned,faulty,retired,lost',
+            'condition' => 'required|in:new,used,refurbished',
             'location' => 'nullable|string|max:255',
             'model' => 'nullable|string|max:255',
             'price' => 'nullable|numeric|min:0',
             'total_price' => 'nullable|numeric|min:0',
-            'assigned_to' => 'nullable|string|max:255',
+            'purchase_date' => 'nullable|date',
+            'warranty_expiry' => 'nullable|date',
+            'notes' => 'nullable|string',
         ]);
 
-        $equipment->update($validated);
+        $oldStatus = $equipment->status;
+
+        DB::transaction(function() use ($equipment, $validated, $oldStatus) {
+            $equipment->update($validated);
+
+            if ($oldStatus !== $equipment->status) {
+                TenantEquipmentLog::create([
+                    'equipment_id' => $equipment->id,
+                    'action' => 'status_change',
+                    'old_status' => $oldStatus,
+                    'new_status' => $equipment->status,
+                    'performed_by' => auth()->id(),
+                    'description' => 'Manual status update',
+                ]);
+            }
+        });
 
         return redirect()->back()->with('success', 'Equipment updated.');
     }
@@ -87,7 +131,7 @@ class TenantEquipmentController extends Controller
         return back()->with('success', 'Equipment deleted.');
     }
 
-     public function bulkDelete(Request $request)
+    public function bulkDelete(Request $request)
     {
         $request->validate([
             'ids' => 'required|array',
@@ -97,5 +141,90 @@ class TenantEquipmentController extends Controller
         TenantEquipment::whereIn('id', $request->ids)->delete();
 
         return back()->with('success', 'Selected Equipment deleted successfully.');
+    }
+
+    /**
+     * Assign equipment to a user
+     */
+    public function assign(Request $request, TenantEquipment $equipment)
+    {
+        $validated = $request->validate([
+            'user_id' => 'required|exists:network_users,id',
+            'notes' => 'nullable|string',
+        ]);
+
+        $user = NetworkUser::findOrFail($validated['user_id']);
+        $oldStatus = $equipment->status;
+
+        DB::transaction(function() use ($equipment, $user, $validated, $oldStatus) {
+            $equipment->update([
+                'status' => 'assigned',
+                'assigned_user_id' => $user->id,
+                'assigned_to' => $user->full_name ?? $user->username,
+            ]);
+
+            TenantEquipmentLog::create([
+                'equipment_id' => $equipment->id,
+                'action' => 'assigned',
+                'old_status' => $oldStatus,
+                'new_status' => 'assigned',
+                'performed_by' => auth()->id(),
+                'description' => "Assigned to user: {$user->username}. " . ($validated['notes'] ?? ''),
+            ]);
+        });
+
+        return redirect()->back()->with('success', 'Equipment assigned successfully.');
+    }
+
+    /**
+     * Release equipment from a user
+     */
+    public function release(Request $request, TenantEquipment $equipment)
+    {
+        $oldStatus = $equipment->status;
+        $user = $equipment->assignedUser;
+
+        DB::transaction(function() use ($equipment, $user, $oldStatus) {
+            $equipment->update([
+                'status' => 'in_stock',
+                'assigned_user_id' => null,
+                'assigned_to' => null,
+            ]);
+
+            TenantEquipmentLog::create([
+                'equipment_id' => $equipment->id,
+                'action' => 'unassigned',
+                'old_status' => $oldStatus,
+                'new_status' => 'in_stock',
+                'performed_by' => auth()->id(),
+                'description' => "Released from user: " . ($user ? $user->username : 'Unknown'),
+            ]);
+        });
+
+        return redirect()->back()->with('success', 'Equipment released back to stock.');
+    }
+
+    /**
+     * Get equipment history
+     */
+    public function history(TenantEquipment $equipment)
+    {
+        $history = $equipment->logs()->with('performer')->get();
+        return response()->json($history);
+    }
+
+    /**
+     * Search users for assignment
+     */
+    public function searchUsers(Request $request)
+    {
+        $search = $request->get('q');
+        $users = NetworkUser::where('username', 'like', "%{$search}%")
+            ->orWhere('full_name', 'like', "%{$search}%")
+            ->orWhere('phone', 'like', "%{$search}%")
+            ->limit(10)
+            ->get(['id', 'username', 'full_name', 'phone']);
+
+        return response()->json($users);
     }
 }

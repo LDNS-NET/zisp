@@ -10,17 +10,40 @@ class TenantEquipment extends Model
 
     protected $fillable = [
         "name",
+        "brand",
         "type",
         "serial_number",
+        "mac_address",
+        "status",
+        "condition",
         "location",
         "model",
         "price",
         "total_price",
-        "created_by",
+        "purchase_date",
+        "warranty_expiry",
+        "notes",
         "assigned_to",
+        "assigned_user_id",
+        "created_by",
         "tenant_id",
         "qbo_id",
     ];
+
+    public function assignedUser()
+    {
+        return $this->belongsTo(NetworkUser::class, 'assigned_user_id');
+    }
+
+    public function logs()
+    {
+        return $this->hasMany(TenantEquipmentLog::class, 'equipment_id')->latest();
+    }
+
+    public function creator()
+    {
+        return $this->belongsTo(\App\Models\User::class, 'created_by');
+    }
 
     protected static function booted()
     {
