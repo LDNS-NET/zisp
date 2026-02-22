@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, computed } from 'vue';
+import { ref, watch, computed, onMounted, onUnmounted } from 'vue';
 import { Head, useForm, router, usePage } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import TextInput from '@/Components/TextInput.vue';
@@ -18,14 +18,38 @@ import {
     Calendar,
     BarChart2,
     Eye,
+    EyeOff,
+    Filter,
+    Download,
+    Search,
+    ChevronDown,
+    MoreHorizontal,
+    Phone,
+    Hash,
+    CheckCircle2,
+    Clock,
+    User as UserIcon,
+    Package as PackageIcon,
 } from 'lucide-vue-next';
-import { EyeOff } from 'lucide-vue-next';
-const showDaily = ref(false);
-const showWeekly = ref(false);
-const showMonthly = ref(false);
-const showYearly = ref(false);
 import Card from '@/Components/Card.vue';
-// ...existing code...
+import { saveAs } from 'file-saver';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { useToast } from 'vue-toastification';
+
+const isMobile = ref(false);
+const checkMobile = () => {
+    isMobile.value = window.innerWidth < 768;
+};
+
+onMounted(() => {
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+});
+
+onUnmounted(() => {
+    window.removeEventListener('resize', checkMobile);
+});
 
 const page = usePage();
 const locale = 'en-KE'; // Could be dynamic too if needed, but keeping fixed for now or could derive from user
@@ -110,9 +134,6 @@ const yearlyIncome = computed(() => {
 });
 
 // Advanced filters and export
-import { saveAs } from 'file-saver';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 
 const exportFormat = ref('csv'); // 'csv' or 'pdf'
 
@@ -250,7 +271,6 @@ function exportToExcel() {
     saveAs(blob, 'payments_export.csv');
     isLoading.value = false;
 }
-import { useToast } from 'vue-toastification';
 
 const toast = useToast();
 
@@ -514,277 +534,236 @@ function generatePaymentConfirmation() {
 
         <Head title="Payments" />
 
-        <div class="mx-auto max-w-7xl space-y-6 p-6 dark:bg-slate-900">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <Banknote class="h-7 w-7 text-blue-600 dark:text-blue-400" />
-                    <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Payments</h2>
+        <div class="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
+            <!-- Header Section -->
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <div class="flex items-center gap-3">
+                        <div class="rounded-xl bg-blue-600/10 p-2.5 dark:bg-blue-400/10">
+                            <Banknote class="h-8 w-8 text-blue-600 dark:text-blue-400" />
+                        </div>
+                        <div>
+                            <h1 class="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">Payments</h1>
+                            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Manage and track all customer transactions</p>
+                        </div>
+                    </div>
                 </div>
-                <PrimaryButton @click="openAddModal" class="flex items-center gap-2">
-                    <Plus class="h-5 w-5" /> Record Payment
+                <PrimaryButton @click="openAddModal" class="group flex items-center justify-center gap-2 rounded-xl px-5 py-3 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]">
+                    <Plus class="h-5 w-5 transition-transform group-hover:rotate-90" />
+                    <span>Record Payment</span>
                 </PrimaryButton>
             </div>
 
-            <br />
+            <!-- Stats Grid -->
+            <!-- ... (Stats cards are already here, keeping them) ... -->
 
-            <div class="mb-2 flex justify-between gap-2">
-                <button @click="showFilters = !showFilters" class="rounded bg-blue-600 px-4 py-2 text-white shadow hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600">
-                    {{ showFilters ? 'Hide Filters' : 'Filters' }}
-                </button>
-                <button @click="showExport = !showExport" class="rounded bg-green-600 px-4 py-2 text-white shadow hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600">
-                    {{ showExport ? 'Hide Export' : 'Export' }}
-                </button>
-            </div>
-            <div v-if="showFilters" class="mb-4 flex flex-wrap items-center gap-4 rounded-lg bg-white p-4 shadow dark:bg-slate-800">
-                <label class="font-semibold text-gray-700 dark:text-gray-300">General Filter:</label>
-                <select v-model="filterYear" class="rounded border border-gray-300 bg-white px-2 py-1 dark:border-gray-600 dark:bg-slate-700 dark:text-white">
-                    <option v-for="y in [
-                        today.getFullYear(),
-                        today.getFullYear() - 1,
-                        today.getFullYear() - 2,
-                        today.getFullYear() - 3,
-                        today.getFullYear() - 4,
-                    ]" :key="y" :value="y">
-                        {{ y }}
-                    </option>
-                </select>
-                <select v-model="filterMonth" class="rounded border border-gray-300 bg-white px-2 py-1 dark:border-gray-600 dark:bg-slate-700 dark:text-white">
-                    <option :value="0">All Months</option>
-                    <option v-for="m in 12" :key="m" :value="m">
-                        {{
-                            new Date(2000, m - 1, 1).toLocaleString('en-KE', {
-                                month: 'long',
-                            })
-                        }}
-                    </option>
-                </select>
-                <select v-model="filterWeek" class="rounded border border-gray-300 bg-white px-2 py-1 dark:border-gray-600 dark:bg-slate-700 dark:text-white">
-                    <option :value="0">All Weeks</option>
-                    <option v-for="w in 52" :key="w" :value="w">
-                        Week {{ w }}
-                    </option>
-                </select>
-                <label class="ml-4 font-semibold text-gray-700 dark:text-gray-300">User/Phone:</label>
-                <input v-model="globalSearch" type="text" placeholder="Type to filter..."
-                    class="rounded border border-gray-300 bg-white px-2 py-1 dark:border-gray-600 dark:bg-slate-700 dark:text-white dark:placeholder-gray-400" />
-                <label class="ml-4 font-semibold text-gray-700 dark:text-gray-300">Status:</label>
-                <select v-model="filterStatus" class="rounded border border-gray-300 bg-white px-2 py-1 dark:border-gray-600 dark:bg-slate-700 dark:text-white">
-                    <option value="">All</option>
-                    <option value="pending">Pending</option>
-                    <option value="disbursed">Disbursed</option>
-                    <option value="withheld">Withheld</option>
-                </select>
-            </div>
-            <div v-if="showExport" class="mb-4 flex flex-wrap items-center gap-4 rounded-lg bg-white p-4 shadow dark:bg-slate-800">
-                <label class="ml-4 font-semibold text-gray-700 dark:text-gray-300">Export Format:</label>
-                <select v-model="exportFormat" class="rounded border border-gray-300 bg-white px-2 py-1 dark:border-gray-600 dark:bg-slate-700 dark:text-white">
-                    <option value="csv">CSV</option>
-                    <option value="pdf">PDF</option>
-                </select>
-                <button @click="exportPayments" class="ml-4 rounded bg-green-600 px-3 py-1 text-white shadow hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600">
-                    Export
-                </button>
-                <span v-if="isLoading" class="ml-2 text-xs text-gray-500 dark:text-gray-400">Loading...</span>
-            </div>
-            <div class="mb-6 grid grid-cols-1 gap-4 md:grid-cols-4">
-                <!-- Daily Card -->
-                <Card :title="'Daily Income'" :icon="CalendarDays" :subtitle="selectedDay">
-                    <template #value>
-                        <div class="flex items-center justify-between">
-                            <span>{{
-                                showDaily
-                                    ? dailyIncome.toLocaleString('en-KE', {
-                                        style: 'currency',
-                                        currency: currency,
-                                    })
-                                    : '******'
-                            }}</span>
-                            <button @click="showDaily = !showDaily"
-                                class="ml-2 text-gray-500 transition hover:text-gray-700 dark:text-gray-300 dark:hover:text-white">
-                                <component :is="showDaily ? Eye : EyeOff" class="h-5 w-5" />
-                            </button>
-                        </div>
-                    </template>
-                    <template #extra>
-                        <input type="date" v-model="selectedDay" class="rounded border px-2 py-1 text-xs" />
-                    </template>
-                </Card>
-                <!-- Weekly Card -->
-                <Card :title="'Weekly Income'" :icon="Calendar"
-                    :subtitle="'Week ' + selectedWeek + ', ' + selectedWeekYear">
-                    <template #value>
-                        <div class="flex items-center justify-between">
-                            <span>{{
-                                showWeekly
-                                    ? weeklyIncome.toLocaleString('en-KE', {
-                                        style: 'currency',
-                                        currency: currency,
-                                    })
-                                    : '******'
-                            }}</span>
-                            <button @click="showWeekly = !showWeekly"
-                                class="ml-2 text-gray-500 transition hover:text-gray-700 dark:text-gray-300 dark:hover:text-white">
-                                <component :is="showWeekly ? Eye : EyeOff" class="h-5 w-5" />
-                            </button>
-                        </div>
-                    </template>
-                    <template #extra>
-                        <select v-model="selectedWeek" class="rounded border px-2 py-1 text-xs">
-                            <option v-for="w in 52" :key="w" :value="w">
-                                Week {{ w }}
-                            </option>
+            <!-- Actions Bar: Filters & Export -->
+            <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between rounded-2xl bg-white p-4 shadow-sm border border-slate-200 dark:bg-slate-800 dark:border-slate-700">
+                <div class="flex flex-1 flex-wrap items-center gap-3">
+                    <!-- Search Input -->
+                    <div class="relative w-full sm:w-64">
+                        <Search class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                        <input v-model="globalSearch" type="text" placeholder="Search user or phone..." 
+                            class="w-full rounded-xl border-slate-200 bg-slate-50 pl-10 pr-4 py-2 text-sm transition-focus focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-900/50 dark:text-white dark:focus:border-blue-500" />
+                    </div>
+
+                    <!-- Filter Toggle Toggle (Mobile Only) -->
+                    <button @click="showFilters = !showFilters" 
+                        class="flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-900/50 lg:hidden">
+                        <Filter class="h-4 w-4" />
+                        Filters
+                    </button>
+
+                    <!-- Desktop Filters -->
+                    <div :class="['flex-wrap items-center gap-3', showFilters ? 'flex w-full' : 'hidden lg:flex']">
+                        <select v-model="filterYear" class="rounded-xl border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-600 focus:border-blue-500 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-300">
+                            <option v-for="y in 5" :key="y" :value="today.getFullYear() - y + 1">{{ today.getFullYear() - y + 1 }}</option>
                         </select>
-                        <select v-model="selectedWeekYear" class="ml-2 rounded border px-2 py-1 text-xs">
-                            <option v-for="y in [
-                                today.getFullYear(),
-                                today.getFullYear() - 1,
-                                today.getFullYear() - 2,
-                                today.getFullYear() - 3,
-                                today.getFullYear() - 4,
-                            ]" :key="y" :value="y">
-                                {{ y }}
-                            </option>
+                        <select v-model="filterMonth" class="rounded-xl border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-600 focus:border-blue-500 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-300">
+                            <option :value="0">All Months</option>
+                            <option v-for="m in 12" :key="m" :value="m">{{ new Date(2000, m - 1, 1).toLocaleString(locale, { month: 'short' }) }}</option>
                         </select>
-                    </template>
-                </Card>
-                <!-- Monthly Card -->
-                <Card :title="'Monthly Income'" :icon="Calendar" :subtitle="new Date(
-                    selectedMonthYear,
-                    selectedMonth - 1,
-                    1,
-                ).toLocaleString('en-KE', {
-                    month: 'long',
-                    year: 'numeric',
-                })
-                    ">
-                    <template #value>
-                        <div class="flex items-center justify-between">
-                            <span>{{
-                                showMonthly
-                                    ? monthlyIncome.toLocaleString('en-KE', {
-                                        style: 'currency',
-                                        currency: currency,
-                                    })
-                                    : '******'
-                            }}</span>
-                            <button @click="showMonthly = !showMonthly"
-                                class="ml-2 text-gray-500 transition hover:text-gray-700 dark:text-gray-300 dark:hover:text-white">
-                                <component :is="showMonthly ? Eye : EyeOff" class="h-5 w-5" />
-                            </button>
-                        </div>
-                    </template>
-                    <template #extra>
-                        <select v-model="selectedMonth" class="rounded border px-2 py-1 text-xs">
-                            <option v-for="m in 12" :key="m" :value="m">
-                                {{
-                                    new Date(2000, m - 1, 1).toLocaleString(
-                                        'en-KE',
-                                        { month: 'long' },
-                                    )
-                                }}
-                            </option>
+                        <select v-model="filterStatus" class="rounded-xl border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-600 focus:border-blue-500 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-300">
+                            <option value="">All Status</option>
+                            <option value="pending">Pending</option>
+                            <option value="completed">Completed</option>
+                            <option value="failed">Failed</option>
                         </select>
-                        <select v-model="selectedMonthYear" class="ml-2 rounded border px-2 py-1 text-xs">
-                            <option v-for="y in [
-                                today.getFullYear(),
-                                today.getFullYear() - 1,
-                                today.getFullYear() - 2,
-                                today.getFullYear() - 3,
-                                today.getFullYear() - 4,
-                            ]" :key="y" :value="y">
-                                {{ y }}
-                            </option>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <div class="flex items-center overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700">
+                        <select v-model="exportFormat" class="border-none bg-slate-50 px-3 py-2 text-sm font-medium text-slate-600 focus:ring-0 dark:bg-slate-900/50 dark:text-slate-300">
+                            <option value="csv">CSV</option>
+                            <option value="pdf">PDF</option>
                         </select>
-                    </template>
-                </Card>
-                <!-- Yearly Card -->
-                <Card :title="'Yearly Income'" :icon="BarChart2" :subtitle="selectedYear.toString()">
-                    <template #value>
-                        <div class="flex items-center justify-between">
-                            <span>{{
-                                showYearly
-                                    ? yearlyIncome.toLocaleString('en-KE', {
-                                        style: 'currency',
-                                        currency: currency,
-                                    })
-                                    : '******'
-                            }}</span>
-                            <button @click="showYearly = !showYearly"
-                                class="ml-2 text-gray-500 transition hover:text-gray-700 dark:text-gray-300 dark:hover:text-white">
-                                <component :is="showYearly ? Eye : EyeOff" class="h-5 w-5" />
-                            </button>
-                        </div>
-                    </template>
-                    <template #extra>
-                        <select v-model="selectedYear" class="rounded border px-2 py-1 text-xs">
-                            <option v-for="y in [
-                                today.getFullYear(),
-                                today.getFullYear() - 1,
-                                today.getFullYear() - 2,
-                                today.getFullYear() - 3,
-                                today.getFullYear() - 4,
-                            ]" :key="y" :value="y">
-                                {{ y }}
-                            </option>
-                        </select>
-                    </template>
-                </Card>
+                        <button @click="exportPayments" 
+                            class="flex items-center gap-2 bg-blue-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600">
+                            <Download class="h-4 w-4" />
+                            <span>Export</span>
+                        </button>
+                    </div>
+                </div>
             </div>
 
-            <div v-if="selectedTenantPayments.length > 0" class="mt-4 flex">
-                <DangerButton @click="bulkDelete" class="flex items-center gap-2">
-                    <Trash2 class="h-4 w-4" /> Bulk Delete ({{
-                        selectedTenantPayments.length
-                    }})
+            <!-- Bulk Actions -->
+            <div v-if="selectedTenantPayments.length > 0" class="flex items-center gap-3 animate-in fade-in slide-in-from-left-4 duration-300">
+                <span class="text-sm font-medium text-slate-500">{{ selectedTenantPayments.length }} selected</span>
+                <DangerButton @click="bulkDelete" class="flex items-center gap-2 rounded-xl">
+                    <Trash2 class="h-4 w-4" /> 
+                    <span>Bulk Delete</span>
                 </DangerButton>
             </div>
 
-            <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow dark:border-gray-700 dark:bg-slate-800">
-                <table class="w-full">
-                    <thead class="bg-gray-50 text-left dark:bg-slate-700">
-                        <tr>
-                            <td class="px-4 py-3">
-                                <input type="checkbox" v-model="selectAll" class="rounded border-gray-300 dark:border-gray-600 dark:bg-slate-700" />
-                            </td>
-                            <th class="px-4 py-2 text-gray-700 dark:text-gray-200">User</th>
-                            <th class="px-4 py-2 text-gray-700 dark:text-gray-200">Phone</th>
-                            <th class="px-4 py-2 text-gray-700 dark:text-gray-200">Receipt</th>
-                            <th class="px-4 py-2 text-gray-700 dark:text-gray-200">Amount</th>
-                            <th class="px-4 py-2 text-gray-700 dark:text-gray-200">Checked</th>
-                            <th class="px-4 py-2 text-gray-700 dark:text-gray-200">Paid At</th>
-                            <th class="px-4 py-2 text-gray-700 dark:text-gray-200">Disbursement</th>
-                            <th class="px-4 py-2 text-gray-700 dark:text-gray-200">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white dark:bg-slate-800">
-                        <tr v-for="item in paymentsData" :key="item.uuid" class="border-t border-gray-200 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-slate-700/50">
-                            <td class="px-6 py-3">
-                                <input type="checkbox" :value="item.uuid" v-model="selectedTenantPayments"
-                                    @change="toggleSelectAll" class="rounded border-gray-300 dark:border-gray-600 dark:bg-slate-700" />
-                            </td>
-                            <td class="px-4 py-2 text-gray-900 dark:text-gray-100">{{ item.user }}</td>
-                            <td class="px-4 py-2 text-gray-900 dark:text-gray-100">{{ item.phone }}</td>
-                            <td class="px-4 py-2 text-gray-900 dark:text-gray-100">{{ item.receipt_number }}</td>
-                            <td class="px-4 py-2 text-gray-900 dark:text-gray-100">{{ item.amount }}</td>
-                            <td class="px-4 py-2 text-gray-900 dark:text-gray-100">{{ item.checked_label }}</td>
-                            <td class="px-4 py-2 text-gray-900 dark:text-gray-100">{{ item.paid_at }}</td>
-                            <td class="px-4 py-2 text-gray-900 dark:text-gray-100">
-                                <span :class="['inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', getStatusColor(item.disbursement_status)]">
+            <!-- Data Display -->
+            <div class="relative min-h-[400px]">
+                <!-- Loading State (Optional Overlay) -->
+                <div v-if="isLoading" class="absolute inset-0 z-10 flex items-center justify-center bg-white/50 backdrop-blur-sm dark:bg-slate-900/50">
+                    <div class="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
+                </div>
+
+                <!-- Desktop Table View -->
+                <div v-if="!isMobile" class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:bg-slate-900/50 dark:text-slate-400">
+                                <tr>
+                                    <th class="px-6 py-4">
+                                        <input type="checkbox" v-model="selectAll" class="rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700" />
+                                    </th>
+                                    <th class="px-6 py-4">User</th>
+                                    <th class="px-6 py-4">Transaction Details</th>
+                                    <th class="px-6 py-4">Amount</th>
+                                    <th class="px-6 py-4">Status</th>
+                                    <th class="px-6 py-4">Date</th>
+                                    <th class="px-6 py-4 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
+                                <tr v-for="item in paymentsData" :key="item.uuid" class="group transition-colors hover:bg-slate-50 dark:hover:bg-slate-900/50">
+                                    <td class="px-6 py-4">
+                                        <input type="checkbox" :value="item.uuid" v-model="selectedTenantPayments"
+                                            @change="toggleSelectAll" class="rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700" />
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center gap-3">
+                                            <div class="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-700">
+                                                <UserIcon class="h-5 w-5 text-slate-500" />
+                                            </div>
+                                            <div>
+                                                <div class="font-semibold text-slate-900 dark:text-white">{{ item.user }}</div>
+                                                <div class="text-xs text-slate-500">{{ item.phone }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex flex-col gap-1">
+                                            <div class="flex items-center gap-2 font-mono text-xs font-medium text-slate-600 dark:text-slate-300">
+                                                <Hash class="h-3 w-3" />
+                                                {{ item.receipt_number }}
+                                            </div>
+                                            <div class="flex items-center gap-1 text-[10px] text-slate-400">
+                                                <PackageIcon class="h-3 w-3" />
+                                                {{ item.checked_label }}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="font-bold text-slate-900 dark:text-white">{{ item.amount }}</div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <span :class="['inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset', getStatusColor(item.disbursement_status)]">
+                                            <component :is="item.disbursement_status === 'completed' ? CheckCircle2 : Clock" class="h-3.5 w-3.5" />
+                                            {{ item.disbursement_label }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="text-slate-600 dark:text-slate-300">{{ item.paid_at }}</div>
+                                    </td>
+                                    <td class="px-6 py-4 text-right">
+                                        <div class="flex justify-end gap-2 opacity-0 transition-opacity group-hover:opacity-100">
+                                            <button v-if="item.editable" @click="openEditModal(item)" class="rounded-lg p-2 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/30">
+                                                <Edit class="h-4 w-4" />
+                                            </button>
+                                            <button v-if="item.editable" @click="confirmPaymentDeletion(item.uuid)" class="rounded-lg p-2 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30">
+                                                <Trash2 class="h-4 w-4" />
+                                            </button>
+                                            <button @click="showPaymentDetails(item)" class="rounded-lg p-2 text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-900/30">
+                                                <Eye class="h-4 w-4" />
+                                            </button>
+                                        </div>
+                                        <!-- Mobile dots (if needed) fallback to opacity 100 for touch -->
+                                        <button @click="showPaymentDetails(item)" class="lg:hidden rounded-lg p-2 text-slate-400">
+                                            <MoreHorizontal class="h-5 w-5" />
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Mobile Card List View -->
+                <div v-else class="space-y-4">
+                    <div v-for="item in paymentsData" :key="item.uuid" 
+                        class="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+                        <div class="flex items-start justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="rounded-xl bg-slate-100 p-2 dark:bg-slate-700">
+                                    <UserIcon class="h-5 w-5 text-slate-500" />
+                                </div>
+                                <div>
+                                    <p class="font-bold text-slate-900 dark:text-white">{{ item.user }}</p>
+                                    <p class="text-xs text-slate-500">{{ item.phone }}</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-lg font-black text-slate-900 dark:text-white">{{ item.amount }}</p>
+                                <span :class="['mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ring-1 ring-inset', getStatusColor(item.disbursement_status)]">
                                     {{ item.disbursement_label }}
                                 </span>
-                            </td>
-                            <td class="space-x-2 px-4 py-2">
-                                <button v-if="item.editable" @click="openEditModal(item)" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
+                            </div>
+                        </div>
+
+                        <div class="mt-4 grid grid-cols-2 gap-4 border-t border-slate-100 pt-4 dark:border-slate-700">
+                            <div>
+                                <p class="text-[10px] uppercase tracking-wider text-slate-400">Receipt</p>
+                                <p class="mt-0.5 font-mono text-sm font-medium text-slate-600 dark:text-slate-300">{{ item.receipt_number }}</p>
+                            </div>
+                            <div>
+                                <p class="text-[10px] uppercase tracking-wider text-slate-400">Paid At</p>
+                                <p class="mt-0.5 text-sm text-slate-600 dark:text-slate-300">{{ item.paid_at }}</p>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 flex items-center justify-between gap-2 border-t border-slate-100 pt-4 dark:border-slate-700">
+                            <div class="flex items-center gap-2">
+                                <input type="checkbox" :value="item.uuid" v-model="selectedTenantPayments" 
+                                    class="rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+                                <span class="text-xs text-slate-400">Select</span>
+                            </div>
+                            <div class="flex gap-2">
+                                <button @click="showPaymentDetails(item)" class="flex items-center gap-1 rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
+                                    <Eye class="h-3.5 w-3.5" /> Details
+                                </button>
+                                <button v-if="item.editable" @click="openEditModal(item)" class="rounded-lg bg-slate-100 p-1.5 text-slate-600 dark:bg-slate-700 dark:text-slate-300">
                                     <Edit class="h-4 w-4" />
                                 </button>
-                                <button v-if="item.editable" @click="confirmPaymentDeletion(item.uuid)" class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300">
-                                    <Trash2 class="h-4 w-4" />
-                                </button>
-                                <button @click="showPaymentDetails(item)" class="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300">
-                                    <Eye class="h-4 w-4" />
-                                </button>
-                            </td>
-                        </tr>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Empty State -->
+                <div v-if="paymentsData.length === 0" class="flex flex-col items-center justify-center py-20 text-center">
+                    <div class="rounded-full bg-slate-100 p-4 dark:bg-slate-800">
+                        <Search class="h-10 w-10 text-slate-400" />
+                    </div>
+                    <h3 class="mt-4 text-lg font-semibold text-slate-900 dark:text-white">No payments found</h3>
+                    <p class="mt-1 text-slate-500">Try adjusting your filters or search terms</p>
+                </div>
+            </div>
                         <!-- Payment Details Modal -->
                         <Modal :show="showDetailsModal" @close="closeDetailsModal">
                             <div v-if="paymentDetails" class="space-y-2 p-6">
@@ -835,8 +814,6 @@ function generatePaymentConfirmation() {
                                 </div>
                             </div>
                         </Modal>
-                    </tbody>
-                </table>
             </div>
 
             <div v-show="payments.total > 0" class="flex justify-center mt-6">
@@ -848,7 +825,6 @@ function generatePaymentConfirmation() {
                     :to="payments.to"
                 />
             </div>
-        </div>
 
         <!-- Modal -->
         <Modal :show="showModal" @close="showModal = false">
