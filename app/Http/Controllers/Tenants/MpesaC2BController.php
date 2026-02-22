@@ -146,7 +146,7 @@ class MpesaC2BController extends Controller
             $payment = TenantPayment::create([
                 'tenant_id' => $user->tenant_id,
                 'user_id' => $user->id,
-                'phone' => $data['msisdn'],
+                'phone' => $user->phone, // Use profile phone (Safaricom hashes MSISDN in production)
                 'amount' => $data['trans_amount'],
                 'currency' => 'KES',
                 'payment_method' => 'mpesa_c2b',
