@@ -20,6 +20,7 @@ class TenantEquipmentUsage extends Model
 
     protected $casts = [
         'used_at' => 'datetime',
+        'quantity' => 'decimal:2',
     ];
 
     public function equipment()

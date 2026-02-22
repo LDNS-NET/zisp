@@ -67,6 +67,7 @@ const form = useForm({
     warranty_expiry: '',
     notes: '',
     quantity: 1,
+    unit: 'pcs',
 })
 
 const usageForm = useForm({
@@ -104,6 +105,7 @@ function openEditModal(equip) {
     form.warranty_expiry = equip.warranty_expiry
     form.notes = equip.notes
     form.quantity = equip.quantity
+    form.unit = equip.unit || 'pcs'
     editing.value = equip.id
     showModal.value = true
 }
@@ -297,6 +299,7 @@ const formatStatus = (status) => status.replace('_', ' ').toUpperCase()
                                 <th class="px-6 py-4 font-semibold uppercase tracking-wider">Identity</th>
                                 <th class="px-6 py-4 font-semibold uppercase tracking-wider">Status</th>
                                 <th class="px-6 py-4 font-semibold uppercase tracking-wider">Stock</th>
+                                <th class="px-6 py-4 font-semibold uppercase tracking-wider">Unit</th>
                                 <th class="px-6 py-4 font-semibold uppercase tracking-wider">User</th>
                                 <th class="px-6 py-4 font-semibold uppercase tracking-wider">Value</th>
                                 <th class="px-6 py-4 font-semibold uppercase tracking-wider text-right">Actions</th>
@@ -334,6 +337,9 @@ const formatStatus = (status) => status.replace('_', ' ').toUpperCase()
                                     <span class="font-mono font-bold" :class="item.quantity > 5 ? 'text-gray-900 dark:text-white' : 'text-red-600 dark:text-red-400'">
                                         {{ item.quantity }}
                                     </span>
+                                </td>
+                                <td class="px-6 py-4 text-xs text-gray-500 uppercase tracking-tighter italic">
+                                    {{ item.unit || 'pcs' }}
                                 </td>
                                 <td class="px-6 py-4">
                                     <div v-if="item.assigned_user_id" class="flex flex-col">
@@ -469,8 +475,21 @@ const formatStatus = (status) => status.replace('_', ' ').toUpperCase()
 
                     <div>
                         <InputLabel for="quantity" value="Quantity/Stock" required />
-                        <TextInput v-model="form.quantity" id="quantity" type="number" class="mt-1 block w-full" />
+                        <TextInput v-model="form.quantity" id="quantity" type="number" step="0.01" class="mt-1 block w-full" />
                         <InputError :message="form.errors.quantity" class="mt-1" />
+                    </div>
+
+                    <div>
+                        <InputLabel for="unit" value="Measuring Unit" required />
+                        <select v-model="form.unit" id="unit" class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
+                            <option value="pcs">Pieces (Pcs)</option>
+                            <option value="meters">Meters (m)</option>
+                            <option value="feet">Feet (ft)</option>
+                            <option value="rolls">Rolls</option>
+                            <option value="boxes">Boxes</option>
+                            <option value="pairs">Pairs</option>
+                        </select>
+                        <InputError :message="form.errors.unit" class="mt-1" />
                     </div>
 
                     <div class="md:col-span-2">
@@ -545,18 +564,19 @@ const formatStatus = (status) => status.replace('_', ' ').toUpperCase()
         <Modal :show="showUsageModal" @close="showUsageModal = false">
             <div class="p-6 bg-white dark:bg-gray-800">
                 <h3 class="text-lg font-bold mb-2 dark:text-white">Log Equipment Usage</h3>
-                <p class="text-sm text-gray-500 mb-6">Device: {{ selectedEquipmentForUsage?.name }} (Stock: {{ selectedEquipmentForUsage?.quantity }})</p>
+                <p class="text-sm text-gray-500 mb-6">Device: {{ selectedEquipmentForUsage?.name }} (Stock: {{ selectedEquipmentForUsage?.quantity }} {{ selectedEquipmentForUsage?.unit }})</p>
 
                 <div class="space-y-4">
                     <div>
-                        <InputLabel for="usage_quantity" value="Quantity Used" required />
+                        <InputLabel for="usage_quantity" :value="`Quantity Used (${selectedEquipmentForUsage?.unit})`" required />
                         <TextInput 
                             v-model="usageForm.quantity" 
                             id="usage_quantity" 
                             type="number" 
+                            step="0.01"
                             class="mt-1 block w-full" 
                             :max="selectedEquipmentForUsage?.quantity"
-                            min="1"
+                            min="0.01"
                         />
                         <InputError :message="usageForm.errors.quantity" class="mt-1" />
                     </div>

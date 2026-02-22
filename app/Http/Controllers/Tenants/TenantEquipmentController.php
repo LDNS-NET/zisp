@@ -56,7 +56,8 @@ class TenantEquipmentController extends Controller
             'mac_address' => 'nullable|string|max:255|unique:tenant_equipments',
             'status' => 'required|in:in_stock,assigned,faulty,retired,lost',
             'condition' => 'required|in:new,used,refurbished',
-            'quantity' => 'required|integer|min:0',
+            'quantity' => 'required|numeric|min:0',
+            'unit' => 'required|string|max:50',
             'location' => 'nullable|string|max:255',
             'model' => 'nullable|string|max:255',
             'price' => 'nullable|numeric|min:0',
@@ -96,7 +97,8 @@ class TenantEquipmentController extends Controller
             'mac_address' => 'nullable|string|max:255|unique:tenant_equipments,mac_address,' . $equipment->id,
             'status' => 'required|in:in_stock,assigned,faulty,retired,lost',
             'condition' => 'required|in:new,used,refurbished',
-            'quantity' => 'required|integer|min:0',
+            'quantity' => 'required|numeric|min:0',
+            'unit' => 'required|string|max:50',
             'location' => 'nullable|string|max:255',
             'model' => 'nullable|string|max:255',
             'price' => 'nullable|numeric|min:0',
@@ -236,7 +238,7 @@ class TenantEquipmentController extends Controller
     public function logUsage(Request $request, TenantEquipment $equipment)
     {
         $validated = $request->validate([
-            'quantity' => 'required|integer|min:1|max:' . $equipment->quantity,
+            'quantity' => 'required|numeric|min:0.01|max:' . $equipment->quantity,
             'details' => 'nullable|string|max:255',
         ]);
 
