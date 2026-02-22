@@ -131,8 +131,8 @@ const formatDate = (date) => {
                     <div class="relative flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                         <div class="flex-1">
                             <div class="flex items-center gap-3 mb-2">
-                                <div class="p-2 bg-primary-100 dark:bg-primary-900/30 rounded-lg">
-                                    <Clock class="w-6 h-6 text-primary-600 dark:text-primary-400" />
+                                <div class="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
+                                    <Clock class="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
                                 </div>
                                 <h1 class="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">User Compensations</h1>
                             </div>
@@ -145,7 +145,7 @@ const formatDate = (date) => {
                                 :class="[
                                     'px-6 py-2.5 rounded-xl transition-all duration-300 text-sm font-bold flex items-center gap-2.5',
                                     activeTab === 'users' 
-                                        ? 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-lg shadow-slate-200/50 dark:shadow-none' 
+                                        ? 'bg-white dark:bg-slate-700 text-primary dark:text-primary' 
                                         : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
                                 ]"
                             >
@@ -157,7 +157,7 @@ const formatDate = (date) => {
                                 :class="[
                                     'px-6 py-2.5 rounded-xl transition-all duration-300 text-sm font-bold flex items-center gap-2.5',
                                     activeTab === 'history' 
-                                        ? 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-lg shadow-slate-200/50 dark:shadow-none' 
+                                        ? 'bg-white dark:bg-slate-700 text-primary dark:text-primary' 
                                         : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
                                 ]"
                             >
@@ -263,7 +263,7 @@ const formatDate = (date) => {
                                 <button 
                                     @click="openCompensateModal(false)"
                                     :disabled="selectedUsers.length === 0"
-                                    class="flex-1 lg:w-auto flex items-center justify-center gap-3 px-6 py-4 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-2xl text-sm font-black transition-all duration-300 shadow-xl shadow-primary-500/20 active:scale-95 group"
+                                    class="flex-1 lg:w-auto flex items-center justify-center gap-3 px-6 py-4 bg-primary hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-2xl text-sm font-black transition-all duration-300 shadow-xl active:scale-95 group"
                                 >
                                     <Plus class="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
                                     Selected ({{ selectedUsers.length }})
@@ -522,7 +522,7 @@ const formatDate = (date) => {
                         <button 
                             @click="submitCompensation"
                             :disabled="compensateForm.processing"
-                            class="flex-[2] px-8 py-5 bg-gradient-to-r from-primary-600 to-indigo-600 hover:from-primary-700 hover:to-indigo-700 text-white rounded-[2rem] text-sm font-black flex items-center justify-center gap-3 shadow-2xl shadow-primary-500/40 disabled:opacity-50 transition-all hover:-translate-y-1 active:scale-95 group"
+                            class="flex-[2] px-8 py-5 bg-primary hover:opacity-90 text-white rounded-[2rem] text-sm font-black flex items-center justify-center gap-3 shadow-2xl disabled:opacity-50 transition-all hover:-translate-y-1 active:scale-95 group"
                         >
                             <Plus v-if="!compensateForm.processing" class="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
                             <span v-if="!compensateForm.processing">Deploy Compensation</span>
@@ -541,7 +541,7 @@ input[type="checkbox"] {
     @apply appearance-none;
 }
 input[type="checkbox"]:checked {
-    @apply bg-primary-600 border-primary-600;
+    @apply bg-primary border-primary;
     background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e");
     background-size: 100% 100%;
     background-position: center;
