@@ -53,6 +53,7 @@ class NetworkUser extends Authenticatable
         'online',
         'expires_at',
         'mac_address',
+        'wallet_balance',
         'created_by',
         'tenant_id',
     ];
@@ -89,6 +90,11 @@ class NetworkUser extends Authenticatable
     public function devices()
     {
         return $this->hasMany(\App\Models\Tenants\TenantDevice::class, 'subscriber_id');
+    }
+
+    public function renewals()
+    {
+        return $this->hasMany(PackageRenewal::class, 'user_id')->orderBy('created_at', 'desc');
     }
 
     public static function generateHotspotUsername($tenantId)

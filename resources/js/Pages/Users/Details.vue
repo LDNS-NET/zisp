@@ -21,7 +21,11 @@ const props = defineProps({
     filters: Object,
     payments: Array,
     sessions: Array, // Session history from RADIUS
+    renewals: Object, // Paginated renewals
 });
+
+import { Wallet, History, CreditCard, User, FileText, Activity } from 'lucide-vue-next';
+import Pagination from '@/Components/Pagination.vue';
 
 const showModal = ref(false);
 const editing = ref(null);
@@ -177,6 +181,18 @@ function confirmSubmit() {
                     >
                         Sessions
                     </button>
+
+                    <button
+                        @click="activeTab = 'renewals'"
+                        :class="[
+                            activeTab === 'renewals'
+                                ? 'border-blue-600 text-blue-600'
+                                : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:hover:text-gray-300',
+                            'whitespace-nowrap border-b-2 px-1 pb-3 text-sm font-medium',
+                        ]"
+                    >
+                        Renewals History
+                    </button>
                 </nav>
             </div>
         </div>
@@ -222,6 +238,7 @@ function confirmSubmit() {
                                 Location: props.user.location ?? '—',
                                 'User Type': props.user.type,
                                 'Package Name': props.user.package ? props.user.package.name : '—',
+                                'Wallet Balance': 'KES ' + (props.user.wallet_balance || '0.00'),
                                 'Expires At': props.user.expires_at
                                     ? new Date(
                                           props.user.expires_at,
@@ -258,7 +275,26 @@ function confirmSubmit() {
                 </p>
 
                 <!-- Payment Summary Cards -->
-                <div class="mb-6 grid grid-cols-1 gap-6 sm:grid-cols-3">
+                <div class="mb-6 grid grid-cols-1 gap-6 sm:grid-cols-4">
+                    <!-- Wallet Balance -->
+                    <div
+                        class="rounded-2xl bg-white p-6 shadow border-2 border-green-500 dark:bg-gray-800"
+                    >
+                        <h3
+                            class="text-lg font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2"
+                        >
+                            <Wallet class="w-5 h-5 text-green-500" />
+                            Wallet Balance
+                        </h3>
+                        <p
+                            class="mt-2 text-2xl font-bold text-green-600 dark:text-green-400"
+                        >
+                            KES {{ props.user.wallet_balance || '0.00' }}
+                        </p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                            Available credit for next renewal
+                        </p>
+                    </div>
                     <!-- Lifetime Total -->
                     <div
                         class="rounded-2xl bg-white p-6 shadow dark:bg-gray-800"
@@ -577,6 +613,87 @@ function confirmSubmit() {
                         </tbody>
                     </table>
                 </div>
+            </div>
+
+            <!-- Renewals Tab -->
+            <div
+                v-if="activeTab === 'renewals'"
+                class="rounded-2xl bg-white p-6 shadow dark:bg-gray-900"
+            >
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h3 class="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white">
+                            <History class="w-5 h-5 text-blue-600" />
+                            Package Renewals History
+                        </h3>
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                            Historical log of package activations and extensions
+                        </p>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto rounded-xl border border-gray-100 dark:border-gray-800">
+                    <table
+                        class="min-w-full divide-y divide-gray-200 dark:divide-gray-800"
+                    >
+                        <thead class="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400">
+                            <tr>
+                                <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">Package</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">Amount Paid</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">Period</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100 dark:divide-gray-800 bg-white dark:bg-transparent">
+                            <tr v-for="renewal in props.renewals.data" :key="renewal.id" class="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
+                                <td class="px-6 py-4 text-sm font-bold text-gray-900 dark:text-gray-100">
+                                    {{ renewal.package_name }}
+                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
+                                    KES {{ Number(renewal.amount).toLocaleString() }}
+                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
+                                    <div class="flex flex-col gap-0.5">
+                                        <div class="flex items-center gap-1.5">
+                                            <span class="text-[10px] uppercase font-bold text-gray-400">Start:</span>
+                                            <span class="font-medium text-gray-700 dark:text-gray-300">
+                                                {{ renewal.started_at ? new Date(renewal.started_at).toLocaleString('en-GB', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—' }}
+                                            </span>
+                                        </div>
+                                        <div class="flex items-center gap-1.5">
+                                            <span class="text-[10px] uppercase font-bold text-gray-400">End:</span>
+                                            <span class="font-bold text-blue-600 dark:text-blue-400">
+                                                {{ renewal.expires_at ? new Date(renewal.expires_at).toLocaleString('en-GB', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—' }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
+                                    <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-bold transition-colors duration-200 shadow-sm" 
+                                        :class="renewal.status === 'active' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 ring-1 ring-green-200 dark:ring-green-900/50' : 'bg-gray-100 text-gray-800 dark:bg-gray-700/50 dark:text-gray-300 ring-1 ring-gray-200 dark:ring-gray-700'">
+                                        {{ renewal.status.charAt(0).toUpperCase() + renewal.status.slice(1) }}
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr v-if="!props.renewals.data || props.renewals.data.length === 0">
+                                <td colspan="4" class="px-6 py-12 text-center">
+                                    <History class="w-12 h-12 text-gray-200 dark:text-gray-700 mx-auto mb-3" />
+                                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">No renewal history found for this user.</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination for Renewals -->
+                <Pagination 
+                    v-if="props.renewals.links.length > 3"
+                    :links="props.renewals.links" 
+                    :from="props.renewals.from" 
+                    :to="props.renewals.to" 
+                    :total="props.renewals.total" 
+                    class="mt-6"
+                />
             </div>
         </div>
 

@@ -27,17 +27,46 @@ Safaricom requires you to register "Callback URLs" so they know where to send pa
 
 ### How to Register URLs:
 
-#### A. System-Level (Default Paybill)
-If you are using the primary Paybill defined in your `.env` file:
+#### A. System-Level (Default Paybill/Till)
+If you are using the primary credentials defined in your `.env`:
+
+**For Paybills (Default):**
 ```bash
 php artisan mpesa:register-c2b
+```
+
+**For Till Numbers (Buy Goods):**
+```bash
+php artisan mpesa:register-c2b --shortcode-type=till
 ```
 *Follow the interactive prompt to confirm.*
 
 #### B. Tenant-Specific (Custom API)
 If a tenant provides their own M-Pesa credentials in the Settings:
+- Choose the **Shortcode Type** (Paybill or Till) in the dropdown.
 - URLs are **automatically registered** when they save their credentials.
 - They can also manually trigger registration by clicking the **"Register C2B URLs with Safaricom"** button in **Settings → Payment**.
+
+---
+
+## 3. Paybill vs Till Numbers
+
+While both methods are supported for **STK Push** and **C2B URL Registration**, there is a key difference in how Safaricom handles manual payments:
+
+| Feature | Paybill | Till Number (Buy Goods) |
+| :--- | :--- | :--- |
+| **STK Push** | Supported (CustomerPayBillOnline) | Supported (CustomerBuyGoodsOnline) |
+| **URL Registration** | Supported | Supported |
+| **Manual Payment Identification** | **High** (Account Number required) | **Low** (No Account Number prompt) |
+
+### ⚠️ Important Limitation for Till Numbers:
+When a customer makes a **manual manual payment** (entering your Till number via the M-Pesa menu), Safaricom **does not prompt them for an Account Number**. 
+
+Because of this, the notification sent to ZimaRadius will have an empty `BillRefNumber`. The system will not be able to automatically identify which subscriber made the payment. 
+
+**Recommendation:**
+- Use **Paybill** if you want to support both automated STK pushes and manual walk-in payments.
+- Use **Till Numbers** primarily if your business relies almost exclusively on **STK Push triggers** (where the system already knows the user from the app context).
 
 ---
 

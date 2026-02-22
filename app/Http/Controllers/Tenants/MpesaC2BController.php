@@ -9,6 +9,7 @@ use App\Models\Tenants\TenantPayment;
 use App\Models\Package;
 use App\Models\Tenants\TenantHotspot;
 use App\Services\MpesaService;
+use App\Services\Tenants\RenewalService;
 use App\Jobs\ProcessDisbursementJob;
 use Illuminate\Support\Facades\Log;
 
@@ -168,8 +169,8 @@ class MpesaC2BController extends Controller
                 'receipt' => $payment->receipt_number
             ]);
 
-            // Update user expiry
-            $this->extendUserExpiry($user);
+            // Update user expiry and handle balance/renewals
+            $this->extendUserExpiry($user, $data['trans_amount'], app(RenewalService::class));
 
             // Trigger disbursement if using default API
             $this->handleDisbursement($payment);
@@ -194,34 +195,21 @@ class MpesaC2BController extends Controller
     }
 
     /**
-     * Extend user expiry based on their package
+     * Extend user expiry using RenewalService
      */
-    private function extendUserExpiry(NetworkUser $user)
+    private function extendUserExpiry(NetworkUser $user, float $amount, RenewalService $renewalService)
     {
-        if ($user->hotspot_package_id) {
-            $package = TenantHotspot::withoutGlobalScopes()->find($user->hotspot_package_id);
-        } else {
-            $package = Package::withoutGlobalScopes()->find($user->package_id);
+        // Use the RenewalService to handle cycles and wallet balance
+        $result = $renewalService->processPayment($user, $amount);
+
+        if (!$result['success']) {
+            Log::warning('C2B: RenewalService could not process payment', [
+                'user_id' => $user->id,
+                'amount' => $amount,
+                'message' => $result['message']
+            ]);
+            // Fallback: stay active but no additional extension if service fails
         }
-
-        if (!$package) return;
-
-        $baseDate = ($user->expires_at && $user->expires_at->isFuture()) ? $user->expires_at : now();
-        
-        $value = $package->duration_value ?? $package->duration ?? 1;
-        $unit = $package->duration_unit ?? 'days';
-
-        $user->expires_at = match ($unit) {
-            'minutes' => $baseDate->copy()->addMinutes($value),
-            'hours'   => $baseDate->copy()->addHours($value),
-            'days'    => $baseDate->copy()->addDays($value),
-            'weeks'   => $baseDate->copy()->addWeeks($value),
-            'months'  => $baseDate->copy()->addMonths($value),
-            default   => $baseDate->copy()->addDays($value),
-        };
-
-        $user->status = 'active';
-        $user->save();
 
         // Unsuspend on MikroTik
         try {

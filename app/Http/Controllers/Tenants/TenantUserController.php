@@ -314,9 +314,24 @@ class TenantUserController extends Controller
                 ];
             });
 
+        // Fetch paginated renewals
+        $renewals = \App\Models\Tenants\PackageRenewal::where('user_id', $user->id)
+            ->with('package')
+            ->orderBy('created_at', 'desc')
+            ->paginate(10, ['*'], 'renewals_page');
+
         return inertia('Users/Details', [
             'user' => $user,
             'payments' => $userPayments,
+            'renewals' => $renewals->through(fn($renewal) => [
+                'id' => $renewal->id,
+                'package_name' => $renewal->package?->name ?? 'N/A',
+                'amount' => $renewal->amount_paid,
+                'started_at' => $renewal->started_at,
+                'expires_at' => $renewal->expires_at,
+                'status' => $renewal->status,
+                'created_at' => $renewal->created_at,
+            ]),
             'sessions' => $sessions,
             'lifetimeTotal' => $lifetimeTotal,
             'paymentReliability' => $paymentReliability,
