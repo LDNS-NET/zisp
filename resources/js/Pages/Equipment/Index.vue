@@ -233,6 +233,9 @@ const formatStatus = (status) => status.replace('_', ' ').toUpperCase()
                 </div>
                 
                 <div class="flex items-center gap-3 w-full sm:w-auto">
+                    <Link :href="route('equipment.usage.log')" class="inline-flex items-center px-4 py-2 bg-amber-600 border border-transparent rounded-lg font-bold text-xs text-white uppercase tracking-widest hover:bg-amber-700 active:bg-amber-800 transition-all duration-200">
+                        <ShoppingCart class="h-4 w-4 mr-2" /> Log Usage
+                    </Link>
                     <PrimaryButton @click="openAddModal" class="flex items-center gap-2">
                         <Plus class="h-4 w-4" /> Add Item
                     </PrimaryButton>
