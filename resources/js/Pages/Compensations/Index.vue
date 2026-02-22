@@ -11,12 +11,8 @@ import {
 import debounce from 'lodash/debounce';
 
 const props = defineProps({
-    users: Object,
-    compensations: Object,
-    locations: Array,
-    routers: Array,
-    filters: Object,
     stats: Object,
+    default_template: Object,
 });
 
 const search = ref(props.filters.search || '');
@@ -36,7 +32,7 @@ const compensateForm = useForm({
     search: '',
     location: '',
     notify_users: false,
-    sms_template: 'Hello {{name}}, your internet account has been compensated with {{duration}} {{unit}} extension. Your new expiry is {{new_expiry}}. Enjoy!',
+    sms_template: props.default_template?.content || '',
 });
 
 const updateFilters = debounce(() => {
@@ -272,7 +268,7 @@ const formatDate = (date) => {
                                 </button>
                                 
                                 <button 
-                                    v-if="search || location || routerId"
+                                    v-if="stats.is_filtered"
                                     @click="openCompensateModal(true)"
                                     class="flex-1 lg:w-auto flex items-center justify-center gap-3 px-6 py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-sm font-black transition-all duration-300 shadow-xl shadow-emerald-500/20 active:scale-95 group"
                                 >
@@ -350,21 +346,25 @@ const formatDate = (date) => {
                                     </tr>
                                     <tr v-if="users.data.length === 0">
                                         <td colspan="6" class="px-8 py-24 text-center">
-                                            <div class="flex flex-col items-center gap-4 max-w-sm mx-auto">
-                                                <div class="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center">
-                                                    <Search v-if="search || location" class="w-10 h-10 text-slate-300" />
-                                                    <Filter v-else class="w-10 h-10 text-slate-300" />
+                                            <div class="flex flex-col items-center gap-4 max-w-md mx-auto">
+                                                <div class="w-24 h-24 bg-slate-100 dark:bg-slate-800 rounded-3xl flex items-center justify-center rotate-3 group-hover:rotate-6 transition-transform">
+                                                    <Search v-if="stats.is_filtered" class="w-12 h-12 text-slate-300" />
+                                                    <Users v-else class="w-12 h-12 text-slate-300" />
                                                 </div>
                                                 <div>
-                                                    <h3 class="text-xl font-bold text-slate-900 dark:text-white">
-                                                        {{ (search || location) ? 'No matches found' : 'Start by Searching' }}
+                                                    <h3 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                                                        {{ stats.is_filtered ? 'No subscribers found' : 'Ready to Compensate?' }}
                                                     </h3>
-                                                    <p class="text-slate-500 mt-1">
-                                                        {{ (search || location) 
-                                                            ? 'Refine your search parameters or location filters to find the right users.' 
-                                                            : 'Please enter a search term or select a location above to list users for compensation.' 
+                                                    <p class="text-slate-500 font-medium mt-2 leading-relaxed">
+                                                        {{ stats.is_filtered 
+                                                            ? 'We couldn\'t find any users matching your active filters. Try broadening your search or choosing a different region.' 
+                                                            : 'To ensure peak performance, please search for a user or select a region above to start issuing duration extensions.' 
                                                         }}
                                                     </p>
+                                                    <div v-if="!stats.is_filtered" class="mt-6 flex justify-center gap-4">
+                                                        <div class="px-4 py-2 bg-slate-100 dark:bg-slate-800 rounded-xl text-xs font-bold text-slate-400 uppercase tracking-widest">Type to search</div>
+                                                        <div class="px-4 py-2 bg-slate-100 dark:bg-slate-800 rounded-xl text-xs font-bold text-slate-400 uppercase tracking-widest">Filter by region</div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </td>
@@ -526,10 +526,10 @@ const formatDate = (date) => {
                                     ></textarea>
                                 </div>
                                 <div class="flex flex-wrap gap-2">
-                                    <span class="text-[10px] font-black py-1 px-2.5 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 rounded-lg cursor-help hover:bg-primary hover:text-white transition-colors" title="User's Full Name">{{name}}</span>
-                                    <span class="text-[10px] font-black py-1 px-2.5 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 rounded-lg cursor-help hover:bg-primary hover:text-white transition-colors" title="Numeric duration value">{{duration}}</span>
-                                    <span class="text-[10px] font-black py-1 px-2.5 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 rounded-lg cursor-help hover:bg-primary hover:text-white transition-colors" title="Minutes, Hours, Days, etc.">{{unit}}</span>
-                                    <span class="text-[10px] font-black py-1 px-2.5 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 rounded-lg cursor-help hover:bg-primary hover:text-white transition-colors" title="New expiration date/time">{{new_expiry}}</span>
+                                    <span class="text-[10px] font-black py-1 px-2.5 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 rounded-lg cursor-help hover:bg-primary-500 hover:text-white transition-all transform hover:scale-105" title="User's Full Name">{{name}}</span>
+                                    <span class="text-[10px] font-black py-1 px-2.5 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 rounded-lg cursor-help hover:bg-primary-500 hover:text-white transition-all transform hover:scale-105" title="Numeric duration value (e.g. 5)">{{duration}}</span>
+                                    <span class="text-[10px] font-black py-1 px-2.5 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 rounded-lg cursor-help hover:bg-primary-500 hover:text-white transition-all transform hover:scale-105" title="Time unit (e.g. days)">{{unit}}</span>
+                                    <span class="text-[10px] font-black py-1 px-2.5 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 rounded-lg cursor-help hover:bg-primary-500 hover:text-white transition-all transform hover:scale-105" title="New expiration date/time">{{new_expiry}}</span>
                                 </div>
                             </div>
                         </div>

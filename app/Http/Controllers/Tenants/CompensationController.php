@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Tenants\NetworkUser;
 use App\Models\Tenants\Compensation;
 use App\Models\Tenants\TenantMikrotik;
+use App\Models\Tenants\TenantSMSTemplate;
+use App\Models\Tenants\TenantSMS;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -61,7 +63,17 @@ class CompensationController extends Controller
             'total_compensations' => Compensation::count(),
             'today_compensations' => Compensation::whereDate('created_at', now()->toDateString())->count(),
             'filtered_count' => $filteredCount,
+            'is_filtered' => !empty($search) || !empty($location) || !empty($router_id),
         ];
+
+        // Default SMS Template for compensation
+        $defaultTemplate = TenantSMSTemplate::firstOrCreate(
+            ['name' => 'Compensation'],
+            [
+                'content' => 'Hello {{name}}, your account has been compensated with {{duration}} {{unit}}. Your new expiry date is {{new_expiry}}. Thank you!',
+                'created_by' => Auth::id() ?? 1,
+            ]
+        );
 
         return inertia('Compensations/Index', [
             'users' => $users->through(fn($user) => [
@@ -80,6 +92,7 @@ class CompensationController extends Controller
             'locations' => $locations,
             'routers' => $routers,
             'stats' => $stats,
+            'default_template' => $defaultTemplate,
             'filters' => [
                 'search' => $search,
                 'location' => $location,
@@ -170,21 +183,25 @@ class CompensationController extends Controller
 
                 // Send SMS if requested
                 if (!empty($validated['notify_users']) && !empty($user->phone)) {
-                    $message = str_replace(
-                        ['{{name}}', '{{duration}}', '{{unit}}', '{{new_expiry}}'],
-                        [
-                            $user->full_name,
-                            $value,
-                            $validated['duration_unit'],
-                            $newExpiry->format('Y-m-d H:i')
-                        ],
-                        $validated['sms_template']
-                    );
+                    $templateContent = $validated['sms_template'] ?: TenantSMSTemplate::where('name', 'Compensation')->value('content');
                     
-                    try {
-                        $smsService->sendSMS($tenantId, $user->phone, $message);
-                    } catch (\Exception $e) {
-                        Log::error("Failed to send compensation SMS to {$user->phone}: " . $e->getMessage());
+                    if ($templateContent) {
+                        $message = str_replace(
+                            ['{{name}}', '{{duration}}', '{{unit}}', '{{new_expiry}}'],
+                            [
+                                $user->full_name ?? $user->username,
+                                $value,
+                                $validated['duration_unit'],
+                                $newExpiry->format('Y-m-d H:i')
+                            ],
+                            $templateContent
+                        );
+                        
+                        try {
+                            $smsService->sendSMS($tenantId, $user->phone, $message);
+                        } catch (\Exception $e) {
+                            Log::error("Failed to send compensation SMS to {$user->phone}: " . $e->getMessage());
+                        }
                     }
                 }
 
