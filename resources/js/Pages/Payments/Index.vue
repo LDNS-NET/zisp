@@ -36,6 +36,8 @@ import { saveAs } from 'file-saver';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useToast } from 'vue-toastification';
+import Dropdown from '@/Components/Dropdown.vue';
+import DropdownLink from '@/Components/DropdownLink.vue';
 
 const isMobile = ref(false);
 const checkMobile = () => {
@@ -57,9 +59,13 @@ const locale = 'en-KE'; // Could be dynamic too if needed, but keeping fixed for
 
 
 const today = new Date();
-const filterYear = ref(today.getFullYear());
 const filterMonth = ref(0); // 0 means all months
 const filterWeek = ref(0); // 0 means all weeks
+
+const getInitials = (name) => {
+    if (!name) return '?';
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+};
 
 // Use all payments for summary calculations, not just paginated page
 const allPayments = computed(() => props.payments.allData ?? []);
@@ -629,74 +635,93 @@ function generatePaymentConfirmation() {
                         <table class="w-full text-left text-sm">
                             <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:bg-slate-900/50 dark:text-slate-400">
                                 <tr>
-                                    <th class="px-6 py-4">
+                                    <th class="px-6 py-4 w-10">
                                         <input type="checkbox" v-model="selectAll" class="rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700" />
                                     </th>
-                                    <th class="px-6 py-4">User</th>
-                                    <th class="px-6 py-4">Transaction Details</th>
+                                    <th class="px-6 py-4 min-w-[200px]">User</th>
+                                    <th class="px-6 py-4 hidden md:table-cell">Transaction</th>
                                     <th class="px-6 py-4">Amount</th>
-                                    <th class="px-6 py-4">Status</th>
-                                    <th class="px-6 py-4">Date</th>
+                                    <th class="px-6 py-4 hidden sm:table-cell">Status</th>
+                                    <th class="px-6 py-4 hidden lg:table-cell">Date</th>
                                     <th class="px-6 py-4 text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
-                                <tr v-for="item in paymentsData" :key="item.uuid" class="group transition-colors hover:bg-slate-50 dark:hover:bg-slate-900/50">
-                                    <td class="px-6 py-4">
+                                <tr v-for="item in paymentsData" :key="item.uuid" 
+                                    class="group cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-900/50"
+                                    @click="showPaymentDetails(item)">
+                                    <td class="px-6 py-4" @click.stop>
                                         <input type="checkbox" :value="item.uuid" v-model="selectedTenantPayments"
                                             @change="toggleSelectAll" class="rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700" />
                                     </td>
                                     <td class="px-6 py-4">
                                         <div class="flex items-center gap-3">
-                                            <div class="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-700">
-                                                <UserIcon class="h-5 w-5 text-slate-500" />
+                                            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 font-bold text-white shadow-sm transition-transform group-hover:scale-105">
+                                                {{ getInitials(item.user) }}
                                             </div>
                                             <div>
-                                                <div class="font-semibold text-slate-900 dark:text-white">{{ item.user }}</div>
-                                                <div class="text-xs text-slate-500">{{ item.phone }}</div>
+                                                <div class="font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{{ item.user }}</div>
+                                                <div class="flex items-center gap-1.5 text-xs text-slate-500">
+                                                    <Phone class="h-3 w-3" />
+                                                    {{ item.phone }}
+                                                </div>
                                             </div>
                                         </div>
                                     </td>
-                                    <td class="px-6 py-4">
+                                    <td class="px-6 py-4 hidden md:table-cell">
                                         <div class="flex flex-col gap-1">
-                                            <div class="flex items-center gap-2 font-mono text-xs font-medium text-slate-600 dark:text-slate-300">
-                                                <Hash class="h-3 w-3" />
+                                            <div class="flex items-center gap-2 font-mono text-xs font-semibold text-slate-700 dark:text-slate-200">
+                                                <Hash class="h-3.5 w-3.5 text-slate-400" />
                                                 {{ item.receipt_number }}
                                             </div>
-                                            <div class="flex items-center gap-1 text-[10px] text-slate-400">
+                                            <div class="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-slate-400">
                                                 <PackageIcon class="h-3 w-3" />
-                                                {{ item.checked_label }}
+                                                {{ item.checked_label === 'Yes' ? 'Confirmed' : 'Unchecked' }}
                                             </div>
                                         </div>
                                     </td>
                                     <td class="px-6 py-4">
-                                        <div class="font-bold text-slate-900 dark:text-white">{{ item.amount }}</div>
+                                        <div class="text-sm font-black text-slate-900 dark:text-white">{{ item.amount }}</div>
+                                        <div class="sm:hidden mt-0.5">
+                                             <span :class="['inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-bold uppercase ring-1 ring-inset', getStatusColor(item.disbursement_status)]">
+                                                {{ item.disbursement_label }}
+                                            </span>
+                                        </div>
                                     </td>
-                                    <td class="px-6 py-4">
-                                        <span :class="['inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset', getStatusColor(item.disbursement_status)]">
+                                    <td class="px-6 py-4 hidden sm:table-cell">
+                                        <span :class="['inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold ring-1 ring-inset', getStatusColor(item.disbursement_status)]">
                                             <component :is="item.disbursement_status === 'completed' ? CheckCircle2 : Clock" class="h-3.5 w-3.5" />
                                             {{ item.disbursement_label }}
                                         </span>
                                     </td>
-                                    <td class="px-6 py-4">
-                                        <div class="text-slate-600 dark:text-slate-300">{{ item.paid_at }}</div>
-                                    </td>
-                                    <td class="px-6 py-4 text-right">
-                                        <div class="flex justify-end gap-2 opacity-0 transition-opacity group-hover:opacity-100">
-                                            <button v-if="item.editable" @click="openEditModal(item)" class="rounded-lg p-2 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/30">
-                                                <Edit class="h-4 w-4" />
-                                            </button>
-                                            <button v-if="item.editable" @click="confirmPaymentDeletion(item.uuid)" class="rounded-lg p-2 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30">
-                                                <Trash2 class="h-4 w-4" />
-                                            </button>
-                                            <button @click="showPaymentDetails(item)" class="rounded-lg p-2 text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-900/30">
-                                                <Eye class="h-4 w-4" />
-                                            </button>
+                                    <td class="px-6 py-4 hidden lg:table-cell">
+                                        <div class="flex flex-col">
+                                            <span class="text-sm font-medium text-slate-600 dark:text-slate-300">{{ item.paid_at.split(' ')[0] }}</span>
+                                            <span class="text-[10px] text-slate-400">{{ item.paid_at.split(' ')[1] || '' }}</span>
                                         </div>
-                                        <!-- Mobile dots (if needed) fallback to opacity 100 for touch -->
-                                        <button @click="showPaymentDetails(item)" class="lg:hidden rounded-lg p-2 text-slate-400">
-                                            <MoreHorizontal class="h-5 w-5" />
-                                        </button>
+                                    </td>
+                                    <td class="px-6 py-4 text-right" @click.stop>
+                                        <div class="flex justify-end items-center">
+                                            <Dropdown align="right" width="48">
+                                                <template #trigger>
+                                                    <button class="rounded-lg p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors">
+                                                        <MoreHorizontal class="h-5 w-5" />
+                                                    </button>
+                                                </template>
+                                                <template #content>
+                                                    <DropdownLink @click="showPaymentDetails(item)" class="flex items-center gap-2">
+                                                        <Eye class="h-4 w-4 text-emerald-500" /> Details
+                                                    </DropdownLink>
+                                                    <DropdownLink v-if="item.editable" @click="openEditModal(item)" class="flex items-center gap-2">
+                                                        <Edit class="h-4 w-4 text-blue-500" /> Edit
+                                                    </DropdownLink>
+                                                    <div v-if="item.editable" class="border-t border-slate-100 dark:border-slate-700 my-1"></div>
+                                                    <DropdownLink v-if="item.editable" @click="confirmPaymentDeletion(item.uuid)" class="flex items-center gap-2 text-red-600">
+                                                        <Trash2 class="h-4 w-4" /> Delete
+                                                    </DropdownLink>
+                                                </template>
+                                            </Dropdown>
+                                        </div>
                                     </td>
                                 </tr>
                             </tbody>
@@ -704,46 +729,28 @@ function generatePaymentConfirmation() {
                     </div>
                 </div>
 
-                <!-- Mobile Card List View -->
+                <!-- Mobile Card View -->
                 <div v-else class="space-y-4">
                     <div v-for="item in paymentsData" :key="item.uuid" 
-                        class="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+                        class="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-all active:scale-[0.98] dark:border-slate-700 dark:bg-slate-800"
+                        @click="showPaymentDetails(item)">
                         <div class="flex items-start justify-between">
                             <div class="flex items-center gap-3">
-                                <div class="rounded-xl bg-slate-100 p-2 dark:bg-slate-700">
-                                    <UserIcon class="h-5 w-5 text-slate-500" />
+                                <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 font-bold text-white shadow-sm">
+                                    {{ getInitials(item.user) }}
                                 </div>
                                 <div>
-                                    <p class="font-bold text-slate-900 dark:text-white">{{ item.user }}</p>
-                                    <p class="text-xs text-slate-500">{{ item.phone }}</p>
+                                    <div class="font-black text-slate-900 dark:text-white">{{ item.user }}</div>
+                                    <div class="flex items-center gap-1 text-xs text-slate-500">
+                                        <Hash class="h-3 w-3" />
+                                        {{ item.receipt_number }}
+                                    </div>
                                 </div>
                             </div>
-                            <div class="text-right">
-                                <p class="text-lg font-black text-slate-900 dark:text-white">{{ item.amount }}</p>
-                                <span :class="['mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ring-1 ring-inset', getStatusColor(item.disbursement_status)]">
+                            <div class="flex flex-col items-end gap-1.5">
+                                <span :class="['inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-black uppercase ring-1 ring-inset', getStatusColor(item.disbursement_status)]">
                                     {{ item.disbursement_label }}
                                 </span>
-                            </div>
-                        </div>
-
-                        <div class="mt-4 grid grid-cols-2 gap-4 border-t border-slate-100 pt-4 dark:border-slate-700">
-                            <div>
-                                <p class="text-[10px] uppercase tracking-wider text-slate-400">Receipt</p>
-                                <p class="mt-0.5 font-mono text-sm font-medium text-slate-600 dark:text-slate-300">{{ item.receipt_number }}</p>
-                            </div>
-                            <div>
-                                <p class="text-[10px] uppercase tracking-wider text-slate-400">Paid At</p>
-                                <p class="mt-0.5 text-sm text-slate-600 dark:text-slate-300">{{ item.paid_at }}</p>
-                            </div>
-                        </div>
-
-                        <div class="mt-4 flex items-center justify-between gap-2 border-t border-slate-100 pt-4 dark:border-slate-700">
-                            <div class="flex items-center gap-2">
-                                <input type="checkbox" :value="item.uuid" v-model="selectedTenantPayments" 
-                                    class="rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
-                                <span class="text-xs text-slate-400">Select</span>
-                            </div>
-                            <div class="flex gap-2">
                                 <button @click="showPaymentDetails(item)" class="flex items-center gap-1 rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
                                     <Eye class="h-3.5 w-3.5" /> Details
                                 </button>
