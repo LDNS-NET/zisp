@@ -6,7 +6,7 @@ import {
     Search, Filter, Plus, Clock, Users, MapPin, 
     Router as RouterIcon, Calendar, ChevronRight, CheckCircle2,
     AlertCircle, History, TrendingUp, UserMinus, ShieldCheck,
-    ArrowUpRight, MoreHorizontal, ListFilter
+    ArrowUpRight, MoreHorizontal, ListFilter, X, ChevronDown
 } from 'lucide-vue-next';
 import debounce from 'lodash/debounce';
 
@@ -25,12 +25,16 @@ const routerId = ref(props.filters.router_id || '');
 const showCompensateModal = ref(false);
 const selectedUsers = ref([]);
 const activeTab = ref('users');
+const isBulkMode = ref(false);
 
 const compensateForm = useForm({
     user_ids: [],
     duration_value: 1,
     duration_unit: 'days',
     reason: '',
+    apply_to_all: false,
+    search: '',
+    location: '',
 });
 
 const updateFilters = debounce(() => {
@@ -65,9 +69,20 @@ const toggleSelectUser = (id) => {
     }
 };
 
-const openCompensateModal = () => {
-    if (selectedUsers.value.length === 0) return;
-    compensateForm.user_ids = selectedUsers.value;
+const openCompensateModal = (bulk = false) => {
+    isBulkMode.value = bulk;
+    if (bulk) {
+        compensateForm.user_ids = [];
+        compensateForm.apply_to_all = true;
+        compensateForm.search = search.value;
+        compensateForm.location = location.value;
+    } else {
+        if (selectedUsers.value.length === 0) return;
+        compensateForm.user_ids = selectedUsers.value;
+        compensateForm.apply_to_all = false;
+        compensateForm.search = '';
+        compensateForm.location = '';
+    }
     showCompensateModal.value = true;
 };
 
@@ -244,14 +259,25 @@ const formatDate = (date) => {
                                 </div>
                             </div>
 
-                            <button 
-                                @click="openCompensateModal"
-                                :disabled="selectedUsers.length === 0"
-                                class="w-full lg:w-auto flex items-center justify-center gap-3 px-8 py-4 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-2xl text-sm font-black transition-all duration-300 shadow-xl shadow-primary-500/20 active:scale-95 group"
-                            >
-                                <Plus class="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
-                                Compensate ({{ selectedUsers.length }})
-                            </button>
+                            <div class="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+                                <button 
+                                    @click="openCompensateModal(false)"
+                                    :disabled="selectedUsers.length === 0"
+                                    class="flex-1 lg:w-auto flex items-center justify-center gap-3 px-6 py-4 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-2xl text-sm font-black transition-all duration-300 shadow-xl shadow-primary-500/20 active:scale-95 group"
+                                >
+                                    <Plus class="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
+                                    Selected ({{ selectedUsers.length }})
+                                </button>
+                                
+                                <button 
+                                    v-if="search || location || routerId"
+                                    @click="openCompensateModal(true)"
+                                    class="flex-1 lg:w-auto flex items-center justify-center gap-3 px-6 py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-sm font-black transition-all duration-300 shadow-xl shadow-emerald-500/20 active:scale-95 group"
+                                >
+                                    <ListFilter class="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
+                                    Compensate All ({{ stats.filtered_count }})
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -421,7 +447,10 @@ const formatDate = (date) => {
                             </div>
                             <div>
                                 <h2 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Apply Extension</h2>
-                                <p class="text-slate-500 dark:text-slate-400 font-bold tracking-tight uppercase text-xs mt-1 underline decoration-primary-200 dark:decoration-primary-900 underline-offset-4">Targeting {{ selectedUsers.length }} Network Accounts</p>
+                                <p class="text-slate-500 dark:text-slate-400 font-bold tracking-tight uppercase text-xs mt-1 underline decoration-primary-200 dark:decoration-primary-900 underline-offset-4">
+                                    Targeting {{ isBulkMode ? stats.filtered_count : selectedUsers.length }} Network Accounts
+                                    <span v-if="isBulkMode" class="ml-2 lowercase font-medium text-emerald-500">(based on active filters)</span>
+                                </p>
                             </div>
                         </div>
                         <button @click="showCompensateModal = false" class="p-3 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-400 group">

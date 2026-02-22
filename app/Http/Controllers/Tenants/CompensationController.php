@@ -33,11 +33,8 @@ class CompensationController extends Controller
                 return $q->where('location', $location);
             });
 
-        // If router_id is provided, we need to join with TenantActiveUsers or similar 
-        // OR better, users might have a router_id if we added it to NetworkUser.
-        // Let's check how Routers are linked to users.
-        // Usually, users authenticate against any router in their tenant, but maybe they are assigned.
-        // I'll search for 'router_id' in NetworkUser fillable.
+        // Filtered count (total matching users regardless of pagination)
+        $filteredCount = $usersQuery->count();
         
         $users = $usersQuery->latest()->paginate(10);
 
@@ -56,6 +53,7 @@ class CompensationController extends Controller
             'suspended_users' => NetworkUser::where('status', 'suspended')->count(),
             'total_compensations' => Compensation::count(),
             'today_compensations' => Compensation::whereDate('created_at', now()->toDateString())->count(),
+            'filtered_count' => $filteredCount,
         ];
 
         return inertia('Compensations/Index', [
@@ -86,14 +84,38 @@ class CompensationController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'user_ids' => 'required|array',
-            'user_ids.*' => 'required|exists:network_users,id',
+            'user_ids' => 'required_without:apply_to_all|array',
+            'user_ids.*' => 'exists:network_users,id',
+            'apply_to_all' => 'nullable|boolean',
+            'search' => 'nullable|string',
+            'location' => 'nullable|string',
             'duration_value' => 'required|integer|min:1',
             'duration_unit' => 'required|string|in:minutes,hours,days,weeks,months',
             'reason' => 'nullable|string|max:255',
         ]);
 
-        $users = NetworkUser::whereIn('id', $validated['user_ids'])->get();
+        if ($request->get('apply_to_all')) {
+            $search = $request->get('search');
+            $location = $request->get('location');
+
+            $usersQuery = NetworkUser::query()
+                ->when($search, function ($q) use ($search) {
+                    $q->where(function ($subQ) use ($search) {
+                        $subQ->where('full_name', 'like', "%{$search}%")
+                            ->orWhere('username', 'like', "%{$search}%")
+                            ->orWhere('phone', 'like', "%{$search}%")
+                            ->orWhere('account_number', 'like', "%{$search}%");
+                    });
+                })
+                ->when($location, function ($q) use ($location) {
+                    return $q->where('location', $location);
+                });
+            
+            $users = $usersQuery->get();
+        } else {
+            $users = NetworkUser::whereIn('id', $validated['user_ids'])->get();
+        }
+
         $processedCount = 0;
 
         DB::transaction(function () use ($users, $validated, &$processedCount) {
