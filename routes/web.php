@@ -43,6 +43,7 @@ use App\Http\Controllers\Tenants\TenantDeviceController;
 use App\Http\Controllers\Tenants\TenantInstallationController;
 use App\Http\Controllers\Tenants\TenantInstallationPhotoController;
 use App\Http\Controllers\Tenants\TenantInstallationChecklistController;
+use App\Http\Controllers\Tenants\TenantEquipmentUsageController;
 use App\Http\Controllers\Tenants\SmsPurchaseController;
 
 // SuperAdmin controllers
@@ -321,6 +322,11 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode', 'sta
             Route::get('/equipment/{equipment}/history', [TenantEquipmentController::class, 'history'])->name('equipment.history');
             Route::get('/equipment/{equipment}/usages', [TenantEquipmentController::class, 'usages'])->name('equipment.usages');
             Route::post('/equipment/{equipment}/usage', [TenantEquipmentController::class, 'logUsage'])->name('equipment.log-usage');
+            
+            // Dedicated Usage Reporting
+            Route::get('/equipment-usage/log', [TenantEquipmentUsageController::class, 'create'])->name('equipment.usage.log');
+            Route::post('/equipment-usage/store', [TenantEquipmentUsageController::class, 'store'])->name('equipment.usage.store');
+
             Route::get('/equipment-users/search', [TenantEquipmentController::class, 'searchUsers'])->name('equipment.users.search');
         });
 

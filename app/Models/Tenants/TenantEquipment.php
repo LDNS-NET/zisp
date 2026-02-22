@@ -29,6 +29,7 @@ class TenantEquipment extends Model
         "tenant_id",
         "qbo_id",
         "quantity",
+        "unit",
     ];
 
     public function assignedUser()
