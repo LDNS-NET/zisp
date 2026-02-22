@@ -319,6 +319,8 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode', 'sta
             Route::post('/equipment/{equipment}/assign', [TenantEquipmentController::class, 'assign'])->name('equipment.assign');
             Route::post('/equipment/{equipment}/release', [TenantEquipmentController::class, 'release'])->name('equipment.release');
             Route::get('/equipment/{equipment}/history', [TenantEquipmentController::class, 'history'])->name('equipment.history');
+            Route::get('/equipment/{equipment}/usages', [TenantEquipmentController::class, 'usages'])->name('equipment.usages');
+            Route::post('/equipment/{equipment}/usage', [TenantEquipmentController::class, 'logUsage'])->name('equipment.log-usage');
             Route::get('/equipment-users/search', [TenantEquipmentController::class, 'searchUsers'])->name('equipment.users.search');
         });
 
