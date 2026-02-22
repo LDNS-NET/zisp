@@ -64,7 +64,7 @@ const form = useForm({
     // email: '',
     location: '',
     package_id: '',
-    type: 'PPPoE', // Default to PPPoE, can be changed to 'hotspot' or 'static'
+    type: 'hotspot',
     expires_at: '',
     admin_password: '', // For validation
 });
@@ -210,7 +210,7 @@ function submitUpdate() {
 }
 
 function downloadUpdateSample() {
-    const csvContent = "full_name,phone,account_no\nDuncan Ogeno,0712345678,OGDunte\nBrahm ,0723456789,Brahm22";
+    const csvContent = "full_name,phone,account_no\nJohn Doe,0712345678,ACC001\nJane Smith,0723456789,ACC002";
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
     if (link.download !== undefined) {
@@ -299,7 +299,7 @@ function openEdit(user) {
     // form.email = user.email ?? '';
     form.location = user.location ?? '';
     form.package_id = user.package_id ?? '';
-    form.type = user.type ?? 'PPPoE';
+    form.type = user.type ?? 'hotspot';
     form.expires_at = user.expires_at ? user.expires_at.slice(0, 16) : '';
     showModal.value = true;
 }
@@ -383,18 +383,141 @@ function viewUser(user) {
     viewing.value = user;
 }
 
+// function to filter users that have already expired based on current date and time, used for "Expired Filter" dropdown
+// Computed property for filtered users based on selected status
+const statusFilteredUsers = computed(() => {
+    let usersList = props.users.data || [];
+    
+    // Apply status filter based on selectedStatus
+    switch (selectedStatus.value) {
+        case 'expired':
+            usersList = getExpiredUsers(usersList);
+            break;
+        case 'online':
+            usersList = usersList.filter(user => user.is_online === true);
+            break;
+        case 'offline':
+            usersList = usersList.filter(user => user.is_online === false);
+            break;
+        case 'all':
+        default:
+            // No filtering by status
+            break;
+    }
+    
+    return usersList;
+});
+
+// watcher to log when expired filter is applied
+// watch(selectedStatus, (newStatus) => {
+//     if (newStatus === 'expired') {
+//         console.log('Applying expired filter with', getExpiredUsers(props.props.users.data || []).length, 'expired users');
+//     }
+// });
+
+// getExpiredUsers function
+function getExpiredUsers(users) {
+    const now = new Date();
+    
+    return users.filter(user => {
+        if (!user.expires_at) return false;
+        
+        // Parse the expiry date consistently
+        let expiryDate;
+        
+        // If it's already a Date object
+        if (user.expires_at instanceof Date) {
+            expiryDate = user.expires_at;
+        } 
+        // If it's a string, parse it safely
+        else if (typeof user.expires_at === 'string') {
+            // Handle ISO format with timezone
+            if (user.expires_at.includes('T') || user.expires_at.includes(' ')) {
+                // Has time component - parse directly
+                expiryDate = new Date(user.expires_at);
+            } else {
+                // Date only - parse as UTC to avoid timezone shifts
+                const [year, month, day] = user.expires_at.split(/[-/]/);
+                expiryDate = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999));
+            }
+        } else {
+            // If it's a timestamp number
+            expiryDate = new Date(user.expires_at);
+        }
+        
+        // Check if expiryDate is valid
+        if (isNaN(expiryDate.getTime())) return false;
+        
+        // Compare dates
+        return expiryDate < now;
+    });
+}
+
+const displayUsers = computed(() => {
+    let usersList = statusFilteredUsers.value;
+    
+    // Apply type filter
+    if (selectedFilter.value !== 'all') {
+        usersList = usersList.filter(user => user.type === selectedFilter.value);
+    }
+    
+    // Apply search filter
+    if (search.value) {
+        const searchTerm = search.value.toLowerCase();
+        usersList = usersList.filter(user => 
+            user.username?.toLowerCase().includes(searchTerm) ||
+            user.full_name?.toLowerCase().includes(searchTerm) ||
+            user.phone?.includes(searchTerm)
+        );
+    }
+    
+    // Apply nearing expiry filter
+    if (selectedExpiry.value === 'nearing') {
+        const now = new Date();
+        const threeDaysFromNow = new Date();
+        threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
+        
+        usersList = usersList.filter(user => {
+            if (!user.expires_at) return false;
+            const expiryDate = new Date(user.expires_at);
+            return expiryDate > now && expiryDate <= threeDaysFromNow;
+        });
+    }
+    
+    // Apply sorting
+    if (sortExpiry.value) {
+        usersList = [...usersList].sort((a, b) => {
+            if (!a.expires_at) return 1;
+            if (!b.expires_at) return -1;
+            
+            const dateA = new Date(a.expires_at);
+            const dateB = new Date(b.expires_at);
+            
+            return sortExpiry.value === 'asc' 
+                ? dateA - dateB 
+                : dateB - dateA;
+        });
+    }
+    
+    return usersList;
+});
+
+const expiredCount = computed(() => {
+    return getExpiredUsers(props.users.data || []).length;
+});
+
 const packagesByType = computed(() => {
     return props.packages[form.type] || [];
 });
 
+// Updated toggleSelectAll function
 const toggleSelectAll = (e) => {
     if (e.target.checked) {
-        selectedUsers.value = props.users.data.map(u => u.uuid);
+        selectedUsers.value = displayUsers.value.map(u => u.uuid);
     } else {
         selectedUsers.value = [];
     }
 };
-
 const showActionsModal = ref(false);
 const selectedUserForActions = ref(null);
 
@@ -495,6 +618,7 @@ const openActions = (user) => {
                         <option value="all">All Status</option>
                         <option value="online">Online</option>
                         <option value="offline">Offline</option>
+                        <option value="expired">Expired</option>
                     </select>
 
                     <button 
@@ -556,7 +680,7 @@ const openActions = (user) => {
                                 <!--<th scope="col" class="px-6 py-3 text-left">
                                     <input
                                         type="checkbox"
-                                        :checked="selectedUsers.length === users.data.length && users.data.length > 0"
+                                        :checked="selectedUsers.length === displayUsers.length && displayUsers.length > 0"
                                         @change="toggleSelectAll"
                                         class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 dark:bg-slate-800 dark:border-slate-600"
                                     />
@@ -569,7 +693,7 @@ const openActions = (user) => {
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-200 dark:divide-slate-700">
-                            <tr v-for="user in users.data" :key="user.uuid" class="hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer" @click="$inertia.visit(route('users.show', user.uuid))">
+                            <tr v-for="user in displayUsers" :key="user.uuid" class="hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer" @click="$inertia.visit(route('users.show', user.uuid))">
                                 <!--<td class="px-6 py-4 whitespace-nowrap" @click.stop>
                                     <input
                                         type="checkbox"
@@ -622,7 +746,7 @@ const openActions = (user) => {
                                     </button>
                                 </td>
                             </tr>
-                            <tr v-if="users.data.length === 0">
+                            <tr v-if="displayUsers.length === 0">
                                 <td colspan="6" class="px-6 py-10 text-center text-gray-500 dark:text-gray-400">
                                     <div class="flex flex-col items-center justify-center">
                                         <UserCheck class="w-12 h-12 text-gray-300 dark:text-gray-600 mb-3" />
@@ -641,7 +765,7 @@ const openActions = (user) => {
                         <label class="flex items-center">
                             <input 
                                 type="checkbox"
-                                :checked="selectedUsers.length === users.data.length && users.data.length > 0"
+                                :checked="selectedUsers.length === displayUsers.length && displayUsers.length > 0"
                                 @change="toggleSelectAll"
                                 class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 dark:bg-slate-800 dark:border-slate-600"
                             />
@@ -650,7 +774,7 @@ const openActions = (user) => {
                     </div>
 
                     <div class="divide-y divide-gray-200 dark:divide-slate-700">
-                        <div v-for="user in users.data" :key="user.uuid" 
+                        <div v-for="user in displayUsers" :key="user.uuid" 
                             class="p-3 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer"
                             @click="$inertia.visit(route('users.show', user.uuid))">
                             <div class="flex items-center gap-3">
@@ -698,7 +822,7 @@ const openActions = (user) => {
                             </div>
                         </div>
                         
-                        <div v-if="users.data.length === 0" class="p-6 text-center text-gray-500 dark:text-gray-400">
+                        <div v-if="displayUsers.length === 0" class="p-6 text-center text-gray-500 dark:text-gray-400">
                             <div class="flex flex-col items-center justify-center">
                                 <UserCheck class="w-10 h-10 text-gray-300 dark:text-gray-600 mb-2" />
                                 <p class="text-sm font-medium">No users found</p>
