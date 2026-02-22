@@ -715,7 +715,7 @@ function generatePaymentConfirmation() {
                                     <th class="px-6 py-4 hidden md:table-cell">Transaction</th>
                                     <th class="px-6 py-4">Amount</th>
                                     <th class="px-6 py-4 hidden sm:table-cell">Status</th>
-                                    <th class="px-6 py-4 hidden lg:table-cell">Date</th>
+                                    <th class="px-6 py-4 hidden lg:table-cell min-w-[140px]">Date</th>
                                     <th class="px-6 py-4 text-right">Actions</th>
                                 </tr>
                             </thead>
@@ -733,19 +733,19 @@ function generatePaymentConfirmation() {
                                                 {{ getInitials(item.user) }}
                                             </div>
                                             <div>
-                                                <div class="font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{{ item.user }}</div>
-                                                <div class="flex items-center gap-1.5 text-xs text-slate-500">
-                                                    <Phone class="h-3 w-3" />
-                                                    {{ item.phone }}
+                                                <div class="font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate max-w-[150px]" :title="item.user">{{ item.user }}</div>
+                                                <div class="flex items-center gap-1.5 text-xs text-slate-500 truncate max-w-[140px]" :title="item.phone">
+                                                    <Phone class="h-3 w-3 shrink-0" />
+                                                    <span class="truncate">{{ item.phone }}</span>
                                                 </div>
                                             </div>
                                         </div>
                                     </td>
                                     <td class="px-6 py-4 hidden md:table-cell">
                                         <div class="flex flex-col gap-1">
-                                            <div class="flex items-center gap-2 font-mono text-xs font-semibold text-slate-700 dark:text-slate-200">
-                                                <Hash class="h-3.5 w-3.5 text-slate-400" />
-                                                {{ item.receipt_number }}
+                                            <div class="flex items-center gap-2 font-mono text-xs font-semibold text-slate-700 dark:text-slate-200 truncate max-w-[120px]" :title="item.receipt_number">
+                                                <Hash class="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                                                <span class="truncate">{{ item.receipt_number }}</span>
                                             </div>
                                             <div class="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-slate-400">
                                                 <PackageIcon class="h-3 w-3" />
@@ -768,7 +768,7 @@ function generatePaymentConfirmation() {
                                         </span>
                                     </td>
                                     <td class="px-6 py-4 hidden lg:table-cell">
-                                        <div class="flex flex-col">
+                                        <div class="flex flex-col whitespace-nowrap">
                                             <span class="text-sm font-medium text-slate-600 dark:text-slate-300">{{ item.paid_at?.split(' ')[0] || 'N/A' }}</span>
                                             <span class="text-[10px] text-slate-400">{{ item.paid_at?.split(' ')[1] || '' }}</span>
                                         </div>
@@ -813,10 +813,10 @@ function generatePaymentConfirmation() {
                                     {{ getInitials(item.user) }}
                                 </div>
                                 <div>
-                                    <div class="font-black text-slate-900 dark:text-white">{{ item.user }}</div>
-                                    <div class="flex items-center gap-1 text-xs text-slate-500">
-                                        <Hash class="h-3 w-3" />
-                                        {{ item.receipt_number }}
+                                    <div class="font-black text-slate-900 dark:text-white truncate max-w-[180px]" :title="item.user">{{ item.user }}</div>
+                                    <div class="flex items-center gap-1 text-xs text-slate-500 truncate max-w-[160px]" :title="item.receipt_number">
+                                        <Hash class="h-3 w-3 shrink-0" />
+                                        <span class="truncate">{{ item.receipt_number }}</span>
                                     </div>
                                 </div>
                             </div>
