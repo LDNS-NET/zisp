@@ -10,6 +10,9 @@ use App\Models\Package;
 use App\Models\Tenants\TenantHotspot;
 use App\Services\MpesaService;
 use App\Services\Tenants\RenewalService;
+use App\Models\Tenants\TenantSMSTemplate;
+use App\Models\Tenants\TenantSMS;
+use App\Services\SmsGatewayService;
 use App\Jobs\ProcessDisbursementJob;
 use Illuminate\Support\Facades\Log;
 
@@ -172,6 +175,9 @@ class MpesaC2BController extends Controller
             // Update user expiry and handle balance/renewals
             $this->extendUserExpiry($user, $data['trans_amount'], app(RenewalService::class));
 
+            // Send SMS Notification
+            $this->sendPaymentNotification($user, $payment);
+
             // Trigger disbursement if using default API
             $this->handleDisbursement($payment);
 
@@ -245,6 +251,66 @@ class MpesaC2BController extends Controller
             } else {
                 ProcessDisbursementJob::dispatch($payment);
             }
+        }
+    }
+
+    /**
+     * Send payment notification SMS
+     */
+    private function sendPaymentNotification(NetworkUser $user, TenantPayment $payment)
+    {
+        try {
+            // Get or create template
+            $template = TenantSMSTemplate::withoutGlobalScopes()
+                ->where('tenant_id', $user->tenant_id)
+                ->where('name', 'Payment Received')
+                ->first();
+
+            if (!$template) {
+                $template = TenantSMSTemplate::create([
+                    'tenant_id' => $user->tenant_id,
+                    'name' => 'Service Renewal',
+                    'content' => 'Hello {full_name}, we have received your payment of KES {amount} (Receipt: {receipt}). Your internet service has been renewed until {new_expiry}. Thank you for choosing us!',
+                    'created_by' => 1,
+                ]);
+            }
+
+            $packageName = $user->package ? $user->package->name : ($user->hotspotPackage ? $user->hotspotPackage->name : 'N/A');
+            $replacements = [
+                '{full_name}' => $user->full_name ?? $user->username ?? 'Customer',
+                '{amount}' => number_format($payment->amount, 2),
+                '{receipt}' => $payment->receipt_number,
+                '{new_expiry}' => $user->fresh()->expires_at ? $user->fresh()->expires_at->format('Y-m-d H:i') : 'N/A',
+                '{package}' => $packageName,
+            ];
+
+            $message = $template->content;
+            foreach ($replacements as $key => $value) {
+                $message = str_replace($key, $value, $message);
+            }
+
+            // Log the SMS
+            $smsLog = TenantSMS::create([
+                'tenant_id' => $user->tenant_id,
+                'recipient_name' => $user->full_name ?? $user->username ?? 'Customer',
+                'phone_number' => $user->phone,
+                'message' => $message,
+                'status' => 'pending',
+            ]);
+
+            // Dispatch SMS Job
+            if ($user->phone) {
+                $phoneNumbers = preg_replace('/^0/', '254', trim($user->phone));
+                \App\Jobs\SendSmsJob::dispatch($smsLog, $phoneNumbers, $message);
+                Log::info('Payment notification SMS dispatched', ['user_id' => $user->id, 'receipt' => $payment->receipt_number]);
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Failed to send payment notification SMS', [
+                'user_id' => $user->id,
+                'payment_id' => $payment->id,
+                'error' => $e->getMessage()
+            ]);
         }
     }
 }

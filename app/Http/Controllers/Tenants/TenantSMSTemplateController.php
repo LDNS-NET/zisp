@@ -29,6 +29,10 @@ class TenantSMSTemplateController extends Controller
                 'content' => 'Hi {full_name}, thank you for renewing your internet subscription account: {account_number}, package: {package}. Your new expiry date is {expiry_date}.',
             ],
             [
+                'name' => 'Service Renewal',
+                'content' => 'Hello {full_name}, we have received your payment of KES {amount} (Receipt: {receipt}). Your internet service has been renewed until {new_expiry}. Thank you for choosing us!',
+            ],
+            [
                 'name' => 'Welcome Message',
                 'content' => 'Welcome {full_name}! Your account: {account_number} is now active. Username: {username}, Password: {password}, Package: {package}, Phone: {phone}',
             ],
