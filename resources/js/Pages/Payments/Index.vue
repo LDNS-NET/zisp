@@ -219,10 +219,6 @@ function exportPayments() {
     isLoading.value = false;
 }
 
-const globalSearch = ref('');
-const filterStatus = ref('');
-const isLoading = ref(false);
-
 const paymentsData = computed(() => {
     let all = props.payments?.data || [];
     if (filterYear.value) {
