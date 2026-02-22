@@ -12,7 +12,8 @@ import DangerButton from '@/Components/DangerButton.vue'
 import { 
     Plus, Edit, Trash2, Search, History, 
     UserPlus, UserMinus, Monitor, 
-    AlertTriangle, CheckCircle2, Package, X
+    AlertTriangle, CheckCircle2, Package, X,
+    ShoppingCart
 } from 'lucide-vue-next'
 import axios from 'axios'
 import SecondaryButton from '@/Components/SecondaryButton.vue'
@@ -65,7 +66,16 @@ const form = useForm({
     purchase_date: '',
     warranty_expiry: '',
     notes: '',
+    quantity: 1,
 })
+
+const usageForm = useForm({
+    quantity: 1,
+    details: '',
+})
+
+const showUsageModal = ref(false)
+const selectedEquipmentForUsage = ref(null)
 
 const assignForm = useForm({
     user_id: '',
@@ -93,8 +103,25 @@ function openEditModal(equip) {
     form.purchase_date = equip.purchase_date
     form.warranty_expiry = equip.warranty_expiry
     form.notes = equip.notes
+    form.quantity = equip.quantity
     editing.value = equip.id
     showModal.value = true
+}
+
+function openUsageModal(equip) {
+    selectedEquipmentForUsage.value = equip
+    usageForm.reset()
+    usageForm.quantity = 1
+    showUsageModal.value = true
+}
+
+function submitUsage() {
+    usageForm.post(route('equipment.log-usage', selectedEquipmentForUsage.value.id), {
+        onSuccess: () => {
+            showUsageModal.value = false
+            selectedEquipmentForUsage.value = null
+        }
+    })
 }
 
 function submit() {
@@ -269,6 +296,7 @@ const formatStatus = (status) => status.replace('_', ' ').toUpperCase()
                                 <th class="px-6 py-4 font-semibold uppercase tracking-wider">Equipment</th>
                                 <th class="px-6 py-4 font-semibold uppercase tracking-wider">Identity</th>
                                 <th class="px-6 py-4 font-semibold uppercase tracking-wider">Status</th>
+                                <th class="px-6 py-4 font-semibold uppercase tracking-wider">Stock</th>
                                 <th class="px-6 py-4 font-semibold uppercase tracking-wider">User</th>
                                 <th class="px-6 py-4 font-semibold uppercase tracking-wider">Value</th>
                                 <th class="px-6 py-4 font-semibold uppercase tracking-wider text-right">Actions</th>
@@ -303,6 +331,11 @@ const formatStatus = (status) => status.replace('_', ' ').toUpperCase()
                                     </span>
                                 </td>
                                 <td class="px-6 py-4">
+                                    <span class="font-mono font-bold" :class="item.quantity > 5 ? 'text-gray-900 dark:text-white' : 'text-red-600 dark:text-red-400'">
+                                        {{ item.quantity }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4">
                                     <div v-if="item.assigned_user_id" class="flex flex-col">
                                         <span class="font-medium text-gray-900 dark:text-white">{{ item.assignedUser?.username }}</span>
                                         <span class="text-[10px] text-gray-500 truncate max-w-[120px]">{{ item.assignedUser?.full_name }}</span>
@@ -318,6 +351,9 @@ const formatStatus = (status) => status.replace('_', ' ').toUpperCase()
                                         <div class="flex items-center bg-gray-50 dark:bg-gray-900 rounded-lg p-1">
                                             <button v-if="item.status === 'in_stock'" @click="openAssignModal(item)" class="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-shadow" title="Assign User">
                                                 <UserPlus class="w-4 h-4" />
+                                            </button>
+                                            <button v-if="item.quantity > 0" @click="openUsageModal(item)" class="p-1.5 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-md transition-shadow" title="Log Usage">
+                                                <ShoppingCart class="w-4 h-4" />
                                             </button>
                                             <button v-if="item.status === 'assigned'" @click="releaseEquipment(item)" class="p-1.5 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-md transition-shadow" title="Release to Stock">
                                                 <UserMinus class="w-4 h-4" />
@@ -431,6 +467,12 @@ const formatStatus = (status) => status.replace('_', ' ').toUpperCase()
                         <TextInput v-model="form.total_price" id="total_price" type="number" step="0.01" class="mt-1 block w-full" />
                     </div>
 
+                    <div>
+                        <InputLabel for="quantity" value="Quantity/Stock" required />
+                        <TextInput v-model="form.quantity" id="quantity" type="number" class="mt-1 block w-full" />
+                        <InputError :message="form.errors.quantity" class="mt-1" />
+                    </div>
+
                     <div class="md:col-span-2">
                         <InputLabel for="notes" value="Storage Details / Notes" />
                         <textarea v-model="form.notes" class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 rounded-md shadow-sm" rows="2"></textarea>
@@ -494,6 +536,47 @@ const formatStatus = (status) => status.replace('_', ' ').toUpperCase()
                     <SecondaryButton @click="showAssignModal = false">Cancel</SecondaryButton>
                     <PrimaryButton @click="submitAssign" :disabled="!assignForm.user_id || assignForm.processing">
                         Confirm Assignment
+                    </PrimaryButton>
+                </div>
+            </div>
+        </Modal>
+
+        <!-- Log Usage Modal -->
+        <Modal :show="showUsageModal" @close="showUsageModal = false">
+            <div class="p-6 bg-white dark:bg-gray-800">
+                <h3 class="text-lg font-bold mb-2 dark:text-white">Log Equipment Usage</h3>
+                <p class="text-sm text-gray-500 mb-6">Device: {{ selectedEquipmentForUsage?.name }} (Stock: {{ selectedEquipmentForUsage?.quantity }})</p>
+
+                <div class="space-y-4">
+                    <div>
+                        <InputLabel for="usage_quantity" value="Quantity Used" required />
+                        <TextInput 
+                            v-model="usageForm.quantity" 
+                            id="usage_quantity" 
+                            type="number" 
+                            class="mt-1 block w-full" 
+                            :max="selectedEquipmentForUsage?.quantity"
+                            min="1"
+                        />
+                        <InputError :message="usageForm.errors.quantity" class="mt-1" />
+                    </div>
+
+                    <div>
+                        <InputLabel for="usage_details" value="Usage Details / Reason" />
+                        <textarea 
+                            v-model="usageForm.details" 
+                            id="usage_details"
+                            class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white rounded-md h-20" 
+                            placeholder="e.g. Used for main street installation"
+                        ></textarea>
+                        <InputError :message="usageForm.errors.details" class="mt-1" />
+                    </div>
+                </div>
+
+                <div class="mt-8 flex justify-end gap-3 pt-5 border-t dark:border-gray-700">
+                    <SecondaryButton @click="showUsageModal = false">Cancel</SecondaryButton>
+                    <PrimaryButton @click="submitUsage" :disabled="usageForm.processing">
+                        Log Usage
                     </PrimaryButton>
                 </div>
             </div>

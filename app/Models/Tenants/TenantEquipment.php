@@ -28,6 +28,7 @@ class TenantEquipment extends Model
         "created_by",
         "tenant_id",
         "qbo_id",
+        "quantity",
     ];
 
     public function assignedUser()
@@ -38,6 +39,11 @@ class TenantEquipment extends Model
     public function logs()
     {
         return $this->hasMany(TenantEquipmentLog::class, 'equipment_id')->latest();
+    }
+
+    public function usages()
+    {
+        return $this->hasMany(TenantEquipmentUsage::class, 'equipment_id')->latest();
     }
 
     public function creator()

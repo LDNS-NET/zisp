@@ -52,10 +52,11 @@ class TenantEquipmentController extends Controller
             'name' => 'required|string|max:255',
             'brand' => 'nullable|string|max:255',
             'type' => 'required|string|max:255',
-            'serial_number' => 'required|string|max:255|unique:tenant_equipments',
+            'serial_number' => 'nullable|string|max:255|unique:tenant_equipments',
             'mac_address' => 'nullable|string|max:255|unique:tenant_equipments',
             'status' => 'required|in:in_stock,assigned,faulty,retired,lost',
             'condition' => 'required|in:new,used,refurbished',
+            'quantity' => 'required|integer|min:0',
             'location' => 'nullable|string|max:255',
             'model' => 'nullable|string|max:255',
             'price' => 'nullable|numeric|min:0',
@@ -91,10 +92,11 @@ class TenantEquipmentController extends Controller
             'name' => 'required|string|max:255',
             'brand' => 'nullable|string|max:255',
             'type' => 'required|string|max:255',
-            'serial_number' => 'required|string|max:255|unique:tenant_equipments,serial_number,' . $equipment->id,
+            'serial_number' => 'nullable|string|max:255|unique:tenant_equipments,serial_number,' . $equipment->id,
             'mac_address' => 'nullable|string|max:255|unique:tenant_equipments,mac_address,' . $equipment->id,
             'status' => 'required|in:in_stock,assigned,faulty,retired,lost',
             'condition' => 'required|in:new,used,refurbished',
+            'quantity' => 'required|integer|min:0',
             'location' => 'nullable|string|max:255',
             'model' => 'nullable|string|max:255',
             'price' => 'nullable|numeric|min:0',
@@ -226,5 +228,48 @@ class TenantEquipmentController extends Controller
             ->get(['id', 'username', 'full_name', 'phone']);
 
         return response()->json($users);
+    }
+
+    /**
+     * Log equipment usage
+     */
+    public function logUsage(Request $request, TenantEquipment $equipment)
+    {
+        $validated = $request->validate([
+            'quantity' => 'required|integer|min:1|max:' . $equipment->quantity,
+            'details' => 'nullable|string|max:255',
+        ]);
+
+        DB::transaction(function() use ($equipment, $validated) {
+            $equipment->decrement('quantity', $validated['quantity']);
+
+            \App\Models\Tenants\TenantEquipmentUsage::create([
+                'equipment_id' => $equipment->id,
+                'user_id' => auth()->id(),
+                'quantity' => $validated['quantity'],
+                'details' => $validated['details'],
+                'used_at' => now(),
+            ]);
+
+            TenantEquipmentLog::create([
+                'equipment_id' => $equipment->id,
+                'action' => 'usage_logged',
+                'old_status' => $equipment->status,
+                'new_status' => $equipment->status,
+                'performed_by' => auth()->id(),
+                'description' => "Used {$validated['quantity']} units. Details: " . ($validated['details'] ?? 'None'),
+            ]);
+        });
+
+        return redirect()->back()->with('success', 'Usage logged and stock updated.');
+    }
+
+    /**
+     * Get usage history specifically
+     */
+    public function usages(TenantEquipment $equipment)
+    {
+        $usages = $equipment->usages()->with('user')->get();
+        return response()->json($usages);
     }
 }
