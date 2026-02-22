@@ -299,6 +299,10 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode', 'sta
             Route::resource('leads', TenantLeadController::class)->only(['index', 'store', 'update', 'destroy']);
             Route::post('leads/{lead}/convert-to-installation', [TenantLeadController::class, 'convertToInstallation'])->name('leads.convert-to-installation');
             Route::delete('leads/bulk-delete', [TenantLeadController::class, 'bulkDelete'])->name('leads.bulk-delete');
+            
+            // Compensations
+            Route::get('compensations', [App\Http\Controllers\Tenants\CompensationController::class, 'index'])->name('compensations.index');
+            Route::post('compensations', [App\Http\Controllers\Tenants\CompensationController::class, 'store'])->name('compensations.store');
         });
 
         //tickets

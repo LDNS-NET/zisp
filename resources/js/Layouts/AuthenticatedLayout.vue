@@ -102,6 +102,7 @@ const navigation = [
     { name: 'Customers', icon: Users, children: [
         { name: 'Users', href: route('users.index'), active: 'users.*', countKey: 'all_users', roles: ['tenant_admin', 'admin', 'marketing', 'customer_care', 'technical'], permission: 'view_users' },
         { name: 'My Leads', href: route('leads.index'), active: 'leads.*', countKey: 'leads', roles: ['tenant_admin', 'admin', 'marketing'], permission: 'view_leads' },
+        { name: 'Compensations', href: route('compensations.index'), active: 'compensations.*', roles: ['tenant_admin', 'admin'], permission: 'manage_compensations' },
         
     ]},
 

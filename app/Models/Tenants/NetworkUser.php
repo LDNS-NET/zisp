@@ -97,6 +97,11 @@ class NetworkUser extends Authenticatable
         return $this->hasMany(PackageRenewal::class, 'user_id')->orderBy('created_at', 'desc');
     }
 
+    public function compensations()
+    {
+        return $this->hasMany(Compensation::class, 'user_id')->orderBy('created_at', 'desc');
+    }
+
     public static function generateHotspotUsername($tenantId)
     {
         $tenant = \App\Models\Tenant::find($tenantId);
@@ -318,9 +323,15 @@ class NetworkUser extends Authenticatable
         });
 
         /**
-         *  Sync with RADIUS after creation
+         *  Sync with RADIUS after creation - ONLY if compensated or paid (has future expiry)
          */
         static::created(function ($user) {
+            // Only sync to RADIUS if they have a future expiry date
+            if (!$user->expires_at || !$user->expires_at->isFuture()) {
+                Log::info("User created without future expiry, skipping RADIUS sync: {$user->username}");
+                return;
+            }
+
             // Create radcheck entry (password)
             Radcheck::create([
                 'username' => $user->username,
@@ -377,14 +388,12 @@ class NetworkUser extends Authenticatable
                 }
 
                 // Absolute Expiration (Works for all types if expires_at is set)
-                if ($user->expires_at) {
-                    Radcheck::create([
-                        'username' => $user->username,
-                        'attribute' => 'Expiration',
-                        'op' => ':=',
-                        'value' => $user->expires_at->format('d M Y H:i:s'),
-                    ]);
-                }
+                Radcheck::create([
+                    'username' => $user->username,
+                    'attribute' => 'Expiration',
+                    'op' => ':=',
+                    'value' => $user->expires_at->format('d M Y H:i:s'),
+                ]);
 
                 // MAC-Auth synchronization (Primary and linked devices)
                 if ($user->type === 'hotspot') {
@@ -420,9 +429,29 @@ class NetworkUser extends Authenticatable
         });
 
         /**
-         *  Update RADIUS entries when user is updated
+         *  Update RADIUS entries when user is updated - with guard check
          */
         static::updated(function ($user) {
+            // Remove from RADIUS if not and no future expiry
+            if (!$user->expires_at || !$user->expires_at->isFuture()) {
+                Radcheck::where('username', $user->username)->delete();
+                Radreply::where('username', $user->username)->delete();
+                Radusergroup::where('username', $user->username)->delete();
+                
+                // Also cleanup device macs if hotspot
+                if ($user->type === 'hotspot') {
+                    if (!empty($user->mac_address)) {
+                        Radcheck::where('username', $user->mac_address)->delete();
+                    }
+                    foreach ($user->devices as $device) {
+                        if (!empty($device->mac_address)) {
+                            Radcheck::where('username', $device->mac_address)->delete();
+                        }
+                    }
+                }
+                return;
+            }
+
             // Update password if changed
             Radcheck::updateOrCreate(
                 ['username' => $user->username, 'attribute' => 'Cleartext-Password'],
@@ -478,14 +507,10 @@ class NetworkUser extends Authenticatable
                 }
 
                 // Update Expiration
-                if ($user->expires_at) {
-                    Radcheck::updateOrCreate(
-                        ['username' => $user->username, 'attribute' => 'Expiration'],
-                        ['op' => ':=', 'value' => $user->expires_at->format('d M Y H:i:s')]
-                    );
-                } else {
-                    Radcheck::where('username', $user->username)->where('attribute', 'Expiration')->delete();
-                }
+                Radcheck::updateOrCreate(
+                    ['username' => $user->username, 'attribute' => 'Expiration'],
+                    ['op' => ':=', 'value' => $user->expires_at->format('d M Y H:i:s')]
+                );
 
                 // MAC-Auth synchronization (Primary and linked devices)
                 if ($user->type === 'hotspot') {
