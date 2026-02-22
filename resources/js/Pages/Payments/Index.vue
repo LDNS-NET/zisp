@@ -31,6 +31,7 @@ import {
     Clock,
     User as UserIcon,
     Package as PackageIcon,
+    X,
 } from 'lucide-vue-next';
 import Card from '@/Components/Card.vue';
 import { saveAs } from 'file-saver';
@@ -633,55 +634,90 @@ function generatePaymentConfirmation() {
                 </div>
             </div>
 
-            <!-- Actions Bar: Filters & Export -->
+            <!-- Actions Bar -->
             <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between rounded-2xl bg-white p-4 shadow-sm border border-slate-200 dark:bg-slate-800 dark:border-slate-700">
-                <div class="flex flex-1 flex-wrap items-center gap-3">
+                <div class="flex flex-1 items-center gap-3">
                     <!-- Search Input -->
-                    <div class="relative w-full sm:w-64">
+                    <div class="relative flex-1 max-w-sm">
                         <Search class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                         <input v-model="globalSearch" type="text" placeholder="Search user or phone..." 
                             class="w-full rounded-xl border-slate-200 bg-slate-50 pl-10 pr-4 py-2 text-sm transition-focus focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-900/50 dark:text-white dark:focus:border-blue-500" />
                     </div>
 
-                    <!-- Filter Toggle Toggle (Mobile Only) -->
-                    <button @click="showFilters = !showFilters" 
-                        class="flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-900/50 lg:hidden">
+                    <!-- Actions Modal Toggle -->
+                    <button @click="showFilters = true" 
+                        class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 transition-all">
                         <Filter class="h-4 w-4" />
-                        Filters
+                        <span>Filters & Actions</span>
                     </button>
-
-                    <!-- Desktop Filters -->
-                    <div :class="['flex-wrap items-center gap-3', showFilters ? 'flex w-full' : 'hidden lg:flex']">
-                        <select v-model="filterYear" class="rounded-xl border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-600 focus:border-blue-500 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-300">
-                            <option v-for="y in 5" :key="y" :value="today.getFullYear() - y + 1">{{ today.getFullYear() - y + 1 }}</option>
-                        </select>
-                        <select v-model="filterMonth" class="rounded-xl border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-600 focus:border-blue-500 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-300">
-                            <option :value="0">All Months</option>
-                            <option v-for="m in 12" :key="m" :value="m">{{ new Date(2000, m - 1, 1).toLocaleString(locale, { month: 'short' }) }}</option>
-                        </select>
-                        <select v-model="filterStatus" class="rounded-xl border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-600 focus:border-blue-500 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-300">
-                            <option value="">All Status</option>
-                            <option value="pending">Pending</option>
-                            <option value="completed">Completed</option>
-                            <option value="failed">Failed</option>
-                        </select>
-                    </div>
                 </div>
 
                 <div class="flex items-center gap-2">
-                    <div class="flex items-center overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700">
-                        <select v-model="exportFormat" class="border-none bg-slate-50 px-3 py-2 text-sm font-medium text-slate-600 focus:ring-0 dark:bg-slate-900/50 dark:text-slate-300">
-                            <option value="csv">CSV</option>
-                            <option value="pdf">PDF</option>
-                        </select>
-                        <button @click="exportPayments" 
-                            class="flex items-center gap-2 bg-blue-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600">
-                            <Download class="h-4 w-4" />
-                            <span>Export</span>
-                        </button>
-                    </div>
+                    <!-- Placeholder for any additional right-aligned actions if needed -->
                 </div>
             </div>
+
+            <!-- Filters & Actions Modal -->
+            <Modal :show="showFilters" @close="showFilters = false" max-width="md">
+                <div class="p-6">
+                    <div class="mb-5 flex items-center justify-between">
+                        <h3 class="text-lg font-bold text-slate-900 dark:text-white">Filters & Actions</h3>
+                        <button @click="showFilters = false" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                            <X class="h-5 w-5" />
+                        </button>
+                    </div>
+
+                    <div class="space-y-6">
+                        <!-- Filters Section -->
+                        <div class="space-y-4">
+                            <h4 class="text-xs font-bold uppercase tracking-widest text-slate-400">Filter By</h4>
+                            <div class="grid grid-cols-1 gap-4">
+                                <div>
+                                    <InputLabel value="Year" class="mb-1" />
+                                    <select v-model="filterYear" class="w-full rounded-xl border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-600 focus:border-blue-500 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-300">
+                                        <option v-for="y in 5" :key="y" :value="today.getFullYear() - y + 1">{{ today.getFullYear() - y + 1 }}</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <InputLabel value="Month" class="mb-1" />
+                                    <select v-model="filterMonth" class="w-full rounded-xl border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-600 focus:border-blue-500 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-300">
+                                        <option :value="0">All Months</option>
+                                        <option v-for="m in 12" :key="m" :value="m">{{ new Date(2000, m - 1, 1).toLocaleString(locale, { month: 'long' }) }}</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <InputLabel value="Disbursement Status" class="mb-1" />
+                                    <select v-model="filterStatus" class="w-full rounded-xl border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-600 focus:border-blue-500 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-300">
+                                        <option value="">All Status</option>
+                                        <option value="pending">Pending</option>
+                                        <option value="completed">Completed</option>
+                                        <option value="failed">Failed</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Export Section -->
+                        <div class="border-t border-slate-100 pt-6 dark:border-slate-700/50">
+                            <h4 class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4">Export Data</h4>
+                            <div class="flex items-center gap-3">
+                                <select v-model="exportFormat" class="flex-1 rounded-xl border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-600 focus:border-blue-500 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-300">
+                                    <option value="csv">CSV (Excel)</option>
+                                    <option value="pdf">PDF Report</option>
+                                </select>
+                                <PrimaryButton @click="exportPayments" class="flex items-center gap-2">
+                                    <Download class="h-4 w-4" />
+                                    <span>Export</span>
+                                </PrimaryButton>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 flex justify-end">
+                        <PrimaryButton @click="showFilters = false">Done</PrimaryButton>
+                    </div>
+                </div>
+            </Modal>
 
             <!-- Bulk Actions -->
             <div v-if="selectedTenantPayments.length > 0" class="flex items-center gap-3 animate-in fade-in slide-in-from-left-4 duration-300">
