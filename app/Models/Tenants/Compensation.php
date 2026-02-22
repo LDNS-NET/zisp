@@ -9,6 +9,8 @@ use App\Models\User;
 
 class Compensation extends Model
 {
+    protected $table = 'compensations';
+
     protected $fillable = [
         'uuid',
         'tenant_id',
