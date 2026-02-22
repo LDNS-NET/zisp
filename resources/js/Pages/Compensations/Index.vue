@@ -35,6 +35,8 @@ const compensateForm = useForm({
     apply_to_all: false,
     search: '',
     location: '',
+    notify_users: false,
+    sms_template: 'Hello {{name}}, your internet account has been compensated with {{duration}} {{unit}} extension. Your new expiry is {{new_expiry}}. Enjoy!',
 });
 
 const updateFilters = debounce(() => {
@@ -350,11 +352,19 @@ const formatDate = (date) => {
                                         <td colspan="6" class="px-8 py-24 text-center">
                                             <div class="flex flex-col items-center gap-4 max-w-sm mx-auto">
                                                 <div class="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center">
-                                                    <Search class="w-10 h-10 text-slate-300" />
+                                                    <Search v-if="search || location" class="w-10 h-10 text-slate-300" />
+                                                    <Filter v-else class="w-10 h-10 text-slate-300" />
                                                 </div>
                                                 <div>
-                                                    <h3 class="text-xl font-bold text-slate-900 dark:text-white">No matches found</h3>
-                                                    <p class="text-slate-500 mt-1">Refine your search parameters or location filters to find the right users.</p>
+                                                    <h3 class="text-xl font-bold text-slate-900 dark:text-white">
+                                                        {{ (search || location) ? 'No matches found' : 'Start by Searching' }}
+                                                    </h3>
+                                                    <p class="text-slate-500 mt-1">
+                                                        {{ (search || location) 
+                                                            ? 'Refine your search parameters or location filters to find the right users.' 
+                                                            : 'Please enter a search term or select a location above to list users for compensation.' 
+                                                        }}
+                                                    </p>
                                                 </div>
                                             </div>
                                         </td>
@@ -484,6 +494,42 @@ const formatDate = (date) => {
                                         <option value="months">Months</option>
                                     </select>
                                     <ChevronDown class="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none group-focus-within:rotate-180 transition-transform duration-300" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SMS Notification Toggle -->
+                        <div class="space-y-4 bg-slate-50 dark:bg-slate-800/50 p-6 rounded-3xl border border-dashed border-slate-200 dark:border-slate-700">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="p-2 bg-primary/10 rounded-xl">
+                                        <History class="w-5 h-5 text-primary" />
+                                    </div>
+                                    <div>
+                                        <span class="text-sm font-black text-slate-900 dark:text-white">Send SMS Notification</span>
+                                        <p class="text-[10px] text-slate-500 font-bold tracking-tight uppercase">Update users via text message</p>
+                                    </div>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" v-model="compensateForm.notify_users" class="sr-only peer">
+                                    <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+                                </label>
+                            </div>
+
+                            <div v-if="compensateForm.notify_users" class="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                <div class="space-y-2">
+                                    <label class="text-[10px] font-black text-slate-400 border-l-2 border-primary pl-2 uppercase tracking-widest">Message Template</label>
+                                    <textarea 
+                                        v-model="compensateForm.sms_template"
+                                        rows="4"
+                                        class="w-full px-5 py-4 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 focus:border-primary focus:ring-4 focus:ring-primary/10 rounded-2xl text-sm font-medium text-slate-900 dark:text-white transition-all outline-none resize-none"
+                                    ></textarea>
+                                </div>
+                                <div class="flex flex-wrap gap-2">
+                                    <span class="text-[10px] font-black py-1 px-2.5 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 rounded-lg cursor-help hover:bg-primary hover:text-white transition-colors" title="User's Full Name">{{name}}</span>
+                                    <span class="text-[10px] font-black py-1 px-2.5 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 rounded-lg cursor-help hover:bg-primary hover:text-white transition-colors" title="Numeric duration value">{{duration}}</span>
+                                    <span class="text-[10px] font-black py-1 px-2.5 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 rounded-lg cursor-help hover:bg-primary hover:text-white transition-colors" title="Minutes, Hours, Days, etc.">{{unit}}</span>
+                                    <span class="text-[10px] font-black py-1 px-2.5 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 rounded-lg cursor-help hover:bg-primary hover:text-white transition-colors" title="New expiration date/time">{{new_expiry}}</span>
                                 </div>
                             </div>
                         </div>

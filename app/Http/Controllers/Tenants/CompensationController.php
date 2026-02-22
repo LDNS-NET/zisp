@@ -9,6 +9,7 @@ use App\Models\Tenants\TenantMikrotik;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
 class CompensationController extends Controller
@@ -36,7 +37,13 @@ class CompensationController extends Controller
         // Filtered count (total matching users regardless of pagination)
         $filteredCount = $usersQuery->count();
         
-        $users = $usersQuery->latest()->paginate(10);
+        // If neither search nor location is provided, return empty paginated data for the users
+        if (empty($search) && empty($location)) {
+            $users = NetworkUser::whereRaw('1=0')->paginate(10);
+            $filteredCount = 0;
+        } else {
+            $users = $usersQuery->latest()->paginate(10);
+        }
 
         // Get unique locations for filter
         $locations = NetworkUser::whereNotNull('location')->distinct()->pluck('location');
@@ -81,7 +88,7 @@ class CompensationController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(Request $request, \App\Services\SmsGatewayService $smsService)
     {
         $validated = $request->validate([
             'user_ids' => 'required_without:apply_to_all|array',
@@ -92,11 +99,18 @@ class CompensationController extends Controller
             'duration_value' => 'required|integer|min:1',
             'duration_unit' => 'required|string|in:minutes,hours,days,weeks,months',
             'reason' => 'nullable|string|max:255',
+            'notify_users' => 'nullable|boolean',
+            'sms_template' => 'required_if:notify_users,true|nullable|string',
         ]);
 
         if ($request->get('apply_to_all')) {
             $search = $request->get('search');
             $location = $request->get('location');
+
+            // Safety check: Don't allow bulk apply to all if no filters are active
+            if (empty($search) && empty($location)) {
+                return back()->with('error', 'Please apply a search or location filter before using bulk compensation.');
+            }
 
             $usersQuery = NetworkUser::query()
                 ->when($search, function ($q) use ($search) {
@@ -117,8 +131,9 @@ class CompensationController extends Controller
         }
 
         $processedCount = 0;
+        $tenantId = Auth::user()->tenant_id;
 
-        DB::transaction(function () use ($users, $validated, &$processedCount) {
+        DB::transaction(function () use ($users, $validated, &$processedCount, $smsService, $tenantId) {
             foreach ($users as $user) {
                 $oldExpiry = $user->expires_at;
                 $baseDate = ($oldExpiry && $oldExpiry->isFuture()) ? $oldExpiry : now();
@@ -152,6 +167,26 @@ class CompensationController extends Controller
                     $updateData['status'] = 'active';
                 }
                 $user->update($updateData);
+
+                // Send SMS if requested
+                if (!empty($validated['notify_users']) && !empty($user->phone)) {
+                    $message = str_replace(
+                        ['{{name}}', '{{duration}}', '{{unit}}', '{{new_expiry}}'],
+                        [
+                            $user->full_name,
+                            $value,
+                            $validated['duration_unit'],
+                            $newExpiry->format('Y-m-d H:i')
+                        ],
+                        $validated['sms_template']
+                    );
+                    
+                    try {
+                        $smsService->sendSMS($tenantId, $user->phone, $message);
+                    } catch (\Exception $e) {
+                        Log::error("Failed to send compensation SMS to {$user->phone}: " . $e->getMessage());
+                    }
+                }
 
                 $processedCount++;
             }
