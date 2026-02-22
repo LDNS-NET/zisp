@@ -24,7 +24,7 @@ import {
     Download,
     Search,
     ChevronDown,
-    MoreHorizontal,
+    MoreVertical,
     Phone,
     Hash,
     CheckCircle2,
@@ -448,6 +448,14 @@ function showPaymentDetails(payment) {
     paymentDetails.value = payment;
     showDetailsModal.value = true;
 }
+
+// Row Actions Modal (Mikrotik-style)
+const showRowActions = ref(false);
+const selectedRowPayment = ref(null);
+function openRowActions(payment) {
+    selectedRowPayment.value = payment;
+    showRowActions.value = true;
+}
 function closeDetailsModal() {
     showDetailsModal.value = false;
     paymentDetails.value = null;
@@ -455,8 +463,10 @@ function closeDetailsModal() {
 
 const showExport = ref(false);
 
-function generatePaymentConfirmation() {
-    if (!paymentDetails.value) return;
+function generatePaymentConfirmation(p = null) {
+    const data = p || paymentDetails.value;
+    if (!data) return;
+
     const doc = new jsPDF();
     // Colored header
     doc.setFillColor(41, 128, 185); // blue
@@ -464,7 +474,7 @@ function generatePaymentConfirmation() {
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(20);
     doc.text(
-        paymentDetails.value.business_name || 'Payment Confirmation',
+        data.business_name || 'Payment Confirmation',
         14,
         20,
     );
@@ -473,29 +483,30 @@ function generatePaymentConfirmation() {
     let y = 40;
 
     // Package info section
-    if (paymentDetails.value.package) {
+    if (data.package) {
         doc.setFont(undefined, 'bold');
         doc.setTextColor(41, 128, 185);
         doc.text('Package:', 14, y);
         doc.setFont(undefined, 'normal');
         doc.setTextColor(44, 62, 80);
-        doc.text(`${paymentDetails.value.package.type}`, 45, y);
+        doc.text(`${data.package.type}`, 45, y);
         y += 8;
         doc.setFont(undefined, 'bold');
         doc.setTextColor(41, 128, 185);
         doc.text('Package Price:', 14, y);
         doc.setFont(undefined, 'normal');
         doc.setTextColor(44, 62, 80);
-        doc.text(`${currency.value} ${paymentDetails.value.package.price}`, 45, y);
+        doc.text(`${currency.value} ${data.package.price}`, 45, y);
         y += 10;
     }
+
     // Payment details section
     const details = [
-        ['User', paymentDetails.value.user],
-        ['Phone', paymentDetails.value.phone],
-        ['Receipt Number', paymentDetails.value.receipt_number],
-        ['Amount', `${currency.value} ${paymentDetails.value.amount}`],
-        ['Paid At', paymentDetails.value.paid_at],
+        ['User', data.user],
+        ['Phone', data.phone],
+        ['Receipt Number', data.receipt_number],
+        ['Amount', `${currency.value} ${data.amount}`],
+        ['Paid At', data.paid_at],
     ];
     details.forEach(([label, value]) => {
         doc.setFont(undefined, 'bold');
@@ -517,7 +528,7 @@ function generatePaymentConfirmation() {
     doc.setFontSize(10);
     doc.text('Thank you for your payment!', 14, y + 10);
     doc.save(
-        `confirmation_${paymentDetails.value.receipt_number || 'payment'}.pdf`,
+        `confirmation_${data.receipt_number || 'payment'}.pdf`,
     );
 }
 </script>
@@ -807,27 +818,9 @@ function generatePaymentConfirmation() {
                                         </div>
                                     </td>
                                     <td class="px-6 py-4 text-right" @click.stop>
-                                        <div class="flex justify-end items-center">
-                                            <Dropdown align="right" width="48">
-                                                <template #trigger>
-                                                    <button class="rounded-lg p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors">
-                                                        <MoreHorizontal class="h-5 w-5" />
-                                                    </button>
-                                                </template>
-                                                <template #content>
-                                                    <DropdownLink @click="showPaymentDetails(item)" class="flex items-center gap-2">
-                                                        <Eye class="h-4 w-4 text-emerald-500" /> Details
-                                                    </DropdownLink>
-                                                    <DropdownLink v-if="item.editable" @click="openEditModal(item)" class="flex items-center gap-2">
-                                                        <Edit class="h-4 w-4 text-blue-500" /> Edit
-                                                    </DropdownLink>
-                                                    <div v-if="item.editable" class="border-t border-slate-100 dark:border-slate-700 my-1"></div>
-                                                    <DropdownLink v-if="item.editable" @click="confirmPaymentDeletion(item.uuid)" class="flex items-center gap-2 text-red-600">
-                                                        <Trash2 class="h-4 w-4" /> Delete
-                                                    </DropdownLink>
-                                                </template>
-                                            </Dropdown>
-                                        </div>
+                                        <button @click="openRowActions(item)" class="rounded-lg p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors">
+                                            <MoreVertical class="h-5 w-5" />
+                                        </button>
                                     </td>
                                 </tr>
                             </tbody>
@@ -853,15 +846,13 @@ function generatePaymentConfirmation() {
                                     </div>
                                 </div>
                             </div>
-                            <div class="flex flex-col items-end gap-1.5">
+                            <div class="flex flex-col items-end gap-1.5" @click.stop>
                                 <span :class="['inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-black uppercase ring-1 ring-inset', getStatusColor(item.disbursement_status)]">
                                     {{ item.disbursement_label }}
                                 </span>
-                                <button @click="showPaymentDetails(item)" class="flex items-center gap-1 rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
-                                    <Eye class="h-3.5 w-3.5" /> Details
-                                </button>
-                                <button v-if="item.editable" @click="openEditModal(item)" class="rounded-lg bg-slate-100 p-1.5 text-slate-600 dark:bg-slate-700 dark:text-slate-300">
-                                    <Edit class="h-4 w-4" />
+                                <button @click="openRowActions(item)" class="flex items-center gap-2 rounded-xl bg-slate-100 px-4 py-2 text-xs font-bold text-slate-700 transition-all hover:bg-slate-200 active:scale-95 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600">
+                                    <MoreVertical class="h-4 w-4" />
+                                    <span>Actions</span>
                                 </button>
                             </div>
                         </div>
@@ -1043,6 +1034,71 @@ function generatePaymentConfirmation() {
                     </PrimaryButton>
                 </div>
             </form>
+        </Modal>
+
+        <!-- Row Actions Modal (Mikrotik-style) -->
+        <Modal :show="showRowActions" @close="showRowActions = false" max-width="sm">
+            <div v-if="selectedRowPayment" class="p-4">
+                <div class="mb-4 flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-700">
+                    <div>
+                        <h3 class="font-bold text-slate-900 dark:text-white">Actions</h3>
+                        <p class="text-[10px] text-slate-500 uppercase tracking-wider">{{ selectedRowPayment.receipt_number }}</p>
+                    </div>
+                    <button @click="showRowActions = false" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                        <X class="h-5 w-5" />
+                    </button>
+                </div>
+
+                <div class="space-y-1.5">
+                    <button @click="showPaymentDetails(selectedRowPayment); showRowActions = false" 
+                        class="flex w-full items-center gap-3 rounded-xl p-3 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-900/50">
+                        <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
+                            <Eye class="h-5 w-5" />
+                        </div>
+                        <div>
+                            <div class="text-sm font-bold text-slate-900 dark:text-white">View Details</div>
+                            <div class="text-xs text-slate-500">Transaction summary & stats</div>
+                        </div>
+                    </button>
+
+                    <button @click="generatePaymentConfirmation(selectedRowPayment); showRowActions = false" 
+                        class="flex w-full items-center gap-3 rounded-xl p-3 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-900/50">
+                        <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400">
+                            <Download class="h-5 w-5" />
+                        </div>
+                        <div>
+                            <div class="text-sm font-bold text-slate-900 dark:text-white">Get Receipt</div>
+                            <div class="text-xs text-slate-500">Download confirmation PDF</div>
+                        </div>
+                    </button>
+
+                    <template v-if="selectedRowPayment.editable">
+                        <div class="my-2 border-t border-slate-100 dark:border-slate-700"></div>
+
+                        <button @click="openEditModal(selectedRowPayment); showRowActions = false" 
+                            class="flex w-full items-center gap-3 rounded-xl p-3 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-900/50">
+                            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+                                <Edit class="h-5 w-5" />
+                            </div>
+                            <div>
+                                <div class="text-sm font-bold text-slate-900 dark:text-white">Edit Record</div>
+                                <div class="text-xs text-slate-500">Update transaction info</div>
+                            </div>
+                        </button>
+
+                        <button @click="confirmPaymentDeletion(selectedRowPayment.uuid); showRowActions = false" 
+                            class="flex w-full items-center gap-3 rounded-xl p-3 text-left transition-colors hover:bg-red-50 dark:hover:bg-red-900/20">
+                            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400">
+                                <Trash2 class="h-5 w-5" />
+                            </div>
+                            <div>
+                                <div class="text-sm font-bold text-red-600">Delete Permanently</div>
+                                <div class="text-xs text-red-400/80">This action cannot be undone</div>
+                            </div>
+                        </button>
+                    </template>
+                </div>
+            </div>
         </Modal>
     </AuthenticatedLayout>
 </template>
