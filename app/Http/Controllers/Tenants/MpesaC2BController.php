@@ -64,10 +64,31 @@ class MpesaC2BController extends Controller
             ]);
         }
 
-        Log::warning('M-Pesa C2B Validation: User not found', [
+        // Check if shortcode belongs to any tenant or system default
+        $shortcode = $data['business_shortcode'] ?? $request->get('BusinessShortCode');
+        $gateway = \App\Models\TenantPaymentGateway::where('mpesa_shortcode', $shortcode)
+            ->where('is_active', true)
+            ->first();
+
+        $isSystemShortcode = ($shortcode == config('mpesa.shortcode'));
+
+        if ($gateway || $isSystemShortcode) {
+            Log::info('M-Pesa C2B Validation: Shortcode recognized, accepting unassigned payment', [
+                'account' => $accountNumber,
+                'shortcode' => $shortcode,
+                'amount' => $data['trans_amount']
+            ]);
+            return response()->json([
+                'ResultCode' => 0,
+                'ResultDesc' => 'Accepted (Unassigned)'
+            ]);
+        }
+
+        Log::warning('M-Pesa C2B Validation: User not found and shortcode unrecognized', [
             'account' => $accountNumber,
             'amount' => $data['trans_amount'],
-            'trans_id' => $data['trans_id']
+            'trans_id' => $data['trans_id'],
+            'shortcode' => $shortcode
         ]);
         return response()->json([
             'ResultCode' => 1,
@@ -109,23 +130,21 @@ class MpesaC2BController extends Controller
             ->first();
 
         if (!$user) {
-            Log::error('M-Pesa C2B Confirmation: User not found for account', [
+            Log::warning('M-Pesa C2B Confirmation: User not found for account, recording as unassigned', [
                 'account' => $accountNumber,
                 'amount' => $data['trans_amount'],
                 'trans_id' => $data['trans_id'],
                 'phone' => $data['msisdn'],
                 'business_shortcode' => $data['business_shortcode']
             ]);
-            // Still return success to M-Pesa to prevent retries of invalid data
-            return response()->json(['ResultCode' => 0, 'ResultDesc' => 'Success']);
+        } else {
+            Log::info('M-Pesa C2B Confirmation: User identified', [
+                'user_id' => $user->id,
+                'username' => $user->username,
+                'tenant_id' => $user->tenant_id,
+                'account' => $accountNumber
+            ]);
         }
-
-        Log::info('M-Pesa C2B Confirmation: User identified', [
-            'user_id' => $user->id,
-            'username' => $user->username,
-            'tenant_id' => $user->tenant_id,
-            'account' => $accountNumber
-        ]);
 
         try {
             // Check if payment already exists
@@ -142,15 +161,24 @@ class MpesaC2BController extends Controller
                 return response()->json(['ResultCode' => 0, 'ResultDesc' => 'Success']);
             }
 
+            // Identify tenant if user not found
+            $tenantId = $user ? $user->tenant_id : null;
+            if (!$tenantId) {
+                $gateway = \App\Models\TenantPaymentGateway::where('mpesa_shortcode', $data['business_shortcode'])
+                    ->where('is_active', true)
+                    ->first();
+                $tenantId = $gateway ? $gateway->tenant_id : null;
+            }
+
             // Resolve package
-            $packageId = $user->package_id;
-            $hotspotPackageId = $user->hotspot_package_id;
+            $packageId = $user ? $user->package_id : null;
+            $hotspotPackageId = $user ? $user->hotspot_package_id : null;
 
             // Create payment record
             $payment = TenantPayment::create([
-                'tenant_id' => $user->tenant_id,
-                'user_id' => $user->id,
-                'phone' => $user->phone, // Use profile phone (Safaricom hashes MSISDN in production)
+                'tenant_id' => $tenantId,
+                'user_id' => $user ? $user->id : null,
+                'phone' => $user ? $user->phone : $data['msisdn'], // Fallback to MSISDN for unassigned
                 'amount' => $data['trans_amount'],
                 'currency' => 'KES',
                 'payment_method' => 'mpesa_c2b',
@@ -172,11 +200,17 @@ class MpesaC2BController extends Controller
                 'receipt' => $payment->receipt_number
             ]);
 
-            // Update user expiry and handle balance/renewals
-            $this->extendUserExpiry($user, $data['trans_amount'], app(RenewalService::class));
+            if ($user) {
+                // Update user expiry and handle balance/renewals
+                $this->extendUserExpiry($user, $data['trans_amount'], app(RenewalService::class));
 
-            // Send SMS Notification
-            $this->sendPaymentNotification($user, $payment);
+                // Send SMS Notification
+                $this->sendPaymentNotification($user, $payment);
+            } else {
+                Log::info('M-Pesa C2B Confirmation: Skipping user extension and SMS for unassigned payment', [
+                    'payment_id' => $payment->id
+                ]);
+            }
 
             // Trigger disbursement if using default API
             $this->handleDisbursement($payment);
@@ -184,10 +218,9 @@ class MpesaC2BController extends Controller
             Log::info('M-Pesa C2B Confirmation: Payment processed successfully', [
                 'payment_id' => $payment->id,
                 'tenant_id' => $payment->tenant_id,
-                'user_id' => $user->id,
-                'username' => $user->username,
+                'user_id' => $user ? $user->id : 'unassigned',
                 'amount' => $payment->amount,
-                'expires_at' => $user->fresh()->expires_at?->toDateTimeString()
+                'expires_at' => $user ? $user->fresh()->expires_at?->toDateTimeString() : 'N/A'
             ]);
 
         } catch (\Exception $e) {

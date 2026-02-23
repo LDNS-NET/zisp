@@ -14,6 +14,8 @@ use Illuminate\Support\Facades\Schema;
 use IntaSend\IntaSendPHP\Collection;
 use App\Jobs\CheckIntaSendPaymentStatus;
 use App\Services\CountryService;
+use App\Services\Tenants\RenewalService;
+use Illuminate\Support\Facades\Log;
 
 class TenantPaymentController extends Controller
 {
@@ -205,9 +207,11 @@ class TenantPaymentController extends Controller
     {
         $tenantPayment = TenantPayment::findOrFail($id);
 
-        // Security check: Only manual payments can be edited
+        // Security check: Only manual payments or unassigned system payments can be edited
         $isManual = ($tenantPayment->payment_method === 'manual' || ($tenantPayment->created_by && !$tenantPayment->payment_method));
-        abort_unless($isManual, 403, 'System payments cannot be edited.');
+        $isUnassigned = ($tenantPayment->user_id === null);
+        
+        abort_unless($isManual || $isUnassigned, 403, 'System payments cannot be edited.');
 
         $data = $request->validate([
             'user_id' => 'sometimes|exists:network_users,id',
@@ -221,30 +225,26 @@ class TenantPaymentController extends Controller
             if (Schema::hasColumn('tenant_payments', 'phone')) {
                 $data['phone'] = $user->phone;
             }
-        }
 
-        // Manual payments are always completed and checked (received outside gateway)
-        $data['disbursement_status'] = 'completed';
-        $data['disbursement_type'] = 'completed';
-        $data['checked'] = true;
-
-        $tenantPayment->update($data);
-
-        // Mikrotik suspend/unsuspend logic
-        $user = isset($data['user_id']) ? NetworkUser::findOrFail($data['user_id']) : $tenantPayment->user;
-
-        // Load tenant router config from DB
-        $tenantMikrotik = \App\Models\Tenants\TenantMikrotik::where('created_by', auth()->id())->first();
-
-        if ($tenantMikrotik) {
-            $mikrotik = new \App\Services\MikrotikService($tenantMikrotik);
-
-            if (in_array($data['disbursement_status'], ['pending', 'failed'])) {
-                $mikrotik->suspendUser($user->type, $user->mikrotik_id ?? '');
-            } elseif ($data['disbursement_status'] === 'completed') {
-                $mikrotik->unsuspendUser($user->type, $user->mikrotik_id ?? '');
+            // If this was an unassigned payment and now has a user, trigger renewal
+            if ($tenantPayment->user_id === null) {
+                Log::info('Manually assigning C2B payment to user', ['payment_id' => $tenantPayment->id, 'user_id' => $user->id]);
+                app(\App\Services\Tenants\RenewalService::class)->processPayment($user, $tenantPayment->amount);
+                
+                // Unsuspend on MikroTik
+                try {
+                    $tenantMikrotik = \App\Models\Tenants\TenantMikrotik::where('tenant_id', $user->tenant_id)->first();
+                    if ($tenantMikrotik) {
+                        $mikrotik = new \App\Services\MikrotikService($tenantMikrotik);
+                        $mikrotik->unsuspendUser($user->type, $user->mikrotik_id ?? $user->username);
+                    }
+                } catch (\Exception $e) {
+                    Log::error('Manual Assignment: Failed to unsuspend user on MikroTik', ['user_id' => $user->id, 'error' => $e->getMessage()]);
+                }
             }
         }
+        
+        $user = $user ?? $tenantPayment->user;
 
         return back()->with('success', 'Payment updated.');
     }

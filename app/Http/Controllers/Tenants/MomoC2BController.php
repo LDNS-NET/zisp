@@ -60,8 +60,7 @@ class MomoC2BController extends Controller
             ->first();
 
         if (!$user) {
-            Log::error('MoMo C2B: User not found for account', ['account' => $externalId]);
-            return response()->json(['status' => 'user_not_found'], 200);
+            Log::warning('MoMo C2B: User not found for account, recording as unassigned', ['account' => $externalId]);
         }
 
         try {
@@ -77,8 +76,8 @@ class MomoC2BController extends Controller
 
             // Create payment record
             $payment = TenantPayment::create([
-                'tenant_id' => $user->tenant_id,
-                'user_id' => $user->id,
+                'tenant_id' => $user ? $user->tenant_id : null,
+                'user_id' => $user ? $user->id : null,
                 'phone' => $payer,
                 'amount' => $amount,
                 'currency' => $currency,
@@ -87,17 +86,19 @@ class MomoC2BController extends Controller
                 'status' => 'paid',
                 'checked' => true,
                 'paid_at' => now(),
-                'package_id' => $user->package_id,
-                'hotspot_package_id' => $user->hotspot_package_id,
+                'package_id' => $user ? $user->package_id : null,
+                'hotspot_package_id' => $user ? $user->hotspot_package_id : null,
                 'response' => $data
             ]);
 
-            // Update user expiry
-            $this->extendUserExpiry($user);
+            if ($user) {
+                // Update user expiry
+                $this->extendUserExpiry($user);
+            }
 
-            Log::info('MoMo C2B: Payment processed successfully', [
+            Log::info('MoMo C2B: Payment processed ' . ($user ? 'successfully' : 'as unassigned'), [
                 'payment_id' => $payment->id,
-                'user_id' => $user->id
+                'user_id' => $user ? $user->id : 'unassigned'
             ]);
 
             return response()->json(['status' => 'success'], 200);
