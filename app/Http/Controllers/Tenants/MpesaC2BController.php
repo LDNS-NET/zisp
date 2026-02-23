@@ -184,7 +184,7 @@ class MpesaC2BController extends Controller
             $payment = TenantPayment::create([
                 'tenant_id' => $tenantId,
                 'user_id' => $user ? $user->id : null,
-                'phone' => $user ? $user->phone : ($payerName ? "$payerName (" . $data['msisdn'] . ")" : $data['msisdn']),
+                'phone' => $user ? $user->phone : ($payerName ?: $data['msisdn']),
                 'amount' => $data['trans_amount'],
                 'currency' => 'KES',
                 'payment_method' => 'mpesa_c2b',

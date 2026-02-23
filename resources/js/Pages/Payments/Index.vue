@@ -334,13 +334,15 @@ const form = useForm({
 // User search filter for dropdown
 const userSearch = ref('');
 const filteredUsers = computed(() => {
-    if (!userSearch.value) return props.users;
-    const term = userSearch.value.toLowerCase();
+    const term = userSearch.value.toLowerCase().trim();
+    if (!term) return props.users.slice(0, 10);
     return props.users.filter(
         (u) =>
             (u.username && u.username.toLowerCase().includes(term)) ||
+            (u.full_name && u.full_name.toLowerCase().includes(term)) ||
+            (u.account_number && u.account_number.toLowerCase().includes(term)) ||
             (u.phone && u.phone.toLowerCase().includes(term)),
-    );
+    ).slice(0, 20);
 });
 
 function openAddModal() {
@@ -738,14 +740,14 @@ function generatePaymentConfirmation(p = null) {
                 </div>
             </Modal>
 
-            <!-- Bulk Actions -->
+            <!-- Bulk Actions 
             <div v-if="selectedTenantPayments.length > 0" class="flex items-center gap-3 animate-in fade-in slide-in-from-left-4 duration-300">
                 <span class="text-sm font-medium text-slate-500">{{ selectedTenantPayments.length }} selected</span>
                 <DangerButton @click="bulkDelete" class="flex items-center gap-2 rounded-xl">
                     <Trash2 class="h-4 w-4" /> 
                     <span>Bulk Delete</span>
                 </DangerButton>
-            </div>
+            </div>-->
 
             <!-- Data Display -->
             <div class="relative min-h-[400px]">
@@ -760,9 +762,9 @@ function generatePaymentConfirmation(p = null) {
                         <table class="w-full text-left text-sm">
                             <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:bg-slate-900/50 dark:text-slate-400">
                                 <tr>
-                                    <th class="px-6 py-4 w-10">
+                                    <!-- <th class="px-6 py-4 w-10">
                                         <input type="checkbox" v-model="selectAll" class="rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700" />
-                                    </th>
+                                    </th>-->
                                     <th class="px-6 py-4 min-w-[200px]">User</th>
                                     <th class="px-6 py-4 hidden md:table-cell">Transaction</th>
                                     <th class="px-6 py-4">Amount</th>
@@ -775,10 +777,10 @@ function generatePaymentConfirmation(p = null) {
                                 <tr v-for="item in paymentsData" :key="item.uuid" 
                                     class="group cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-900/50"
                                     @click="showPaymentDetails(item)">
-                                    <td class="px-6 py-4" @click.stop>
+                                    <!-- <td class="px-6 py-4" @click.stop>
                                         <input type="checkbox" :value="item.uuid" v-model="selectedTenantPayments"
                                             @change="toggleSelectAll" class="rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700" />
-                                    </td>
+                                    </td> -->
                                     <td class="px-6 py-4">
                                         <div class="flex items-center gap-3">
                                             <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 font-bold text-white shadow-sm transition-transform group-hover:scale-105">
@@ -873,6 +875,7 @@ function generatePaymentConfirmation(p = null) {
                         <Search class="h-10 w-10 text-slate-400" />
                     </div>
                     <h3 class="mt-4 text-lg font-semibold text-slate-900 dark:text-white">No payments found</h3>
+                    
                     <p class="mt-1 text-slate-500">Try adjusting your filters or search terms</p>
                 </div>
             </div>
@@ -919,7 +922,7 @@ function generatePaymentConfirmation(p = null) {
                                         </div>
                                         <div>
                                             <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Phone Number</p>
-                                            <p class="text-sm font-semibold text-slate-700 dark:text-slate-200">{{ paymentDetails.phone }}</p>
+                                            <p class="text-sm font-semibold text-slate-700 dark:text-slate-200">{{ paymentDetails.phone?.substring(0, 14) }}</p>
                                         </div>
                                         <div>
                                             <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Paid Date</p>
@@ -997,15 +1000,46 @@ function generatePaymentConfirmation(p = null) {
                 <!-- Form Body -->
                 <div class="p-6 space-y-5">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                        <div class="sm:col-span-2">
+                        <div class="sm:col-span-2 space-y-2">
                             <InputLabel for="user_id" value="Select User" class="dark:text-slate-300" />
-                            <select id="user_id" v-model="form.user_id" 
-                                class="mt-1 block w-full rounded-xl border-slate-200 bg-slate-50 py-2.5 text-sm font-medium transition-focus focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-900/50 dark:text-white dark:focus:border-blue-500" required>
-                                <option value="" disabled>Choose a customer...</option>
-                                <option v-for="user in users" :key="user.id" :value="user.id">
-                                    {{ user.name }} ({{ user.phone }})
-                                </option>
-                            </select>
+                            
+                            <!-- Search Input -->
+                            <div class="relative">
+                                <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                <TextInput 
+                                    v-model="userSearch"
+                                    type="text"
+                                    class="pl-10 w-full rounded-xl"
+                                    placeholder="Search by username, name, account, or phone..."
+                                />
+                            </div>
+
+                            <!-- User Selection List -->
+                            <div class="mt-2 max-h-48 overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-700 divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900/40">
+                                <button v-for="user in filteredUsers" :key="user.id" 
+                                    type="button"
+                                    @click="form.user_id = user.id"
+                                    :class="['w-full text-left px-4 py-3 transition-colors hover:bg-blue-50 dark:hover:bg-blue-900/10', form.user_id === user.id ? 'bg-blue-50 dark:bg-blue-900/20 ring-2 ring-blue-500 ring-inset' : '']"
+                                >
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <div class="text-sm font-bold text-slate-900 dark:text-white">
+                                                {{ user.username }} 
+                                                <span v-if="user.full_name" class="ml-1 font-normal text-slate-500">({{ user.full_name }})</span>
+                                            </div>
+                                            <div class="text-[10px] text-slate-500 uppercase tracking-tighter">
+                                                ACC: {{ user.account_number }} • {{ user.phone }}
+                                            </div>
+                                        </div>
+                                        <div v-if="form.user_id === user.id" class="text-blue-600">
+                                            <CheckCircle2 class="h-4 w-4" />
+                                        </div>
+                                    </div>
+                                </button>
+                                <div v-if="filteredUsers.length === 0" class="p-4 text-center text-sm text-slate-500 italic">
+                                    No matching users found...
+                                </div>
+                            </div>
                             <InputError :message="form.errors.user_id" class="mt-1" />
                         </div>
 

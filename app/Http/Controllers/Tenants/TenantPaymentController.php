@@ -65,12 +65,7 @@ class TenantPaymentController extends Controller
                 $userDisplay = $payment->user?->username;
                 if (!$userDisplay) {
                     if ($payment->user_id === null) {
-                        // Extract name from phone field if it contains (MSISDN) or from response
-                        if ($payment->phone && str_contains($payment->phone, '(')) {
-                            $userDisplay = explode(' (', $payment->phone)[0];
-                        } else {
-                            $userDisplay = 'Unassigned Gateway Payment';
-                        }
+                        $userDisplay = $payment->phone ?: 'Unassigned Gateway Payment';
                     } else {
                         $userDisplay = 'Deleted User';
                     }
@@ -86,7 +81,7 @@ class TenantPaymentController extends Controller
                     'uuid' => $payment->uuid,
                     'user' => $userDisplay,
                     'user_id' => $payment->user_id,
-                    'phone' => $payment->phone ?? ($payment->user?->phone ?? 'N/A'),
+                    'phone' => substr($payment->phone ?? ($payment->user?->phone ?? 'N/A'), 0, 14),
                     'receipt_number' => $payment->mpesa_receipt_number ?: $payment->receipt_number,
                     'amount' => $payment->amount,
                     'checked' => $checkedBool,
@@ -164,7 +159,7 @@ class TenantPaymentController extends Controller
         return Inertia::render('Payments/Index', [
             'payments' => array_merge($payments->toArray(), ['allData' => $allPayments]),
             'filters' => $request->only('search', 'disbursement', 'year', 'month'),
-            'users' => NetworkUser::select('id', 'username', 'phone')->get(),
+            'users' => NetworkUser::select('id', 'username', 'phone', 'full_name', 'account_number')->get(),
             'currency' => auth()->user()?->tenant?->currency ?? 'KES',
         ]);
     }
