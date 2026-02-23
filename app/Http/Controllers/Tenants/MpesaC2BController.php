@@ -302,7 +302,7 @@ class MpesaC2BController extends Controller
             // Get or create template
             $template = TenantSMSTemplate::withoutGlobalScopes()
                 ->where('tenant_id', $user->tenant_id)
-                ->where('name', 'Payment Received')
+                ->where('name', 'Service Renewal')
                 ->first();
 
             if (!$template) {

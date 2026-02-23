@@ -61,16 +61,17 @@ class TenantSMSController extends Controller
     {
         $q = $request->input('q');
         
-        if (empty($q) || strlen($q) < 2) {
-            return response()->json([]);
-        }
+        $query = NetworkUser::query();
 
-        $users = NetworkUser::where(function($query) use ($q) {
-                $query->where('full_name', 'like', "%{$q}%")
+        if (!empty($q) && strlen($q) >= 2) {
+            $query->where(function($subQuery) use ($q) {
+                $subQuery->where('full_name', 'like', "%{$q}%")
                       ->orWhere('username', 'like', "%{$q}%")
                       ->orWhere('phone', 'like', "%{$q}%");
-            })
-            ->limit(20)
+            });
+        }
+
+        $users = $query->limit(20)
             ->get(['id', 'full_name', 'username', 'phone']);
 
         return response()->json($users);

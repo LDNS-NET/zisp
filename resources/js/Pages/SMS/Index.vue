@@ -109,11 +109,6 @@ const isSearching = ref(false);
 const showSearchResults = ref(false);
 
 const searchUsers = debounce(async (query) => {
-    if (!query || query.length < 2) {
-        searchResults.value = [];
-        return;
-    }
-    
     isSearching.value = true;
     try {
         const response = await axios.get(route('sms.search-users'), { params: { q: query } });
@@ -129,6 +124,26 @@ const searchUsers = debounce(async (query) => {
 watch(userSearchQuery, (val) => {
     searchUsers(val);
 });
+
+watch(composeMode, (newVal) => {
+    if (newVal === 'manual' && searchResults.value.length === 0) {
+        searchUsers('');
+    }
+});
+
+const vClickOutside = {
+    mounted(el, binding) {
+        el.clickOutsideEvent = (event) => {
+            if (!(el === event.target || el.contains(event.target))) {
+                binding.value(event);
+            }
+        };
+        document.addEventListener('click', el.clickOutsideEvent);
+    },
+    unmounted(el) {
+        document.removeEventListener('click', el.clickOutsideEvent);
+    },
+};
 
 const selectUser = (user) => {
     if (!form.recipients.find(r => r.id === user.id)) {
@@ -542,12 +557,12 @@ const formatDate = (date) => {
                                         type="text" 
                                         placeholder="Search by name, username, or phone..." 
                                         class="w-full pl-10 pr-10 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 transition-all text-sm"
-                                        @focus="showSearchResults = searchResults.length > 0"
+                                        @focus="showSearchResults = true"
                                     >
                                     <RefreshCw v-if="isSearching" class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-500 animate-spin" />
                                     
                                     <!-- Search Results Dropdown -->
-                                    <div v-if="showSearchResults && searchResults.length > 0" class="absolute z-[60] left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl overflow-hidden max-h-60 overflow-y-auto">
+                                    <div v-if="showSearchResults && searchResults.length > 0" v-click-outside="() => showSearchResults = false" class="absolute z-[60] left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl overflow-hidden max-h-60 overflow-y-auto">
                                         <div 
                                             v-for="user in searchResults" 
                                             :key="user.id"
