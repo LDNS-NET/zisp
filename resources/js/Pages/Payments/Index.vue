@@ -983,7 +983,7 @@ function generatePaymentConfirmation(p = null) {
                             </div>
                             <div>
                                 <h3 class="text-lg font-bold text-slate-900 dark:text-white leading-tight">
-                                    {{ editing ? 'Edit Payment Record' : 'Record New Payment' }}
+                                    {{ editing ? (form.user_id ? 'Edit Payment Record' : 'Reconcile / Assign Payment') : 'Record New Payment' }}
                                 </h3>
                                 <p class="text-xs text-slate-500 dark:text-slate-400">Manual transaction entry</p>
                             </div>
@@ -1089,8 +1089,8 @@ function generatePaymentConfirmation(p = null) {
                                 <Edit class="h-5 w-5" />
                             </div>
                             <div>
-                                <div class="text-sm font-bold text-slate-900 dark:text-white">Edit Record</div>
-                                <div class="text-xs text-slate-500">Update transaction info</div>
+                                <div class="text-sm font-bold text-slate-900 dark:text-white">{{ selectedRowPayment.user_id === null ? 'Reconcile / Assign' : 'Edit Record' }}</div>
+                                <div class="text-xs text-slate-500">{{ selectedRowPayment.user_id === null ? 'Assign this payment to a user' : 'Update transaction info' }}</div>
                             </div>
                         </button>
 

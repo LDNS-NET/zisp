@@ -74,11 +74,14 @@ class MomoC2BController extends Controller
                 return response()->json(['status' => 'already_processed'], 200);
             }
 
+            // Identify payer if user not found (MoMo info is often limited to partyId)
+            $payerIdentifier = $payer ?: 'Unknown Payer';
+
             // Create payment record
             $payment = TenantPayment::create([
                 'tenant_id' => $user ? $user->tenant_id : null,
                 'user_id' => $user ? $user->id : null,
-                'phone' => $payer,
+                'phone' => $user ? $user->phone : $payerIdentifier,
                 'amount' => $amount,
                 'currency' => $currency,
                 'payment_method' => 'momo_c2b',

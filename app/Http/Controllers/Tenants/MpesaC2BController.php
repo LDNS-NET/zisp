@@ -174,11 +174,17 @@ class MpesaC2BController extends Controller
             $packageId = $user ? $user->package_id : null;
             $hotspotPackageId = $user ? $user->hotspot_package_id : null;
 
+            // Capture payer name for unassigned payments
+            $payerName = '';
+            if (!$user) {
+                $payerName = trim(($data['first_name'] ?? '') . ' ' . ($data['middle_name'] ?? '') . ' ' . ($data['last_name'] ?? ''));
+            }
+
             // Create payment record
             $payment = TenantPayment::create([
                 'tenant_id' => $tenantId,
                 'user_id' => $user ? $user->id : null,
-                'phone' => $user ? $user->phone : $data['msisdn'], // Fallback to MSISDN for unassigned
+                'phone' => $user ? $user->phone : ($payerName ? "$payerName (" . $data['msisdn'] . ")" : $data['msisdn']),
                 'amount' => $data['trans_amount'],
                 'currency' => 'KES',
                 'payment_method' => 'mpesa_c2b',

@@ -62,10 +62,24 @@ class TenantPaymentController extends Controller
                 $disb = $payment->disbursement_type ?? 'pending';
                 $status = $payment->disbursement_status ?? 'pending';
                 $checkedBool = (bool) $payment->checked;
-                $userDisplay = $payment->user?->username ?? ($payment->user_id === null ? 'System/Manual' : 'Deleted User');
+                $userDisplay = $payment->user?->username;
+                if (!$userDisplay) {
+                    if ($payment->user_id === null) {
+                        // Extract name from phone field if it contains (MSISDN) or from response
+                        if ($payment->phone && str_contains($payment->phone, '(')) {
+                            $userDisplay = explode(' (', $payment->phone)[0];
+                        } else {
+                            $userDisplay = 'Unassigned Gateway Payment';
+                        }
+                    } else {
+                        $userDisplay = 'Deleted User';
+                    }
+                }
                 
-                // Manual payments are those created by a user and not via automated methods
+                // Manual payments or Unassigned system payments are editable/reconcilable
                 $isManual = ($payment->payment_method === 'manual' || ($payment->created_by && !$payment->payment_method));
+                $isUnassigned = ($payment->user_id === null);
+                $isEditable = ($isManual || $isUnassigned);
                 
                 return [
                     'id' => $payment->id,
@@ -80,7 +94,7 @@ class TenantPaymentController extends Controller
                     'disbursement_type' => $disb,
                     'disbursement_status' => $status,
                     'is_manual' => $isManual,
-                    'editable' => $isManual,
+                    'editable' => $isEditable,
                     'checked_label' => $checkedBool ? 'Yes' : 'No',
                     'disbursement_label' => $status === 'testing' ? 'Testing Mode' : ($status === 'pending' ? 'Awaiting Disbursement' : ($status === 'completed' ? 'Disbursed / Direct' : ucfirst($status))),
                     'disbursement_ref' => $payment->disbursement_transaction_id,
