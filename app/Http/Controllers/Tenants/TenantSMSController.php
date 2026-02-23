@@ -27,7 +27,6 @@ class TenantSMSController extends Controller
             ->paginate($request->input('per_page', 10))
             ->withQueryString();
             
-        $renters = NetworkUser::all(['id', 'full_name', 'phone']);
         $templates = TenantSMSTemplate::orderBy('name')->get(['id', 'name', 'content']);
         $packages = Package::all(['id', 'name']);
         $locations = NetworkUser::whereNotNull('location')->distinct()->pluck('location');
@@ -37,7 +36,6 @@ class TenantSMSController extends Controller
 
         return Inertia::render('SMS/Index', [
             'smsLogs' => $smsLogs,
-            'renters' => $renters,
             'templates' => $templates,
             'packages' => $packages,
             'locations' => $locations,
@@ -52,13 +50,30 @@ class TenantSMSController extends Controller
 
     public function create()
     {
-        $renters = NetworkUser::all();
         $templates = TenantSMSTemplate::orderBy('name')->get(['id', 'name', 'content']);
 
         return Inertia::render('SMS/Create', [
-            'renters' => $renters,
             'templates' => $templates,
         ]);
+    }
+
+    public function searchUsers(Request $request)
+    {
+        $q = $request->input('q');
+        
+        if (empty($q) || strlen($q) < 2) {
+            return response()->json([]);
+        }
+
+        $users = NetworkUser::where(function($query) use ($q) {
+                $query->where('full_name', 'like', "%{$q}%")
+                      ->orWhere('username', 'like', "%{$q}%")
+                      ->orWhere('phone', 'like', "%{$q}%");
+            })
+            ->limit(20)
+            ->get(['id', 'full_name', 'username', 'phone']);
+
+        return response()->json($users);
     }
 
     public function store(Request $request)

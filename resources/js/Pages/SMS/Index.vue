@@ -20,7 +20,6 @@ import { ChevronDown } from 'lucide-vue-next';
 const props = defineProps({
     smsLogs: Object,
     filters: Object,
-    renters: Array,
     templates: Array,
     packages: Array,
     locations: Array,
@@ -93,7 +92,7 @@ const availableVariables = [
 ];
 
 const form = useForm({
-    recipients: [], // For manual selection
+    recipients: [], // Array of {id, full_name, phone} objects
     filters: {
         location: '',
         package_id: '',
@@ -102,6 +101,47 @@ const form = useForm({
     },
     message: '',
 });
+
+// --- Manual Search State ---
+const userSearchQuery = ref('');
+const searchResults = ref([]);
+const isSearching = ref(false);
+const showSearchResults = ref(false);
+
+const searchUsers = debounce(async (query) => {
+    if (!query || query.length < 2) {
+        searchResults.value = [];
+        return;
+    }
+    
+    isSearching.value = true;
+    try {
+        const response = await axios.get(route('sms.search-users'), { params: { q: query } });
+        searchResults.value = response.data;
+        showSearchResults.value = true;
+    } catch (error) {
+        console.error('Error searching users:', error);
+    } finally {
+        isSearching.value = false;
+    }
+}, 300);
+
+watch(userSearchQuery, (val) => {
+    searchUsers(val);
+});
+
+const selectUser = (user) => {
+    if (!form.recipients.find(r => r.id === user.id)) {
+        form.recipients.push(user);
+    }
+    userSearchQuery.value = '';
+    showSearchResults.value = false;
+};
+
+const removeRecipient = (index) => {
+    form.recipients.splice(index, 1);
+};
+
 
 const resendForm = useForm({
     duration: '',
@@ -158,6 +198,8 @@ const sendSms = () => {
     // If manual mode, clear filters
     if (composeMode.value === 'manual') {
         form.filters = null;
+        // Transform recipients to IDs before sending
+        form.recipients = form.recipients.map(r => r.id);
     } else {
         form.recipients = null;
     }
@@ -491,17 +533,65 @@ const formatDate = (date) => {
 
                         <!-- Manual Selection Section -->
                         <div v-show="composeMode === 'manual'" class="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Select Recipients</label>
-                            <select 
-                                v-model="form.recipients" 
-                                multiple 
-                                class="w-full h-48 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 text-sm"
-                            >
-                                <option v-for="r in renters" :key="r.id" :value="r.id">
-                                    {{ r.full_name }} ({{ r.phone }})
-                                </option>
-                            </select>
-                            <p class="text-xs text-gray-500 text-right">Hold Ctrl/Cmd to select multiple</p>
+                            <div class="space-y-2">
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Search Recipients</label>
+                                <div class="relative">
+                                    <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                    <input 
+                                        v-model="userSearchQuery"
+                                        type="text" 
+                                        placeholder="Search by name, username, or phone..." 
+                                        class="w-full pl-10 pr-10 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 transition-all text-sm"
+                                        @focus="showSearchResults = searchResults.length > 0"
+                                    >
+                                    <RefreshCw v-if="isSearching" class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-500 animate-spin" />
+                                    
+                                    <!-- Search Results Dropdown -->
+                                    <div v-if="showSearchResults && searchResults.length > 0" class="absolute z-[60] left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl overflow-hidden max-h-60 overflow-y-auto">
+                                        <div 
+                                            v-for="user in searchResults" 
+                                            :key="user.id"
+                                            @click="selectUser(user)"
+                                            class="p-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer flex justify-between items-center border-b border-gray-100 dark:border-gray-700 last:border-0"
+                                        >
+                                            <div class="flex flex-col">
+                                                <span class="text-sm font-bold text-gray-900 dark:text-white">{{ user.full_name }}</span>
+                                                <span class="text-xs text-gray-500">@{{ user.username }}</span>
+                                            </div>
+                                            <div class="text-right">
+                                                <span class="text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded-md">{{ user.phone }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div v-else-if="userSearchQuery.length >= 2 && !isSearching && searchResults.length === 0" class="absolute z-[60] left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg p-4 text-center text-sm text-gray-500">
+                                        No users found matching "{{ userSearchQuery }}"
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Selected Recipients -->
+                            <div v-if="form.recipients.length > 0" class="space-y-2">
+                                <div class="flex justify-between items-center">
+                                    <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Selected ({{ form.recipients.length }})</label>
+                                    <button @click="form.recipients = []" class="text-xs text-red-600 hover:text-red-700 font-medium">Clear All</button>
+                                </div>
+                                <div class="flex flex-wrap gap-2 max-h-40 overflow-y-auto p-1">
+                                    <div 
+                                        v-for="(recipient, index) in form.recipients" 
+                                        :key="recipient.id"
+                                        class="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full border border-blue-100 dark:border-blue-800/50 text-xs font-medium group transition-all"
+                                    >
+                                        <span>{{ recipient.full_name }}</span>
+                                        <button @click="removeRecipient(index)" class="hover:text-red-600 transition-colors">
+                                            <X class="w-3 h-3" />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div v-else class="p-8 border-2 border-dashed border-gray-100 dark:border-gray-700 rounded-2xl text-center">
+                                <Users class="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                                <p class="text-sm text-gray-400">Search and select users to add them to your campaign.</p>
+                            </div>
                         </div>
 
                             <div class="space-y-2 pt-4 border-t border-gray-200 dark:border-gray-700">
