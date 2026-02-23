@@ -328,6 +328,53 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode', 'sta
             Route::post('/equipment-usage/store', [TenantEquipmentUsageController::class, 'store'])->name('equipment.usage.store');
 
             Route::get('/equipment-users/search', [TenantEquipmentController::class, 'searchUsers'])->name('equipment.users.search');
+
+                // Serial Numbers
+             Route::get('/equipment/serials', [TenantEquipmentSerialController::class, 'index'])->name('equipment.serials.index');
+             Route::post('/equipment/serials', [TenantEquipmentSerialController::class, 'store'])->name('equipment.serials.store');
+             Route::delete('/equipment/serials/{serial}', [TenantEquipmentSerialController::class, 'destroy'])->name('equipment.serials.destroy');
+    
+              // Stock Movements
+             Route::get('/equipment/movements', [TenantEquipmentController::class, 'movements'])->name('equipment.movements.index');
+             Route::post('/equipment/movements', [TenantEquipmentController::class, 'storeMovement'])->name('equipment.movements.store');
+    
+             // Equipment Requests
+             Route::get('/equipment/requests', [TenantEquipmentRequestController::class, 'index'])->name('equipment.requests.index');
+             Route::post('/equipment/requests/{request}/approve', [TenantEquipmentRequestController::class, 'approve'])->name('equipment.requests.approve');
+             Route::post('/equipment/requests/{request}/reject', [TenantEquipmentRequestController::class, 'reject'])->name('equipment.requests.reject');
+    
+             // Cable Management
+            Route::get('/equipment/cables', [TenantCableController::class, 'index'])->name('equipment.cables.index');
+            Route::post('/equipment/cables', [TenantCableController::class, 'store'])->name('equipment.cables.store');
+            Route::post('/equipment/cables/{cable}/cut', [TenantCableController::class, 'cut'])->name('equipment.cables.cut');
+            Route::get('/equipment/cables/usage', [TenantCableController::class, 'usage'])->name('equipment.cables.usage');
+    
+           // Depreciation
+            Route::get('/equipment/depreciation/calculate/{equipment}', [TenantDepreciationController::class, 'calculate'])->name('equipment.depreciation.calculate');
+            Route::get('/equipment/depreciation/schedule/{equipment}', [TenantDepreciationController::class, 'schedule'])->name('equipment.depreciation.schedule');
+            Route::post('/equipment/depreciation/apply/{equipment}', [TenantDepreciationController::class, 'apply'])->name('equipment.depreciation.apply');
+    
+          // Price Updates
+          Route::post('/equipment/{equipment}/update-price', [TenantEquipmentController::class, 'updatePrice'])->name('equipment.update-price');
+    
+          // Maintenance
+         Route::post('/equipment/{equipment}/schedule-maintenance', [TenantEquipmentController::class, 'scheduleMaintenance'])->name('equipment.schedule-maintenance');
+         Route::get('/equipment/maintenance/alerts', [TenantEquipmentController::class, 'maintenanceAlerts'])->name('equipment.maintenance.alerts');
+    
+         // Locations
+        Route::get('/equipment/locations', [TenantLocationController::class, 'index'])->name('equipment.locations.index');
+        Route::post('/equipment/locations', [TenantLocationController::class, 'store'])->name('equipment.locations.store');
+        Route::delete('/equipment/locations/{location}', [TenantLocationController::class, 'destroy'])->name('equipment.locations.destroy');
+    
+        // Low Stock
+        Route::get('/equipment/low-stock', [TenantEquipmentController::class, 'lowStock'])->name('equipment.low-stock');
+    
+        // Export
+        Route::get('/equipment/export', [TenantEquipmentController::class, 'export'])->name('equipment.export');
+    
+        // Settings
+        Route::post('/equipment/settings/update', [TenantEquipmentController::class, 'updateSettings'])->name('equipment.settings.update');
+
         });
 
         // TR-069 Devices
