@@ -26,7 +26,10 @@ class TenantPaymentController extends Controller
         $businessName = $user->tenant?->name ?? 'ISP';
         
         $payments = TenantPayment::query()
-            ->where('tenant_id', $tenantId)
+            ->where(function ($q) use ($tenantId) {
+                $q->where('tenant_id', $tenantId)
+                  ->orWhereNull('tenant_id');
+            })
             ->whereNotNull('paid_at')
             ->with('user')
             ->when($request->search, function ($q) use ($request) {
@@ -99,7 +102,10 @@ class TenantPaymentController extends Controller
 
         // Get all payments for summary (no pagination, ignore pagination and filters except search/disbursement)
         $allPayments = TenantPayment::query()
-            ->where('tenant_id', $tenantId)
+            ->where(function ($q) use ($tenantId) {
+                $q->where('tenant_id', $tenantId)
+                  ->orWhereNull('tenant_id');
+            })
             ->whereNotNull('paid_at')
             ->with('user')
             ->when($request->search, function ($q) use ($request) {
@@ -213,8 +219,11 @@ class TenantPaymentController extends Controller
 
 
     public function update(Request $request, $id)
-    {
-        $tenantPayment = TenantPayment::findOrFail($id);
+{
+    // Look up by UUID, bypassing tenant scope so unassigned (tenant_id=null) payments are also found
+    $tenantPayment = TenantPayment::withoutGlobalScope('tenant')
+        ->where('uuid', $id)
+        ->firstOrFail();
 
         // Security check: Only manual payments or unassigned system payments can be edited
         $isManual = ($tenantPayment->payment_method === 'manual' || ($tenantPayment->created_by && !$tenantPayment->payment_method));
@@ -224,7 +233,7 @@ class TenantPaymentController extends Controller
 
         $data = $request->validate([
             'user_id' => 'sometimes|exists:network_users,id',
-            'receipt_number' => 'required|string|max:255|unique:tenant_payments,receipt_number,' . $id,
+            'receipt_number' => 'required|string|max:255|unique:tenant_payments,receipt_number,' . $tenantPayment->id,
             'amount' => 'required|numeric|min:0',
             'paid_at' => 'required|date',
         ]);
@@ -237,6 +246,9 @@ class TenantPaymentController extends Controller
 
             // If this was an unassigned payment and now has a user, trigger renewal
             if ($tenantPayment->user_id === null) {
+                // Also set tenant_id from the user being assigned
+                $data['tenant_id'] = $user->tenant_id;
+
                 Log::info('Manually assigning C2B payment to user', ['payment_id' => $tenantPayment->id, 'user_id' => $user->id]);
                 app(\App\Services\Tenants\RenewalService::class)->processPayment($user, $tenantPayment->amount);
                 
@@ -253,7 +265,7 @@ class TenantPaymentController extends Controller
             }
         }
         
-        $user = $user ?? $tenantPayment->user;
+        $tenantPayment->update($data);
 
         return back()->with('success', 'Payment updated.');
     }
