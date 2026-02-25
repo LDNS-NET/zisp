@@ -176,12 +176,16 @@ class TenantPaymentController extends Controller
     {
         $data = $request->validate([
             'user_id' => 'required|exists:network_users,id',
-            'receipt_number' => 'required|string|max:255|unique:tenant_payments,receipt_number',
+            'receipt_number' => 'nullable|string|max:255|unique:tenant_payments,receipt_number',
             'amount' => 'required|numeric|min:0',
             'paid_at' => 'required|date',
             'payment_mode' => 'required|string|in:cash,transfer',
             'comment' => 'nullable|string',
         ]);
+
+        if (empty($data['receipt_number'])) {
+            $data['receipt_number'] = 'MAN-' . strtoupper(bin2hex(random_bytes(4)));
+        }
 
         $user = NetworkUser::findOrFail($data['user_id']);
 
@@ -237,7 +241,7 @@ class TenantPaymentController extends Controller
 
         $data = $request->validate([
             'user_id' => 'sometimes|exists:network_users,id',
-            'receipt_number' => 'required|string|max:255|unique:tenant_payments,receipt_number,' . $tenantPayment->id,
+            'receipt_number' => 'nullable|string|max:255|unique:tenant_payments,receipt_number,' . $tenantPayment->id,
             'amount' => 'required|numeric|min:0',
             'paid_at' => 'required|date',
             'payment_mode' => 'sometimes|string|in:cash,transfer',

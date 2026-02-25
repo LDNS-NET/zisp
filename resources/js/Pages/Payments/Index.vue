@@ -1078,7 +1078,7 @@ function generatePaymentConfirmation(p = null) {
                         <div class="sm:col-span-2">
                             <InputLabel for="receipt_number" value="Receipt / Transaction Number" class="dark:text-slate-300" />
                             <TextInput id="receipt_number" v-model="form.receipt_number" type="text" 
-                                class="mt-1 block w-full rounded-xl" placeholder="e.g. QWE123RTY" required />
+                                class="mt-1 block w-full rounded-xl" placeholder="Optional for cash payments..." />
                             <InputError :message="form.errors.receipt_number" class="mt-1" />
                         </div>
 
