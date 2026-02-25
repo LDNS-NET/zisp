@@ -97,7 +97,7 @@ class TenantPaymentController extends Controller
                     'disbursement_label' => $status === 'testing' ? 'Testing Mode' : ($status === 'pending' ? 'Awaiting Disbursement' : ($status === 'completed' ? 'Disbursed / Direct' : ucfirst($status))),
                     'disbursement_ref' => $payment->disbursement_transaction_id,
                     'comment' => $payment->comment,
-                    'payment_mode' => $payment->payment_mode,
+                    'payment_mode' => $isManual ? $payment->payment_mode : null,
                     'business_name' => $businessName,
                 ];
             });
@@ -160,6 +160,7 @@ class TenantPaymentController extends Controller
                     'editable' => $isManual,
                     'checked_label' => $checkedBool ? 'Yes' : 'No',
                     'disbursement_label' => $status === 'testing' ? 'Testing Mode' : ucfirst($status),
+                    'payment_mode' => $isManual ? $payment->payment_mode : null,
                     'business_name' => $businessName,
                 ];
             });
@@ -227,11 +228,11 @@ class TenantPaymentController extends Controller
 
 
     public function update(Request $request, $id)
-{
-    // Look up by UUID, bypassing tenant scope so unassigned (tenant_id=null) payments are also found
-    $tenantPayment = TenantPayment::withoutGlobalScope('tenant')
-        ->where('uuid', $id)
-        ->firstOrFail();
+    {
+        // Look up by UUID, bypassing tenant scope so unassigned (tenant_id=null) payments are also found
+        $tenantPayment = TenantPayment::withoutGlobalScope('tenant')
+            ->where('uuid', $id)
+            ->firstOrFail();
 
         // Security check: Only manual payments or unassigned system payments can be edited
         $isManual = ($tenantPayment->payment_method === 'manual' || ($tenantPayment->created_by && !$tenantPayment->payment_method));
@@ -282,11 +283,15 @@ class TenantPaymentController extends Controller
 
     public function destroy($id)
     {
-        $tenantPayment = TenantPayment::findOrFail($id);
+        $tenantPayment = TenantPayment::withoutGlobalScope('tenant')
+            ->where('uuid', $id)
+            ->firstOrFail();
 
-        // Security check: Only manual payments can be deleted
+        // Security check: Only manual payments or unassigned system payments can be deleted
         $isManual = ($tenantPayment->payment_method === 'manual' || ($tenantPayment->created_by && !$tenantPayment->payment_method));
-        abort_unless($isManual, 403, 'System payments cannot be deleted.');
+        $isUnassigned = ($tenantPayment->user_id === null);
+
+        abort_unless($isManual || $isUnassigned, 403, 'System payments cannot be deleted.');
 
         $tenantPayment->delete();
 
@@ -300,10 +305,12 @@ class TenantPaymentController extends Controller
             return back()->with('error', 'No payments selected for deletion.');
         }
         
-        // Only delete manual payments
-        TenantPayment::whereIn('id', $ids)
+        // Only delete manual payments or unassigned ones
+        TenantPayment::withoutGlobalScope('tenant')
+            ->whereIn('uuid', $ids)
             ->where(function($q) {
                 $q->where('payment_method', 'manual')
+                  ->orWhereNull('user_id')
                   ->orWhere(function($q2) {
                       $q2->whereNotNull('created_by')
                          ->whereNull('payment_method');
@@ -460,12 +467,6 @@ class TenantPaymentController extends Controller
                 'provider' => $payment->payment_method
             ]);
 
-            // Dispatch job to check payment status (using payment model)
-            // For Tinypesa, we primarily rely on Webhook, but polling might be supported if there's an endpoint.
-            // Tinypesa doesn't strictly have a query endpoint in V1 (it uses callback), so we skip polling or keep it if generic.
-            // MpesaService logic is generic, so we can keep it if it checks logic, BUT CheckMpesaPaymentStatusJob likely uses MpesaService query.
-            // We should only dispatch if provider is mpesa.
-            
             if ($payment->payment_method === 'mpesa') {
                 \App\Jobs\CheckMpesaPaymentStatusJob::dispatch($payment)
                     ->delay(now()->addSeconds(30));
@@ -487,8 +488,6 @@ class TenantPaymentController extends Controller
                 'amount' => $data['amount']
             ]);
 
-            // Do NOT create payment record on failure
-            
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to initiate STK Push: ' . $e->getMessage(),
@@ -496,9 +495,6 @@ class TenantPaymentController extends Controller
         }
     }
 
-    /**
-     * Update payment status from IntaSend callback
-     */
     public function updatePaymentStatus($receiptNumber, $status, $responseData = [])
     {
         $payment = TenantPayment::where('receipt_number', $receiptNumber)->first();
@@ -521,9 +517,6 @@ class TenantPaymentController extends Controller
         return $payment->update($updateData);
     }
 
-    /**
-     * Normalize phone number based on country dial code.
-     */
     private function formatPhoneNumber(string $phone, string $dialCode): ?string
     {
         $phone = preg_replace('/\D/', '', $phone);

@@ -814,7 +814,7 @@ function generatePaymentConfirmation(p = null) {
                                             <div class="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-slate-400">
                                                 <PackageIcon class="h-3 w-3" />
                                                 {{ item.checked_label === 'Yes' ? 'Confirmed' : 'Unchecked' }}
-                                                <span v-if="item.payment_mode" class="ml-1 px-1 bg-slate-100 dark:bg-slate-700 rounded">{{ item.payment_mode }}</span>
+                                                <span v-if="item.is_manual && item.payment_mode" class="ml-1 px-1 bg-slate-100 dark:bg-slate-700 rounded">{{ item.payment_mode }}</span>
                                             </div>
                                         </div>
                                     </td>
@@ -958,7 +958,7 @@ function generatePaymentConfirmation(p = null) {
                                                 </span>
                                             </div>
                                         </div>
-                                        <div>
+                                        <div v-if="paymentDetails.is_manual">
                                             <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Payment Mode</p>
                                             <p class="text-sm font-semibold text-slate-700 dark:text-slate-200 uppercase">{{ paymentDetails.payment_mode || 'N/A' }}</p>
                                         </div>
