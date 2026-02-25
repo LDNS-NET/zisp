@@ -25,7 +25,7 @@ class StaffSecurityMiddleware
         }
 
         // Skip security enforcement for SuperAdmins and TenantAdmins (owners)
-        if ($user->hasRole('superadmin') || $user->hasRole('tenant_admin')) {
+        if ($user->roles->contains('name', 'superadmin') || $user->roles->contains('name', 'tenant_admin')) {
             return $next($request);
         }
 

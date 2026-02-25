@@ -23,7 +23,7 @@ const props = defineProps({
   }
 })
 
-const perPageOptions = [10, 20, 50, 100]
+const perPageOptions = [10, 20, 50, 100, 200, 500 ]
 const selectedPerPage = ref(props.perPage)
 
 // Handle changes in selected per-page

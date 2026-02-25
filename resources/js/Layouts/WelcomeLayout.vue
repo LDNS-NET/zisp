@@ -44,12 +44,12 @@ const handleNavClick = (e, href) => {
 };
 
 const openX = () => {
-    window.open('https://x.com/ATG_Officia', '_blank');
+    window.open('https://x.com/mfire_networks', '_blank');
 };
 
 const openTikTok = () => {
     window.open(
-        'https://www.tiktok.com/@zyraaf_cloud',
+        'https://www.tiktok.com/@mfirenetworks',
         '_blank',
         'noopener,noreferrer'
     );
@@ -57,7 +57,7 @@ const openTikTok = () => {
 
 const openTube = () => {
     window.open(
-        'https://www.youtube.com/@zyraaf_cloud',
+        'https://www.youtube.com/@mfire_networks',
         '_blank',
         'noopener,noreferrer'
     );
@@ -120,7 +120,7 @@ const openTube = () => {
                         />
                         <div class="flex flex-col">
                             <span class="font-extrabold text-xl text-white tracking-tight leading-none drop-shadow-md">
-                                Mfire ISP Manager
+                                ZimaRadius ISP Manager
                             </span>
                             <span class="text-[10px] font-medium text-orange-400 uppercase tracking-widest leading-none mt-1 drop-shadow-sm">
                                 Happiness in every surf
@@ -256,19 +256,7 @@ const openTube = () => {
         <footer class="relative border-t border-white/10 bg-gray-900/50 backdrop-blur-sm w-full pt-16 pb-8">
             <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
-                    <!-- Product -->
-                    <div>
-                        <h3 class="text-sm font-semibold text-white tracking-wider uppercase mb-4">Product</h3>
-                        <ul class="space-y-3">
-                            <li><a href="#features" class="text-gray-400 hover:text-orange-400 transition-colors">Features</a></li>
-                            <li><a href="#how-it-works" class="text-gray-400 hover:text-orange-400 transition-colors">How It Works</a></li>
-                            <li><a href="#advanced" class="text-gray-400 hover:text-orange-400 transition-colors">Advanced</a></li>
-                            <li><a href="#demo" class="text-gray-400 hover:text-orange-400 transition-colors">Demo</a></li>
-                            <li><a href="#pricing" class="text-gray-400 hover:text-orange-400 transition-colors">Pricing</a></li>
-                        </ul>
-                    </div>
-
-                    <!-- Company -->
+                    <!-- Company 
                     <div>
                         <h3 class="text-sm font-semibold text-white tracking-wider uppercase mb-4">Company</h3>
                         <ul class="space-y-3">
@@ -277,9 +265,9 @@ const openTube = () => {
                             <li><a href="#" class="text-gray-400 hover:text-orange-400 transition-colors">Careers</a></li>
                             <li><a href="#" class="text-gray-400 hover:text-orange-400 transition-colors">Contact</a></li>
                         </ul>
-                    </div>
+                    </div> -->
 
-                    <!-- Resources -->
+                    <!-- Resources --
                     <div>
                         <h3 class="text-sm font-semibold text-white tracking-wider uppercase mb-4">Resources</h3>
                         <ul class="space-y-3">
@@ -288,9 +276,9 @@ const openTube = () => {
                             <li><a href="#" class="text-gray-400 hover:text-orange-400 transition-colors">API Reference</a></li>
                             <li><a href="#" class="text-gray-400 hover:text-orange-400 transition-colors">Status</a></li>
                         </ul>
-                    </div>
+                    </div> -->
 
-                    <!-- Legal -->
+                    <!-- Legal --
                     <div>
                         <h3 class="text-sm font-semibold text-white tracking-wider uppercase mb-4">Legal</h3>
                         <ul class="space-y-3">
@@ -298,7 +286,7 @@ const openTube = () => {
                             <li><a href="#" class="text-gray-400 hover:text-orange-400 transition-colors">Terms</a></li>
                             <li><a href="#" class="text-gray-400 hover:text-orange-400 transition-colors">Cookie Policy</a></li>
                         </ul>
-                    </div>
+                    </div> -->
                 </div>
 
                 <div class="border-t border-white/10 pt-8 flex flex-col md:flex-row items-center justify-between">
@@ -308,7 +296,7 @@ const openTube = () => {
                         </p>
                         <span class="hidden md:block text-gray-600">|</span>
                         <p class="text-sm text-gray-500 font-light">
-                            Built by <a href="https://zyraafcloud.com" target="_blank" class="text-orange-500 hover:text-orange-400 transition-colors">ZyraafCloud Networks</a>
+                            Built by <a href="https://mfireisp.com" target="_blank" class="text-orange-500 hover:text-orange-400 transition-colors">ZimaRadius</a>
                         </p>
                     </div>
                     <div class="flex gap-6 mt-6 md:mt-0">

@@ -22,7 +22,7 @@ class VoucherController extends Controller
 
         if ($search = $request->query('search')) {
             $query->where(fn($q) => $q->where('code', 'like', "%{$search}%")
-                                        ->orWhere('name', 'like', "%{$search}%"));
+                                        ->orWhereHas('package', fn($pq) => $pq->where('name', 'like', "%{$search}%")));
         }
 
         if ($status = $request->query('status')) {

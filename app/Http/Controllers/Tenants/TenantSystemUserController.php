@@ -47,8 +47,13 @@ class TenantSystemUserController extends Controller
         
         $roles = Role::whereIn('name', [
             'admin', 'customer_care', 'technical', 
-            'network_engineer', 'marketing', 'network_admin'
+            'network_engineer', 'marketing', 'network_admin',
+            'Finance'
         ])->get();
+
+        // Debug logging
+        \Log::info('Staff Index - Roles count: ' . $roles->count());
+        \Log::info('Staff Index - Roles: ' . $roles->pluck('name')->toJson());
 
         $permissions = Permission::all();
         $activities = TenantActivity::where('tenant_id', $tenantId)->latest()->take(100)->get();

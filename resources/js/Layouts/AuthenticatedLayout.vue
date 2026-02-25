@@ -36,8 +36,16 @@ import {
     ChevronDown,
     Wrench,
     Radio,
-    Router
+    Router,
+    LockIcon,
+    SubscriptIcon,
+    Package,
+    Cog,
+    Download,
+    Printer,
+    BookOpen
 } from 'lucide-vue-next';
+import { PageManuals, GlobalHelp } from '@/Constants/PageManuals';
 
 const { theme, setTheme } = useTheme();
 const showingNavigationDropdown = ref(false);
@@ -85,48 +93,74 @@ const toggleGroup = (groupName) => {
 };
 
 const navigation = [
+    // Dashboard link with permission check
     { name: 'Dashboard', href: route('dashboard'), icon: LayoutDashboard, active: 'dashboard' },
+    { name: 'Online Users', href: route('activeusers.index'), icon: Activity, active: 'activeusers.*', countKey: 'online_users', roles: ['tenant_admin', 'admin', 'customer_care'], permission: 'view_online_users' },
+
+    
+    // Customers group with detailed permissions
+    { name: 'Customers', icon: Users, children: [
+        { name: 'Users', href: route('users.index'), active: 'users.*', countKey: 'all_users', roles: ['tenant_admin', 'admin', 'marketing', 'customer_care', 'technical'], permission: 'view_users' },
+        { name: 'My Leads', href: route('leads.index'), active: 'leads.*', countKey: 'leads', roles: ['tenant_admin', 'admin', 'marketing'], permission: 'view_leads' },
+        { name: 'Compensations', href: route('compensations.index'), active: 'compensations.*', roles: ['tenant_admin', 'admin'], permission: 'manage_compensations' },
+        
+    ]},
+
+    // Services group with detailed permissions
+    { name: 'Packages', href: route('packages.index'), icon: Package, active: 'packages.*', countKey: 'packages', roles: ['tenant_admin', 'admin', 'marketing'], permission: 'view_packages' },
+    { name: 'Vouchers', href: route('vouchers.index'), icon: SubscriptIcon, active: 'vouchers.*', countKey: 'vouchers', roles: ['tenant_admin', 'admin', 'marketing', 'customer_care'], permission: 'view_vouchers' },
+    // Settings link
+    { name: 'Team', href: route('settings.staff.index'), icon: Users, active: 'settings.staff.*', roles: ['tenant_admin'], permission: 'manage_staff' },
+    
+
+    
+    { name: 'Finance', icon: Banknote, children: [
+        { name: 'Payments', href: route('payments.index'), active: 'payments.*', roles: ['tenant_admin', 'Finance'], permission: 'view_payments' },
+        { name: 'Invoices', href: route('invoices.index'), active: 'invoices.*', countKey: 'invoices', roles: ['tenant_admin', 'admin', 'customer_care', 'Finance'], permission: 'view_invoices' },
+    ]},
+
+    // Analytics group with more detailed permissions
     { name: 'Analytics', icon: BarChart3, children: [
         { name: 'Traffic Analytics', href: route('analytics.traffic'), active: 'analytics.traffic', roles: ['tenant_admin', 'admin', 'network_engineer', 'technical'], permission: 'view_traffic_analytics' },
         { name: 'Network Topology', href: route('analytics.topology'), active: 'analytics.topology', roles: ['tenant_admin', 'network_engineer', 'technical'], permission: 'view_topology' },
         { name: 'Predictive Insights', href: route('analytics.predictions'), active: 'analytics.predictions', roles: ['tenant_admin', 'admin', 'network_engineer'], permission: 'view_predictions' },
-        { name: 'Financial Intelligence', href: route('analytics.finance'), active: 'analytics.finance', roles: ['tenant_admin'], permission: 'view_finance' },
-        { name: 'Report Builder', href: route('analytics.reports.index'), active: 'analytics.reports.*', roles: ['tenant_admin'], permission: 'view_reports' },
+        { name: 'Financial Intelligence', href: route('analytics.finance'), active: 'analytics.finance', roles: ['tenant_admin', 'Finance'], permission: 'view_finance' },
+        { name: 'Report Builder', href: route('analytics.reports.index'), active: 'analytics.reports.*', roles: ['tenant_admin', 'Finance'], permission: 'view_reports' },
     ]},
-    { name: 'User Management', icon: Users, children: [
-        { name: 'Online Users', href: route('activeusers.index'), active: 'activeusers.*', countKey: 'online_users', roles: ['tenant_admin', 'admin', 'customer_care', 'technical'], permission: 'view_online_users' },
-        { name: 'All Users', href: route('users.index'), active: 'users.*', countKey: 'all_users', roles: ['tenant_admin', 'admin', 'customer_care', 'technical'], permission: 'view_users' },
-        { name: 'My Leads', href: route('leads.index'), active: 'leads.*', countKey: 'leads', roles: ['tenant_admin', 'admin', 'marketing'], permission: 'view_leads' },
-    ]},
-    { name: 'Finance', icon: Banknote, children: [
-        { name: 'Packages', href: route('packages.index'), active: 'packages.*', countKey: 'packages', roles: ['tenant_admin', 'admin', 'marketing'], permission: 'view_packages' },
-        { name: 'Vouchers', href: route('vouchers.index'), active: 'vouchers.*', countKey: 'vouchers', roles: ['tenant_admin', 'admin', 'marketing', 'customer_care'], permission: 'view_vouchers' },
-        { name: 'Payments', href: route('payments.index'), active: 'payments.*', roles: ['tenant_admin'], permission: 'view_payments' },
-        { name: 'Invoices', href: route('invoices.index'), active: 'invoices.*', countKey: 'invoices', roles: ['tenant_admin', 'admin', 'customer_care'], permission: 'view_invoices' },
-    ]},
+
+    // Network group with detailed permissions
     { name: 'Network', icon: Network, children: [
         { name: 'Mikrotiks', href: route('mikrotiks.index'), active: 'mikrotiks.*', countKey: 'mikrotiks', roles: ['tenant_admin', 'network_engineer', 'technical', 'network_admin'], permission: 'view_routers' },
-        { name: 'TR-069 Devices', href: route('devices.index'), active: 'devices.*', roles: ['tenant_admin', 'network_engineer', 'technical'], permission: 'view_equipment' },
+        //{ name: 'TR-069 Devices', href: route('devices.index'), active: 'devices.*', roles: ['tenant_admin', 'network_engineer', 'technical'], permission: 'view_equipment' },
         { name: 'Equipment', href: route('equipment.index'), active: 'equipment.*', roles: ['tenant_admin', 'admin', 'network_engineer', 'technical'], permission: 'view_equipment' },
-        { name: 'Content Filter', href: route('settings.content-filter.index'), active: 'settings.content-filter.*', roles: ['tenant_admin', 'network_engineer', 'network_admin'], permission: 'manage_filters' },
     ]},
+
+    
+
+    // Field Operations group
     { name: 'Field Ops', icon: Wrench, children: [
         { name: 'My Installations', href: route('tenant.installations.my-installations'), active: 'tenant.installations.my-installations', roles: ['technical', 'technician'], permission: 'view_installations' },
         { name: 'Dispatch Board', href: route('tenant.installations.index'), active: 'tenant.installations.index', roles: ['tenant_admin', 'admin', 'network_engineer', 'technical', 'technician'], permission: 'view_installations' },
     ]},
+    // Support group
     { name: 'Support', icon: MessageSquare, children: [
         { name: 'SMS', href: route('sms.index'), active: 'sms.*', roles: ['tenant_admin', 'admin', 'marketing', 'customer_care'], permission: 'view_sms' },
         { name: 'Templates', href: route('smstemplates.index'), active: 'smstemplates.*', roles: ['tenant_admin', 'admin', 'marketing', 'customer_care'], permission: 'view_templates' },
-        { name: 'Tickets', href: route('tickets.index'), active: 'tickets.*', countKey: 'tickets', roles: ['tenant_admin', 'admin', 'customer_care', 'technical'], permission: 'view_tickets' },
+        { name: 'Tickets', href: route('tickets.index'), active: 'tickets.*', countKey: 'tickets', roles: ['tenant_admin', 'admin', 'marketing', 'customer_care', 'technical'], permission: 'view_tickets' },
     ]},
-    { name: 'System', icon: Settings, children: [
-        { name: 'Team', href: route('settings.staff.index'), active: 'settings.staff.*', roles: ['tenant_admin'], permission: 'manage_staff' },
+
+    //security
+    { name: 'Security', icon: LockIcon, children: [
+        { name: 'Content Filter', href: route('settings.content-filter.index'), active: 'settings.content-filter.*', roles: ['tenant_admin', 'network_engineer', 'network_admin'], permission: 'manage_filters' },
     ]}
+    
+    
 ];
 
 const page = usePage();
 const user = page.props.auth.user;
-const tenantLogo = page.props.tenant?.logo;
+const tenant = page.props.tenant;
+const tenantLogo = tenant?.logo;
 
 // Helper to check access for a single item
 const hasAccess = (item) => {
@@ -174,6 +208,24 @@ const canAccessDomainSettings = computed(() => user.roles.includes('tenant_admin
 function toggleSidebar() {
     sidebarOpen.value = !sidebarOpen.value;
 }
+
+// Manual / Documentation Logic
+const showManualModal = ref(false);
+const currentPageCode = computed(() => {
+    // Exact match first, then partial match for generic info
+    const currentRoute = route().current();
+    if (PageManuals[currentRoute]) return currentRoute;
+    
+    // Fallback search for base route patterns
+    const baseRoute = currentRoute.split('.')[0];
+    return Object.keys(PageManuals).find(key => key.startsWith(baseRoute)) || null;
+});
+
+const currentManual = computed(() => PageManuals[currentPageCode.value] || GlobalHelp);
+
+const printManual = () => {
+    window.print();
+};
 </script>
 
 <template>
@@ -363,7 +415,7 @@ function toggleSidebar() {
             </div>
             <header class="h-16 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between px-4 sm:px-6 lg:px-8 z-30 sticky top-0 backdrop-blur-md bg-opacity-80 dark:bg-opacity-80">
                 
-                <!-- Left: Mobile Toggle & Title -->
+                <!-- Left: Mobile Toggle & Name -->
                 <div class="flex items-center gap-4">
                     <button 
                         @click="toggleSidebar" 
@@ -371,43 +423,26 @@ function toggleSidebar() {
                     >
                         <Menu class="w-6 h-6" />
                     </button>
-                    <!-- Breadcrumbs or Title could go here -->
+                    <!-- User/Tenant Name -->
+                    <div class="text-lg font-semibold text-gray-900 dark:text-white">{{ user.name ?? tenant?.name }}</div>
                 </div>
 
-                <!-- Right: Actions -->
+                <!-- Right: Actions/Dropdown -->
                 <div class="flex items-center gap-2 sm:gap-4">
-                     <!-- Theme Toggle -->
+                    <!-- Manual Button -->
                     <button 
-                        @click="setTheme(theme === 'dark' ? 'light' : 'dark')"
-                        class="p-2 text-gray-500 hover:bg-gray-100 rounded-full dark:text-gray-400 dark:hover:bg-slate-800 transition-colors"
-                        :title="theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
+                        @click="showManualModal = true"
+                        class="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 font-black text-[0.65rem] uppercase tracking-widest hover:bg-orange-600 hover:text-white transition-all duration-300"
                     >
-                        <Sun v-if="theme === 'dark'" class="w-5 h-5" />
-                        <Moon v-else class="w-5 h-5" />
+                        <HelpCircle class="w-4 h-4" />
+                        {{ currentManual.title }} Manual
                     </button>
-                    
-                    <!-- Notifications -->
-                    <Link 
-                        v-if="canAccessDomainSettings"
-                        :href="route('domain-requests.index')" 
-                        class="relative p-2 text-gray-500 hover:bg-gray-100 rounded-full dark:text-gray-400 dark:hover:bg-slate-800 transition-colors"
-                        title="Notifications"
-                    >
-                        <Bell class="w-5 h-5" />
-                        <span 
-                            v-if="user.unread_notifications_count > 0"
-                            class="absolute top-1.5 right-1.5 flex h-2 w-2 items-center justify-center rounded-full bg-red-500 ring-2 ring-white dark:ring-slate-900"
-                        >
-                        </span>
-                    </Link>
 
-                    <div class="h-6 w-px bg-gray-200 dark:bg-slate-700 hidden sm:block"></div>
-
+                    <!-- User Dropdown -->
                     <Dropdown align="right" width="48">
                         <template #trigger>
                             <button class="flex items-center gap-2 pl-2 pr-1 py-1.5 rounded-full hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors">
-                                <span class="hidden sm:block text-sm font-medium text-gray-700 dark:text-gray-200">{{ user.name }}</span>
-                                <ChevronDown class="w-4 h-4 text-gray-400" />
+                                <Cog class="w-7 h-7 text-gray-700 dark:text-gray-200" />
                             </button>
                         </template>
 
@@ -416,7 +451,14 @@ function toggleSidebar() {
                                 <div class="font-medium text-gray-900 dark:text-white">{{ user.name }}</div>
                                 <div class="text-sm text-gray-500 dark:text-gray-400">{{ user.email }}</div>
                             </div>
-                            
+                                <button 
+                                    @click="setTheme(theme === 'dark' ? 'light' : 'dark')"
+                                    class="p-2 text-gray-500 hover:bg-gray-100 rounded-full dark:text-gray-400 dark:hover:bg-slate-800 transition-colors"
+                                    :title="theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
+                                >
+                                    <Sun v-if="theme === 'dark'" class="w-5 h-5" />
+                                    <Moon v-else class="w-5 h-5" />
+                                </button>
                             <DropdownLink :href="route('profile.edit')" class="flex items-center gap-2">
                                 <FolderEdit class="w-4 h-4" /> Profile
                             </DropdownLink>
@@ -424,7 +466,7 @@ function toggleSidebar() {
                                 <Settings class="w-4 h-4" /> Settings
                             </DropdownLink>
                             <DropdownLink v-if="canAccessDomainSettings" :href="route('domain-requests.index')" class="flex items-center gap-2">
-                                <Globe class="w-4 h-4" /> Domain Settings
+                                <Globe class="w-4 h-4" />Request Domain
                             </DropdownLink>
                             <div class="border-t border-gray-100 dark:border-slate-700 my-1"></div>
                             <DropdownLink :href="route('logout')" method="post" as="button" class="flex items-center gap-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">
@@ -433,6 +475,7 @@ function toggleSidebar() {
                         </template>
                     </Dropdown>
                 </div>
+  
             </header>
 
             <!-- Page Header (Title & Actions) -->
@@ -450,6 +493,126 @@ function toggleSidebar() {
             </main>
         </div>
     </div>
+
+    <!-- Professional Manual Modal -->
+    <div v-if="showManualModal" class="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-950/90 backdrop-blur-md print:hidden">
+        <div class="w-full max-w-4xl rounded-[3rem] bg-white shadow-[0_32px_128px_rgba(0,0,0,0.5)] dark:bg-slate-900 border border-white/10 relative overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-orange-600 via-red-600 to-pink-600"></div>
+            
+            <div class="p-10 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between flex-shrink-0">
+                <div class="flex items-center gap-4">
+                    <div class="h-14 w-14 rounded-3xl bg-orange-600 flex items-center justify-center text-white shadow-xl shadow-orange-600/30">
+                        <BookOpen class="h-8 w-8" />
+                    </div>
+                    <div>
+                        <h2 class="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Operational Manual</h2>
+                        <p class="text-sm font-bold text-slate-400 uppercase tracking-widest">{{ currentManual.title }}</p>
+                    </div>
+                </div>
+                <div class="flex gap-3">
+                    <button @click="printManual" class="flex items-center gap-2 px-6 py-3 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-black text-xs uppercase tracking-widest hover:bg-orange-600 hover:text-white transition-all">
+                        <Download class="w-4 h-4" />
+                        Save PDF
+                    </button>
+                    <button @click="showManualModal = false" class="p-4 rounded-3xl bg-slate-50 dark:bg-slate-800 text-slate-400 hover:text-red-500 transition-all">
+                        <X class="h-6 w-6" />
+                    </button>
+                </div>
+            </div>
+
+            <div id="manual-content" class="flex-1 overflow-y-auto p-12 custom-scrollbar space-y-12">
+                <!-- Overview -->
+                <section class="space-y-4">
+                    <h3 class="text-[0.65rem] font-black uppercase tracking-[0.3em] text-orange-600 dark:text-orange-400">Section I: Tactical Overview</h3>
+                    <p class="text-xl font-bold text-slate-800 dark:text-slate-200 leading-relaxed">{{ currentManual.description }}</p>
+                </section>
+
+                <div class="grid gap-12 lg:grid-cols-2">
+                    <!-- Workflow -->
+                    <section class="space-y-6">
+                        <h3 class="text-[0.65rem] font-black uppercase tracking-[0.3em] text-orange-600 dark:text-orange-400">Section II: Operational Workflow</h3>
+                        <div class="space-y-4">
+                            <div v-for="(step, idx) in currentManual.workflow" :key="idx" class="relative pl-8">
+                                <div class="absolute left-0 top-1.5 h-3 w-3 rounded-full bg-orange-600"></div>
+                                <div v-if="idx < currentManual.workflow.length - 1" class="absolute left-[5px] top-4 w-0.5 h-full bg-slate-100 dark:bg-slate-800"></div>
+                                <h4 class="font-black text-slate-900 dark:text-white uppercase tracking-tight">{{ step.step }}</h4>
+                                <p class="text-sm text-slate-500 font-medium mt-1">{{ step.explanation }}</p>
+                                <div class="mt-2 p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900/30">
+                                    <p class="text-[0.6rem] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest">Rationale</p>
+                                    <p class="text-[0.7rem] text-slate-600 dark:text-slate-400 font-bold italic mt-0.5">{{ step.why }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Impacts -->
+                    <section class="space-y-6">
+                        <h3 class="text-[0.65rem] font-black uppercase tracking-[0.3em] text-orange-600 dark:text-orange-400">Section III: Environmental Impact</h3>
+                        <div class="p-8 rounded-[2.5rem] bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 relative overflow-hidden group">
+                            <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                                <Activity class="h-24 w-24" />
+                            </div>
+                            <p class="relative z-10 text-slate-600 dark:text-slate-300 font-bold leading-relaxed italic">
+                                "{{ currentManual.impacts || GlobalHelp.description }}"
+                            </p>
+                        </div>
+                        
+                        <div v-if="GlobalHelp.tips" class="space-y-4">
+                            <h4 class="text-[0.65rem] font-black uppercase tracking-widest text-slate-400">Mastery Tips</h4>
+                            <ul class="space-y-2">
+                                <li v-for="tip in GlobalHelp.tips" :key="tip" class="flex items-center gap-2 text-xs font-bold text-slate-500 dark:text-slate-400">
+                                    <div class="h-1 w-1 bg-blue-500 rounded-full"></div>
+                                    {{ tip }}
+                                </li>
+                            </ul>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            <!-- Print View (Hidden ordinarily) -->
+            <div id="manual-print-section" class="hidden print:block bg-white text-black p-12 min-h-screen w-full">
+                <div class="border-b-4 border-black pb-6 mb-10">
+                    <h1 class="text-5xl font-black uppercase mb-2">{{ currentManual.title }}</h1>
+                    <p class="text-sm font-bold tracking-widest uppercase opacity-60">Zimus ISP Operational Guide — Version 2.0</p>
+                </div>
+
+                <div class="space-y-12">
+                    <section>
+                        <h2 class="text-xs font-black uppercase tracking-[0.3em] mb-4 border-b border-black/10 pb-2">I. Overview & Purpose</h2>
+                        <p class="text-2xl font-bold leading-tight">{{ currentManual.description }}</p>
+                    </section>
+
+                    <section>
+                        <h2 class="text-xs font-black uppercase tracking-[0.3em] mb-6 border-b border-black/10 pb-2">II. Step-by-Step Workflow</h2>
+                        <div class="space-y-8">
+                            <div v-for="(step, idx) in currentManual.workflow" :key="idx" class="border-l-2 border-black pl-6">
+                                <h3 class="text-xl font-black uppercase">{{ idx + 1 }}. {{ step.step }}</h3>
+                                <p class="text-base mt-2">{{ step.explanation }}</p>
+                                <p class="text-sm mt-3 font-bold italic">Why: {{ step.why }}</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section v-if="currentManual.impacts">
+                        <h2 class="text-xs font-black uppercase tracking-[0.3em] mb-4 border-b border-black/10 pb-2">III. Operational Impact</h2>
+                        <p class="text-lg italic border-2 border-black p-6 rounded-2xl bg-slate-50 font-bold">"{{ currentManual.impacts }}"</p>
+                    </section>
+                </div>
+
+                <div class="mt-20 pt-10 border-t border-black/10 flex justify-between items-center text-[0.65rem] font-bold uppercase tracking-widest opacity-40">
+                    <span>Generated on {{ new Date().toLocaleDateString() }}</span>
+                    <span>Confidential Internal Document</span>
+                </div>
+            </div>
+
+            <div class="p-10 border-t border-gray-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex justify-between items-center flex-shrink-0">
+                <span class="text-[0.6rem] font-black text-slate-400 uppercase tracking-widest">© 2026 Zimaradius Digital Archive</span>
+                <button @click="showManualModal = false" class="px-10 py-4 rounded-2xl bg-slate-900 text-white dark:bg-white dark:text-slate-900 font-black text-xs uppercase tracking-widest shadow-xl shadow-slate-900/20 hover:scale-105 active:scale-95 transition-all">Close Manual</button>
+            </div>
+        </div>
+    </div>
+
     <Toast />
 </template>
 
@@ -466,5 +629,21 @@ function toggleSidebar() {
 }
 .custom-scrollbar:hover::-webkit-scrollbar-thumb {
     background-color: rgba(156, 163, 175, 0.5);
+}
+
+@media print {
+    body * {
+        visibility: hidden !important;
+    }
+    #manual-print-section, #manual-print-section * {
+        visibility: visible !important;
+    }
+    #manual-print-section {
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        display: block !important;
+    }
 }
 </style>

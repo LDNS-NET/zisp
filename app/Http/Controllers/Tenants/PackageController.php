@@ -159,12 +159,12 @@ class PackageController extends Controller
     {
         $request->validate([
             'ids' => 'required|array',
-            'ids.*' => 'integer|exists:packages,id',
+            'ids.*' => 'string|exists:packages,uuid',
         ]);
 
         try {
             DB::transaction(function () use ($request) {
-                Package::whereIn('id', $request->ids)->delete();
+                Package::whereIn('uuid', $request->ids)->delete();
             });
 
             return back()->with('success', 'Selected packages deleted successfully.');

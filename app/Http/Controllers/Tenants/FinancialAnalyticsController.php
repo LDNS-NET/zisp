@@ -17,20 +17,40 @@ class FinancialAnalyticsController extends Controller
     /**
      * Display financial intelligence dashboard
      */
-    public function index()
+    public function index(Request $request)
     {
         $tenantId = Auth::user()->tenant_id;
         $currency = Auth::user()->tenant?->currency ?? 'KES';
+
+        // Base query for zone revenue
+        $zoneQuery = NetworkUser::select('network_users.location', DB::raw('SUM(COALESCE(packages.price, tenant_hotspot_packages.price, 0)) as revenue'))
+            ->leftJoin('packages', 'network_users.package_id', '=', 'packages.id')
+            ->leftJoin('tenant_hotspot_packages', 'network_users.hotspot_package_id', '=', 'tenant_hotspot_packages.id')
+            ->whereNotNull('network_users.location')
+            ->where('network_users.location', '!=', '')
+            ->groupBy('network_users.location')
+            ->orderByDesc('revenue');
+
+        if ($request->search) {
+            $zoneQuery->where('network_users.location', 'like', '%' . $request->search . '%');
+        }
 
         return Inertia::render('Analytics/FinancialDashboard', [
             'metrics' => [
                 'financial_health' => $this->getFinancialHealth(),
                 'mrr_trend' => $this->getMrrTrend(),
                 'cash_flow_forecast' => $this->getCashFlowForecast(),
-                'zone_revenue' => $this->getZoneRevenueHeatmap(),
+                'zone_revenue' => $zoneQuery->paginate(10)->withQueryString(),
+                'top_zones' => (clone $zoneQuery)->limit(5)->get(),
                 'payment_methods' => $this->getPaymentMethodsBreakdown(),
+                'fiscal_intelligence' => [
+                    'profit_margin' => $this->getProfitMarginData(),
+                    'churn_rate' => $this->getChurnMetrics(),
+                    'clv' => $this->getEstimatedCLV(),
+                ],
             ],
             'currency' => $currency,
+            'filters' => $request->only(['search']),
         ]);
     }
 
@@ -104,5 +124,51 @@ class FinancialAnalyticsController extends Controller
             ->where('status', 'paid')
             ->groupBy('payment_method')
             ->get();
+    }
+
+    protected function getProfitMarginData()
+    {
+        // Net Profit = (Total Revenue - Operational Costs)
+        $totalRevenue = TenantPayment::where('status', 'paid')->sum('amount');
+        
+        $totalCosts = TenantReportDataPoint::where('category', 'like', '%cost%')
+            ->orWhere('category', 'like', '%expense%')
+            ->sum('value');
+
+        $netProfit = $totalRevenue - $totalCosts;
+
+        return [
+            'revenue' => $totalRevenue,
+            'costs' => $totalCosts,
+            'net_profit' => $netProfit,
+            'margin' => $totalRevenue > 0 ? round(($netProfit / $totalRevenue) * 100, 1) : 0,
+        ];
+    }
+
+    protected function getChurnMetrics()
+    {
+        // Churn Rate = (Expired Users not renewed in 30 days) / (Total Active Users 30 days ago)
+        $totalActiveNow = NetworkUser::where('status', 'active')->count();
+        $expiredRecently = NetworkUser::where('status', 'expired')
+            ->where('updated_at', '>=', now()->subDays(30))
+            ->count();
+            
+        return [
+            'rate' => $totalActiveNow > 0 ? round(($expiredRecently / ($totalActiveNow + $expiredRecently)) * 100, 1) : 0,
+            'count' => $expiredRecently,
+        ];
+    }
+
+    protected function getEstimatedCLV()
+    {
+        // CLV = ARPU * Customer Lifespan
+        // Lifespan approximation = 1 / Churn Rate
+        $health = $this->getFinancialHealth();
+        $churn = $this->getChurnMetrics();
+        
+        $churnRateDecimal = $churn['rate'] / 100;
+        $lifespanMonths = $churnRateDecimal > 0 ? (1 / $churnRateDecimal) : 12; // Default to 12 months if 0 churn
+        
+        return round($health['arpu'] * $lifespanMonths, 2);
     }
 }

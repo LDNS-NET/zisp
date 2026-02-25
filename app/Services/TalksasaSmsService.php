@@ -54,6 +54,7 @@ class TalksasaSmsService
                 return [
                     'success' => true,
                     'message' => 'SMS sent successfully via Talksasa.',
+                    'message_id' => $data['data']['message_id'] ?? null,
                     'provider_response' => $data
                 ];
             }

@@ -6,6 +6,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Notifications\Notifiable;
 use App\Models\Radius\Radcheck;
 use App\Models\Radius\Radreply;
@@ -19,9 +20,19 @@ class NetworkUser extends Authenticatable
 {
     use HasFactory, Notifiable, HasRoles;
 
+    /**
+     * Get the route key for the model.
+     * This tells Laravel to use UUID instead of ID in URLs
+     */
+    public function getRouteKeyName()
+    {
+        return 'uuid';
+    }
+
     protected $table = 'network_users';
 
     protected $fillable = [
+        'uuid',
         'account_number',
         'full_name',
         'username',
@@ -37,12 +48,14 @@ class NetworkUser extends Authenticatable
         'pending_hotspot_package_id',
         'pending_package_activation_at',
         'status',
+        'comment',
         'registered_at',
         'expiry_notified_at',
         'expiry_warning_sent_at',
         'online',
         'expires_at',
         'mac_address',
+        'wallet_balance',
         'created_by',
         'tenant_id',
     ];
@@ -76,6 +89,21 @@ class NetworkUser extends Authenticatable
         return $this->belongsTo(\App\Models\Tenant::class, 'tenant_id');
     }
 
+    public function devices()
+    {
+        return $this->hasMany(\App\Models\Tenants\TenantDevice::class, 'subscriber_id');
+    }
+
+    public function renewals()
+    {
+        return $this->hasMany(PackageRenewal::class, 'user_id')->orderBy('created_at', 'desc');
+    }
+
+    public function compensations()
+    {
+        return $this->hasMany(Compensation::class, 'user_id')->orderBy('created_at', 'desc');
+    }
+
     public static function generateHotspotUsername($tenantId)
     {
         $tenant = \App\Models\Tenant::find($tenantId);
@@ -98,6 +126,22 @@ class NetworkUser extends Authenticatable
 
         // Format with leading zeros (e.g., L001)
         return $prefix . str_pad((string)$nextNumber, 3, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Generate a simple hotspot password: 3 uppercase letters + 3 numbers
+     * E.g., ABC123, XYZ789
+     */
+    public static function generateHotspotPassword()
+    {
+        $letters = '';
+        for ($i = 0; $i < 3; $i++) {
+            $letters .= chr(rand(65, 90)); // A-Z (ASCII 65-90)
+        }
+        
+        $numbers = str_pad((string)rand(0, 999), 3, '0', STR_PAD_LEFT);
+        
+        return $letters . $numbers;
     }
 
     public static function generateAccountNumber($tenantId)
@@ -139,7 +183,35 @@ class NetworkUser extends Authenticatable
         }
 
         // Format with at least 3 digits (e.g. LD001)
+        // Format with at least 3 digits (e.g. LD001)
         return $prefix . str_pad((string)$nextNumber, 3, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Normalize phone number for account number by removing country code and adding leading 0
+     * E.g., 254712345678 -> 0712345678
+     */
+    public static function normalizePhoneNumber($phone)
+    {
+        // Remove any non-digit characters
+        $phone = preg_replace('/\D/', '', $phone);
+        
+        // Common East African country codes to strip
+        $countryCodes = ['254', '255', '256', '250', '257', '211', '252'];
+        
+        foreach ($countryCodes as $code) {
+            if (strpos($phone, $code) === 0) {
+                // Remove country code and add leading 0
+                return '0' . substr($phone, strlen($code));
+            }
+        }
+        
+        // If no country code found and doesn't start with 0, add it
+        if (strpos($phone, '0') !== 0) {
+            return '0' . $phone;
+        }
+        
+        return $phone;
     }
 
     protected static function booted()
@@ -214,8 +286,15 @@ class NetworkUser extends Authenticatable
             }
         });
 
-        /** Fill tenant_id, created_by + generate account number */
+        /**
+         *  Fill tenant_id, created_by + generate account number and UUID
+         */
         static::creating(function ($model) {
+            // Generate UUID for new records
+            if (empty($model->uuid)) {
+                $model->uuid = (string) \Illuminate\Support\Str::uuid();
+            }
+
             if (empty($model->tenant_id)) {
                 if (tenant()) {
                     $model->tenant_id = tenant()->id;
@@ -237,14 +316,24 @@ class NetworkUser extends Authenticatable
             }
 
             if (empty($model->account_number)) {
-                $model->account_number = self::generateAccountNumber($model->tenant_id);
+                if (in_array($model->type, ['pppoe', 'static']) && !empty($model->phone)) {
+                    $model->account_number = self::normalizePhoneNumber($model->phone);
+                } else {
+                    $model->account_number = self::generateAccountNumber($model->tenant_id);
+                }
             }
         });
 
         /**
-         *  Sync with RADIUS after creation
+         *  Sync with RADIUS after creation - ONLY if compensated or paid (has future expiry)
          */
         static::created(function ($user) {
+            // Only sync to RADIUS if they have a future expiry date
+            if (!$user->expires_at || !$user->expires_at->isFuture()) {
+                Log::info("User created without future expiry, skipping RADIUS sync: {$user->username}");
+                return;
+            }
+
             // Create radcheck entry (password)
             Radcheck::create([
                 'username' => $user->username,
@@ -301,21 +390,33 @@ class NetworkUser extends Authenticatable
                 }
 
                 // Absolute Expiration (Works for all types if expires_at is set)
-                if ($user->expires_at) {
-                    Radcheck::create([
-                        'username' => $user->username,
-                        'attribute' => 'Expiration',
-                        'op' => ':=',
-                        'value' => $user->expires_at->format('d M Y H:i:s'),
-                    ]);
-                }
+                Radcheck::create([
+                    'username' => $user->username,
+                    'attribute' => 'Expiration',
+                    'op' => ':=',
+                    'value' => $user->expires_at->format('d M Y H:i:s'),
+                ]);
 
-                // MAC-Auth synchronization
-                if ($user->type === 'hotspot' && !empty($user->mac_address)) {
-                    Radcheck::updateOrCreate(
-                        ['username' => $user->mac_address, 'attribute' => 'Cleartext-Password'],
-                        ['op' => ':=', 'value' => $user->mac_address]
-                    );
+                // MAC-Auth synchronization (Primary and linked devices)
+                if ($user->type === 'hotspot') {
+                    if (!empty($user->mac_address)) {
+                        Radcheck::updateOrCreate(
+                            ['username' => $user->mac_address, 'attribute' => 'Cleartext-Password'],
+                            ['op' => ':=', 'value' => $user->mac_address]
+                        );
+                    }
+
+                    foreach ($user->devices as $device) {
+                        if (!empty($device->mac_address)) {
+                            Radcheck::updateOrCreate(
+                                [
+                                    'username' => $device->mac_address, 
+                                    'attribute' => 'Cleartext-Password'
+                                ],
+                                ['op' => ':=', 'value' => $device->mac_address]
+                            );
+                        }
+                    }
                 }
 
                 // Group (Only for non-hotspot or if specifically needed)
@@ -330,9 +431,29 @@ class NetworkUser extends Authenticatable
         });
 
         /**
-         *  Update RADIUS entries when user is updated
+         *  Update RADIUS entries when user is updated - with guard check
          */
         static::updated(function ($user) {
+            // Remove from RADIUS if not and no future expiry
+            if (!$user->expires_at || !$user->expires_at->isFuture()) {
+                Radcheck::where('username', $user->username)->delete();
+                Radreply::where('username', $user->username)->delete();
+                Radusergroup::where('username', $user->username)->delete();
+                
+                // Also cleanup device macs if hotspot
+                if ($user->type === 'hotspot') {
+                    if (!empty($user->mac_address)) {
+                        Radcheck::where('username', $user->mac_address)->delete();
+                    }
+                    foreach ($user->devices as $device) {
+                        if (!empty($device->mac_address)) {
+                            Radcheck::where('username', $device->mac_address)->delete();
+                        }
+                    }
+                }
+                return;
+            }
+
             // Update password if changed
             Radcheck::updateOrCreate(
                 ['username' => $user->username, 'attribute' => 'Cleartext-Password'],
@@ -388,21 +509,32 @@ class NetworkUser extends Authenticatable
                 }
 
                 // Update Expiration
-                if ($user->expires_at) {
-                    Radcheck::updateOrCreate(
-                        ['username' => $user->username, 'attribute' => 'Expiration'],
-                        ['op' => ':=', 'value' => $user->expires_at->format('d M Y H:i:s')]
-                    );
-                } else {
-                    Radcheck::where('username', $user->username)->where('attribute', 'Expiration')->delete();
-                }
+                Radcheck::updateOrCreate(
+                    ['username' => $user->username, 'attribute' => 'Expiration'],
+                    ['op' => ':=', 'value' => $user->expires_at->format('d M Y H:i:s')]
+                );
 
-                // MAC-Auth synchronization
-                if ($user->type === 'hotspot' && !empty($user->mac_address)) {
-                    Radcheck::updateOrCreate(
-                        ['username' => $user->mac_address, 'attribute' => 'Cleartext-Password'],
-                        ['op' => ':=', 'value' => $user->mac_address]
-                    );
+                // MAC-Auth synchronization (Primary and linked devices)
+                if ($user->type === 'hotspot') {
+                    if (!empty($user->mac_address)) {
+                        Radcheck::updateOrCreate(
+                            ['username' => $user->mac_address, 'attribute' => 'Cleartext-Password'],
+                            ['op' => ':=', 'value' => $user->mac_address]
+                        );
+                    }
+
+                    $user->load('devices');
+                    foreach ($user->devices as $device) {
+                        if (!empty($device->mac_address)) {
+                            Radcheck::updateOrCreate(
+                                [
+                                    'username' => $device->mac_address, 
+                                    'attribute' => 'Cleartext-Password'
+                                ],
+                                ['op' => ':=', 'value' => $device->mac_address]
+                            );
+                        }
+                    }
                 }
 
                 // Cleanup old Access-Period if it exists

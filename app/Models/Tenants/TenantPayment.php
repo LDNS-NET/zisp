@@ -6,12 +6,24 @@ use Illuminate\Database\Eloquent\Model;
 
 class TenantPayment extends Model
 {
+    /**
+     * Get the route key for the model.
+     */
+    public function getRouteKeyName()
+    {
+        return 'uuid';
+    }
+
     protected $table = "tenant_payments";
 
     protected $fillable = [
+        "uuid",
         "user_id",
         "phone",
+        "payment_method",
+        "payment_mode",
         "receipt_number",
+        "comment",
         "amount",
         "checked",
         "paid_at",
@@ -91,6 +103,12 @@ class TenantPayment extends Model
 
     protected static function booted()
     {
+        static::creating(function ($model) {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) \Illuminate\Support\Str::uuid();
+            }
+        });
+
         static::addGlobalScope('tenant', function ($query) {
             if (tenant()) {
                 $query->where('tenant_id', tenant()->id);

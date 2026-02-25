@@ -1,17 +1,32 @@
 <script setup>
-import { computed } from 'vue';
-import { Head, usePage } from '@inertiajs/vue3';
+import { computed, ref, watch } from 'vue';
+import { Head, usePage, router } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import Pagination from '@/Components/Pagination.vue';
 import VueApexCharts from 'vue3-apexcharts';
 import { 
     DollarSign, TrendingUp, TrendingDown, 
     Users, Activity, Globe, Wallet,
-    ArrowUpRight, ArrowDownRight, Info
+    ArrowUpRight, ArrowDownRight, Info,
+    Search, Loader2, ChevronRight, PieChart,
+    BarChart, ExternalLink, RefreshCw
 } from 'lucide-vue-next';
+import { debounce } from 'lodash';
 
-const props = defineProps(['metrics', 'currency']);
+const props = defineProps(['metrics', 'currency', 'filters']);
 
 const isDark = computed(() => document.documentElement.classList.contains('dark'));
+const search = ref(props.filters.search || '');
+const isRefreshing = ref(false);
+
+// Search Debounce
+watch(search, debounce((value) => {
+    router.get(route('finance'), { search: value }, { 
+        preserveState: true, 
+        replace: true,
+        only: ['metrics']
+    });
+}, 500));
 
 const user = usePage().props.auth.user;
 const isTenantAdmin = computed(() => user.roles.includes('tenant_admin'));
@@ -84,22 +99,44 @@ const forecastSeries = computed(() => [{
     data: props.metrics.cash_flow_forecast.map(d => Number(d.projected))
 }]);
 
-// Zone Revenue Comparison
+// Zone Revenue Comparison (Top 5 for chart)
 const zoneRevenueOptions = computed(() => ({
     chart: { 
         type: 'donut',
-        animations: { enabled: false }, // Optimize performance
+        animations: { enabled: true },
     },
-    labels: props.metrics.zone_revenue.map(z => z.location),
+    labels: props.metrics.top_zones.map(z => z.location),
     colors: ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'],
+    plotOptions: {
+        pie: {
+            donut: {
+                size: '75%',
+                labels: {
+                    show: true,
+                    name: { show: true, fontSize: '12px', fontWeight: 900 },
+                    value: { show: true, fontSize: '18px', fontWeight: 900 },
+                    total: {
+                        show: true,
+                        label: 'Top 5',
+                        formatter: () => `${props.currency} ${props.metrics.top_zones.reduce((a, b) => a + Number(b.revenue), 0).toLocaleString()}`
+                    }
+                }
+            }
+        }
+    },
     legend: { position: 'bottom' },
-    responsive: [{
-        breakpoint: 480,
-        options: { chart: { width: 300 }, legend: { position: 'bottom' } }
-    }]
+    stroke: { show: false },
+    theme: { mode: isDark.value ? 'dark' : 'light' }
 }));
 
-const zoneRevenueSeries = computed(() => props.metrics.zone_revenue.map(z => Number(z.revenue)));
+const zoneRevenueSeries = computed(() => props.metrics.top_zones.map(z => Number(z.revenue)));
+
+const refreshData = () => {
+    isRefreshing.value = true;
+    router.reload({ 
+        onFinish: () => isRefreshing.value = false 
+    });
+};
 
 </script>
 
@@ -133,67 +170,17 @@ const zoneRevenueSeries = computed(() => props.metrics.zone_revenue.map(z => Num
                 <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4 mb-10">
                     <div class="relative overflow-hidden rounded-3xl bg-white p-6 shadow-xl dark:bg-slate-900 border border-slate-100 dark:border-slate-800 group hover:-translate-y-1 transition-transform">
                         <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                            <DollarSign class="h-20 w-20 text-slate-900 dark:text-white" />
-                        </div>
-                        <div class="flex items-center gap-2 mb-2">
-                            <p class="text-xs font-bold uppercase tracking-widest text-slate-400">ARPU</p>
-                            <div class="group/info relative">
-                                <Info class="h-3.5 w-3.5 text-slate-300 cursor-help" />
-                                <div class="absolute left-0 bottom-full mb-2 hidden group-hover/info:block w-48 rounded-lg bg-slate-900 p-2 text-[0.65rem] text-white shadow-xl z-50">
-                                    Average Revenue Per User: Total potential revenue divided by total user count.
-                                </div>
-                            </div>
-                        </div>
-                        <h3 class="text-3xl font-black text-slate-900 dark:text-white">
-                            {{ currency }} {{ metrics.financial_health.arpu.toLocaleString() }}
-                        </h3>
-                        <div class="mt-4 flex items-center gap-2 text-xs font-bold text-emerald-500">
-                            <ArrowUpRight class="h-3 w-3" />
-                            <span>PER USER</span>
-                        </div>
-                    </div>
-
-                    <div class="relative overflow-hidden rounded-3xl bg-white p-6 shadow-xl dark:bg-slate-900 border border-slate-100 dark:border-slate-800 group hover:-translate-y-1 transition-transform">
-                        <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                             <TrendingUp class="h-20 w-20 text-slate-900 dark:text-white" />
                         </div>
-                        <div class="flex items-center gap-2 mb-2">
-                            <p class="text-xs font-bold uppercase tracking-widest text-slate-400">MRR</p>
-                            <div class="group/info relative">
-                                <Info class="h-3.5 w-3.5 text-slate-300 cursor-help" />
-                                <div class="absolute left-0 bottom-full mb-2 hidden group-hover/info:block w-48 rounded-lg bg-slate-900 p-2 text-[0.65rem] text-white shadow-xl z-50">
-                                    Monthly Recurring Revenue: Expected income from all active subscriptions per month.
-                                </div>
-                            </div>
-                        </div>
+                        <p class="text-[0.6rem] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Net Profit Margin</p>
                         <h3 class="text-3xl font-black text-slate-900 dark:text-white">
-                            {{ currency }} {{ metrics.financial_health.mrr.toLocaleString() }}
+                            {{ metrics.fiscal_intelligence.profit_margin.margin }}%
                         </h3>
-                        <div class="mt-4 flex items-center gap-2 text-xs font-bold text-emerald-500">
-                            <ArrowUpRight class="h-3 w-3" />
-                            <span>MONTHLY</span>
-                        </div>
-                    </div>
-
-                    <div class="relative overflow-hidden rounded-3xl bg-white p-6 shadow-xl dark:bg-slate-900 border border-slate-100 dark:border-slate-800 group hover:-translate-y-1 transition-transform">
-                        <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                            <Activity class="h-20 w-20 text-slate-900 dark:text-white" />
-                        </div>
-                        <div class="flex items-center gap-2 mb-2">
-                            <p class="text-xs font-bold uppercase tracking-widest text-slate-400">Active Yield</p>
-                            <div class="group/info relative">
-                                <Info class="h-3.5 w-3.5 text-slate-300 cursor-help" />
-                                <div class="absolute left-0 bottom-full mb-2 hidden group-hover/info:block w-48 rounded-lg bg-slate-900 p-2 text-[0.65rem] text-white shadow-xl z-50">
-                                    The average revenue specifically from your active, paying customers.
-                                </div>
+                        <div class="mt-4 flex items-center justify-between">
+                            <div class="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden mr-3">
+                                <div class="h-full bg-emerald-500 rounded-full" :style="{ width: metrics.fiscal_intelligence.profit_margin.margin + '%' }"></div>
                             </div>
-                        </div>
-                        <h3 class="text-3xl font-black text-slate-900 dark:text-white">
-                            {{ currency }} {{ metrics.financial_health.active_yield.toLocaleString() }}
-                        </h3>
-                        <div class="mt-4 flex items-center gap-2 text-xs font-bold text-emerald-500">
-                            <ArrowUpRight class="h-3 w-3" />
-                            <span>PER ACTIVE</span>
+                            <span class="text-[0.65rem] font-bold text-emerald-500 whitespace-nowrap">OPTIMAL</span>
                         </div>
                     </div>
 
@@ -201,13 +188,41 @@ const zoneRevenueSeries = computed(() => props.metrics.zone_revenue.map(z => Num
                         <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                             <Users class="h-20 w-20 text-slate-900 dark:text-white" />
                         </div>
-                        <div class="flex items-center gap-2 mb-2">
-                            <p class="text-xs font-bold uppercase tracking-widest text-slate-400">Status</p>
+                        <p class="text-[0.6rem] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">30-Day Churn Rate</p>
+                        <h3 class="text-3xl font-black text-rose-600 dark:text-rose-400">
+                            {{ metrics.fiscal_intelligence.churn_rate.rate }}%
+                        </h3>
+                        <div class="mt-4 flex items-center gap-2 text-xs font-bold text-slate-400">
+                            <Activity class="h-3 w-3" />
+                            <span>{{ metrics.fiscal_intelligence.churn_rate.count }} SUBS LOST</span>
                         </div>
-                        <h3 class="text-3xl font-black text-slate-900 dark:text-white">Healthy</h3>
+                    </div>
+
+                    <div class="relative overflow-hidden rounded-3xl bg-white p-6 shadow-xl dark:bg-slate-900 border border-slate-100 dark:border-slate-800 group hover:-translate-y-1 transition-transform">
+                        <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                            <Activity class="h-20 w-20 text-slate-900 dark:text-white" />
+                        </div>
+                        <p class="text-[0.6rem] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Avg. Lifetime Value</p>
+                        <h3 class="text-3xl font-black text-indigo-600 dark:text-indigo-400">
+                            {{ currency }} {{ metrics.fiscal_intelligence.clv.toLocaleString() }}
+                        </h3>
                         <div class="mt-4 flex items-center gap-2 text-xs font-bold text-emerald-500">
                             <ArrowUpRight class="h-3 w-3" />
-                            <span>STABLE GROWTH</span>
+                            <span>PROJECTED LTV</span>
+                        </div>
+                    </div>
+
+                    <div class="relative overflow-hidden rounded-3xl bg-white p-6 shadow-xl dark:bg-slate-900 border border-slate-100 dark:border-slate-800 group hover:-translate-y-1 transition-transform">
+                        <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                            <DollarSign class="h-20 w-20 text-slate-900 dark:text-white" />
+                        </div>
+                        <p class="text-[0.6rem] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Operational MRR</p>
+                        <h3 class="text-3xl font-black text-slate-900 dark:text-white">
+                            {{ currency }} {{ metrics.financial_health.mrr.toLocaleString() }}
+                        </h3>
+                        <div class="mt-4 flex items-center gap-2 text-xs font-bold text-emerald-500">
+                            <ArrowUpRight class="h-3 w-3" />
+                            <span>EXPECTED</span>
                         </div>
                     </div>
                 </div>
@@ -249,46 +264,136 @@ const zoneRevenueSeries = computed(() => props.metrics.zone_revenue.map(z => Num
 
                     <!-- Right Column Sidebar -->
                     <div class="space-y-8">
-                        <!-- Zone Revenue Heatmap -->
+                        <!-- Zone Revenue Heatmap (Compact Visual) -->
                         <div class="rounded-[2.5rem] bg-white p-8 shadow-xl dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
                             <h3 class="mb-8 text-lg font-bold text-slate-900 dark:text-white flex items-center gap-3">
-                                <Globe class="h-5 w-5 text-indigo-500" />
-                                Revenue by Zone
+                                <PieChart class="h-5 w-5 text-indigo-500" />
+                                Top 5 Zones
                             </h3>
-                            <div class="mb-8">
-                                <VueApexCharts type="donut" height="300" :options="zoneRevenueOptions" :series="zoneRevenueSeries" />
+                            <div class="mb-4 h-[250px]">
+                                <VueApexCharts type="donut" height="100%" :options="zoneRevenueOptions" :series="zoneRevenueSeries" />
                             </div>
-                            <div class="space-y-4">
-                                <div v-for="zone in metrics.zone_revenue" :key="zone.location" class="flex items-center justify-between">
-                                    <div class="flex items-center gap-3">
-                                        <div class="h-2 w-2 rounded-full bg-slate-200"></div>
-                                        <span class="text-sm font-medium text-slate-600 dark:text-slate-400">{{ zone.location }}</span>
+                        </div>
+
+                        <!-- Profit Summary Gauge-style -->
+                        <div class="rounded-[2.5rem] bg-slate-900 p-8 shadow-xl dark:bg-slate-800 border border-slate-800 overflow-hidden relative">
+                            <div class="absolute -right-4 -bottom-4 h-32 w-32 bg-emerald-500/10 rounded-full blur-3xl"></div>
+                            <h3 class="mb-8 text-lg font-bold text-white flex items-center gap-3">
+                                <BarChart class="h-5 w-5 text-emerald-400" />
+                                Profit Summary
+                            </h3>
+                            <div class="space-y-6">
+                                <div>
+                                    <div class="flex justify-between text-[0.6rem] font-black tracking-widest text-slate-500 uppercase mb-2">
+                                        <span>Total Revenue</span>
+                                        <span>{{ currency }} {{ metrics.fiscal_intelligence.profit_margin.revenue.toLocaleString() }}</span>
                                     </div>
-                                    <span class="text-sm font-bold text-slate-900 dark:text-white">{{ currency }} {{ zone.revenue.toLocaleString() }}</span>
+                                    <div class="h-1.5 w-full bg-slate-800 rounded-full">
+                                        <div class="h-full bg-blue-500 rounded-full" style="width: 100%"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between text-[0.6rem] font-black tracking-widest text-slate-500 uppercase mb-2">
+                                        <span>Operational Costs</span>
+                                        <span>{{ currency }} {{ metrics.fiscal_intelligence.profit_margin.costs.toLocaleString() }}</span>
+                                    </div>
+                                    <div class="h-1.5 w-full bg-slate-800 rounded-full">
+                                        <div class="h-full bg-rose-500 rounded-full" 
+                                            :style="{ width: (metrics.fiscal_intelligence.profit_margin.costs / metrics.fiscal_intelligence.profit_margin.revenue * 100) + '%' }">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="pt-4 border-t border-slate-800">
+                                    <p class="text-xs font-bold text-slate-400 mb-1">Estimated Net Profit</p>
+                                    <p class="text-2xl font-black text-emerald-400">{{ currency }} {{ metrics.fiscal_intelligence.profit_margin.net_profit.toLocaleString() }}</p>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Payment Methods -->
-                        <div class="rounded-[2.5rem] bg-slate-900 p-8 shadow-xl dark:bg-slate-800 border border-slate-800">
-                            <h3 class="mb-8 text-lg font-bold text-white flex items-center gap-3">
-                                <Activity class="h-5 w-5 text-emerald-400" />
+                        <div class="rounded-[2.5rem] bg-white p-8 shadow-xl dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
+                            <h3 class="mb-8 text-lg font-bold text-slate-900 dark:text-white flex items-center gap-3">
+                                <Activity class="h-5 w-5 text-emerald-500" />
                                 Payment Channels
                             </h3>
                             <div class="space-y-6">
                                 <div v-for="method in metrics.payment_methods" :key="method.payment_method" class="space-y-2">
                                     <div class="flex items-center justify-between">
-                                        <span class="text-sm font-bold text-slate-400 uppercase tracking-widest">{{ method.payment_method }}</span>
-                                        <span class="text-sm font-bold text-white">{{ currency }} {{ method.total.toLocaleString() }}</span>
+                                        <span class="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{{ method.payment_method }}</span>
+                                        <span class="text-sm font-bold text-slate-900 dark:text-white">{{ currency }} {{ method.total.toLocaleString() }}</span>
                                     </div>
-                                    <div class="h-2 w-full bg-white/10 rounded-full overflow-hidden">
+                                    <div class="h-2 w-full bg-slate-50 dark:bg-slate-800 rounded-full overflow-hidden">
                                         <div :class="['h-full rounded-full transition-all duration-1000', method.payment_method === 'mpesa' ? 'bg-emerald-500' : 'bg-blue-500']" 
-                                            :style="{ width: (method.total / metrics.financial_health.mrr * 100) + '%' }">
+                                            :style="{ width: (method.total / metrics.fiscal_intelligence.profit_margin.revenue * 100) + '%' }">
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Zone Intelligence Table (The Upgrade) -->
+                <div class="mt-10 rounded-[2.5rem] bg-white dark:bg-slate-900 p-0 shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden">
+                    <div class="p-8 border-b border-slate-50 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                            <h3 class="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
+                                <Globe class="h-6 w-6 text-indigo-500" />
+                                Zone Intelligence Ledger
+                            </h3>
+                            <p class="text-sm text-slate-400 font-medium">Detailed revenue breakdown by geographic location.</p>
+                        </div>
+                        <div class="relative w-full md:w-80">
+                            <Search class="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
+                            <input 
+                                v-model="search"
+                                type="text" 
+                                placeholder="Search zones..."
+                                class="w-full pl-12 pr-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border-none focus:ring-2 focus:ring-indigo-500 text-sm font-bold text-slate-900 dark:text-white"
+                            >
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead class="bg-slate-50/50 dark:bg-slate-800/50 text-[0.65rem] font-black uppercase tracking-[0.2em] text-slate-400">
+                                <tr>
+                                    <th class="px-8 py-5">Zone/Location</th>
+                                    <th class="px-8 py-5">Performance Indicator</th>
+                                    <th class="px-8 py-5 text-right">Revenue Contribution</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-50 dark:divide-slate-800">
+                                <tr v-for="zone in metrics.zone_revenue.data" :key="zone.location" class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors group">
+                                    <td class="px-8 py-6">
+                                        <div class="flex items-center gap-3">
+                                            <div class="h-8 w-8 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 text-indigo-500 flex items-center justify-center">
+                                                <Globe class="h-4 w-4" />
+                                            </div>
+                                            <span class="font-black text-slate-900 dark:text-white uppercase tracking-tighter">{{ zone.location }}</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-8 py-6">
+                                        <div class="flex items-center gap-2">
+                                            <div class="h-1.5 w-24 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                                <div class="h-full bg-indigo-500 rounded-full" :style="{ width: (zone.revenue / metrics.fiscal_intelligence.profit_margin.revenue * 100 * 5) + '%' }"></div>
+                                            </div>
+                                            <span class="text-[0.6rem] font-bold text-slate-400">{{ Math.round(zone.revenue / metrics.fiscal_intelligence.profit_margin.revenue * 100) }}%</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-8 py-6 text-right">
+                                        <span class="text-lg font-black text-slate-900 dark:text-white">
+                                            {{ currency }} {{ Number(zone.revenue).toLocaleString() }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="p-8 border-t border-slate-50 dark:border-slate-800 flex items-center justify-between">
+                        <p class="text-xs font-bold text-slate-400">Showing page {{ metrics.zone_revenue.current_page }} of {{ metrics.zone_revenue.last_page }}</p>
+                        <Pagination :links="metrics.zone_revenue.links" />
                     </div>
                 </div>
             </div>

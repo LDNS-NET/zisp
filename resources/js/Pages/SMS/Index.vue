@@ -6,23 +6,60 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { 
     MessageSquare, Search, Filter, Trash2, Send, 
     Users, MapPin, Box, CheckCircle, AlertCircle, 
-    X, Phone, Calendar, Clock, RefreshCw, Smartphone
+    X, Phone, Calendar, Clock, RefreshCw, Smartphone,
+    CreditCard, Coins, Zap
 } from 'lucide-vue-next';
 import Modal from '@/Components/Modal.vue';
 import Pagination from '@/Components/Pagination.vue';
 import { useToast } from 'vue-toastification';
 import debounce from 'lodash/debounce';
+import Dropdown from '@/Components/Dropdown.vue';
+import DropdownLink from '@/Components/DropdownLink.vue';
+import { ChevronDown } from 'lucide-vue-next';
 
 const props = defineProps({
     smsLogs: Object,
     filters: Object,
-    renters: Array,
     templates: Array,
     packages: Array,
     locations: Array,
+    sms_balance: [Number, String],
+    is_using_system_gateway: Boolean,
 });
 
 const toast = useToast();
+
+const showBuySmsModal = ref(false);
+const buyAmount = ref(100);
+const customAmount = ref('');
+const showCustomAmount = ref(false);
+const isInitializing = ref(false);
+
+const handlePurchase = async () => {
+    if (isInitializing.value) return;
+    
+    const finalAmount = showCustomAmount.value ? parseFloat(customAmount.value) : buyAmount.value;
+    
+    if (!finalAmount || finalAmount < 50) {
+        toast.error('Minimum purchase amount is KES 50');
+        return;
+    }
+
+    isInitializing.value = true;
+    
+    try {
+        const response = await axios.post(route('sms.purchase.initialize'), { amount: finalAmount });
+        if (response.data.success && response.data.authorization_url) {
+            window.location.href = response.data.authorization_url;
+        } else {
+            toast.error(response.data.message || 'Failed to initialize payment');
+        }
+    } catch (error) {
+        toast.error(error.response?.data?.message || 'An error occurred during payment initialization');
+    } finally {
+        isInitializing.value = false;
+    }
+};
 
 // --- State ---
 const search = ref(props.filters?.search || '');
@@ -55,7 +92,7 @@ const availableVariables = [
 ];
 
 const form = useForm({
-    recipients: [], // For manual selection
+    recipients: [], // Array of {id, full_name, phone} objects
     filters: {
         location: '',
         package_id: '',
@@ -65,6 +102,66 @@ const form = useForm({
     message: '',
 });
 
+// --- Manual Search State ---
+const userSearchQuery = ref('');
+const searchResults = ref([]);
+const isSearching = ref(false);
+const showSearchResults = ref(false);
+
+const searchUsers = debounce(async (query) => {
+    isSearching.value = true;
+    try {
+        const response = await axios.get(route('sms.search-users'), { params: { q: query } });
+        searchResults.value = response.data;
+        showSearchResults.value = true;
+    } catch (error) {
+        console.error('Error searching users:', error);
+    } finally {
+        isSearching.value = false;
+    }
+}, 300);
+
+watch(userSearchQuery, (val) => {
+    searchUsers(val);
+});
+
+watch(composeMode, (newVal) => {
+    if (newVal === 'manual' && searchResults.value.length === 0) {
+        searchUsers('');
+    }
+});
+
+const vClickOutside = {
+    mounted(el, binding) {
+        el.clickOutsideEvent = (event) => {
+            if (!(el === event.target || el.contains(event.target))) {
+                binding.value(event);
+            }
+        };
+        document.addEventListener('click', el.clickOutsideEvent);
+    },
+    unmounted(el) {
+        document.removeEventListener('click', el.clickOutsideEvent);
+    },
+};
+
+const selectUser = (user) => {
+    if (!form.recipients.find(r => r.id === user.id)) {
+        form.recipients.push(user);
+    }
+    userSearchQuery.value = '';
+    showSearchResults.value = false;
+};
+
+const removeRecipient = (index) => {
+    form.recipients.splice(index, 1);
+};
+
+
+const resendForm = useForm({
+    duration: '',
+});
+
 // --- Watchers ---
 watch(search, debounce((value) => {
     router.get(route('sms.index'), { search: value }, { 
@@ -72,7 +169,7 @@ watch(search, debounce((value) => {
         preserveScroll: true, 
         replace: true 
     });
-}, 300));
+}, 500));
 
 watch(selectAllLogs, (val) => {
     if (val) {
@@ -116,6 +213,8 @@ const sendSms = () => {
     // If manual mode, clear filters
     if (composeMode.value === 'manual') {
         form.filters = null;
+        // Transform recipients to IDs before sending
+        form.recipients = form.recipients.map(r => r.id);
     } else {
         form.recipients = null;
     }
@@ -128,6 +227,20 @@ const sendSms = () => {
         onError: () => {
             toast.error('Failed to start campaign. Please check inputs.');
         },
+    });
+};
+
+const resendFailed = (duration) => {
+    if (!confirm(`Resend failed/stuck messages from the last ${duration}?`)) return;
+    
+    resendForm.duration = duration;
+    resendForm.post(route('sms.resend-failed'), {
+        onSuccess: () => {
+            toast.success('Messages have been requeued for resending.');
+        },
+        onError: () => {
+            toast.error('Failed to initiate resending.');
+        }
     });
 };
 
@@ -170,16 +283,32 @@ const formatDate = (date) => {
             <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
                 <!-- Header Stats -->
                 <div class="p-6 pb-0 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-between">
-                        <div>
-                            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total Sent</p>
-                            <h3 class="text-2xl font-bold text-gray-900 dark:text-white mt-1">{{ smsLogs.total }}</h3>
+                    <div v-if="is_using_system_gateway" class="relative overflow-hidden bg-gradient-to-br from-indigo-600 to-blue-700 p-5 rounded-2xl shadow-xl shadow-blue-500/20 flex flex-col justify-between min-h-[140px]">
+                        <!-- Decorative background icon -->
+                        <Smartphone class="absolute -right-4 -bottom-4 w-32 h-32 text-white/10 rotate-12 pointer-events-none" />
+                        
+                        <div class="relative z-10 flex justify-between items-start">
+                            <div>
+                                <p class="text-xs font-bold text-blue-100 uppercase tracking-widest opacity-80">Wallet Balance</p>
+                                <h3 class="text-3xl font-black text-white mt-1">
+                                    <span class="text-sm font-medium opacity-70 mr-1">KES</span>{{ Number(sms_balance).toLocaleString(undefined, {minimumFractionDigits: 2}) }}
+                                </h3>
+                            </div>
+                            <div class="p-2 bg-white/20 backdrop-blur-md rounded-lg text-white">
+                                <Coins class="w-5 h-5" />
+                            </div>
                         </div>
-                        <div class="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-blue-600 dark:text-blue-400">
-                            <Send class="w-6 h-6" />
+
+                        <div class="relative z-10 mt-4">
+                            <button 
+                                @click="showBuySmsModal = true; showCustomAmount = true; customAmount = ''" 
+                                class="w-full py-2 bg-white text-blue-700 text-xs font-bold rounded-xl shadow-lg hover:bg-blue-50 transition-all active:scale-95 flex items-center justify-center gap-2"
+                            >
+                                <Zap class="w-3.5 h-3.5 fill-current" />
+                                Buy SMS Credits
+                            </button>
                         </div>
                     </div>
-                    <!-- Add more stats here if available (Balance, Failed, etc) -->
                 </div>
 
                 <!-- Toolbar -->
@@ -203,6 +332,26 @@ const formatDate = (date) => {
                             <Trash2 class="w-4 h-4 mr-2" />
                             Delete ({{ selectedLogs.length }})
                         </button>
+
+                        <Dropdown align="right" width="48">
+                            <template #trigger>
+                                <button class="flex items-center px-4 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                    <RefreshCw class="w-4 h-4 mr-2" />
+                                    Resend Failed
+                                    <ChevronDown class="w-4 h-4 ml-2" />
+                                </button>
+                            </template>
+                            <template #content>
+                                <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-100 dark:border-gray-700">
+                                    Select Duration
+                                </div>
+                                <DropdownLink @click="resendFailed('1h')" as="button">Last 1 Hour</DropdownLink>
+                                <DropdownLink @click="resendFailed('3h')" as="button">Last 3 Hours</DropdownLink>
+                                <DropdownLink @click="resendFailed('6h')" as="button">Last 6 Hours</DropdownLink>
+                                <DropdownLink @click="resendFailed('12h')" as="button">Last 12 Hours</DropdownLink>
+                                <DropdownLink @click="resendFailed('24h')" as="button">Last 24 Hours</DropdownLink>
+                            </template>
+                        </Dropdown>
 
                         <button 
                             @click="openCompose"
@@ -256,10 +405,14 @@ const formatDate = (date) => {
                                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize"
                                             :class="{
                                                 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400': log.status === 'sent',
+                                                'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400': log.status === 'delivered',
                                                 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400': log.status === 'pending',
                                                 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400': log.status === 'failed'
                                             }"
                                         >
+                                            <CheckCircle v-if="log.status === 'sent' || log.status === 'delivered'" class="w-3 h-3 mr-1" />
+                                            <Clock v-if="log.status === 'pending'" class="w-3 h-3 mr-1" />
+                                            <AlertCircle v-if="log.status === 'failed'" class="w-3 h-3 mr-1" />
                                             {{ log.status }}
                                         </span>
                                     </td>
@@ -395,17 +548,65 @@ const formatDate = (date) => {
 
                         <!-- Manual Selection Section -->
                         <div v-show="composeMode === 'manual'" class="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Select Recipients</label>
-                            <select 
-                                v-model="form.recipients" 
-                                multiple 
-                                class="w-full h-48 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 text-sm"
-                            >
-                                <option v-for="r in renters" :key="r.id" :value="r.id">
-                                    {{ r.full_name }} ({{ r.phone }})
-                                </option>
-                            </select>
-                            <p class="text-xs text-gray-500 text-right">Hold Ctrl/Cmd to select multiple</p>
+                            <div class="space-y-2">
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Search Recipients</label>
+                                <div class="relative">
+                                    <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                    <input 
+                                        v-model="userSearchQuery"
+                                        type="text" 
+                                        placeholder="Search by name, username, or phone..." 
+                                        class="w-full pl-10 pr-10 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 transition-all text-sm"
+                                        @focus="showSearchResults = true"
+                                    >
+                                    <RefreshCw v-if="isSearching" class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-500 animate-spin" />
+                                    
+                                    <!-- Search Results Dropdown -->
+                                    <div v-if="showSearchResults && searchResults.length > 0" v-click-outside="() => showSearchResults = false" class="absolute z-[60] left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl overflow-hidden max-h-60 overflow-y-auto">
+                                        <div 
+                                            v-for="user in searchResults" 
+                                            :key="user.id"
+                                            @click="selectUser(user)"
+                                            class="p-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer flex justify-between items-center border-b border-gray-100 dark:border-gray-700 last:border-0"
+                                        >
+                                            <div class="flex flex-col">
+                                                <span class="text-sm font-bold text-gray-900 dark:text-white">{{ user.full_name }}</span>
+                                                <span class="text-xs text-gray-500">@{{ user.username }}</span>
+                                            </div>
+                                            <div class="text-right">
+                                                <span class="text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded-md">{{ user.phone }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div v-else-if="userSearchQuery.length >= 2 && !isSearching && searchResults.length === 0" class="absolute z-[60] left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg p-4 text-center text-sm text-gray-500">
+                                        No users found matching "{{ userSearchQuery }}"
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Selected Recipients -->
+                            <div v-if="form.recipients.length > 0" class="space-y-2">
+                                <div class="flex justify-between items-center">
+                                    <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Selected ({{ form.recipients.length }})</label>
+                                    <button @click="form.recipients = []" class="text-xs text-red-600 hover:text-red-700 font-medium">Clear All</button>
+                                </div>
+                                <div class="flex flex-wrap gap-2 max-h-40 overflow-y-auto p-1">
+                                    <div 
+                                        v-for="(recipient, index) in form.recipients" 
+                                        :key="recipient.id"
+                                        class="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full border border-blue-100 dark:border-blue-800/50 text-xs font-medium group transition-all"
+                                    >
+                                        <span>{{ recipient.full_name }}</span>
+                                        <button @click="removeRecipient(index)" class="hover:text-red-600 transition-colors">
+                                            <X class="w-3 h-3" />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div v-else class="p-8 border-2 border-dashed border-gray-100 dark:border-gray-700 rounded-2xl text-center">
+                                <Users class="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                                <p class="text-sm text-gray-400">Search and select users to add them to your campaign.</p>
+                            </div>
                         </div>
 
                             <div class="space-y-2 pt-4 border-t border-gray-200 dark:border-gray-700">
@@ -488,6 +689,16 @@ const formatDate = (date) => {
                             <label class="text-xs uppercase text-gray-500 dark:text-gray-400">Message</label>
                             <p class="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-sm">{{ selectedSms.message }}</p>
                         </div>
+                        <div v-if="selectedSms.status === 'failed' && selectedSms.error_message">
+                            <label class="text-xs uppercase text-red-500 font-bold">Error Message</label>
+                            <p class="p-3 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded-lg text-sm border border-red-100 dark:border-red-900/50 italic">
+                                {{ selectedSms.error_message }}
+                            </p>
+                        </div>
+                        <div v-if="selectedSms.provider_message_id">
+                            <label class="text-xs uppercase text-gray-500 dark:text-gray-400">Provider Message ID</label>
+                            <p class="text-sm font-mono text-gray-600 dark:text-gray-300">{{ selectedSms.provider_message_id }}</p>
+                        </div>
                     </div>
                     <div class="mt-6 flex justify-end">
                         <button @click="showViewModal = false" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">Close</button>
@@ -495,6 +706,101 @@ const formatDate = (date) => {
                 </div>
             </Modal>
 
+            <!-- Buy SMS Credits Modal -->
+            <Modal :show="showBuySmsModal" @close="showBuySmsModal = false" max-width="md">
+                <div class="relative overflow-hidden bg-white dark:bg-gray-800 rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-700">
+                    <!-- Techy Background Decoration -->
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl -mr-16 -mt-16"></div>
+                    <div class="absolute bottom-0 left-0 w-24 h-24 bg-indigo-500/10 rounded-full blur-2xl -ml-12 -mb-12"></div>
+                    
+                    <div class="p-8 relative">
+                        <div class="flex flex-col items-center text-center mb-8">
+                            <div class="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center text-blue-600 dark:text-blue-400 mb-4 shadow-inner">
+                                <Smartphone class="w-8 h-8" />
+                            </div>
+                            <h3 class="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Top Up Wallet</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Enter an amount to recharge your SMS credits.</p>
+                        </div>
+                        
+                        <div class="space-y-6">
+                            <!-- Amount Input -->
+                            <div class="relative group mt-8">
+                                <div class="absolute -top-3 left-4 px-2 bg-white dark:bg-gray-800 text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest z-10 transition-all group-focus-within:text-blue-500">
+                                    Purchase Amount (KES)
+                                </div>
+                                <div class="flex items-center bg-gray-50 dark:bg-gray-900/50 rounded-2xl border-2 border-gray-100 dark:border-gray-800 p-2 transition-all group-focus-within:border-blue-500 group-focus-within:bg-white dark:group-focus-within:bg-gray-900 shadow-sm">
+                                    <div class="pl-4 pr-2 text-2xl font-bold text-gray-400">KES</div>
+                                    <input 
+                                        v-model="customAmount"
+                                        type="number"
+                                        min="50"
+                                        placeholder="0.00"
+                                        class="w-full bg-transparent border-0 focus:ring-0 text-3xl font-black p-2 text-gray-900 dark:text-white placeholder-gray-200 dark:placeholder-gray-700"
+                                        autofocus
+                                    />
+                                </div>
+                                <p v-if="customAmount && customAmount < 50" class="text-[10px] font-bold text-red-500 mt-2 px-4 uppercase tracking-wider flex items-center gap-1">
+                                    <AlertCircle class="w-3 h-3" /> Minimum amount is KES 50.00
+                                </p>
+                            </div>
+
+                            <!-- Value Calculator -->
+                            <div v-if="customAmount >= 50" class="bg-blue-50/50 dark:bg-blue-900/10 rounded-2xl p-4 border border-blue-100/50 dark:border-blue-800/20 animate-in fade-in slide-in-from-top-2 duration-300">
+                                <div class="flex justify-between items-center">
+                                    <div>
+                                        <p class="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest leading-none">Estimated Volume</p>
+                                        <div class="flex items-baseline gap-1 mt-1">
+                                            <span class="text-2xl font-black text-blue-900 dark:text-blue-100">
+                                                {{ Math.floor(customAmount / 0.39).toLocaleString() }}
+                                            </span>
+                                            <span class="text-xs font-bold text-blue-600/60 dark:text-blue-400/60 uppercase">SMS Units</span>
+                                        </div>
+                                    </div>
+                                    <div class="h-10 w-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/30">
+                                        <Send class="w-5 h-5" />
+                                    </div>
+                                </div>
+                                <div class="mt-3 pt-3 border-t border-blue-100 dark:border-blue-800/30 text-[10px] text-blue-600/70 dark:text-blue-400/60 font-medium">
+                                    Billed at <span class="font-bold text-blue-700 dark:text-blue-300">KES 0.39</span> per 40 characters.
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Info Footer -->
+                        <div class="mt-8 flex items-center gap-3 px-2">
+                             <div class="p-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-400 flex-shrink-0">
+                                <CreditCard class="w-4 h-4" />
+                            </div>
+                            <p class="text-[10px] text-gray-400 dark:text-gray-500 leading-tight font-medium uppercase tracking-wider">
+                                Secure payments powered by Paystack. Credits are added instantly and do not expire.
+                            </p>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="flex flex-col gap-3 mt-8">
+                            <button 
+                                class="relative group w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl shadow-xl shadow-blue-500/25 font-black transition-all duration-300 disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-2 overflow-hidden active:scale-[0.98]" 
+                                :disabled="isInitializing || !customAmount || customAmount < 50"
+                                @click="handlePurchase"
+                            >
+                                <span class="relative z-10 flex items-center gap-2">
+                                    <RefreshCw v-if="isInitializing" class="w-5 h-5 animate-spin" />
+                                    {{ isInitializing ? 'Initializing...' : 'Proceed to Checkout' }}
+                                </span>
+                                <!-- Glow effect on hover -->
+                                <div class="absolute inset-0 bg-gradient-to-r from-blue-400/0 via-white/10 to-blue-400/0 -translate-x-full group-hover:animate-shimmer pointer-events-none"></div>
+                            </button>
+                            
+                            <button 
+                                @click="showBuySmsModal = false" 
+                                class="w-full py-3 text-xs font-bold text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors uppercase tracking-widest"
+                            >
+                                Not now, cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </Modal>
         </div>
     </AuthenticatedLayout>
 </template>

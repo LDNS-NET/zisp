@@ -359,7 +359,7 @@ class DashboardController extends Controller
 
                 // Auto-Open Ticket Logic
                 $ticketStatus = 'Existing Ticket';
-                $existingTicket = TenantTickets::where('client_type', NetworkUser::class)
+                $existingTicket = TenantTickets::where('client_type', 'user')
                     ->where('client_id', $user->id)
                     ->where('status', 'open')
                     ->where('description', 'LIKE', '%Auto-detected frequent disconnections%') // Prevent dups for same issue
@@ -368,7 +368,7 @@ class DashboardController extends Controller
                 if (!$existingTicket) {
                     try {
                         TenantTickets::create([
-                            'client_type' => NetworkUser::class,
+                            'client_type' => 'user',
                             'client_id' => $user->id,
                             'priority' => 'high',
                             'status' => 'open',

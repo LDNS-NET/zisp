@@ -1,0 +1,27 @@
+no option to create new urls in url management
+
+daraja bot
+Daraja
+
+18:57:57
+
+The Daraja API documentation provides information on how to use the Safaricom Daraja APIs,
+including the Customer to Business (C2B) API.
+The C2B API allows businesses to receive payments from customers through M-PESA,
+a mobile money transfer service. To use the C2B API, 
+businesses must first register their confirmation and validation URLs with Safaricom. 
+This can be done through the Daraja API by making a POST request to the https://api.safaricom.co.ke/mpesa/c2b/v1/registerurl endpoint. 
+The request must include a JSON object with the following keys: ShortCode, ResponseType, ConfirmationURL, and ValidationURL. 
+The ShortCode is the business's M-PESA short code, the ResponseType is either Completed or Canceled, 
+the ConfirmationURL is the URL that Safaricom will send a request to when a payment is completed, 
+and the ValidationURL is the URL that Safaricom will send a request to when a payment is received and needs to be validated.
+
+Once the URLs have been registered, 
+businesses can simulate C2B transactions using the Daraja API by making a POST request to the https://api.safaricom.co.ke/mpesa/c2b/v1/simulate endpoint. 
+The request must include a JSON object with the following keys: ShortCode, CommandID, Amount, Msisdn, and BillRefNumber. The ShortCode is the business's M-PESA short code, the CommandID is either CustomerPayBillOnline or CustomerBuyGoodsOnline, the Amount is the amount of the payment, the Msisdn is the phone number of the customer making the payment, and the BillRefNumber is a reference number for the payment.
+
+If a business needs to delete their registered URLs, they can do so through the Daraja API by making a DELETE request to the https://api.safaricom.co.ke/mpesa/c2b/v1/registerurl endpoint.
+This request must include an Authorization header with a valid access token. To delete the URLs, the business must have two operators
+
+Suggested questions
+

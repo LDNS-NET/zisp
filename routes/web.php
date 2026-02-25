@@ -43,6 +43,8 @@ use App\Http\Controllers\Tenants\TenantDeviceController;
 use App\Http\Controllers\Tenants\TenantInstallationController;
 use App\Http\Controllers\Tenants\TenantInstallationPhotoController;
 use App\Http\Controllers\Tenants\TenantInstallationChecklistController;
+use App\Http\Controllers\Tenants\TenantEquipmentUsageController;
+use App\Http\Controllers\Tenants\SmsPurchaseController;
 
 // SuperAdmin controllers
 use App\Http\Controllers\SuperAdmin\SuperAdminController;
@@ -236,7 +238,7 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode', 'sta
             ->name('dashboard.data');
 
         //Active Users
-        Route::middleware(['role_or_permission:tenant_admin|admin|customer_care|technical|view_online_users'])->group(function () {
+        Route::middleware(['role_or_permission:tenant_admin|Finance|admin|customer_care|view_online_users'])->group(function () {
             Route::resource('activeusers', TenantActiveUsersController::class)->middleware('throttle:online_users');
         });
 
@@ -267,16 +269,30 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode', 'sta
         });
 
         //network users( wifi users )
-        Route::middleware(['role_or_permission:tenant_admin|admin|customer_care|technical|view_users'])->group(function () {
-            Route::resource('users', TenantUserController::class)->middleware('throttle:user_crud');
+        Route::middleware(['role_or_permission:tenant_admin|marketing|admin|customer_care|technical|view_users'])->group(function () {
             Route::delete('/users/bulk-delete', [TenantUserController::class, 'bulkDelete'])
                 ->middleware('throttle:bulk_actions')
                 ->name('users.bulk-delete');
             Route::post('/users/import', [TenantUserController::class, 'import'])
                 ->middleware('throttle:bulk_actions')
                 ->name('users.import');
+            Route::post('/users/update-from-csv', [TenantUserController::class, 'updateFromCsv'])
+                ->middleware('throttle:bulk_actions')
+                ->name('users.update-from-csv');
+            Route::post('/users/sync-to-radius', [TenantUserController::class, 'syncToRadius'])
+                ->middleware('throttle:bulk_actions')
+                ->name('users.sync-to-radius');
             Route::post('users/details', [TenantUserController::class, 'update'])->name('users.details.update');
+            
+            Route::resource('users', TenantUserController::class)->middleware('throttle:user_crud');
         });
+
+        // network users (permision for edit and delete to remain only to admin and tenant
+        Route::middleware(['role:tenant_admin|admin|marketing'])->group(function () {
+            Route::delete('/users/{user}', [TenantUserController::class, 'destroy'])->name('users.destroy');
+            Route::put('/users/{user}', [TenantUserController::class, 'update'])->name('users.update');
+        });
+
 
 
         //Leads
@@ -284,19 +300,81 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode', 'sta
             Route::resource('leads', TenantLeadController::class)->only(['index', 'store', 'update', 'destroy']);
             Route::post('leads/{lead}/convert-to-installation', [TenantLeadController::class, 'convertToInstallation'])->name('leads.convert-to-installation');
             Route::delete('leads/bulk-delete', [TenantLeadController::class, 'bulkDelete'])->name('leads.bulk-delete');
+            
+            // Compensations
+            Route::get('compensations', [App\Http\Controllers\Tenants\CompensationController::class, 'index'])->name('compensations.index');
+            Route::post('compensations', [App\Http\Controllers\Tenants\CompensationController::class, 'store'])->name('compensations.store');
         });
 
         //tickets
-        Route::middleware(['role_or_permission:tenant_admin|admin|customer_care|technical|view_tickets'])->group(function () {
+        Route::middleware(['role_or_permission:tenant_admin|admin|marketing|customer_care|technical|view_tickets'])->group(function () {
             Route::resource('tickets', TenantTicketController::class)->only(['index', 'store', 'update', 'destroy']);
             Route::delete('tickets/bulk-delete', [TenantTicketController::class, 'bulkDelete'])->name('tickets.bulk-delete');
             Route::put('/tickets/{ticket}/resolve', [TenantTicketController::class, 'resolve'])->name('tickets.resolve');
         });
 
         //Equipment
-        Route::middleware(['role:tenant_admin|admin|network_engineer|technical'])->group(function () {
+        Route::middleware(['role_or_permission:tenant_admin|Finance|admin|network_engineer|technical'])->group(function () {
             Route::resource('equipment', TenantEquipmentController::class)->only(['index', 'store', 'update', 'destroy']);
             Route::delete('/equipment/bulk-delete', [TenantEquipmentController::class, 'bulkDelete'])->name('equipment.bulk-delete');
+            Route::post('/equipment/{equipment}/assign', [TenantEquipmentController::class, 'assign'])->name('equipment.assign');
+            Route::post('/equipment/{equipment}/release', [TenantEquipmentController::class, 'release'])->name('equipment.release');
+            Route::get('/equipment/{equipment}/history', [TenantEquipmentController::class, 'history'])->name('equipment.history');
+            Route::get('/equipment/{equipment}/usages', [TenantEquipmentController::class, 'usages'])->name('equipment.usages');
+            Route::post('/equipment/{equipment}/usage', [TenantEquipmentController::class, 'logUsage'])->name('equipment.log-usage');
+            
+            // Dedicated Usage Reporting
+            Route::get('/equipment-usage/log', [TenantEquipmentUsageController::class, 'create'])->name('equipment.usage.log');
+            Route::post('/equipment-usage/store', [TenantEquipmentUsageController::class, 'store'])->name('equipment.usage.store');
+
+            Route::get('/equipment-users/search', [TenantEquipmentController::class, 'searchUsers'])->name('equipment.users.search');
+
+                // Serial Numbers
+             Route::get('/equipment/serials', [TenantEquipmentSerialController::class, 'index'])->name('equipment.serials.index');
+             Route::post('/equipment/serials', [TenantEquipmentSerialController::class, 'store'])->name('equipment.serials.store');
+             Route::delete('/equipment/serials/{serial}', [TenantEquipmentSerialController::class, 'destroy'])->name('equipment.serials.destroy');
+    
+              // Stock Movements
+             Route::get('/equipment/movements', [TenantEquipmentController::class, 'movements'])->name('equipment.movements.index');
+             Route::post('/equipment/movements', [TenantEquipmentController::class, 'storeMovement'])->name('equipment.movements.store');
+    
+             // Equipment Requests
+             Route::get('/equipment/requests', [TenantEquipmentRequestController::class, 'index'])->name('equipment.requests.index');
+             Route::post('/equipment/requests/{request}/approve', [TenantEquipmentRequestController::class, 'approve'])->name('equipment.requests.approve');
+             Route::post('/equipment/requests/{request}/reject', [TenantEquipmentRequestController::class, 'reject'])->name('equipment.requests.reject');
+    
+             // Cable Management
+            Route::get('/equipment/cables', [TenantCableController::class, 'index'])->name('equipment.cables.index');
+            Route::post('/equipment/cables', [TenantCableController::class, 'store'])->name('equipment.cables.store');
+            Route::post('/equipment/cables/{cable}/cut', [TenantCableController::class, 'cut'])->name('equipment.cables.cut');
+            Route::get('/equipment/cables/usage', [TenantCableController::class, 'usage'])->name('equipment.cables.usage');
+    
+           // Depreciation
+            Route::get('/equipment/depreciation/calculate/{equipment}', [TenantDepreciationController::class, 'calculate'])->name('equipment.depreciation.calculate');
+            Route::get('/equipment/depreciation/schedule/{equipment}', [TenantDepreciationController::class, 'schedule'])->name('equipment.depreciation.schedule');
+            Route::post('/equipment/depreciation/apply/{equipment}', [TenantDepreciationController::class, 'apply'])->name('equipment.depreciation.apply');
+    
+          // Price Updates
+          Route::post('/equipment/{equipment}/update-price', [TenantEquipmentController::class, 'updatePrice'])->name('equipment.update-price');
+    
+          // Maintenance
+         Route::post('/equipment/{equipment}/schedule-maintenance', [TenantEquipmentController::class, 'scheduleMaintenance'])->name('equipment.schedule-maintenance');
+         Route::get('/equipment/maintenance/alerts', [TenantEquipmentController::class, 'maintenanceAlerts'])->name('equipment.maintenance.alerts');
+    
+         // Locations
+        Route::get('/equipment/locations', [TenantLocationController::class, 'index'])->name('equipment.locations.index');
+        Route::post('/equipment/locations', [TenantLocationController::class, 'store'])->name('equipment.locations.store');
+        Route::delete('/equipment/locations/{location}', [TenantLocationController::class, 'destroy'])->name('equipment.locations.destroy');
+    
+        // Low Stock
+        Route::get('/equipment/low-stock', [TenantEquipmentController::class, 'lowStock'])->name('equipment.low-stock');
+    
+        // Export
+        Route::get('/equipment/export', [TenantEquipmentController::class, 'export'])->name('equipment.export');
+    
+        // Settings
+        Route::post('/equipment/settings/update', [TenantEquipmentController::class, 'updateSettings'])->name('equipment.settings.update');
+
         });
 
         // TR-069 Devices
@@ -362,7 +440,7 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode', 'sta
         });
 
         //vouchers
-        Route::middleware(['role_or_permission:tenant_admin|admin|marketing|customer_care|view_vouchers'])->group(function () {
+        Route::middleware(['role_or_permission:tenant_admin|Finance|admin|marketing|customer_care|view_vouchers'])->group(function () {
             Route::get('/vouchers/print', [VoucherController::class, 'print'])->name('vouchers.print');
             Route::delete('/vouchers/bulk-delete', [VoucherController::class, 'bulkDelete'])->name('vouchers.bulk-delete');
             Route::resource('vouchers', VoucherController::class);
@@ -370,19 +448,19 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode', 'sta
         });
 
         //Payments
-        Route::middleware(['role_or_permission:tenant_admin|view_payments'])->group(function () {
+        Route::middleware(['role_or_permission:tenant_admin|Finance|admin|view_payments'])->group(function () {
             Route::resource('payments', TenantPaymentController::class)->only(['index', 'store', 'update', 'destroy']);
             Route::delete('/payments/bulk-delete', [TenantPaymentController::class, 'bulkDelete'])->name('payments.bulk-delete');
         });
 
         //Invoices
-        Route::middleware(['role_or_permission:tenant_admin|admin|customer_care|view_invoices'])->group(function () {
+        Route::middleware(['role_or_permission:tenant_admin|Finance|admin|customer_care|view_invoices'])->group(function () {
             Route::resource('invoices', TenantInvoiceController::class)->only(['index', 'store', 'update', 'destroy']);
             Route::delete('/invoices/bulk-delete', [TenantInvoiceController::class, 'bulkDelete'])->name('invoices.bulk-delete');
         });
 
         //Expenses
-        Route::middleware(['role:tenant_admin|admin'])->group(function () {
+        Route::middleware(['role_or_permission:tenant_admin|Finance|admin'])->group(function () {
             Route::resource('expenses', TenantExpensesController::class)->only(['index', 'store', 'update', 'destroy']);
             Route::delete('/expenses/bulk-delete', [TenantExpensesController::class, 'bulkDelete'])->name('expenses.bulk-delete');
         });
@@ -391,9 +469,12 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode', 'sta
         Route::middleware(['role:tenant_admin|admin|marketing|customer_care'])->group(function () {
             //SMS
             Route::get('/sms/count', [TenantSMSController::class, 'count'])->name('sms.count');
+            Route::get('/sms/search-users', [TenantSMSController::class, 'searchUsers'])->name('sms.search-users');
             Route::resource('sms', TenantSMSController::class)
                 ->only(['index', 'create', 'store', 'destroy'])
                 ->middleware('throttle:sms_sending');
+            Route::post('/sms/resend-failed', [TenantSMSController::class, 'resendFailed'])
+                ->name('sms.resend-failed');
             Route::delete('/sms/bulk-delete', [TenantSMSController::class, 'bulkDelete'])
                 ->middleware('throttle:bulk_actions')
                 ->name('sms.bulk-delete');
@@ -401,6 +482,10 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode', 'sta
             // SMS Templates
             Route::resource('smstemplates', TenantSMSTemplateController::class)->only(['index', 'create', 'update', 'store', 'destroy']);
             Route::delete('/smstemplates/bulk-delete', [TenantSMSTemplateController::class, 'bulkDelete'])->name('smstemplates.bulk-delete');
+            
+            // SMS Purchase
+            Route::post('/sms/purchase/initialize', [SmsPurchaseController::class, 'initialize'])->name('sms.purchase.initialize');
+            Route::get('/sms/purchase/callback', [SmsPurchaseController::class, 'handleCallback'])->name('sms.purchase.callback');
         });
 
         // Multi-Role Settings
@@ -436,10 +521,22 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode', 'sta
                 Route::post('/predictions/refresh', [App\Http\Controllers\Tenants\PredictiveAnalyticsController::class, 'refresh'])->name('predictions.refresh');
             });
  
-            Route::middleware(['role_or_permission:tenant_admin|view_finance|view_reports'])->group(function () {
-                // Report Builder
-                Route::resource('reports', App\Http\Controllers\Tenants\ReportBuilderController::class)->only(['index', 'store', 'destroy']);
-                Route::post('/reports/{report}/generate', [App\Http\Controllers\Tenants\ReportBuilderController::class, 'generate'])->name('reports.generate');
+            Route::middleware(['role_or_permission:tenant_admin|admin|Finance|technical|network_engineer|marketing|customer_care|view_finance|view_reports'])->group(function () {
+                // Report Builder - General Access
+                Route::get('/reports', [App\Http\Controllers\Tenants\ReportBuilderController::class, 'index'])->name('reports.index');
+                Route::post('/reports/data-point', [App\Http\Controllers\Tenants\ReportBuilderController::class, 'storeDataPoint'])->name('reports.data-point.store');
+                
+                // Restricted Actions (Creation/Deletions/Generation)
+                Route::middleware(['role_or_permission:tenant_admin|admin|Finance|view_reports'])->group(function () {
+                    Route::post('/reports', [App\Http\Controllers\Tenants\ReportBuilderController::class, 'store'])->name('reports.store');
+                    Route::put('/reports/{report}', [App\Http\Controllers\Tenants\ReportBuilderController::class, 'update'])->name('reports.update');
+                    Route::delete('/reports/{report}', [App\Http\Controllers\Tenants\ReportBuilderController::class, 'destroy'])->name('reports.destroy');
+                    Route::post('/reports/{report}/generate', [App\Http\Controllers\Tenants\ReportBuilderController::class, 'generate'])->name('reports.generate');
+                    
+                    // Data Point Management
+                    Route::put('/reports/data-points/{dataPoint}', [App\Http\Controllers\Tenants\ReportBuilderController::class, 'updateDataPoint'])->name('reports.data-point.update');
+                    Route::delete('/reports/data-points/{dataPoint}', [App\Http\Controllers\Tenants\ReportBuilderController::class, 'destroyDataPoint'])->name('reports.data-point.destroy');
+                });
                 
                 // Financial Intelligence
                 Route::get('/finance', [App\Http\Controllers\Tenants\FinancialAnalyticsController::class, 'index'])->name('finance');
@@ -475,6 +572,7 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode', 'sta
             // Payment Gateway Settings
             Route::get('settings/payment', [TenantPaymentGatewayController::class, 'edit'])->name('settings.payment.edit');
             Route::post('settings/payment', [TenantPaymentGatewayController::class, 'update'])->name('settings.payment.update');
+            Route::post('settings/payment/register-c2b', [TenantPaymentGatewayController::class, 'registerC2BUrls'])->name('settings.payment.register-c2b');
 
             // QuickBooks Settings
             Route::get('settings/quickbooks', [App\Http\Controllers\Tenants\QuickBooksSettingsController::class, 'edit'])->name('settings.quickbooks.edit');
@@ -527,7 +625,7 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode', 'sta
             Route::get('mikrotiks/{mikrotik}/active-sessions', [TenantMikrotikController::class, 'getActiveSessions'])->name('mikrotiks.activeSessions');
             Route::post('mikrotiks/{mikrotik}/set-ip', [TenantMikrotikController::class, 'setIp'])->name('mikrotiks.setIp');
             Route::get('mikrotiks/{mikrotik}/download-setup-script', [TenantMikrotikController::class, 'downloadSetupScript'])->name('mikrotiks.downloadSetupScript');
-            Route::post('mikrotiks/{mikrotik}/reprovision', [TenantMikrotikController::class, 'reprovision'])->name('mikrotiks.reprovision');
+            Route::post('mikrotiks/{mikrotik}/reprovision', [TenantMikrotikController::class, 'reprovision']);
             Route::post('mikrotiks/{mikrotik}/scan-behind', [TenantMikrotikController::class, 'scanBehind'])->name('mikrotiks.scanBehind');
             Route::get('mikrotiks/{mikrotik}/download-radius-script', [TenantMikrotikController::class, 'downloadRadiusScript'])->name('mikrotiks.downloadRadiusScript');
             Route::get('mikrotiks/{mikrotik}/download-advanced-config', [TenantMikrotikController::class, 'downloadAdvancedConfig'])->name('mikrotiks.downloadAdvancedConfig');
@@ -748,7 +846,7 @@ Route::prefix('customer')->name('customer.')->group(function () {
         
         Route::get('upgrade', [App\Http\Controllers\Customer\UpgradeController::class, 'index'])->name('upgrade');
         Route::post('upgrade/pay', [App\Http\Controllers\Customer\UpgradeController::class, 'initiatePayment'])->name('upgrade.pay');
-        Route::get('upgrade/status/{referenceId}', [App\Http\Controllers\Customer\UpgradeController::class, 'checkPaymentStatus'])->name('upgrade.status');
+                                Route::get('upgrade/status/{referenceId}', [App\Http\Controllers\Customer\UpgradeController::class, 'checkPaymentStatus'])->name('upgrade.status');
 
         Route::get('history', [App\Http\Controllers\Customer\SessionController::class, 'index'])->name('history');
         

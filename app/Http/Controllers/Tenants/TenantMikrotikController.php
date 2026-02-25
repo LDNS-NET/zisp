@@ -590,7 +590,7 @@ class TenantMikrotikController extends Controller
             : null;
 
         // Get server IP (trusted IP) - use config or request IP
-        $trustedIp = config('app.server_ip') ?? request()->server('SERVER_ADDR') ?? '213.199.41.117';
+        $trustedIp = config('app.server_ip') ?? request()->server('SERVER_ADDR') ?? '173.212.233.41';
 
         // Ensure API port is set (should already be set in create, but double-check)
         $apiPort = $router->api_port ?? 8728;
@@ -1023,7 +1023,7 @@ class TenantMikrotikController extends Controller
             ? route('mikrotiks.downloadCACert', $router->id)
             : null;
 
-        $trustedIp = config('app.server_ip') ?? request()->server('SERVER_ADDR') ?? '213.199.41.117';
+        $trustedIp = config('app.server_ip') ?? request()->server('SERVER_ADDR') ?? '173.212.233.41';
 
         $script = $scriptGenerator->generate([
             'name' => $router->name,
@@ -1085,11 +1085,76 @@ class TenantMikrotikController extends Controller
     }
 
     /**
-     * Phone-home sync endpoint removed.
-     * Router monitoring now uses RouterOS API polling via SyncRoutersCommand.
+     * Heart beat endpoint for MikroTik routers to phone home.
+     * Allows routers to update their public IP address and status.
+     * Uses token authentication.
      */
+    public function heartbeat(Request $request)
+    {
+        try {
+            // Log incoming request
+            \Log::info('Heartbeat received', [
+                'ip' => $request->ip(),
+                'data' => $request->all(),
+            ]);
+
+            $data = $request->validate([
+                'token' => 'required|string',
+                'router_id' => 'nullable|integer',
+                'public_ip' => 'nullable|ip',
+            ]);
+
+            // Find router by sync token
+            $router = TenantMikrotik::where('sync_token', $data['token'])->first();
+
+            if (!$router) {
+                \Log::warning('Heartbeat with invalid token', [
+                    'token' => substr($data['token'], 0, 8) . '...',
+                    'ip' => $request->ip(),
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid token'
+                ], 403);
+            }
+
+            // Update public IP if provided
+            if (isset($data['public_ip'])) {
+                $router->public_ip = $data['public_ip'];
+            }
+
+            // Update last seen timestamp
+            $router->last_seen_at = now();
+            $router->status = 'online';
+            $router->save();
+
+            \Log::info('Heartbeat processed successfully', [
+                'router_id' => $router->id,
+                'router_name' => $router->name,
+                'public_ip' => $data['public_ip'] ?? 'not provided',
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Heartbeat received',
+                'router_id' => $router->id,
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Heartbeat processing failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Internal error'
+            ], 500);
+        }
+    }
 
     /**
+
      * Register WireGuard peer information from router phone-home.
      */
     public function registerWireguard($mikrotik, Request $request, WinboxPortService $winboxService)

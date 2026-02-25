@@ -6,6 +6,7 @@ use App\Models\Tenants\NetworkUser;
 use App\Models\Tenants\TenantPayment;
 use App\Models\Package;
 use App\Models\Tenants\TenantHotspot;
+use App\Jobs\SyncMikrotikActiveUsersJob;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -140,7 +141,7 @@ class PaymentProcessingService
     protected function createNewHotspotUser($payment, $package)
     {
         $username = NetworkUser::generateHotspotUsername($payment->tenant_id);
-        $password = Str::random(8);
+        $password = NetworkUser::generateHotspotPassword();
 
         $user = NetworkUser::create([
             'tenant_id' => $payment->tenant_id,
@@ -190,6 +191,9 @@ class PaymentProcessingService
                 if ($user->type === 'hotspot' && $user->mac_address) {
                     $mikrotik->kickHotspotUserByMac($user->mac_address);
                 }
+
+                // Trigger immediate sync to update "online" status in the system
+                SyncMikrotikActiveUsersJob::dispatch($tenantMikrotik)->delay(now()->addSeconds(5));
             }
         } catch (\Exception $e) {
             Log::error('Mikrotik unsuspend failed', ['user' => $user->username, 'error' => $e->getMessage()]);

@@ -153,7 +153,7 @@
 
 
 :put " =================== Creating PPPoE profile =================== "
-/ppp profile add dns-server=8.8.8.8,8.8.4.4 local-address=$poolName name=$pppoeProfile remote-address=$poolName
+/ppp profile add dns-server=8.8.8.8,8.8.4.4 local-address=$poolName name=$pppoeProfile remote-address=$poolName change-tcp-mss=yes
 :put " =================== PPPoE profile created =================== "
 
 
@@ -184,7 +184,9 @@
 :put " =================== PPPoE masquerade configured =================== "
 
 
-:put " =================== Mangle rules skipped for better mobile compatibility =================== "
+:put " =================== Configuring MSS Clamping for PPPoE compatibility =================== "
+/ip firewall mangle
+add chain=forward action=change-mss new-mss=clamp-to-pmtu passthrough=yes protocol=tcp tcp-flags=syn comment="ZISP: Clamp MSS for PPPoE"
 
 
 :put " =================== Configuring SNMP =================== "

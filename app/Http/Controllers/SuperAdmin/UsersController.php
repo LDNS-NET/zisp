@@ -19,7 +19,7 @@ class UsersController extends Controller
 {
     public function index(Request $request)
     {
-        $query = User::role('tenant_admin'); // Use Spatie role scope for reliability
+        $query = User::whereHas('roles', fn($q) => $q->where('name', 'tenant_admin')); // Use Spatie role scope for reliability
 
         // Search
         if ($request->filled('search')) {

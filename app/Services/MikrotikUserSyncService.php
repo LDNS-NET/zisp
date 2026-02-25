@@ -20,6 +20,16 @@ class MikrotikUserSyncService
     public function syncActiveUsers(TenantMikrotik $router)
     {
         $activeSessions = $this->fetchActiveSessionsFromMikrotik($router);
+        
+        if ($activeSessions === null) {
+            Log::warning("Skipping active user sync for router {$router->id} due to connection issue.");
+            return [
+                'synced' => 0,
+                'online' => [],
+                'offline' => [],
+            ];
+        }
+
         $tenantId = $router->tenant_id;
         
         // Extract usernames for the diff logic
@@ -39,41 +49,58 @@ class MikrotikUserSyncService
         $usersToMarkOnline = array_diff($currentOnline, $previouslyOnlineOnRouter);
         $usersToMarkOffline = array_diff($previouslyOnlineOnRouter, $currentOnline);
 
-        // Update EXISTING online sessions (refresh MAC/IP even if already online)
+        // Update EXISTING online sessions (refresh last_seen_at and usage in bulk for performance)
         $usersStillOnline = array_intersect($currentOnline, $previouslyOnlineOnRouter);
-        foreach ($usersStillOnline as $username) {
-            $data = $activeSessions[$username];
-            TenantActiveUsers::where('tenant_id', $tenantId)
-                ->where('router_id', $router->id)
-                ->where('username', $username)
-                ->where('status', 'active')
-                ->update([
-                    'mac_address' => $data['mac_address'] ?? null,
-                    'ip_address' => $data['ip_address'] ?? null,
-                    'last_seen_at' => now()
-                ]);
+        if (!empty($usersStillOnline)) {
+            // Pre-fetch users to resolve IDs only for those who don't have them yet or for all to be safe?
+            // Better to fetch all relevant users to handle potential missing IDs
+            $stillOnlineUsers = NetworkUser::withoutGlobalScopes()
+                ->where('tenant_id', $tenantId)
+                ->whereIn(\DB::raw('lower(username)'), $stillOnlineLower = array_map('strtolower', $usersStillOnline))
+                ->pluck('id', \DB::raw('lower(username)'))
+                ->toArray();
+
+            // We need to update usage per user as they differ
+            foreach ($usersStillOnline as $username) {
+                $data = $activeSessions[$username];
+                $loweredUsername = strtolower($username);
+                TenantActiveUsers::where('tenant_id', $tenantId)
+                    ->where('router_id', $router->id)
+                    ->where('status', 'active')
+                    ->where(\DB::raw('lower(trim(username))'), $username)
+                    ->update([
+                        'last_seen_at' => now(),
+                        'user_id' => $stillOnlineUsers[$loweredUsername] ?? null,
+                        'bytes_in' => $data['bytes_in'] ?? 0,
+                        'bytes_out' => $data['bytes_out'] ?? 0,
+                    ]);
+            }
         }
 
         // Only update status changed records
-        $updated = 0;
+        $updated = count($usersToMarkOnline) + count($usersToMarkOffline);
         
         if (!empty($usersToMarkOnline)) {
-            // Mark online in NetworkUser (if not already)
-            $count = NetworkUser::where('tenant_id', $tenantId)
-                ->whereIn(\DB::raw('lower(trim(username))'), $usersToMarkOnline)
-                ->where('online', false)
-                ->update(['online' => true]);
-            $updated += $count;
+            // Resolve IDs for new online users
+            $newOnlineUsers = NetworkUser::withoutGlobalScopes()
+                ->where('tenant_id', $tenantId)
+                ->whereIn(\DB::raw('lower(username)'), $newOnlineLower = array_map('strtolower', $usersToMarkOnline))
+                ->pluck('id', \DB::raw('lower(username)'))
+                ->toArray();
 
             // Update session records for this router
             foreach ($usersToMarkOnline as $username) {
                 $data = $activeSessions[$username];
+                $loweredUsername = strtolower($username);
                 TenantActiveUsers::updateOrCreate(
                     ['tenant_id' => $tenantId, 'username' => $username, 'router_id' => $router->id],
                     [
+                        'user_id' => $newOnlineUsers[$loweredUsername] ?? null,
                         'status' => 'active', 
                         'mac_address' => $data['mac_address'] ?? null,
                         'ip_address' => $data['ip_address'] ?? null,
+                        'bytes_in' => $data['bytes_in'] ?? 0,
+                        'bytes_out' => $data['bytes_out'] ?? 0,
                         'last_seen_at' => now()
                     ]
                 );
@@ -81,28 +108,11 @@ class MikrotikUserSyncService
         }
 
         if (!empty($usersToMarkOffline)) {
-            // Deactivate session records for this router
             TenantActiveUsers::where('tenant_id', $tenantId)
                 ->where('router_id', $router->id)
                 ->whereIn(\DB::raw('lower(trim(username))'), $usersToMarkOffline)
+                ->where('last_seen_at', '<', now()->subMinutes(5)) // Implementation of deactivation grace period
                 ->update(['status' => 'deactivated', 'last_seen_at' => now()]);
-
-            // For each user being marked offline on this router, 
-            // check if they are still active on ANY other router before marking them offline globally
-            foreach ($usersToMarkOffline as $username) {
-                $stillActiveElsewhere = TenantActiveUsers::where('tenant_id', $tenantId)
-                    ->where('username', $username)
-                    ->where('status', 'active')
-                    ->exists();
-                
-                if (!$stillActiveElsewhere) {
-                    NetworkUser::where('tenant_id', $tenantId)
-                        ->where(\DB::raw('lower(trim(username))'), $username)
-                        ->where('online', true)
-                        ->update(['online' => false]);
-                    $updated++;
-                }
-            }
         }
 
         Log::info("Mikrotik sync optimized for router {$router->id}: {$updated} status changes", [
@@ -130,7 +140,7 @@ class MikrotikUserSyncService
             // Check if router is reachable
             if (!$apiService->isOnline()) {
                 Log::warning("Mikrotik router offline", ['router_id' => $router->id]);
-                return [];
+                return null;
             }
 
             $sessions = [];
@@ -143,6 +153,8 @@ class MikrotikUserSyncService
                     $sessions[strtolower(trim($username))] = [
                         'mac_address' => $user['mac-address'] ?? null,
                         'ip_address' => $user['address'] ?? null,
+                        'bytes_in' => (int) ($user['bytes-in'] ?? 0),
+                        'bytes_out' => (int) ($user['bytes-out'] ?? 0),
                     ];
                 }
             }
@@ -157,6 +169,8 @@ class MikrotikUserSyncService
                         $sessions[$username] = [
                             'mac_address' => $user['caller-id'] ?? null,
                             'ip_address' => $user['address'] ?? null,
+                            'bytes_in' => (int) ($user['bytes-in'] ?? 0),
+                            'bytes_out' => (int) ($user['bytes-out'] ?? 0),
                         ];
                     }
                 }
@@ -168,7 +182,7 @@ class MikrotikUserSyncService
                 'router_id' => $router->id,
                 'error' => $e->getMessage(),
             ]);
-            return [];
+            return null;
         }
     }
 }

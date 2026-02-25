@@ -46,6 +46,8 @@ class SmsGatewayService
      */
     public function sendSMS(string $tenantId, string $phoneNumber, string $message): array
     {
+        Log::info("[SMS] Initiating send for tenant {$tenantId} to {$phoneNumber}");
+
         // Get active gateway configuration
         $gateway = TenantSmsGateway::where('tenant_id', $tenantId)
             ->where('is_active', true)
@@ -53,41 +55,45 @@ class SmsGatewayService
         
         // Default to Talksasa with system credentials if no gateway configured
         if (!$gateway) {
-            return $this->sendViaTalksasaDefault($phoneNumber, $message);
+            Log::info("[SMS] No active gateway for tenant {$tenantId}. Falling back to Talksasa default.");
+            $result = $this->sendViaTalksasaDefault($tenantId, $phoneNumber, $message);
+            $this->logResult($tenantId, 'talksasa_default', $result);
+            return $result;
         }
         
         $provider = $gateway->provider;
+        Log::info("[SMS] Using configured provider '{$provider}' for tenant {$tenantId}");
         
-        switch ($provider) {
-            case 'celcom':
-                return $this->sendViaCelcom($gateway, $phoneNumber, $message);
-                
-            case 'talksasa':
-                return $this->sendViaTalksasa($gateway, $phoneNumber, $message);
-                
-            case 'africastalking':
-                return $this->sendViaAfricasTalking($gateway, $phoneNumber, $message);
-                
-            case 'twilio':
-                return $this->sendViaTwilio($gateway, $phoneNumber, $message);
-                
-            case 'advanta':
-                return $this->sendViaAdvanta($gateway, $phoneNumber, $message);
-                
-            case 'bulksms':
-                return $this->sendViaBulkSMS($gateway, $phoneNumber, $message);
-                
-            case 'clicksend':
-                return $this->sendViaClickSend($gateway, $phoneNumber, $message);
-                
-            case 'infobip':
-                return $this->sendViaInfobip($gateway, $phoneNumber, $message);
-                
-            default:
-                return [
-                    'success' => false,
-                    'message' => "Unsupported SMS provider: {$provider}"
-                ];
+        $result = match ($provider) {
+            'celcom' => $this->sendViaCelcom($gateway, $phoneNumber, $message),
+            'talksasa' => $this->sendViaTalksasa($gateway, $phoneNumber, $message),
+            'africastalking' => $this->sendViaAfricasTalking($gateway, $phoneNumber, $message),
+            'twilio' => $this->sendViaTwilio($gateway, $phoneNumber, $message),
+            'advanta' => $this->sendViaAdvanta($gateway, $phoneNumber, $message),
+            'bulksms' => $this->sendViaBulkSMS($gateway, $phoneNumber, $message),
+            'clicksend' => $this->sendViaClickSend($gateway, $phoneNumber, $message),
+            'infobip' => $this->sendViaInfobip($gateway, $phoneNumber, $message),
+            default => [
+                'success' => false,
+                'message' => "Unsupported SMS provider: {$provider}"
+            ],
+        };
+
+        $this->logResult($tenantId, $provider, $result);
+        return $result;
+    }
+
+    /**
+     * Helper to log SMS results
+     */
+    protected function logResult(string $tenantId, string $provider, array $result)
+    {
+        $status = $result['success'] ? 'SUCCESS' : 'FAILURE';
+        $messageId = $result['provider_response']['id'] ?? $result['provider_response']['message_id'] ?? 'N/A';
+        Log::info("[SMS] Result for tenant {$tenantId} via {$provider}: {$status} - ID: {$messageId} - " . ($result['message'] ?? 'No message'));
+        
+        if (!$result['success'] && isset($result['provider_response'])) {
+            Log::debug("[SMS] Provider response: " . json_encode($result['provider_response']));
         }
     }
     
@@ -116,7 +122,7 @@ class SmsGatewayService
         
         // Fall back to system default if tenant hasn't provided credentials
         if (empty($apiKey) || empty($senderId)) {
-            return $this->sendViaTalksasaDefault($phoneNumber, $message);
+            return $this->sendViaTalksasaDefault($gateway->tenant_id, $phoneNumber, $message);
         }
         
         $this->talksasaService->setCredentials([
@@ -211,15 +217,68 @@ class SmsGatewayService
     }
     
     /**
+     * Check if the tenant is using the system default gateway (Talksasa with platform credentials)
+     */
+    public function isUsingSystemGateway(string $tenantId): bool
+    {
+        $gateway = TenantSmsGateway::where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->first();
+
+        // If no active gateway, it defaults to system Talksasa
+        if (!$gateway) {
+            return true;
+        }
+
+        // If provider is talksasa but credentials are empty, it uses system defaults
+        if ($gateway->provider === 'talksasa' && (empty($gateway->talksasa_api_key) || empty($gateway->talksasa_sender_id))) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
      * Send via Talksasa using system default credentials from .env
      */
-    protected function sendViaTalksasaDefault(string $phoneNumber, string $message): array
+    protected function sendViaTalksasaDefault(string $tenantId, string $phoneNumber, string $message): array
     {
+        $tenant = \App\Models\Tenant::find($tenantId);
+        
+        if (!$tenant) {
+            return [
+                'success' => false,
+                'message' => "Tenant context not found."
+            ];
+        }
+
+        // Calculate cost: 0.39 per 40 characters
+        $charCount = mb_strlen($message);
+        $units = ceil($charCount / 40);
+        $cost = $units * 0.39;
+
+        // Check balance
+        if ($tenant->sms_balance < $cost) {
+            return [
+                'success' => false,
+                'message' => "Insufficient SMS balance (Cost: {$cost}, Balance: {$tenant->sms_balance}). Please top up."
+            ];
+        }
+
         $this->talksasaService->setCredentials([
             'api_key' => env('TALKSASA_API_KEY'),
             'sender_id' => env('TALKSASA_SENDER_ID'),
         ]);
         
-        return $this->talksasaService->sendSMS($phoneNumber, $message);
+        $result = $this->talksasaService->sendSMS($phoneNumber, $message);
+
+        // Deduct balance on success
+        if ($result['success']) {
+            $tenant->sms_balance -= $cost;
+            $tenant->save();
+            Log::info("[SMS] Deducted {$cost} from tenant {$tenantId} for SMS to {$phoneNumber}. Remaining balance: {$tenant->sms_balance}");
+        }
+
+        return $result;
     }
 }

@@ -15,6 +15,7 @@ class RolesAndPermissionsSeeder extends Seeder
 
         // Create roles (Tenant Specific)
         $roles = [
+            'Finance',
             'tenant_admin',
             'admin',
             'customer_care',
@@ -30,6 +31,7 @@ class RolesAndPermissionsSeeder extends Seeder
 
         // Define permissions (Example set, expand as needed)
         $permissions = [
+            'audit and finance management',
             'manage network',
             'manage billing',
             'manage support',
@@ -56,6 +58,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'configure network',
         ]);
 
+        Role::findByName('Finance', 'web')->givePermissionTo(['audit and finance management', 'manage billing']);
         Role::findByName('customer_care', 'web')->givePermissionTo(['manage support', 'view analytics']);
         Role::findByName('technical', 'web')->givePermissionTo(['manage network', 'manage support']);
         Role::findByName('network_engineer', 'web')->givePermissionTo(['manage network', 'configure network']);

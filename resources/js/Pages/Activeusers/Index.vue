@@ -2,15 +2,38 @@
 import { ref, computed } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Activity, Users, Wifi, Network, Clock, User, MapPin, RefreshCw } from 'lucide-vue-next';
+import Pagination from '@/Components/Pagination.vue';
+import { Activity, Users, Wifi, Network, Clock, User, MapPin, RefreshCw, Search } from 'lucide-vue-next';
 
 const props = defineProps({
     activeUsers: {
-        type: Array,
-        default: () => [],
+        type: Object,
+        default: () => ({ data: [] }),
+    },
+    stats: {
+        type: Object,
+        default: () => ({ all: 0, hotspot: 0, pppoe: 0, static: 0 }),
     },
     message: String,
+    filters: {
+        type: Object,
+        default: () => ({ search: '' })
+    }
 });
+
+const search = ref(props.filters.search || '');
+
+// Search logic
+const handleSearch = () => {
+    router.get(route('activeusers.index'), { 
+        search: search.value,
+        // router_id can be added here if we had a router filter
+    }, {
+        preserveState: true,
+        replace: true,
+        preserveScroll: true,
+    });
+};
 
 // Refresh logic
 const isRefreshing = ref(false);
@@ -27,21 +50,19 @@ const refreshData = () => {
 // Filter state
 const selectedType = ref('all');
 
-// User counts by type
-const userCounts = computed(() => {
-    const users = props.activeUsers || [];
-    return {
-        all: users.length,
-        hotspot: users.filter(u => u.user_type === 'hotspot').length,
-        pppoe: users.filter(u => u.user_type === 'pppoe').length,
-        static: users.filter(u => u.user_type === 'static').length,
-    };
-});
+// User counts by type (now from stats prop instead of current page data)
+const userCounts = computed(() => ({
+    all: props.stats.all,
+    hotspot: props.stats.hotspot,
+    pppoe: props.stats.pppoe,
+    static: props.stats.static,
+}));
 
 // Filtered users based on selected type
 const filteredUsers = computed(() => {
-    if (selectedType.value === 'all') return props.activeUsers || [];
-    return (props.activeUsers || []).filter(u => u.user_type === selectedType.value);
+    const users = props.activeUsers?.data || [];
+    if (selectedType.value === 'all') return users;
+    return users.filter(u => u.user_type === selectedType.value);
 });
 
 // Format uptime/session time
@@ -188,7 +209,7 @@ const formatSessionTime = (time) => {
                         </h3>
                         <div class="flex items-center gap-3">
                             <span class="rounded-full bg-blue-100 px-3 py-1 text-sm font-semibold text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
-                                {{ filteredUsers.length }} online
+                                {{ userCounts[selectedType] }} online
                             </span>
                             <button 
                                 @click="refreshData" 
@@ -198,6 +219,22 @@ const formatSessionTime = (time) => {
                                 <RefreshCw :class="{ 'animate-spin': isRefreshing }" class="h-4 w-4" />
                                 Refresh
                             </button>
+                        </div>
+                    </div>
+
+                    <!-- Search Bar -->
+                    <div class="mb-6">
+                        <div class="relative max-w-md">
+                            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                <Search class="h-4 w-4 text-gray-400" />
+                            </div>
+                            <input
+                                v-model="search"
+                                type="text"
+                                @input="handleSearch"
+                                placeholder="Search by name, username, IP or account #..."
+                                class="block w-full rounded-xl border-gray-300 pl-10 text-sm focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:placeholder-gray-400"
+                            />
                         </div>
                     </div>
 
@@ -241,8 +278,10 @@ const formatSessionTime = (time) => {
                                             <div class="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30">
                                                 <User class="h-5 w-5 text-blue-600 dark:text-blue-400" />
                                             </div>
-                                            <div class="font-medium text-gray-900 dark:text-white">
-                                                {{ user.username || 'Unknown' }}
+                                            <div>
+                                                <div class="font-medium text-gray-900 dark:text-white">
+                                                    {{ user.username || 'Unknown' }}
+                                                </div>
                                             </div>
                                         </div>
                                     </td>
@@ -275,6 +314,11 @@ const formatSessionTime = (time) => {
                             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
                                 {{ selectedType === 'all' ? 'No users are currently online' : `No ${selectedType} users are currently online` }}
                             </p>
+                        </div>
+
+                        <!-- Pagination -->
+                        <div v-if="filteredUsers.length > 0 && activeUsers.last_page > 1" class="mt-6 border-t border-gray-200 pt-4 dark:border-gray-700">
+                            <Pagination :links="activeUsers.links" :from="activeUsers.from" :to="activeUsers.to" :total="activeUsers.total" />
                         </div>
                     </div>
                 </div>

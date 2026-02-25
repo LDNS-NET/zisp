@@ -59,7 +59,7 @@ class RegisteredUserController extends Controller
                 'currency' => $request->currency,
                 'currency_name' => $request->currency_name,
                 'dial_code' => $request->dial_code,
-                'subscription_expires_at' => now()->addDays(20),
+                'subscription_expires_at' => now()->addDays(30),
                 'is_suspended' => false,
             ]);
 
@@ -109,8 +109,12 @@ class RegisteredUserController extends Controller
             $user->role = 'tenant_admin'; // Set the role column for legacy compatibility
             $user->save();
 
-            // Assign Spatie role
-            $user->assignRole('tenant_admin');
+            // Assign Spatie role safely
+            $roleName = 'tenant_admin';
+            if (! \Spatie\Permission\Models\Role::where('name', $roleName)->where('guard_name', 'web')->exists()) {
+                \Spatie\Permission\Models\Role::create(['name' => $roleName, 'guard_name' => 'web']);
+            }
+            $user->assignRole($roleName);
         });
 
         event(new Registered($user));

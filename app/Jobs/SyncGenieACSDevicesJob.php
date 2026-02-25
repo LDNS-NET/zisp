@@ -88,7 +88,18 @@ class SyncGenieACSDevicesJob implements ShouldQueue
 
     private function syncToContext(GenieACSService $service, array $remote, string $serial, ?string $tenantId): void
     {
-        $device = TenantDevice::where('serial_number', $serial)->first();
+        // Use withoutGlobalScopes to find the device even if it was unassigned (NULL tenant_id)
+        $device = TenantDevice::withoutGlobalScopes()
+            ->where('serial_number', $serial)
+            ->where(function($q) use ($tenantId) {
+                if ($tenantId) {
+                    $q->where('tenant_id', $tenantId)
+                      ->orWhereNull('tenant_id');
+                } else {
+                    $q->whereNull('tenant_id');
+                }
+            })
+            ->first();
 
         if (!$device) {
             $device = TenantDevice::create([
@@ -97,6 +108,11 @@ class SyncGenieACSDevicesJob implements ShouldQueue
                 'online' => true,
                 'last_contact_at' => now(),
             ]);
+        } else {
+            // Update tenant_id if it was null and we now have a match
+            if (!$device->tenant_id && $tenantId) {
+                $device->update(['tenant_id' => $tenantId]);
+            }
         }
 
         $service->syncDevice($device, $remote);

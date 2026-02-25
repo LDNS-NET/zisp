@@ -289,6 +289,15 @@ class PaystackController extends Controller
                         $this->paymentProcessingService->processSuccess($payment);
                     }
 
+                    // Handle SMS Purchase
+                    if (($payment->response['type'] ?? '') === 'sms_purchase' || str_starts_with($payment->paystack_reference ?? '', 'SMS-')) {
+                        $tenant = Tenant::find($payment->tenant_id);
+                        if ($tenant) {
+                            $tenant->increment('sms_balance', $payment->amount);
+                            Log::info("[SMS Webhook] Credited {$payment->amount} KES to tenant {$tenant->id} SMS balance.");
+                        }
+                    }
+
                     Log::info('Paystack: Payment processed via webhook', ['reference' => $reference]);
                 }
             }

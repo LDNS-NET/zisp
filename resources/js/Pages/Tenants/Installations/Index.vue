@@ -25,7 +25,7 @@ watch(search, () => {
             { search: search.value },
             { preserveState: true, preserveScroll: true, replace: true }
         )
-    }, 300)
+    }, 500)
 })
 
 function getStatusColor(status) {

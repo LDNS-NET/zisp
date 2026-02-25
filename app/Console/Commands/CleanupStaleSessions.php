@@ -36,19 +36,6 @@ class CleanupStaleSessions extends Command
         foreach ($localStale as $session) {
             $session->update(['status' => 'disconnected', 'disconnected_at' => now()]);
             
-            // Sync user online flag if no other active sessions
-            if ($session->user_id) {
-                $activeCount = \App\Models\Tenants\TenantActiveUsers::withoutGlobalScopes()
-                    ->where('user_id', $session->user_id)
-                    ->where('status', 'active')
-                    ->count();
-                
-                if ($activeCount === 0) {
-                    \App\Models\Tenants\NetworkUser::withoutGlobalScopes()
-                        ->where('id', $session->user_id)
-                        ->update(['online' => false]);
-                }
-            }
             $localCount++;
         }
 

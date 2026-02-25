@@ -116,7 +116,7 @@ const showOnboardingModal = ref(false)
 const showSuccessToast = ref(false)
 
 const goToDemo = () => {
-    window.open('https://demo.zispbilling.cloud/login', '_blank')
+    window.open('https://demo.zimaradius.net/login', '_blank')
 }
 
 const onboardingForm = useForm({
@@ -161,10 +161,10 @@ onMounted(() => {
 
 <template>
     <Head>
-        <title>Mfire ISP Manager | Best ISP Management & Billing System</title>
-        <meta name="description" content="Mfire Enterprises is the leading ISP management and billing system. Automate M-Pesa payments, manage Mikrotik routers, PPPoE, Hotspot vouchers, and invoices." />
-        <meta name="keywords" content="isp billing system, mikrotik hotspot management, pppoe billing, kenya isp software, mpesa integration, radius billing, wifi management software, mfire enterprises, mwalinfire" />
-        <meta property="og:title" content="Mfire Enterprises | Automated ISP Billing & Management" />
+        <title>ZimaRadius Manager | Best ISP Management & Billing System</title>
+        <meta name="description" content="zimaRadius Enterprises is the leading ISP management and billing system. Automate M-Pesa payments, manage Mikrotik routers, PPPoE, Hotspot vouchers, and invoices." />
+        <meta name="keywords" content="isp billing system, mikrotik hotspot management, pppoe billing, kenya isp software, mpesa integration, radius billing, wifi management software, zimaradius enterprises, mwalinfire" />
+        <meta property="og:title" content="ZimaRadius Enterprises | Automated ISP Billing & Management" />
         <meta property="og:description" content="Manage your ISP entirely from one dashboard. Mikrotik integration, M-Pesa payments, SMS breakdown, and more." />
         <meta property="og:type" content="website" />
         <meta property="text:json-ld">
@@ -172,7 +172,7 @@ onMounted(() => {
                 JSON.stringify({
                     "@context": "https://schema.org",
                     "@type": "SoftwareApplication",
-                    "name": "Mfire ISP Manager",
+                    "name": "ZimaRadius Manager",
                     "applicationCategory": "BusinessApplication",
                     "operatingSystem": "Web",
                     "offers": {
@@ -231,14 +231,14 @@ onMounted(() => {
                     <h1 class="mb-6 text-5xl sm:text-6xl lg:text-7xl font-extrabold leading-tight text-white">
                         Empower Your ISP with
                         <span class="block mt-2 bg-gradient-to-r from-orange-400 via-red-400 to-amber-400 bg-clip-text text-transparent">
-                            Mfire ISP Manager
+                            ZimaRadius ISP Manager
                         </span>
                     </h1>
 
                     <p class="mt-6 text-xl text-gray-300 max-w-xl">
                         Billing, bandwidth control, payments, and customer management —
                         built specifically for African ISPs using MikroTik.
-                        <span class="block mt-2 text-sm text-gray-400">Powered by Mfire Enterprises</span>
+                        <span class="block mt-2 text-sm text-gray-400">Powered by ZimaRadius Enterprises</span>
                     </p>
 
                     <!-- CTA -->
@@ -352,7 +352,7 @@ onMounted(() => {
         <section id="how-it-works" class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-24">
             <div class="text-center mb-16">
                 <h2 class="text-5xl sm:text-6xl font-bold text-white mb-4 tracking-tight">
-                    How Mfire Enterprises Works
+                    How ZimaRadius ISP Manager Works
                 </h2>
                 <p class="text-lg text-gray-400 max-w-2xl mx-auto font-light">
                     Get up and running in minutes, not weeks
@@ -447,7 +447,7 @@ onMounted(() => {
         <section class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-24">
             <div class="text-center mb-16">
                 <h2 class="text-5xl sm:text-6xl font-bold text-white mb-4 tracking-tight">
-                    Why Mfire Enterprises is the Smart Choice
+                    Why ZimaRadius ISP Manager is the Smart Choice
                 </h2>
                 <p class="text-lg text-gray-400 max-w-2xl mx-auto font-light">
                     Trusted by the leading ISPs across Africa
@@ -485,7 +485,7 @@ onMounted(() => {
                         </div>
                         <h2 class="text-4xl font-bold text-white mb-6 tracking-tight">Global Reach</h2>
                         <p class="text-lg text-gray-300 mb-8 leading-relaxed">
-                            Mfire Enterprises is designed for the global market. We currently support multiple countries across Africa and are rapidly expanding.
+                            ZimaRadius ISP Manager is designed for the global market. We currently support multiple countries across Africa and are rapidly expanding.
                         </p>
                         <div class="flex flex-wrap gap-4">
                             <div v-for="country in countries.slice(0, 6)" :key="country.code" class="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm text-gray-300 flex items-center gap-2">
@@ -528,7 +528,7 @@ onMounted(() => {
             <div class="p-8 bg-gray-900 rounded-2xl border border-white/10">
                 <h3 class="text-2xl font-bold text-white mb-2">Request Onboarding</h3>
                 <p class="text-sm text-gray-400 mb-8">
-                    Don't see your country? Tell us about your ISP, and we'll work on bringing Mfire Enterprises to your region.
+                    Don't see your country? Tell us about your ISP, and we'll work on bringing ZimaRadius ISP Manager to your region.
                 </p>
 
                 <form @submit.prevent="submitOnboarding" class="space-y-6">
@@ -617,7 +617,7 @@ onMounted(() => {
                     </h2>
 
                     <p class="text-lg text-orange-100 mb-10 max-w-2xl mx-auto">
-                        Experience Mfire Enterprises with a live demo environment.
+                        Experience ZimaRadius ISP Manager with a live demo environment.
                     </p>
 
                     <button
@@ -642,7 +642,7 @@ onMounted(() => {
                     </h3>
 
                     <p class="text-sm text-gray-400 mb-6">
-                        Use the credentials below to explore the Mfire Enterprises demo system.
+                        Use the credentials below to explore the ZimaRadius demo system.
                     </p>
 
                     <div class="space-y-3 mb-6">

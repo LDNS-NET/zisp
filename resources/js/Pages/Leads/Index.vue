@@ -143,9 +143,9 @@ watch(search, (value) => {
         router.get(
             route('leads.index'),
             { search: value },
-            { preserveScroll: true, replace: true }
+            { preserveScroll: true, preserveState: true, replace: true }
         );
-    }, 300);
+    }, 500);
 });
 </script>
 

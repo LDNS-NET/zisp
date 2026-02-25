@@ -7,7 +7,16 @@ use Stancl\Tenancy\Database\Concerns\UsesTenantConnection;
 
 class Package extends Model
 {
+    /**
+     * Get the route key for the model.
+     */
+    public function getRouteKeyName()
+    {
+        return 'uuid';
+    }
+
     protected $fillable = [
+        'uuid',
         'name',
         'type',
         'mikrotik_profile',
@@ -55,6 +64,11 @@ class Package extends Model
         });
 
         static::creating(function ($model) {
+            // Generate UUID for new records
+            if (empty($model->uuid)) {
+                $model->uuid = (string) \Illuminate\Support\Str::uuid();
+            }
+
             if (auth()->guard('web')->check() && empty($model->created_by)) {
                 $model->created_by = auth()->id();
             }

@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { useToast } from 'vue-toastification';
+import axios from 'axios';
 import Layout from '@/Pages/Settings/Layout.vue';
 import Modal from '@/Components/Modal.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
@@ -110,6 +111,7 @@ function openDetails() {
     detailsGateway.value = props.gateway || {};
     showDetailsModal.value = true;
 }
+
 
 </script>
 
@@ -360,6 +362,55 @@ function openDetails() {
                     </Modal>
                 </div>
             </transition>
+
+            <!-- Buy SMS Modal -->
+            <Modal :show="showBuySmsModal" @close="showBuySmsModal = false">
+                <template #header>
+                    <h3 class="text-xl font-bold text-indigo-700">Buy SMS Credits</h3>
+                </template>
+
+                <div class="p-6">
+                    <p class="mb-4 text-gray-600">
+                        Top up your SMS balance to continue sending messages via the system gateway. 
+                        <strong>Rate: 0.45 KES per 40 characters.</strong>
+                    </p>
+
+                    <label class="mb-2 block font-semibold text-gray-700">Select Amount (KES)</label>
+                    <div class="grid grid-cols-3 gap-3 mb-6">
+                        <button 
+                            v-for="amt in amounts" 
+                            :key="amt"
+                            @click="buyAmount = amt"
+                            :class="[
+                                'py-2 px-4 rounded-lg border-2 transition-all font-bold',
+                                buyAmount === amt ? 'border-indigo-600 bg-indigo-50 text-indigo-700' : 'border-gray-200 hover:border-indigo-300'
+                            ]"
+                        >
+                            {{ amt }}
+                        </button>
+                    </div>
+
+                    <div class="rounded-lg bg-indigo-50 p-4 border border-indigo-100 mb-6">
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-700">Units (approx. 160 chars):</span>
+                            <span class="font-bold text-indigo-700">~{{ Math.floor(buyAmount / (0.45 * 4)) }} Units</span>
+                        </div>
+                    </div>
+                </div>
+
+                <template #footer>
+                    <div class="flex justify-end gap-3">
+                        <button @click="showBuySmsModal = false" class="btn btn-ghost">Cancel</button>
+                        <PrimaryButton 
+                            class="btn btn-indigo" 
+                            :disabled="isInitializing"
+                            @click="handlePurchase"
+                        >
+                            {{ isInitializing ? 'Initializing...' : 'Pay via Paystack' }}
+                        </PrimaryButton>
+                    </div>
+                </template>
+            </Modal>
         </div>
     </Layout>
 </template>

@@ -57,7 +57,7 @@ const submit = () => {
                 Welcome Back
             </h2>
             <p v-if="!tenantName" class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                Please sign in to your account
+                Sign in to your account
             </p>
         </div>
 

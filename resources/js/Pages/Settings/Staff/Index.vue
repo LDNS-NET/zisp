@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue';
-import { Head, useForm, usePage } from '@inertiajs/vue3';
+import { Head, useForm, usePage, Link } from '@inertiajs/vue3';
 import { useToast } from 'vue-toastification';
 import { 
     Users, 
@@ -19,7 +19,10 @@ import {
     ShieldAlert, 
     Phone, 
     Pencil,
-    UserLock
+    UserLock,
+    Globe,
+    Save,
+    Smartphone
 } from 'lucide-vue-next';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Modal from '@/Components/Modal.vue';
@@ -38,6 +41,10 @@ const props = defineProps({
     activities: Array,
     management_support_phone: String,
 });
+
+// Debug logging
+console.log('Available roles:', props.roles);
+console.log('Roles count:', props.roles?.length);
 
 const showModal = ref(false);
 const showSecurityModal = ref(false);
@@ -408,12 +415,12 @@ const updateGlobalSettings = () => {
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <InputLabel for="name" value="Full Name" />
-                            <TextInput id="name" v-model="staffForm.name" type="text" class="mt-1 block w-full" autocomplete="name" placeholder="John Doe" />
+                            <TextInput id="name" v-model="staffForm.name" type="text" class="mt-1 block w-full" autocomplete="name" placeholder="MWangi Kevin" />
                             <InputError :message="staffForm.errors.name" class="mt-2" />
                         </div>
                         <div>
                             <InputLabel for="username" value="Username" />
-                            <TextInput id="username" v-model="staffForm.username" type="text" class="mt-1 block w-full" autocomplete="username" placeholder="jdoe" />
+                            <TextInput id="username" v-model="staffForm.username" type="text" class="mt-1 block w-full" autocomplete="username" placeholder="mwangi_kevin" />
                             <InputError :message="staffForm.errors.username" class="mt-2" />
                         </div>
                     </div>
@@ -421,7 +428,7 @@ const updateGlobalSettings = () => {
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <InputLabel for="email" value="Official Email" />
-                            <TextInput id="email" v-model="staffForm.email" type="email" class="mt-1 block w-full" autocomplete="email" placeholder="staff@isp.com" />
+                            <TextInput id="email" v-model="staffForm.email" type="email" class="mt-1 block w-full" autocomplete="email" placeholder="mwangi@isp.com" />
                             <InputError :message="staffForm.errors.email" class="mt-2" />
                         </div>
                         <div>

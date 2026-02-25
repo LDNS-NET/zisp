@@ -1,0 +1,29 @@
+[
+    {
+        "username": "duncan-ogeno",
+        "phone": "0712345678",
+        "full_name": "Duncan Ogeno",
+        "location": "Nairobi",
+        "type": "hotspot",
+        "package": "Basic Package",
+        "password": "secure123",
+        "expires_at": "2026-03-09"
+    },
+    {
+        "username": "mike-the-dev",
+        "phone": "0723456789",
+        "full_name": "Mike The Dev",
+        "location": "Mombasa",
+        "type": "pppoe",
+        "package": "Premium Package",
+        "expiry_date": "2026-04-15"
+    },
+    {
+        "username": "bram-vasaka",
+        "phone": "0734567890",
+        "full_name": "Bram Vasaka",
+        "location": "Nairobi",
+        "type": "static",
+        "package": "Enterprise Package"
+    }
+]

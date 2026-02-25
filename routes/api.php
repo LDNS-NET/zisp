@@ -19,8 +19,14 @@ use App\Http\Controllers\Tenants\MomoC2BController;
 
 // M-Pesa C2B (Global endpoints to handle callbacks from any Paybill)
 Route::middleware('throttle:payment_webhook')->group(function () {
+    // Original routes (kept for backwards compatibility)
     Route::post('/mpesa/c2b/validation', [MpesaC2BController::class, 'validation']);
     Route::post('/mpesa/c2b/confirmation', [MpesaC2BController::class, 'confirmation']);
+
+    // Safaricom-compliant alias routes (no banned keywords like 'mpesa' in URL)
+    // These are the URLs registered with Safaricom Daraja for C2B callbacks
+    Route::post('/payments/c2b/validate', [MpesaC2BController::class, 'validation']);
+    Route::post('/payments/c2b/confirm', [MpesaC2BController::class, 'confirmation']);
 
     // MoMo C2B (Direct Payment Callback)
     Route::post('/momo/c2b/callback', [MomoC2BController::class, 'callback']);

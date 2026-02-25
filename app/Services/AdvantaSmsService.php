@@ -57,6 +57,7 @@ class AdvantaSmsService
                     return [
                         'success' => true,
                         'message' => 'SMS sent successfully via Advanta.',
+                        'message_id' => $data['responses'][0]['messageid'] ?? null,
                         'provider_response' => $data
                     ];
                 }

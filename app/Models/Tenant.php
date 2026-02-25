@@ -24,6 +24,8 @@ class Tenant extends BaseTenant
         'currency_name',
         'dial_code',
         'wallet_id',
+        'sms_balance',
+        'subdomain',
     ];
 
     public function configure()
@@ -54,6 +56,7 @@ class Tenant extends BaseTenant
             'currency_name',
             'dial_code',
             'wallet_id',
+            'subdomain',
         ];
     }
 

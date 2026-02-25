@@ -36,15 +36,22 @@ class SendExpiryWarningNotifications extends Command
         $this->info("Found {$users->count()} users to notify.");
 
         foreach ($users as $user) {
-            // Get tenant-specific template
+            // Get or create tenant-specific template
             $template = TenantSMSTemplate::withoutGlobalScopes()
                 ->where('tenant_id', $user->tenant_id)
                 ->where('name', 'Internet Expiry Warning')
                 ->first();
 
             if (!$template) {
-                Log::warning("No Internet Expiry Warning template found for tenant {$user->tenant_id}");
-                continue;
+                // Auto-create default template
+                $template = TenantSMSTemplate::create([
+                    'tenant_id' => $user->tenant_id,
+                    'name' => 'Internet Expiry Warning',
+                    'content' => 'Hello {full_name}, your internet (Account: {account_number}) expires on {expiry_date}. To renew, login to {portal_url} using Username: {username}, Password: {password}. Contact: {support_number}',
+                    'created_by' => 1, // System user
+                ]);
+                
+                Log::info("Auto-created 'Internet Expiry Warning' template for tenant {$user->tenant_id}");
             }
 
             $supportNumber = $user->tenant?->phone ?? '';
@@ -69,59 +76,20 @@ class SendExpiryWarningNotifications extends Command
 
             $smsLog = TenantSMS::create([
                 'tenant_id' => $user->tenant_id,
-                'tenant_id' => $user->tenant_id,
                 'recipient_name' => ($user->full_name ?: $user->username) ?: 'Customer',
                 'phone_number' => $user->phone ?? $user->phone_number ?? null,
                 'message' => $message,
                 'status' => 'pending',
             ]);
 
-            // Send SMS immediately
-            $apiKey = env('TALKSASA_API_KEY');
-            $senderId = env('TALKSASA_SENDER_ID');
             $phoneNumbers = preg_replace('/^0/', '254', trim($user->phone ?? $user->phone_number ?? ''));
-            
-            if ($apiKey && $senderId && $phoneNumbers) {
-                try {
-                    $response = Http::withHeaders([
-                        'Authorization' => 'Bearer ' . $apiKey,
-                        'Accept' => 'application/json',
-                        'Content-Type' => 'application/json',
-                    ])->post('https://bulksms.talksasa.com/api/v3/sms/send', [
-                        'recipient' => $phoneNumbers,
-                        'sender_id' => $senderId,
-                        'type' => 'plain',
-                        'message' => $message,
-                    ]);
-                    
-                    $data = $response->json();
-                    if ($response->successful() && isset($data['status']) && $data['status'] === 'success') {
-                        $smsLog->update([
-                            'status' => 'sent',
-                            'sent_at' => now(),
-                        ]);
-                    } else {
-                        $smsLog->update([
-                            'status' => 'failed',
-                            'error_message' => $data['message'] ?? $response->body(),
-                        ]);
-                    }
-                } catch (\Exception $e) {
-                    $smsLog->update([
-                        'status' => 'failed',
-                        'error_message' => $e->getMessage(),
-                    ]);
-                }
-            } else {
-                $smsLog->update([
-                    'status' => 'failed',
-                    'error_message' => 'Missing TalkSasa API credentials or phone number',
-                ]);
-            }
+
+            // Dispatch background job
+            \App\Jobs\SendSmsJob::dispatch($smsLog, $phoneNumbers, $message);
 
             $user->expiry_warning_sent_at = now();
             $user->save();
-            Log::info('Sent expiry warning SMS to user', ['user_id' => $user->id, 'tenant_id' => $user->tenant_id]);
+            Log::info('Processed expiry warning SMS for user', ['user_id' => $user->id, 'tenant_id' => $user->tenant_id]);
         }
 
         $this->info('Expiry warning notifications sent.');

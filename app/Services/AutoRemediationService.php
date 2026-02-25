@@ -58,12 +58,20 @@ class AutoRemediationService
 
     protected function createAlert(TenantMikrotik $router, $severity, $message)
     {
+        // Determine alert type based on message content
+        $alertType = 'system'; // Default type
+        if (str_contains($message, 'CPU')) {
+            $alertType = 'cpu';
+        } elseif (str_contains($message, 'offline')) {
+            $alertType = 'connectivity';
+        }
+
         TenantRouterAlert::create([
             'tenant_id' => $router->tenant_id,
             'router_id' => $router->id,
+            'alert_type' => $alertType,
             'severity' => $severity,
             'message' => $message,
-            'is_resolved' => false,
         ]);
     }
 

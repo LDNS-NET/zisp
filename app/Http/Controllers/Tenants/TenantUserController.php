@@ -29,11 +29,23 @@ class TenantUserController extends Controller
     {
         $type = $request->get('type', 'all');
         $search = $request->get('search');
+        $status = $request->get('status', 'all');
+        $expiry = $request->get('expiry', 'all');
+        $sort_expiry = $request->get('sort_expiry');
 
         $query = NetworkUser::query()
             ->with(['package', 'hotspotPackage'])
             ->when($type !== 'all', function ($q) use ($type) {
                 return $q->where('type', $type);
+            })
+            ->when($status === 'online', function ($q) {
+                return $q->where('online', true);
+            })
+            ->when($status === 'offline', function ($q) {
+                return $q->where('online', false);
+            })
+            ->when($expiry === 'nearing', function ($q) {
+                return $q->whereBetween('expires_at', [now(), now()->addDays(2)]);
             })
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($subQ) use ($search) {
@@ -42,8 +54,13 @@ class TenantUserController extends Controller
                         ->orWhere('phone', 'like', "%{$search}%")
                         ->orWhere('account_number', 'like', "%{$search}%");
                 });
-            })
-            ->latest();
+            });
+
+        if ($sort_expiry) {
+            $query->orderBy('expires_at', $sort_expiry);
+        } else {
+            $query->latest();
+        }
 
         $perPage = $request->get('per_page', 20);
         $users = $query->paginate($perPage);
@@ -70,8 +87,10 @@ class TenantUserController extends Controller
                  ->where('online', true)
                  ->update(['online' => false]);
         } else {
-             // If no active users found, mark all as offline
-             NetworkUser::where('online', true)->update(['online' => false]);
+             // If no active users found, mark all as offline using chunk to prevent locks
+             NetworkUser::where('online', true)->chunkById(100, function ($users) {
+                 NetworkUser::whereIn('id', $users->pluck('id'))->update(['online' => false]);
+             });
         }
 
         // Get available packages for the form
@@ -95,6 +114,7 @@ class TenantUserController extends Controller
         return inertia('Users/index', [
             'users' => $users->through(fn($user) => [
                 'id' => $user->id,
+                'uuid' => $user->uuid,
                 'full_name' => $user->full_name,
                 'username' => $user->username,
                 'account_number' => $user->account_number,
@@ -107,6 +127,7 @@ class TenantUserController extends Controller
                 'is_online' => in_array(strtolower($user->username), $activeUsernames),
                 'expires_at' => $user->expires_at,
                 'expiry_human' => optional($user->expires_at)->diffForHumans(),
+                'comment' => $user->comment,
                 'package' => ($user->package ?: $user->hotspotPackage) ? [
                     'id' => $user->package?->id ?? $user->hotspotPackage?->id,
                     'name' => $user->package?->name ?? $user->hotspotPackage?->name,
@@ -115,6 +136,9 @@ class TenantUserController extends Controller
             'filters' => [
                 'type' => $type,
                 'search' => $search,
+                'status' => $status,
+                'expiry' => $expiry,
+                'sort_expiry' => $sort_expiry,
             ],
             'counts' => $counts,
             'packages' => $packages,
@@ -140,6 +164,7 @@ class TenantUserController extends Controller
             'type' => 'required|in:hotspot,pppoe,static',
             'package_id' => 'nullable|exists:packages,id',
             'expires_at' => 'nullable|date',
+            'comment' => 'nullable|string',
         ];
 
         // Conditionally add password requirement
@@ -148,9 +173,6 @@ class TenantUserController extends Controller
         }
 
         $validated = $request->validate($rules);
-
-        // Force lowercase username
-        $validated['username'] = strtolower($validated['username']);
 
         // Custom username uniqueness check within tenant database
         $existingUser = NetworkUser::where('username', $validated['username'])->first();
@@ -173,6 +195,7 @@ class TenantUserController extends Controller
                     'type' => $validated['type'],
                     'package_id' => $validated['package_id'],
                     'expires_at' => $validated['expires_at'],
+                    'comment' => $validated['comment'] ?? null,
                     'registered_at' => now(),
                     'created_by' => Auth::id(),
                 ]);
@@ -201,12 +224,12 @@ class TenantUserController extends Controller
         }
     }
 
-    public function show($id)
+    public function show($uuid)
     {
-        $user = NetworkUser::with(['package', 'hotspotPackage'])->findOrFail($id);
+        $user = NetworkUser::where('uuid', $uuid)->with(['package', 'hotspotPackage'])->firstOrFail();
 
         // Fetch user payments
-        $userPayments = TenantPayment::where('user_id', $id)
+        $userPayments = TenantPayment::where('user_id', $user->id)
             ->orderBy('paid_at', 'desc')
             ->get();
 
@@ -294,9 +317,24 @@ class TenantUserController extends Controller
                 ];
             });
 
+        // Fetch paginated renewals
+        $renewals = \App\Models\Tenants\PackageRenewal::where('user_id', $user->id)
+            ->with('package')
+            ->orderBy('created_at', 'desc')
+            ->paginate(10, ['*'], 'renewals_page');
+
         return inertia('Users/Details', [
             'user' => $user,
             'payments' => $userPayments,
+            'renewals' => $renewals->through(fn($renewal) => [
+                'id' => $renewal->id,
+                'package_name' => $renewal->package?->name ?? 'N/A',
+                'amount' => $renewal->amount_paid,
+                'started_at' => $renewal->started_at,
+                'expires_at' => $renewal->expires_at,
+                'status' => $renewal->status,
+                'created_at' => $renewal->created_at,
+            ]),
             'sessions' => $sessions,
             'lifetimeTotal' => $lifetimeTotal,
             'paymentReliability' => $paymentReliability,
@@ -335,6 +373,7 @@ class TenantUserController extends Controller
             'type' => ['required', Rule::in(['hotspot', 'pppoe', 'static'])],
             'package_id' => 'nullable|exists:packages,id',
             'expires_at' => 'nullable|date',
+            'comment' => 'nullable|string',
         ];
 
         // Conditionally add password requirement
@@ -343,9 +382,6 @@ class TenantUserController extends Controller
         }
 
         $validated = $request->validate($rules);
-
-        // Force lowercase username
-        $validated['username'] = strtolower($validated['username']);
 
         // Custom username uniqueness check within tenant database (excluding current user)
         $existingUser = NetworkUser::where('username', $validated['username'])
@@ -370,6 +406,20 @@ class TenantUserController extends Controller
                     ($validated['package_id'] === null || $validated['package_id'] === '' || $validated['package_id'] === '0')
                 ) {
                     unset($validated['package_id']);
+                }
+
+                // Detect expiry extension
+                if ($user->isDirty('expires_at') && $user->expires_at && (!$user->getOriginal('expires_at') || $user->expires_at->gt($user->getOriginal('expires_at')))) {
+                    \App\Models\Tenants\PackageRenewal::create([
+                        'user_id' => $user->id,
+                        'package_id' => $user->package_id,
+                        'amount_paid' => 0,
+                        'started_at' => now(),
+                        'expires_at' => $user->expires_at,
+                        'status' => 'active',
+                        'type' => 'extension',
+                        'tenant_id' => $user->tenant_id,
+                    ]);
                 }
 
                 // Final update
@@ -431,21 +481,25 @@ class TenantUserController extends Controller
 
     public function bulkDelete(Request $request)
     {
-        $ids = $request->validate([
+        $uuids = $request->validate([
             'ids' => 'required|array',
-            'ids.*' => 'integer|exists:network_users,id',
+            'ids.*' => 'string|exists:network_users,uuid',
         ])['ids'];
 
-        // Get users before deletion
-        $users = NetworkUser::whereIn('id', $ids)->get();
+        // Get users before deletion by UUID
+        $users = NetworkUser::whereIn('uuid', $uuids)->get();
+        $ids = $users->pluck('id')->toArray();
 
         // Update related payments in a transaction
-        \DB::transaction(function () use ($ids) {
+        // Update related payments in a transaction
+        \DB::transaction(function () use ($ids, $users) {
             TenantPayment::whereIn('user_id', $ids)
                 ->update(['user_id' => null]);
 
-            // Delete the users
-            NetworkUser::whereIn('id', $ids)->delete();
+            // Delete the users individually to trigger model events (Radius cleanup)
+            foreach ($users as $user) {
+                $user->delete();
+            }
         });
 
         // Dispatch jobs for MikroTik cleanup
@@ -464,69 +518,120 @@ class TenantUserController extends Controller
 
         return back()->with([
             'success' => 'Selected users deleted. MikroTik cleanup is being processed in the background.',
-            'deleted_count' => count($ids)
+            'deleted_count' => count($uuids)
         ]);
     }
 
     public function import(Request $request)
     {
         $request->validate([
-            'file' => 'required|file|mimes:csv,txt|max:5120', // 5MB max
+            'file' => 'required|file|mimes:csv,txt,json|max:5120', // 5MB max, supports CSV and JSON
         ]);
+
+        set_time_limit(600); // Increase timeout to 10 minutes for large imports
+        ini_set('memory_limit', '512M'); // Increase memory limit
 
         $file = $request->file('file');
         $path = $file->getRealPath();
+        $extension = strtolower($file->getClientOriginalExtension());
         
-        // Open the file
-        $handle = fopen($path, 'r');
-        if (!$handle) {
-            return back()->withErrors(['error' => 'Could not read file']);
-        }
-
-        // Read header row
-        $header = fgetcsv($handle);
-        if (!$header) {
-            fclose($handle);
-            return back()->withErrors(['error' => 'File is empty']);
-        }
-
-        // Normalize header to lowercase and trim
-        $header = array_map(function($h) {
-            return strtolower(trim($h));
-        }, $header);
-
-        // Required columns: username (phone is also required by model but we can maybe make it simpler?)
-        // Let's stick to the plan: username, phone required.
-        $required = ['username', 'phone'];
-        $missing = array_diff($required, $header);
+        $rows = [];
         
-        if (!empty($missing)) {
-            fclose($handle);
-            return back()->withErrors(['error' => 'Missing required columns: ' . implode(',', $missing)]);
-        }
-
-        // Map column names to indices
-        $map = array_flip($header);
-        
-        $successCount = 0;
-        $errorCount = 0;
-        $errors = [];
-        $rowNumber = 1; // Header is 1
-
-        \DB::beginTransaction();
+        // Parse file based on format
+        if ($extension === 'json') {
+            // Parse JSON file
+            $content = file_get_contents($path);
+            $data = json_decode($content, true);
             
-        try {
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                return back()->withErrors(['error' => 'Invalid JSON format: ' . json_last_error_msg()]);
+            }
+            
+            // Support both array of objects and object with data key
+            if (isset($data['data']) && is_array($data['data'])) {
+                $rows = $data['data'];
+            } elseif (is_array($data)) {
+                $rows = $data;
+            } else {
+                return back()->withErrors(['error' => 'JSON must contain an array of user objects']);
+            }
+            
+            if (empty($rows)) {
+                return back()->withErrors(['error' => 'File is empty']);
+            }
+            
+            // Normalize keys to lowercase
+            $rows = array_map(function($row) {
+                return array_change_key_case($row, CASE_LOWER);
+            }, $rows);
+            
+        } else {
+            // Parse CSV file
+            $handle = fopen($path, 'r');
+            if (!$handle) {
+                return back()->withErrors(['error' => 'Could not read file']);
+            }
+
+            // Read header row
+            $header = fgetcsv($handle);
+            if (!$header) {
+                fclose($handle);
+                return back()->withErrors(['error' => 'File is empty']);
+            }
+
+            // Normalize header to lowercase and trim
+            $header = array_map(function($h) {
+                return strtolower(trim($h));
+            }, $header);
+            
+            // Read all rows into array
             while (($row = fgetcsv($handle)) !== false) {
-                $rowNumber++;
-                
                 // Skip empty lines
-                if (count($row) < 1 || (count($row) === 1 && is_null($row[0]))) {
+                if (count($row) < 1 || (count($row) === 1 && (empty($row[0]) || is_null($row[0])))) {
                     continue;
                 }
+                
+                // Convert indexed array to associative array
+                $assocRow = [];
+                foreach ($header as $index => $key) {
+                    $assocRow[$key] = isset($row[$index]) ? trim($row[$index]) : '';
+                }
+                $rows[] = $assocRow;
+            }
+            
+            fclose($handle);
+        }
+        
+        // Validate required columns
+        $required = ['username', 'phone'];
+        if (!empty($rows)) {
+            $firstRow = $rows[0];
+            $missing = array_diff($required, array_keys($firstRow));
+            
+            if (!empty($missing)) {
+                return back()->withErrors(['error' => 'Missing required columns: ' . implode(',', $missing)]);
+            }
+        }
+        
+        $createCount = 0;
+        $skipCount = 0;  // Track skipped existing users
+        $errorCount = 0;
+        $errors = [];
+        $rowNumber = 0;
 
-                // Get values using map
-                $username = isset($map['username']) && isset($row[$map['username']]) ? trim($row[$map['username']]) : '';
-                $phone = isset($map['phone']) && isset($row[$map['phone']]) ? trim($row[$map['phone']]) : '';
+        // Disable query log to reduce memory usage
+        \DB::connection()->disableQueryLog();
+
+        // Cache packages to avoid repeated queries
+        $packageCache = Package::all()->keyBy('name');
+            
+        try {
+            foreach ($rows as $row) {
+                $rowNumber++;
+                
+                // Get values from associative array
+                $username = isset($row['username']) ? trim($row['username']) : '';
+                $phone = isset($row['phone']) ? trim($row['phone']) : '';
                 
                 if (empty($username)) {
                     $errors[] = "Row $rowNumber: Username is required";
@@ -540,24 +645,43 @@ class TenantUserController extends Controller
                     continue;
                 }
 
-                // Check duplicates in current tenant
-                $exists = NetworkUser::where('username', $username)->exists();
-                if ($exists) {
-                    $errors[] = "Row $rowNumber: Username '$username' already exists";
-                    $errorCount++;
-                    continue;
-                }
+                // Check duplicates in current tenant - REMOVED because we now use upsert
 
-                // Other fields
-                $fullName = isset($map['full_name']) && isset($row[$map['full_name']]) ? trim($row[$map['full_name']]) : '';
-                $location = isset($map['location']) && isset($row[$map['location']]) ? trim($row[$map['location']]) : '';
-                $password = isset($map['password']) && isset($row[$map['password']]) ? trim($row[$map['password']]) : '';
-                $packageName = isset($map['package']) && isset($row[$map['package']]) ? trim($row[$map['package']]) : '';
+                // Optional fields
+                $fullName = isset($row['full_name']) ? trim($row['full_name']) : $username;
+                $location = isset($row['location']) ? trim($row['location']) : null;
+                $password = isset($row['password']) ? trim($row['password']) : null;
+                $packageName = isset($row['package']) ? trim($row['package']) : null;
+                $accountNo = isset($row['account_no']) ? trim($row['account_no']) : null;
+                
+                // Handle multiple possible column names for expiry date
+                $expiryDate = null;
+                if (isset($row['expiry_date']) && !empty($row['expiry_date'])) {
+                    $expiryDate = trim($row['expiry_date']);
+                } elseif (isset($row['expires_at']) && !empty($row['expires_at'])) {
+                    $expiryDate = trim($row['expires_at']);
+                } elseif (isset($row['expiry_at']) && !empty($row['expiry_at'])) {
+                    $expiryDate = trim($row['expiry_at']);
+                } elseif (isset($row['expiry']) && !empty($row['expiry'])) {
+                    $expiryDate = trim($row['expiry']);
+                }
+                
+                // Parse the expiry date if present
+                $parsedExpiryDate = null;
+                if (!empty($expiryDate)) {
+                    try {
+                        $parsedExpiryDate = \Carbon\Carbon::parse($expiryDate);
+                    } catch (\Exception $e) {
+                        $errors[] = "Row $rowNumber: Invalid expiry date format '$expiryDate' - " . $e->getMessage();
+                        $errorCount++;
+                        continue;
+                    }
+                }
                 
                 // Determine type
                 $type = 'hotspot';
-                if (isset($map['type']) && isset($row[$map['type']])) {
-                    $rawType = strtolower(trim($row[$map['type']]));
+                if (isset($row['type'])) {
+                    $rawType = strtolower(trim($row['type']));
                     if (in_array($rawType, ['hotspot', 'pppoe', 'static'])) {
                         $type = $rawType;
                     }
@@ -566,71 +690,401 @@ class TenantUserController extends Controller
                 // Find package ID if provided
                 $packageId = null;
                 if (!empty($packageName)) {
-                    $pkg = Package::where('type', $type) // Match type or just search by name? Safer to match type if feasible.
-                        ->where('name', $packageName)
-                        ->first();
-                        
+                    // Use cached packages - search by name AND type first
+                    $pkg = $packageCache->filter(function($package) use ($packageName, $type) {
+                        return $package->name === $packageName && $package->type === $type;
+                    })->first();
+                    
                     // If not found by precise type, try just name (loose matching)
                     if (!$pkg) {
-                         $pkg = Package::where('name', $packageName)->first();
+                         $pkg = $packageCache->filter(function($package) use ($packageName) {
+                             return $package->name === $packageName;
+                         })->first();
                     }
                     
                     if ($pkg) {
                         $packageId = $pkg->id;
-                        // If type mismatch, should we override user type? 
-                        // Let's trust user type from CSV, or if package type is different, maybe warn?
-                        // For simplicity, we just use the package if found.
                     } else {
-                        // Package not found warning? 
-                        // We will just proceed without package
+                        // Package not found - fall back to least costly package
+                        \Log::warning("Row $rowNumber: Package '$packageName' not found for user '$username', falling back to least costly package");
+                        
+                        // Get least costly package for the user's type
+                        $fallbackPkg = $packageCache->filter(function($package) use ($type) {
+                            return $package->type === $type;
+                        })->sortBy('price')->first();
+                        
+                        // If no package found for type, get the overall least costly package
+                        if (!$fallbackPkg) {
+                            $fallbackPkg = $packageCache->sortBy('price')->first();
+                        }
+                        
+                        if ($fallbackPkg) {
+                            $packageId = $fallbackPkg->id;
+                            \Log::info("Row $rowNumber: Using fallback package '{$fallbackPkg->name}' (price: {$fallbackPkg->price}) for user '$username'");
+                        } else {
+                            \Log::error("Row $rowNumber: No packages available for fallback for user '$username'");
+                        }
                     }
                 }
 
+                // Use individual transaction for each user to avoid rollback cascade
+                \DB::beginTransaction();
                 try {
-                    NetworkUser::create([
-                        'full_name' => $fullName,
+                    // Check if user already exists - if so, SKIP
+                    $existingUser = NetworkUser::where('username', $username)->first();
+                    
+                    if ($existingUser) {
+                        // User exists - SKIP this row
+                        $skipCount++;
+                        \Log::info("Row $rowNumber: Skipping existing user '$username'");
+                        \DB::commit(); // Commit the transaction (nothing changed)
+                        continue; // Move to next row
+                    }
+                    
+                    // User doesn't exist - CREATE new user
+                    $userData = [
                         'username' => $username,
+                        'full_name' => $fullName,
                         'phone' => $phone,
                         'location' => $location,
-                        'password' => $password, // Model might hash this or handled by observer? 
-                                               // Check TenantUserController store: 'password' => $validated['password'],
-                                               // NetworkUser model observer: saving -> if isDirty('password') -> web_password = Hash::make()
-                                               // But wait, the raw password should be stored in cleartext for RADIUS somewhere?
-                                               // NetworkUser::created observer -> Radcheck::create with Cleartext-Password = $user->password
-                                               // So we store raw password in 'password' column (if that's how it works).
-                                               // Looking at database schema or previous code...
-                                               // TenantUserController:126 'password' => $validated['password'],
-                                               // NetworkUser model has 'password' and 'web_password'.
-                                               // Correct.
                         'type' => $type,
                         'package_id' => $packageId,
+                        'expires_at' => $parsedExpiryDate,
                         'registered_at' => now(),
                         'created_by' => Auth::id(),
-                    ]);
-                    $successCount++;
+                    ];
+                    
+                    // Handle password logic for new users
+                    if (!empty($password)) {
+                        // Password provided in import - use it
+                        $userData['password'] = $password;
+                    } else {
+                        // New user without password - use default password
+                        $userData['password'] = '12345678';
+                        \Log::info("Row $rowNumber: Using default password '12345678' for new user '$username'");
+                    }
+                    
+                    // Create the new user
+                    NetworkUser::create($userData);
+                    
+                    \DB::commit();
+                    $createCount++; // Track as new creation
                     
                 } catch (\Exception $e) {
-                    $errors[] = "Row $rowNumber: " . $e->getMessage();
+                    \DB::rollBack();
+                    $errorMessage = $e->getMessage();
+                    // Extract more specific error info
+                    if (str_contains($errorMessage, 'Data too long')) {
+                        $errors[] = "Row $rowNumber: Data too long in one or more fields";
+                    } else {
+                        $errors[] = "Row $rowNumber ($username): " . $errorMessage;
+                    }
                     $errorCount++;
+                    
+                    // Log detailed error for debugging
+                    \Log::error("Import Error - Row $rowNumber", [
+                        'username' => $username,
+                        'phone' => $phone,
+                        'error' => $errorMessage,
+                        'trace' => $e->getTraceAsString()
+                    ]);
                 }
             }
-            
-            \DB::commit();
-            fclose($handle);
 
-            if ($successCount == 0 && $errorCount > 0) {
-                 return back()->withErrors(['error' => "Import failed. No users imported. " . count($errors) . " errors."]);
+            $totalProcessed = $createCount + $skipCount;
+            
+            if ($totalProcessed == 0 && $errorCount > 0) {
+                 // Show first 20 errors
+                 $errorSummary = array_slice($errors, 0, 20);
+                 return back()->withErrors([
+                     'error' => "Import failed. No users processed. Total errors: $errorCount",
+                     'details' => implode("\n", $errorSummary) . ($errorCount > 20 ? "\n... and " . ($errorCount - 20) . " more errors" : "")
+                 ]);
+            }
+
+            $message = "Import completed: $createCount created, $skipCount skipped (existing).";
+            if ($errorCount > 0) {
+                $message .= " Failed to import $errorCount rows.";
             }
 
             return back()->with([
-                'success' => "Imported $successCount users successfully." . ($errorCount > 0 ? " Skipped $errorCount rows with errors." : ""),
-                'import_errors' => $errors // We can display these in frontend if needed
+                'success' => $message,
+                'import_stats' => [
+                    'created' => $createCount,
+                    'skipped' => $skipCount,
+                    'success' => $totalProcessed,
+                    'errors' => $errorCount,
+                    'total' => $totalProcessed + $errorCount
+                ],
+                'import_errors' => array_slice($errors, 0, 50) // Show first 50 errors
             ]);
 
         } catch (\Exception $e) {
-            \DB::rollBack();
-            fclose($handle);
+            // File handle is already closed at line 549, don't try to close it again
+            \Log::error('CSV Import Fatal Error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
             return back()->withErrors(['error' => 'Import failed: ' . $e->getMessage()]);
+        }
+    }
+
+    public function updateFromCsv(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:csv,txt|max:5120',
+        ]);
+
+        set_time_limit(600);
+        ini_set('memory_limit', '512M');
+
+        $file = $request->file('file');
+        $path = $file->getRealPath();
+        
+        $handle = fopen($path, 'r');
+        if (!$handle) {
+            return back()->withErrors(['error' => 'Could not read file']);
+        }
+
+        $header = fgetcsv($handle);
+        if (!$header) {
+            fclose($handle);
+            return back()->withErrors(['error' => 'File is empty']);
+        }
+
+        $header = array_map(function($h) {
+            return strtolower(trim($h));
+        }, $header);
+        
+        $rows = [];
+        while (($row = fgetcsv($handle)) !== false) {
+            if (count($row) < 1 || (count($row) === 1 && empty($row[0]))) {
+                continue;
+            }
+            $assocRow = [];
+            foreach ($header as $index => $key) {
+                $assocRow[$key] = isset($row[$index]) ? trim($row[$index]) : '';
+            }
+            $rows[] = $assocRow;
+        }
+        fclose($handle);
+
+        // Required column for update is full_name
+        if (!empty($rows) && !isset($rows[0]['full_name'])) {
+            return back()->withErrors(['error' => 'Missing required column: full_name']);
+        }
+
+        $updateCount = 0;
+        $errorCount = 0;
+        $errors = [];
+        $rowNumber = 1; // Header was row 0
+
+        \DB::connection()->disableQueryLog();
+
+        foreach ($rows as $row) {
+            $rowNumber++;
+            $fullName = $row['full_name'] ?? '';
+            $phone = $row['phone'] ?? '';
+
+            if (empty($fullName)) {
+                $errors[] = "Row $rowNumber: Full Name is required";
+                $errorCount++;
+                continue;
+            }
+
+            $user = NetworkUser::where('full_name', $fullName)->first();
+            if (!$user) {
+                $errors[] = "Row $rowNumber: User not found for name '$fullName'";
+                $errorCount++;
+                continue;
+            }
+
+            try {
+                \DB::beginTransaction();
+                
+                $dataToUpdate = [];
+                if (!empty($phone)) {
+                    $dataToUpdate['phone'] = $phone;
+                    // Auto-update account number using the normalized phone number
+                    $dataToUpdate['account_number'] = NetworkUser::normalizePhoneNumber($phone);
+                }
+
+                if (!empty($dataToUpdate)) {
+                    $user->update($dataToUpdate);
+                    $updateCount++;
+                }
+
+                \DB::commit();
+            } catch (\Exception $e) {
+                \DB::rollBack();
+                $errors[] = "Row $rowNumber ($fullName): " . $e->getMessage();
+                $errorCount++;
+            }
+        }
+
+        $message = "CSV Update completed: $updateCount users updated.";
+        if ($errorCount > 0) {
+            $message .= " $errorCount rows had errors or were not found.";
+        }
+
+        return back()->with([
+            'success' => $message,
+            'update_errors' => array_slice($errors, 0, 50)
+        ]);
+    }
+
+    /**
+     * Sync all users to RADIUS database tables
+     */
+    public function syncToRadius(Request $request)
+    {
+        try {
+            set_time_limit(600); // 10 minutes for large user bases
+            
+            $users = NetworkUser::with(['package', 'hotspotPackage', 'devices'])->get();
+            $syncedCount = 0;
+            $failedCount = 0;
+            $errors = [];
+
+            foreach ($users as $user) {
+                try {
+                    \DB::beginTransaction();
+
+                    // Clear existing RADIUS entries for this user
+                    \App\Models\Radius\Radcheck::where('username', $user->username)->delete();
+                    \App\Models\Radius\Radreply::where('username', $user->username)->delete();
+                    \App\Models\Radius\Radusergroup::where('username', $user->username)->delete();
+
+                    // 1. Create radcheck entry (password)
+                    \App\Models\Radius\Radcheck::create([
+                        'username' => $user->username,
+                        'attribute' => 'Cleartext-Password',
+                        'op' => ':=',
+                        'value' => $user->password,
+                    ]);
+
+                    // Get package (Standard or Hotspot)
+                    $package = $user->package ?: $user->hotspotPackage;
+                    
+                    if ($package) {
+                        // 2. Rate limit
+                        $rateValue = "{$package->upload_speed}M/{$package->download_speed}M";
+                        \App\Models\Radius\Radreply::create([
+                            'username' => $user->username,
+                            'attribute' => 'Mikrotik-Rate-Limit',
+                            'op' => ':=',
+                            'value' => $rateValue,
+                        ]);
+
+                        // 3. Simultaneous Use (Devices)
+                        $deviceLimit = $package->device_limit ?? 1;
+                        \App\Models\Radius\Radreply::create([
+                            'username' => $user->username,
+                            'attribute' => 'Simultaneous-Use',
+                            'op' => ':=',
+                            'value' => (string)$deviceLimit,
+                        ]);
+
+                        // 4. Session-Timeout for hotspot users
+                        if ($user->type === 'hotspot') {
+                            $seconds = 0;
+                            $val = $package->duration_value ?? $package->duration ?? 1;
+                            $unit = $package->duration_unit ?? 'days';
+                            
+                            switch ($unit) {
+                                case 'minutes': $seconds = $val * 60; break;
+                                case 'hours':   $seconds = $val * 3600; break;
+                                case 'days':    $seconds = $val * 86400; break;
+                                case 'weeks':   $seconds = $val * 604800; break;
+                                case 'months':  $seconds = $val * 2592000; break;
+                            }
+
+                            if ($seconds > 0) {
+                                \App\Models\Radius\Radreply::create([
+                                    'username' => $user->username,
+                                    'attribute' => 'Session-Timeout',
+                                    'op' => ':=',
+                                    'value' => (string)$seconds,
+                                ]);
+                            }
+                        }
+
+                        // 5. Group assignment (for non-hotspot users)
+                        if ($user->type !== 'hotspot') {
+                            \App\Models\Radius\Radusergroup::create([
+                                'username' => $user->username,
+                                'groupname' => $package->name ?? 'default',
+                                'priority' => 1,
+                            ]);
+                        }
+                    }
+
+                    // 6. Expiration date
+                    if ($user->expires_at) {
+                        \App\Models\Radius\Radcheck::create([
+                            'username' => $user->username,
+                            'attribute' => 'Expiration',
+                            'op' => ':=',
+                            'value' => $user->expires_at->format('d M Y H:i:s'),
+                        ]);
+                    }
+
+                    // 7. MAC-Auth for hotspot users (Primary and linked devices)
+                    if ($user->type === 'hotspot') {
+                        if (!empty($user->mac_address)) {
+                            \App\Models\Radius\Radcheck::updateOrCreate(
+                                ['username' => $user->mac_address, 'attribute' => 'Cleartext-Password'],
+                                ['op' => ':=', 'value' => $user->mac_address]
+                            );
+                        }
+
+                        foreach ($user->devices as $device) {
+                            if (!empty($device->mac_address)) {
+                                \App\Models\Radius\Radcheck::updateOrCreate(
+                                    [
+                                        'username' => $device->mac_address, 
+                                        'attribute' => 'Cleartext-Password'
+                                    ],
+                                    ['op' => ':=', 'value' => $device->mac_address]
+                                );
+                            }
+                        }
+                    }
+
+                    \DB::commit();
+                    $syncedCount++;
+
+                } catch (\Exception $e) {
+                    \DB::rollBack();
+                    $failedCount++;
+                    $errors[] = "User '{$user->username}': " . $e->getMessage();
+                    \Log::error("RADIUS sync failed for user {$user->username}", [
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
+
+            $message = "RADIUS sync completed: {$syncedCount} users synced successfully";
+            if ($failedCount > 0) {
+                $message .= ", {$failedCount} failed";
+            }
+
+            return back()->with([
+                'success' => $message,
+                'sync_stats' => [
+                    'synced' => $syncedCount,
+                    'failed' => $failedCount,
+                    'total' => $users->count()
+                ],
+                'sync_errors' => array_slice($errors, 0, 20) // Show first 20 errors
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('RADIUS Sync Fatal Error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return back()->withErrors(['error' => 'RADIUS sync failed: ' . $e->getMessage()]);
         }
     }
 }

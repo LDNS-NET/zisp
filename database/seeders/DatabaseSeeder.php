@@ -17,11 +17,16 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
 
-        User::factory()->create([
-            'username' => 'admin',
-            'email' => 'test@example.com',
-            'role' => 'superadmin',
-            'password' => bcrypt('passwordqwertyuiopasdfghjkl'),
-        ]);
+        // Commented out - UserFactory doesn't exist and isn't needed for production
+        // Use RolesAndPermissionsSeeder instead
+        // User::factory()->create([
+        //     'username' => 'admin',
+        //     'email' => 'test@example.com',
+        //     'role' => 'superadmin',
+        //     'password' => bcrypt('passwordqwertyuiopasdfghjkl'),
+        // ]);
+        
+        // Run the roles and permissions seeder
+        $this->call(RolesAndPermissionsSeeder::class);
     }
 }

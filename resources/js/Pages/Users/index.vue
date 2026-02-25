@@ -46,11 +46,15 @@ const props = defineProps({
 
 const showModal = ref(false);
 const showImportModal = ref(false);
+const showUpdateModal = ref(false);
 const showPasswordModal = ref(false); // Password confirmation modal
 const editing = ref(null);
 const viewing = ref(null);
 const selectedFilter = ref(props.filters?.type || 'all');
 const search = ref(props.filters?.search || '');
+const selectedStatus = ref(props.filters?.status || 'all');
+const selectedExpiry = ref(props.filters?.expiry || 'all');
+const sortExpiry = ref(props.filters?.sort_expiry || '');
 
 const form = useForm({
     full_name: '',
@@ -62,6 +66,7 @@ const form = useForm({
     package_id: '',
     type: 'hotspot',
     expires_at: '',
+    comment: '',
     admin_password: '', // For validation
 });
 
@@ -73,25 +78,36 @@ const importForm = useForm({
     file: null,
 });
 
-// Watchers for filters
-watch(selectedFilter, (value) => {
+const updateForm = useForm({
+    file: null,
+});
+
+// Unified filter function
+const applyFilters = () => {
     router.get(
         route('users.index'), 
-        { type: value, search: search.value }, 
-        { preserveScroll: true }
+        { 
+            type: selectedFilter.value, 
+            search: search.value,
+            status: selectedStatus.value,
+            expiry: selectedExpiry.value,
+            sort_expiry: sortExpiry.value
+        }, 
+        { 
+            preserveScroll: true, 
+            preserveState: true,
+            replace: true
+        }
     );
-});
+};
+
+// Watchers for filters
+watch([selectedFilter, selectedStatus, selectedExpiry, sortExpiry], applyFilters);
 
 let searchTimeout;
 watch(search, (value) => {
     clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(() => {
-        router.get(
-            route('users.index'),
-            { type: selectedFilter.value, search: value },
-            { preserveScroll: true }
-        );
-    }, 300);
+    searchTimeout = setTimeout(applyFilters, 500);
 });
 
 onMounted(() => {
@@ -107,6 +123,33 @@ onMounted(() => {
     // Clean up interval on unmount
     return () => clearInterval(interval);
 });
+
+const syncingToRadius = ref(false);
+
+const syncToRadius = async () => {
+    if (!confirm('This will sync all users to the RADIUS database. This may briefly affect active sessions. Continue?')) {
+        return;
+    }
+
+    syncingToRadius.value = true;
+
+    try {
+        await router.post(route('users.sync-to-radius'), {}, {
+            preserveScroll: true,
+            onSuccess: () => {
+                syncingToRadius.value = false;
+                toast.success('Users successfully synced to RADIUS.');
+            },
+            onError: () => {
+                syncingToRadius.value = false;
+                toast.error('Failed to sync users to RADIUS.');
+            }
+        });
+    } catch (error) {
+        syncingToRadius.value = false;
+        toast.error('An unexpected error occurred during RADIUS sync.');
+    }
+};
 
 function openCreate() {
     editing.value = null;
@@ -144,19 +187,93 @@ function submitImport() {
     });
 }
 
-function downloadSample() {
-    // Generate a simple CSV content
-    const csvContent = "username,phone,full_name,location,type,package,password\njohn_doe,0712345678,John Doe,Nairobi,hotspot,Weekly Bundle,secret123\njane_smith,0723456789,Jane Smith,Mombasa,pppoe,Home Fiber,securePass";
+function openUpdate() {
+    updateForm.reset();
+    showUpdateModal.value = true;
+}
+
+function submitUpdate() {
+    updateForm.post(route('users.update-from-csv'), {
+        onSuccess: (page) => {
+            showUpdateModal.value = false;
+            updateForm.reset();
+            toast.success('Update process completed');
+            
+            if (page.props.flash?.update_errors && page.props.flash.update_errors.length > 0) {
+                 toast.warning(`Some rows had errors. Check the success message.`);
+            }
+        },
+        onError: () => {
+            toast.error('Failed to update users from CSV.');
+        },
+        forceFormData: true,
+    });
+}
+
+function downloadUpdateSample() {
+    const csvContent = "full_name,phone,account_no\nJohn Doe,0712345678,ACC001\nJane Smith,0723456789,ACC002";
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
     if (link.download !== undefined) {
         const url = URL.createObjectURL(blob);
         link.setAttribute("href", url);
-        link.setAttribute("download", "users_import_sample.csv");
+        link.setAttribute("download", "users_update_sample.csv");
         link.style.visibility = 'hidden';
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+    }
+}
+
+function downloadSample(format = 'csv') {
+    if (format === 'json') {
+        // Generate JSON sample
+        const jsonContent = JSON.stringify([
+            {
+                username: "duncan-ogeno",
+                phone: "0712345678",
+                full_name: "Duncan Ogeno",
+                location: "Nairobi",
+                type: "hotspot",
+                package: "Weekly Bundle",
+                password: "12345678",
+                expires_at: "2026-03-09"
+            },
+            {
+                username: "mike-the-dev",
+                phone: "0723456789",
+                full_name: "Mike The Dev",
+                location: "Mombasa",
+                type: "pppoe",
+                package: "Home Fiber",
+                expiry_date: "2026-04-15"
+            }
+        ], null, 4);
+        const blob = new Blob([jsonContent], { type: 'application/json;charset=utf-8;' });
+        const link = document.createElement("a");
+        if (link.download !== undefined) {
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", "users_import_sample.json");
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    } else {
+        // Generate CSV sample
+        const csvContent = "username,phone,full_name,location,type,package,password,expiry_at\nduncan,0712345678,Ogeno dunte,Nairobi,hotspot,Weekly Bundle,12345678\nmike the dev,0723456789,kamau Smith,Mombasa,pppoe,Home Fiber,securePass";
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        if (link.download !== undefined) {
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", "users_import_sample.csv");
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
     }
 }
 
@@ -175,7 +292,7 @@ const bulkDelete = () => {
 };
 
 function openEdit(user) {
-    editing.value = user.id;
+    editing.value = user.uuid;
     form.full_name = user.full_name ?? '';
     form.username = user.username ?? '';
     form.password = ''; // Don't show current password
@@ -185,6 +302,7 @@ function openEdit(user) {
     form.package_id = user.package_id ?? '';
     form.type = user.type ?? 'hotspot';
     form.expires_at = user.expires_at ? user.expires_at.slice(0, 16) : '';
+    form.comment = user.comment ?? '';
     showModal.value = true;
 }
 
@@ -267,18 +385,141 @@ function viewUser(user) {
     viewing.value = user;
 }
 
+// function to filter users that have already expired based on current date and time, used for "Expired Filter" dropdown
+// Computed property for filtered users based on selected status
+const statusFilteredUsers = computed(() => {
+    let usersList = props.users.data || [];
+    
+    // Apply status filter based on selectedStatus
+    switch (selectedStatus.value) {
+        case 'expired':
+            usersList = getExpiredUsers(usersList);
+            break;
+        case 'online':
+            usersList = usersList.filter(user => user.is_online === true);
+            break;
+        case 'offline':
+            usersList = usersList.filter(user => user.is_online === false);
+            break;
+        case 'all':
+        default:
+            // No filtering by status
+            break;
+    }
+    
+    return usersList;
+});
+
+// watcher to log when expired filter is applied
+// watch(selectedStatus, (newStatus) => {
+//     if (newStatus === 'expired') {
+//         console.log('Applying expired filter with', getExpiredUsers(props.props.users.data || []).length, 'expired users');
+//     }
+// });
+
+// getExpiredUsers function
+function getExpiredUsers(users) {
+    const now = new Date();
+    
+    return users.filter(user => {
+        if (!user.expires_at) return false;
+        
+        // Parse the expiry date consistently
+        let expiryDate;
+        
+        // If it's already a Date object
+        if (user.expires_at instanceof Date) {
+            expiryDate = user.expires_at;
+        } 
+        // If it's a string, parse it safely
+        else if (typeof user.expires_at === 'string') {
+            // Handle ISO format with timezone
+            if (user.expires_at.includes('T') || user.expires_at.includes(' ')) {
+                // Has time component - parse directly
+                expiryDate = new Date(user.expires_at);
+            } else {
+                // Date only - parse as UTC to avoid timezone shifts
+                const [year, month, day] = user.expires_at.split(/[-/]/);
+                expiryDate = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999));
+            }
+        } else {
+            // If it's a timestamp number
+            expiryDate = new Date(user.expires_at);
+        }
+        
+        // Check if expiryDate is valid
+        if (isNaN(expiryDate.getTime())) return false;
+        
+        // Compare dates
+        return expiryDate < now;
+    });
+}
+
+const displayUsers = computed(() => {
+    let usersList = statusFilteredUsers.value;
+    
+    // Apply type filter
+    if (selectedFilter.value !== 'all') {
+        usersList = usersList.filter(user => user.type === selectedFilter.value);
+    }
+    
+    // Apply search filter
+    if (search.value) {
+        const searchTerm = search.value.toLowerCase();
+        usersList = usersList.filter(user => 
+            user.username?.toLowerCase().includes(searchTerm) ||
+            user.full_name?.toLowerCase().includes(searchTerm) ||
+            user.phone?.includes(searchTerm)
+        );
+    }
+    
+    // Apply nearing expiry filter
+    if (selectedExpiry.value === 'nearing') {
+        const now = new Date();
+        const threeDaysFromNow = new Date();
+        threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
+        
+        usersList = usersList.filter(user => {
+            if (!user.expires_at) return false;
+            const expiryDate = new Date(user.expires_at);
+            return expiryDate > now && expiryDate <= threeDaysFromNow;
+        });
+    }
+    
+    // Apply sorting
+    if (sortExpiry.value) {
+        usersList = [...usersList].sort((a, b) => {
+            if (!a.expires_at) return 1;
+            if (!b.expires_at) return -1;
+            
+            const dateA = new Date(a.expires_at);
+            const dateB = new Date(b.expires_at);
+            
+            return sortExpiry.value === 'asc' 
+                ? dateA - dateB 
+                : dateB - dateA;
+        });
+    }
+    
+    return usersList;
+});
+
+const expiredCount = computed(() => {
+    return getExpiredUsers(props.users.data || []).length;
+});
+
 const packagesByType = computed(() => {
     return props.packages[form.type] || [];
 });
 
+// Updated toggleSelectAll function
 const toggleSelectAll = (e) => {
     if (e.target.checked) {
-        selectedUsers.value = props.users.data.map(u => u.id);
+        selectedUsers.value = displayUsers.value.map(u => u.uuid);
     } else {
         selectedUsers.value = [];
     }
 };
-
 const showActionsModal = ref(false);
 const selectedUserForActions = ref(null);
 
@@ -303,13 +544,40 @@ const openActions = (user) => {
                     </p>
                 </div>
                 <div class="flex items-center gap-3">
-                    <button 
-                        @click="openImport"
-                        class="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-slate-600 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                    >
-                        <Upload class="w-4 h-4" />
-                        <span>Import CSV</span>
-                    </button>
+                    <!-- Functions Dropdown -->
+                    <Dropdown align="right" width="48">
+                        <template #trigger>
+                            <button class="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-slate-600 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                <Filter class="w-4 h-4" />
+                                <span>Functions</span>
+                                <svg class="ml-2 -mr-0.5 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                        </template>
+
+                        <template #content>
+                            <button @click="syncToRadius" :disabled="syncingToRadius" class="w-full text-left block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition duration-150 ease-in-out disabled:opacity-50">
+                                <div class="flex items-center gap-2">
+                                    <Wifi class="w-4 h-4" />
+                                    <span>{{ syncingToRadius ? 'Syncing...' : 'Sync to RADIUS' }}</span>
+                                </div>
+                            </button>
+                            <button @click="openImport" class="w-full text-left block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition duration-150 ease-in-out">
+                                <div class="flex items-center gap-2">
+                                    <Upload class="w-4 h-4" />
+                                    <span>Import CSV</span>
+                                </div>
+                            </button>
+                            <button @click="openUpdate" class="w-full text-left block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition duration-150 ease-in-out">
+                                <div class="flex items-center gap-2">
+                                    <FileText class="w-4 h-4" />
+                                    <span>Update Users</span>
+                                </div>
+                            </button>
+                        </template>
+                    </Dropdown>
+
                     <PrimaryButton @click="openCreate" class="flex items-center gap-2">
                         <UserPlus class="w-4 h-4" />
                         <span>Add User</span>
@@ -318,15 +586,16 @@ const openActions = (user) => {
             </div>
         </template>
 
-        <div v-if="true" class="bg-gray-100 dark:bg-slate-900 p-2 text-[10px] font-mono mb-4 rounded border border-gray-200 dark:border-slate-700">
+        <!--<div v-if="true" class="bg-gray-100 dark:bg-slate-900 p-2 text-[10px] font-mono mb-4 rounded border border-gray-200 dark:border-slate-700">
             Debug Info: {{ debugInfo }} | Active Usernames: {{ activeUsernames }}
         </div>
+        -->
 
         <div class="space-y-6">
             <!-- Filters & Search -->
-            <div class="flex flex-col sm:flex-row gap-4 justify-between items-center bg-white dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm">
+            <div class="flex flex-col lg:flex-row gap-4 justify-between items-center bg-white dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm">
                 <!-- Tabs -->
-                <div class="flex p-1 space-x-1 bg-gray-100 dark:bg-slate-900 rounded-lg w-full sm:w-auto overflow-x-auto">
+                <div class="flex p-1 space-x-1 bg-gray-100 dark:bg-slate-900 rounded-lg w-full lg:w-auto overflow-x-auto">
                     <button
                         v-for="type in ['all', 'hotspot', 'pppoe', 'static']"
                         :key="type"
@@ -345,8 +614,40 @@ const openActions = (user) => {
                     </button>
                 </div>
 
+                <!-- Secondary Filters -->
+                <div class="flex items-center gap-2 w-full lg:w-auto justify-center">
+                    <select v-model="selectedStatus" class="text-xs border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                        <option value="all">All Status</option>
+                        <option value="online">Online</option>
+                        <option value="offline">Offline</option>
+                        <option value="expired">Expired</option>
+                    </select>
+
+                    <button 
+                        @click="selectedExpiry = selectedExpiry === 'nearing' ? 'all' : 'nearing'"
+                        :class="[
+                            'px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors flex items-center gap-1',
+                            selectedExpiry === 'nearing'
+                                ? 'bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-900/20 dark:border-amber-800 dark:text-amber-400'
+                                : 'bg-white border-gray-300 text-gray-700 dark:bg-slate-900 dark:border-slate-600 dark:text-gray-300 hover:bg-gray-50'
+                        ]"
+                    >
+                        <AlertCircle class="w-3.5 h-3.5" />
+                        Nearing Expiry
+                    </button>
+
+                    <button 
+                        @click="sortExpiry = sortExpiry === 'asc' ? 'desc' : (sortExpiry === 'desc' ? '' : 'asc')"
+                        class="px-3 py-1.5 text-xs font-medium bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-1 transition-colors"
+                        :title="'Sort by Expiry' + (sortExpiry ? ': ' + sortExpiry : '')"
+                    >
+                        <Calendar class="w-3.5 h-3.5" />
+                        Sort {{ sortExpiry === 'asc' ? '↑' : (sortExpiry === 'desc' ? '↓' : '') }}
+                    </button>
+                </div>
+
                 <!-- Search -->
-                <div class="relative w-full sm:w-72">
+                <div class="relative w-full lg:w-64">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <Search class="h-4 w-4 text-gray-400" />
                     </div>
@@ -378,14 +679,14 @@ const openActions = (user) => {
                     <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
                         <thead class="bg-gray-50 dark:bg-slate-900/50">
                             <tr>
-                                <th scope="col" class="px-6 py-3 text-left">
+                                <!--<th scope="col" class="px-6 py-3 text-left">
                                     <input
                                         type="checkbox"
-                                        :checked="selectedUsers.length === users.data.length && users.data.length > 0"
+                                        :checked="selectedUsers.length === displayUsers.length && displayUsers.length > 0"
                                         @change="toggleSelectAll"
                                         class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 dark:bg-slate-800 dark:border-slate-600"
                                     />
-                                </th>
+                                </th>-->
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">User Details</th>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Contact</th>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Package</th>
@@ -394,15 +695,15 @@ const openActions = (user) => {
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-200 dark:divide-slate-700">
-                            <tr v-for="user in users.data" :key="user.id" class="hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer" @click="$inertia.visit(route('users.show', user.id))">
-                                <td class="px-6 py-4 whitespace-nowrap" @click.stop>
+                            <tr v-for="user in displayUsers" :key="user.uuid" class="hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer" @click="$inertia.visit(route('users.show', user.uuid))">
+                                <!--<td class="px-6 py-4 whitespace-nowrap" @click.stop>
                                     <input
                                         type="checkbox"
-                                        :value="user.id"
+                                        :value="user.uuid"
                                         v-model="selectedUsers"
                                         class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 dark:bg-slate-800 dark:border-slate-600"
                                     />
-                                </td>
+                                </td>-->
                                 <td class="px-6 py-4">
                                     <div class="flex items-center group">
                                         <div class="h-10 w-10 flex-shrink-0 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm group-hover:ring-2 group-hover:ring-blue-500 transition-all">
@@ -447,7 +748,7 @@ const openActions = (user) => {
                                     </button>
                                 </td>
                             </tr>
-                            <tr v-if="users.data.length === 0">
+                            <tr v-if="displayUsers.length === 0">
                                 <td colspan="6" class="px-6 py-10 text-center text-gray-500 dark:text-gray-400">
                                     <div class="flex flex-col items-center justify-center">
                                         <UserCheck class="w-12 h-12 text-gray-300 dark:text-gray-600 mb-3" />
@@ -466,7 +767,7 @@ const openActions = (user) => {
                         <label class="flex items-center">
                             <input 
                                 type="checkbox"
-                                :checked="selectedUsers.length === users.data.length && users.data.length > 0"
+                                :checked="selectedUsers.length === displayUsers.length && displayUsers.length > 0"
                                 @change="toggleSelectAll"
                                 class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 dark:bg-slate-800 dark:border-slate-600"
                             />
@@ -475,13 +776,13 @@ const openActions = (user) => {
                     </div>
 
                     <div class="divide-y divide-gray-200 dark:divide-slate-700">
-                        <div v-for="user in users.data" :key="user.id" 
+                        <div v-for="user in displayUsers" :key="user.uuid" 
                             class="p-3 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer"
-                            @click="$inertia.visit(route('users.show', user.id))">
+                            @click="$inertia.visit(route('users.show', user.uuid))">
                             <div class="flex items-center gap-3">
                                 <input 
                                     type="checkbox"
-                                    :value="user.id"
+                                    :value="user.uuid"
                                     v-model="selectedUsers"
                                     @click.stop
                                     class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 dark:bg-slate-800 dark:border-slate-600"
@@ -523,7 +824,7 @@ const openActions = (user) => {
                             </div>
                         </div>
                         
-                        <div v-if="users.data.length === 0" class="p-6 text-center text-gray-500 dark:text-gray-400">
+                        <div v-if="displayUsers.length === 0" class="p-6 text-center text-gray-500 dark:text-gray-400">
                             <div class="flex flex-col items-center justify-center">
                                 <UserCheck class="w-10 h-10 text-gray-300 dark:text-gray-600 mb-2" />
                                 <p class="text-sm font-medium">No users found</p>
@@ -605,6 +906,17 @@ const openActions = (user) => {
                             <TextInput id="expires_at" type="datetime-local" v-model="form.expires_at" class="mt-1 block w-full" />
                             <InputError :message="form.errors.expires_at" />
                         </div>
+                        <div class="md:col-span-2">
+                            <InputLabel for="comment" value="Comments / Notes" />
+                            <textarea
+                                id="comment"
+                                v-model="form.comment"
+                                class="mt-1 block w-full border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-md shadow-sm"
+                                rows="3"
+                                placeholder="Add any private notes about this user..."
+                            ></textarea>
+                            <InputError :message="form.errors.comment" />
+                        </div>
                     </div>
 
                     <div class="mt-6 flex justify-end gap-3">
@@ -623,7 +935,7 @@ const openActions = (user) => {
                 </h3>
                 <div class="space-y-3">
                     <button 
-                        @click="$inertia.visit(route('users.show', selectedUserForActions.id)); showActionsModal = false"
+                        @click="$inertia.visit(route('users.show', selectedUserForActions.uuid)); showActionsModal = false"
                         class="w-full flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
                     >
                         <Eye class="w-4 h-4 mr-3 text-blue-500" />
@@ -639,7 +951,7 @@ const openActions = (user) => {
                     </button>
                     
                     <button 
-                        @click="remove(selectedUserForActions.id); showActionsModal = false"
+                        @click="remove(selectedUserForActions.uuid); showActionsModal = false"
                         class="w-full flex items-center px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                     >
                         <Trash2 class="w-4 h-4 mr-3" />
@@ -661,7 +973,7 @@ const openActions = (user) => {
             <div class="p-6 dark:bg-slate-800 dark:text-white">
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-lg font-medium text-gray-900 dark:text-white">
-                        Import Users via CSV
+                        Import Users (CSV or JSON)
                     </h3>
                     <button @click="showImportModal = false" class="text-gray-400 hover:text-gray-500 focus:outline-none">
                         <span class="sr-only">Close</span>
@@ -676,23 +988,32 @@ const openActions = (user) => {
                         </div>
                         <div class="ml-3">
                             <p class="text-sm text-blue-700 dark:text-blue-300">
-                                Upload a CSV file with the following columns: <br>
-                                <span class="font-mono text-xs">username, phone, full_name, location, type, package, password</span>
+                                Upload a CSV or JSON file with the following fields: <br>
+                                <span class="font-mono text-xs">username, phone, full_name, location, type, package, password, expires_at</span>
                             </p>
-                            <button 
-                                type="button" 
-                                @click="downloadSample" 
-                                class="mt-2 text-sm font-medium text-blue-700 dark:text-blue-300 underline hover:text-blue-600"
-                            >
-                                Download Sample CSV
-                            </button>
+                            <div class="mt-2 flex gap-3">
+                                <button 
+                                    type="button" 
+                                    @click="downloadSample('csv')" 
+                                    class="text-sm font-medium text-blue-700 dark:text-blue-300 underline hover:text-blue-600"
+                                >
+                                    📄 Download CSV Sample
+                                </button>
+                                <button 
+                                    type="button" 
+                                    @click="downloadSample('json')" 
+                                    class="text-sm font-medium text-blue-700 dark:text-blue-300 underline hover:text-blue-600"
+                                >
+                                    📋 Download JSON Sample
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <form @submit.prevent="submitImport" class="space-y-4">
                     <div class="space-y-2">
-                        <InputLabel for="file" value="Select CSV File" />
+                        <InputLabel for="file" value="Select CSV or JSON File" />
                         <div class="relative border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-lg p-6 hover:border-blue-500 dark:hover:border-blue-500 transition-colors text-center cursor-pointer"
                              @dragover.prevent
                              @drop.prevent="(e) => importForm.file = e.dataTransfer.files[0]">
@@ -700,7 +1021,7 @@ const openActions = (user) => {
                             <input 
                                 type="file" 
                                 id="file" 
-                                accept=".csv,.txt"
+                                accept=".csv,.txt,.json"
                                 class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                                 @change="(e) => importForm.file = e.target.files[0]"
                             />
@@ -710,7 +1031,7 @@ const openActions = (user) => {
                                 <div class="text-sm text-gray-600 dark:text-gray-400">
                                     <span class="font-medium text-blue-600 hover:text-blue-500">Click to upload</span> or drag and drop
                                 </div>
-                                <p class="text-xs text-gray-500">CSV or TXT up to 5MB</p>
+                                <p class="text-xs text-gray-500">CSV, TXT, or JSON up to 5MB</p>
                             </div>
                             
                             <div v-else class="flex items-center justify-center gap-3">
@@ -748,6 +1069,103 @@ const openActions = (user) => {
                 </form>
             </div>
         </Modal>
+
+        <!-- CSV Update Modal -->
+        <Modal :show="showUpdateModal" @close="showUpdateModal = false">
+            <div class="p-6 dark:bg-slate-800 dark:text-white">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-white">
+                        Update Users (CSV)
+                    </h3>
+                    <button @click="showUpdateModal = false" class="text-gray-400 hover:text-gray-500 focus:outline-none">
+                        <span class="sr-only">Close</span>
+                        <XCircle class="w-6 h-6" />
+                    </button>
+                </div>
+
+                <div class="mb-6 bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-400 p-4 rounded-r-md">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <AlertCircle class="h-5 w-5 text-blue-400" />
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm text-blue-700 dark:text-blue-300">
+                                Upload a CSV file to update existing users. <br>
+                                Required columns: <span class="font-mono text-xs">full_name, phone</span> <br>
+                                <span class="text-xs italic">* Account number will be automatically updated from the phone number.</span>
+                            </p>
+                            <div class="mt-2 flex gap-3">
+                                <button 
+                                    type="button" 
+                                    @click="downloadUpdateSample" 
+                                    class="text-sm font-medium text-blue-700 dark:text-blue-300 underline hover:text-blue-600"
+                                >
+                                    📄 Download Update Sample
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <form @submit.prevent="submitUpdate" class="space-y-4">
+                    <div class="space-y-2">
+                        <InputLabel for="update_file" value="Select CSV File" />
+                        <div class="relative border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-lg p-6 hover:border-blue-500 dark:hover:border-blue-500 transition-colors text-center cursor-pointer"
+                             @dragover.prevent
+                             @drop.prevent="(e) => updateForm.file = e.dataTransfer.files[0]">
+                            
+                            <input 
+                                type="file" 
+                                id="update_file" 
+                                accept=".csv,.txt"
+                                class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                @change="(e) => updateForm.file = e.target.files[0]"
+                            />
+                            
+                            <div class="space-y-2" v-if="!updateForm.file">
+                                <Upload class="mx-auto h-10 w-10 text-gray-400" />
+                                <div class="text-sm text-gray-600 dark:text-gray-400">
+                                    <span class="font-medium text-blue-600 hover:text-blue-500">Click to upload</span> or drag and drop
+                                </div>
+                                <p class="text-xs text-gray-500">CSV or TXT up to 5MB</p>
+                            </div>
+                            
+                            <div v-else class="flex items-center justify-center gap-3">
+                                <FileText class="h-8 w-8 text-blue-500" />
+                                <div class="text-left">
+                                    <p class="text-sm font-medium text-gray-900 dark:text-white">{{ updateForm.file.name }}</p>
+                                    <p class="text-xs text-gray-500">{{ (updateForm.file.size / 1024).toFixed(1) }} KB</p>
+                                </div>
+                                <button type="button" @click.stop="updateForm.file = null" class="p-1 hover:bg-gray-200 dark:hover:bg-slate-700 rounded-full">
+                                    <XCircle class="w-5 h-5 text-gray-500" />
+                                </button>
+                            </div>
+                        </div>
+                        <InputError :message="updateForm.errors.file" />
+                    </div>
+
+                    <!-- Update Errors Display -->
+                    <div v-if="$page.props.flash.update_errors && $page.props.flash.update_errors.length > 0" class="mt-4 p-4 bg-red-50 dark:bg-red-900/20 rounded-md">
+                         <h4 class="text-sm font-medium text-red-800 dark:text-red-300 mb-2">Update Warnings/Errors</h4>
+                         <ul class="list-disc pl-5 text-xs text-red-700 dark:text-red-400 max-h-32 overflow-y-auto">
+                             <li v-for="(err, idx) in $page.props.flash.update_errors" :key="idx">{{ err }}</li>
+                         </ul>
+                    </div>
+                
+                    <div class="mt-6 flex justify-end gap-3">
+                        <DangerButton type="button" @click="showUpdateModal = false">Cancel</DangerButton>
+                        <PrimaryButton 
+                            :disabled="updateForm.processing || !updateForm.file"
+                            :class="{ 'opacity-25': updateForm.processing || !updateForm.file }"
+                        >
+                            <span v-if="updateForm.processing">Updating...</span>
+                            <span v-else>Start Update</span>
+                        </PrimaryButton>
+                    </div>
+                </form>
+            </div>
+        </Modal>
+
         <!-- Password Confirmation Modal -->
         <Modal :show="showPasswordModal" @close="showPasswordModal = false">
             <div class="p-6 dark:bg-slate-800 dark:text-white">

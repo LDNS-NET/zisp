@@ -111,6 +111,7 @@ class AfricasTalkingSmsService
                         return [
                             'success' => true,
                             'message' => 'SMS sent successfully via Africa\'s Talking.',
+                            'message_id' => $recipients[0]['messageId'] ?? null,
                             'provider_response' => $data
                         ];
                     }

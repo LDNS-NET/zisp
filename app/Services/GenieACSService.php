@@ -259,7 +259,7 @@ class GenieACSService
             $serial = $remote['_id'] ?? null;
             if (!$serial) continue;
 
-            if (!TenantDevice::where('serial_number', $serial)->exists()) {
+            if (!TenantDevice::withoutGlobalScopes()->where('serial_number', $serial)->exists()) {
                 $device = new TenantDevice(['serial_number' => $serial]);
                 if ($this->syncDevice($device, $remote)) {
                     $count++;

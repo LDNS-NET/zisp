@@ -97,7 +97,14 @@ class FetchDevicesBehindRouter extends Command
 
             if ($isMatch) {
                 $this->info("Found matching TR-069 device: {$serial} (IP: {$deviceIp})");
-                $device = TenantDevice::where('serial_number', $serial)->first();
+                $device = TenantDevice::withoutGlobalScopes()
+                    ->where('serial_number', $serial)
+                    ->where(function($q) use ($router) {
+                        $q->where('tenant_id', $router->tenant_id)
+                          ->orWhereNull('tenant_id');
+                    })
+                    ->first();
+
                 if (!$device) {
                     $device = TenantDevice::create([
                         'serial_number' => $serial,
@@ -107,6 +114,10 @@ class FetchDevicesBehindRouter extends Command
                         'last_contact_at' => now(),
                     ]);
                 } else {
+                    // Update tenant_id if it was null
+                    if (!$device->tenant_id) {
+                        $device->tenant_id = $router->tenant_id;
+                    }
                     $device->update(['wan_ip' => $deviceIp, 'online' => true]);
                 }
                 $acs->syncDevice($device, $remote);

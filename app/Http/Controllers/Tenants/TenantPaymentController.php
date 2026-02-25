@@ -14,6 +14,8 @@ use Illuminate\Support\Facades\Schema;
 use IntaSend\IntaSendPHP\Collection;
 use App\Jobs\CheckIntaSendPaymentStatus;
 use App\Services\CountryService;
+use App\Services\Tenants\RenewalService;
+use Illuminate\Support\Facades\Log;
 
 class TenantPaymentController extends Controller
 {
@@ -24,7 +26,11 @@ class TenantPaymentController extends Controller
         $businessName = $user->tenant?->name ?? 'ISP';
         
         $payments = TenantPayment::query()
-            ->where('tenant_id', $tenantId)
+            ->where(function ($q) use ($tenantId) {
+                $q->where('tenant_id', $tenantId)
+                  ->orWhereNull('tenant_id');
+            })
+            ->whereNotNull('paid_at')
             ->with('user')
             ->when($request->search, function ($q) use ($request) {
                 $q->where(function($sub) use ($request) {
@@ -46,6 +52,12 @@ class TenantPaymentController extends Controller
                 } else {
                     $q->where('disbursement_type', $request->disbursement);
                 }
+            })
+            ->when($request->year, function ($q) use ($request) {
+                $q->whereYear('paid_at', $request->year);
+            })
+            ->when($request->month, function ($q) use ($request) {
+                $q->whereMonth('paid_at', $request->month);
             })
             ->orderBy('created_at', 'desc')
             ->paginate($request->get('per_page', 20))
@@ -53,16 +65,26 @@ class TenantPaymentController extends Controller
                 $disb = $payment->disbursement_type ?? 'pending';
                 $status = $payment->disbursement_status ?? 'pending';
                 $checkedBool = (bool) $payment->checked;
-                $userDisplay = $payment->user?->username ?? ($payment->user_id === null ? 'System/Manual' : 'Deleted User');
+                $userDisplay = $payment->user?->username;
+                if (!$userDisplay) {
+                    if ($payment->user_id === null) {
+                        $userDisplay = $payment->phone ?: 'Unassigned Gateway Payment';
+                    } else {
+                        $userDisplay = 'Deleted User';
+                    }
+                }
                 
-                // Manual payments are those created by a user and not via automated methods
+                // Manual payments or Unassigned system payments are editable/reconcilable
                 $isManual = ($payment->payment_method === 'manual' || ($payment->created_by && !$payment->payment_method));
+                $isUnassigned = ($payment->user_id === null);
+                $isEditable = ($isManual || $isUnassigned);
                 
                 return [
                     'id' => $payment->id,
+                    'uuid' => $payment->uuid,
                     'user' => $userDisplay,
                     'user_id' => $payment->user_id,
-                    'phone' => $payment->phone ?? ($payment->user?->phone ?? 'N/A'),
+                    'phone' => substr($payment->phone ?? ($payment->user?->phone ?? 'N/A'), 0, 14),
                     'receipt_number' => $payment->mpesa_receipt_number ?: $payment->receipt_number,
                     'amount' => $payment->amount,
                     'checked' => $checkedBool,
@@ -70,16 +92,23 @@ class TenantPaymentController extends Controller
                     'disbursement_type' => $disb,
                     'disbursement_status' => $status,
                     'is_manual' => $isManual,
-                    'editable' => $isManual,
+                    'editable' => $isEditable,
                     'checked_label' => $checkedBool ? 'Yes' : 'No',
-                    'disbursement_label' => $status === 'testing' ? 'Testing Mode' : ucfirst($status),
+                    'disbursement_label' => $status === 'testing' ? 'Testing Mode' : ($status === 'pending' ? 'Awaiting Disbursement' : ($status === 'completed' ? 'Disbursed / Direct' : ucfirst($status))),
+                    'disbursement_ref' => $payment->disbursement_transaction_id,
+                    'comment' => $payment->comment,
+                    'payment_mode' => $isManual ? $payment->payment_mode : null,
                     'business_name' => $businessName,
                 ];
             });
 
         // Get all payments for summary (no pagination, ignore pagination and filters except search/disbursement)
         $allPayments = TenantPayment::query()
-            ->where('tenant_id', $tenantId)
+            ->where(function ($q) use ($tenantId) {
+                $q->where('tenant_id', $tenantId)
+                  ->orWhereNull('tenant_id');
+            })
+            ->whereNotNull('paid_at')
             ->with('user')
             ->when($request->search, function ($q) use ($request) {
                 $q->where(function($sub) use ($request) {
@@ -101,6 +130,12 @@ class TenantPaymentController extends Controller
                 } else {
                     $q->where('disbursement_type', $request->disbursement);
                 }
+            })
+            ->when($request->year, function ($q) use ($request) {
+                $q->whereYear('paid_at', $request->year);
+            })
+            ->when($request->month, function ($q) use ($request) {
+                $q->whereMonth('paid_at', $request->month);
             })
             ->get()->map(function ($payment) use ($businessName) {
                 $disb = $payment->disbursement_type ?? 'pending';
@@ -111,6 +146,7 @@ class TenantPaymentController extends Controller
                 
                 return [
                     'id' => $payment->id,
+                    'uuid' => $payment->uuid,
                     'user' => $payment->user?->username ?? ($payment->user_id === null ? 'System/Manual' : 'Deleted User'),
                     'user_id' => $payment->user_id,
                     'phone' => $payment->phone ?? ($payment->user?->phone ?? 'N/A'),
@@ -124,14 +160,15 @@ class TenantPaymentController extends Controller
                     'editable' => $isManual,
                     'checked_label' => $checkedBool ? 'Yes' : 'No',
                     'disbursement_label' => $status === 'testing' ? 'Testing Mode' : ucfirst($status),
+                    'payment_mode' => $isManual ? $payment->payment_mode : null,
                     'business_name' => $businessName,
                 ];
             });
 
         return Inertia::render('Payments/Index', [
             'payments' => array_merge($payments->toArray(), ['allData' => $allPayments]),
-            'filters' => $request->only('search', 'disbursement'),
-            'users' => NetworkUser::select('id', 'username', 'phone')->get(),
+            'filters' => $request->only('search', 'disbursement', 'year', 'month'),
+            'users' => NetworkUser::select('id', 'username', 'phone', 'full_name', 'account_number')->get(),
             'currency' => auth()->user()?->tenant?->currency ?? 'KES',
         ]);
     }
@@ -140,10 +177,16 @@ class TenantPaymentController extends Controller
     {
         $data = $request->validate([
             'user_id' => 'required|exists:network_users,id',
-            'receipt_number' => 'required|string|max:255|unique:tenant_payments,receipt_number',
+            'receipt_number' => 'nullable|string|max:255|unique:tenant_payments,receipt_number',
             'amount' => 'required|numeric|min:0',
             'paid_at' => 'required|date',
+            'payment_mode' => 'required|string|in:cash,transfer',
+            'comment' => 'nullable|string',
         ]);
+
+        if (empty($data['receipt_number'])) {
+            $data['receipt_number'] = 'MAN-' . strtoupper(bin2hex(random_bytes(4)));
+        }
 
         $user = NetworkUser::findOrFail($data['user_id']);
 
@@ -186,17 +229,24 @@ class TenantPaymentController extends Controller
 
     public function update(Request $request, $id)
     {
-        $tenantPayment = TenantPayment::findOrFail($id);
+        // Look up by UUID, bypassing tenant scope so unassigned (tenant_id=null) payments are also found
+        $tenantPayment = TenantPayment::withoutGlobalScope('tenant')
+            ->where('uuid', $id)
+            ->firstOrFail();
 
-        // Security check: Only manual payments can be edited
+        // Security check: Only manual payments or unassigned system payments can be edited
         $isManual = ($tenantPayment->payment_method === 'manual' || ($tenantPayment->created_by && !$tenantPayment->payment_method));
-        abort_unless($isManual, 403, 'System payments cannot be edited.');
+        $isUnassigned = ($tenantPayment->user_id === null);
+        
+        abort_unless($isManual || $isUnassigned, 403, 'System payments cannot be edited.');
 
         $data = $request->validate([
             'user_id' => 'sometimes|exists:network_users,id',
-            'receipt_number' => 'required|string|max:255|unique:tenant_payments,receipt_number,' . $id,
+            'receipt_number' => 'nullable|string|max:255|unique:tenant_payments,receipt_number,' . $tenantPayment->id,
             'amount' => 'required|numeric|min:0',
             'paid_at' => 'required|date',
+            'payment_mode' => 'sometimes|string|in:cash,transfer',
+            'comment' => 'nullable|string',
         ]);
 
         if (isset($data['user_id'])) {
@@ -204,41 +254,44 @@ class TenantPaymentController extends Controller
             if (Schema::hasColumn('tenant_payments', 'phone')) {
                 $data['phone'] = $user->phone;
             }
-        }
 
-        // Manual payments are always completed and checked (received outside gateway)
-        $data['disbursement_status'] = 'completed';
-        $data['disbursement_type'] = 'completed';
-        $data['checked'] = true;
+            // If this was an unassigned payment and now has a user, trigger renewal
+            if ($tenantPayment->user_id === null) {
+                // Also set tenant_id from the user being assigned
+                $data['tenant_id'] = $user->tenant_id;
 
-        $tenantPayment->update($data);
-
-        // Mikrotik suspend/unsuspend logic
-        $user = isset($data['user_id']) ? NetworkUser::findOrFail($data['user_id']) : $tenantPayment->user;
-
-        // Load tenant router config from DB
-        $tenantMikrotik = \App\Models\Tenants\TenantMikrotik::where('created_by', auth()->id())->first();
-
-        if ($tenantMikrotik) {
-            $mikrotik = new \App\Services\MikrotikService($tenantMikrotik);
-
-            if (in_array($data['disbursement_status'], ['pending', 'failed'])) {
-                $mikrotik->suspendUser($user->type, $user->mikrotik_id ?? '');
-            } elseif ($data['disbursement_status'] === 'completed') {
-                $mikrotik->unsuspendUser($user->type, $user->mikrotik_id ?? '');
+                Log::info('Manually assigning C2B payment to user', ['payment_id' => $tenantPayment->id, 'user_id' => $user->id]);
+                app(\App\Services\Tenants\RenewalService::class)->processPayment($user, $tenantPayment->amount);
+                
+                // Unsuspend on MikroTik
+                try {
+                    $tenantMikrotik = \App\Models\Tenants\TenantMikrotik::where('tenant_id', $user->tenant_id)->first();
+                    if ($tenantMikrotik) {
+                        $mikrotik = new \App\Services\MikrotikService($tenantMikrotik);
+                        $mikrotik->unsuspendUser($user->type, $user->mikrotik_id ?? $user->username);
+                    }
+                } catch (\Exception $e) {
+                    Log::error('Manual Assignment: Failed to unsuspend user on MikroTik', ['user_id' => $user->id, 'error' => $e->getMessage()]);
+                }
             }
         }
+        
+        $tenantPayment->update($data);
 
         return back()->with('success', 'Payment updated.');
     }
 
     public function destroy($id)
     {
-        $tenantPayment = TenantPayment::findOrFail($id);
+        $tenantPayment = TenantPayment::withoutGlobalScope('tenant')
+            ->where('uuid', $id)
+            ->firstOrFail();
 
-        // Security check: Only manual payments can be deleted
+        // Security check: Only manual payments or unassigned system payments can be deleted
         $isManual = ($tenantPayment->payment_method === 'manual' || ($tenantPayment->created_by && !$tenantPayment->payment_method));
-        abort_unless($isManual, 403, 'System payments cannot be deleted.');
+        $isUnassigned = ($tenantPayment->user_id === null);
+
+        abort_unless($isManual || $isUnassigned, 403, 'System payments cannot be deleted.');
 
         $tenantPayment->delete();
 
@@ -252,10 +305,12 @@ class TenantPaymentController extends Controller
             return back()->with('error', 'No payments selected for deletion.');
         }
         
-        // Only delete manual payments
-        TenantPayment::whereIn('id', $ids)
+        // Only delete manual payments or unassigned ones
+        TenantPayment::withoutGlobalScope('tenant')
+            ->whereIn('uuid', $ids)
             ->where(function($q) {
                 $q->where('payment_method', 'manual')
+                  ->orWhereNull('user_id')
                   ->orWhere(function($q2) {
                       $q2->whereNotNull('created_by')
                          ->whereNull('payment_method');
@@ -412,12 +467,6 @@ class TenantPaymentController extends Controller
                 'provider' => $payment->payment_method
             ]);
 
-            // Dispatch job to check payment status (using payment model)
-            // For Tinypesa, we primarily rely on Webhook, but polling might be supported if there's an endpoint.
-            // Tinypesa doesn't strictly have a query endpoint in V1 (it uses callback), so we skip polling or keep it if generic.
-            // MpesaService logic is generic, so we can keep it if it checks logic, BUT CheckMpesaPaymentStatusJob likely uses MpesaService query.
-            // We should only dispatch if provider is mpesa.
-            
             if ($payment->payment_method === 'mpesa') {
                 \App\Jobs\CheckMpesaPaymentStatusJob::dispatch($payment)
                     ->delay(now()->addSeconds(30));
@@ -439,8 +488,6 @@ class TenantPaymentController extends Controller
                 'amount' => $data['amount']
             ]);
 
-            // Do NOT create payment record on failure
-            
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to initiate STK Push: ' . $e->getMessage(),
@@ -448,9 +495,6 @@ class TenantPaymentController extends Controller
         }
     }
 
-    /**
-     * Update payment status from IntaSend callback
-     */
     public function updatePaymentStatus($receiptNumber, $status, $responseData = [])
     {
         $payment = TenantPayment::where('receipt_number', $receiptNumber)->first();
@@ -473,9 +517,6 @@ class TenantPaymentController extends Controller
         return $payment->update($updateData);
     }
 
-    /**
-     * Normalize phone number based on country dial code.
-     */
     private function formatPhoneNumber(string $phone, string $dialCode): ?string
     {
         $phone = preg_replace('/\D/', '', $phone);

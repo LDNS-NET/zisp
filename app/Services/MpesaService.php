@@ -13,6 +13,7 @@ class MpesaService
     protected $consumerSecret;
     protected $shortcode;
     protected $passkey;
+    protected $shortcodeType;
     protected $baseUrl;
     protected $callbackUrl;
     protected $environment;
@@ -27,11 +28,12 @@ class MpesaService
      */
     public function setCredentials(array $credentials = []): self
     {
-        $this->consumerKey = $credentials['consumer_key'] ?? config('mpesa.consumer_key');
-        $this->consumerSecret = $credentials['consumer_secret'] ?? config('mpesa.consumer_secret');
-        $this->shortcode = $credentials['shortcode'] ?? config('mpesa.shortcode');
-        $this->passkey = $credentials['passkey'] ?? config('mpesa.passkey');
-        $this->environment = strtolower($credentials['environment'] ?? config('mpesa.environment', 'sandbox'));
+        $this->consumerKey = trim($credentials['consumer_key'] ?? config('mpesa.consumer_key'));
+        $this->consumerSecret = trim($credentials['consumer_secret'] ?? config('mpesa.consumer_secret'));
+        $this->shortcode = trim($credentials['shortcode'] ?? config('mpesa.shortcode'));
+        $this->shortcodeType = strtolower(trim($credentials['shortcode_type'] ?? 'paybill'));
+        $this->passkey = trim($credentials['passkey'] ?? config('mpesa.passkey'));
+        $this->environment = strtolower(trim($credentials['environment'] ?? config('mpesa.environment', 'sandbox')));
         
         $this->baseUrl = $this->environment === 'production' 
             ? 'https://api.safaricom.co.ke' 
@@ -48,7 +50,7 @@ class MpesaService
      */
     public function getAccessToken($forceRetrieved = false): ?string
     {
-        $cacheKey = 'mpesa_access_token_' . md5($this->consumerKey . $this->consumerSecret);
+        $cacheKey = 'mpesa_access_token_' . md5($this->consumerKey . $this->consumerSecret . $this->environment);
 
         if ($forceRetrieved) {
             Cache::forget($cacheKey);
@@ -112,24 +114,29 @@ class MpesaService
 
             $url = $this->baseUrl . '/mpesa/stkpush/v1/processrequest';
 
+            // Determine CommandID based on Shortcode Type
+            $commandId = ($this->shortcodeType === 'till') ? 'CustomerBuyGoodsOnline' : 'CustomerPayBillOnline';
+
             $payload = [
                 'BusinessShortCode' => $this->shortcode,
                 'Password' => $password,
                 'Timestamp' => $timestamp,
-                'TransactionType' => 'CustomerPayBillOnline',
-                'Amount' => round($amount),
+                'TransactionType' => $commandId,
+                'Amount' => $amount,
                 'PartyA' => $phone,
                 'PartyB' => $this->shortcode,
                 'PhoneNumber' => $phone,
                 'CallBackURL' => $this->callbackUrl,
                 'AccountReference' => $reference,
-                'TransactionDesc' => $description
+                'TransactionDesc' => $description,
             ];
 
             Log::info('M-Pesa: Initiating STK Push', [
                 'phone' => $phone,
                 'amount' => $amount,
                 'reference' => $reference,
+                'type' => $this->shortcodeType,
+                'command_id' => $commandId,
                 'shortcode' => $this->shortcode,
                 'env' => $this->environment,
                 'base_url' => $this->baseUrl,
@@ -536,6 +543,203 @@ class MpesaService
         }
 
         return $phone;
+    }
+
+
+    /**
+     * Register C2B URLs with M-Pesa
+     * This registers your validation and confirmation URLs with Safaricom
+     *
+     * @param string $validationUrl Full URL for validation endpoint
+     * @param string $confirmationUrl Full URL for confirmation endpoint
+     * @param string $responseType 'Completed' or 'Cancelled'
+     * @return array Response with success status and data
+     */
+    public function registerC2BURLS(string $validationUrl, string $confirmationUrl, string $responseType = 'Completed'): array
+    {
+        try {
+            $token = $this->getAccessToken();
+            
+            if (!$token) {
+                return [
+                    'success' => false,
+                    'message' => 'Failed to obtain access token'
+                ];
+            }
+
+            // Use v2 endpoint as per Daraja documentation
+            // Production: https://api.safaricom.co.ke/mpesa/c2b/v2/registerurl
+            // Sandbox:    https://sandbox.safaricom.co.ke/mpesa/c2b/v2/registerurl
+            $url = $this->baseUrl . '/mpesa/c2b/v2/registerurl';
+
+            $payload = [
+                'ShortCode' => (string) $this->shortcode,
+                'ResponseType' => (string) $responseType,
+                'ConfirmationURL' => (string) $confirmationUrl,
+                'ValidationURL' => (string) $validationUrl
+            ];
+
+            Log::info('M-Pesa: Registering C2B URLs', [
+                'shortcode' => (string) $this->shortcode,
+                'validation_url' => $validationUrl,
+                'confirmation_url' => $confirmationUrl,
+                'response_type' => $responseType,
+                'url' => $url,
+                'token_sample' => substr($token, 0, 10) . '...' . substr($token, -5),
+                'key_len' => strlen($this->consumerKey),
+                'secret_len' => strlen($this->consumerSecret),
+            ]);
+
+            $response = Http::withHeaders([
+                'Accept' => 'application/json',
+                'Content-Type' => 'application/json',
+            ])->withToken($token)->post($url, $payload);
+
+            $data = $response->json();
+
+            // Retry on Invalid Access Token (401.003.01)
+            if ($response->status() === 401 && isset($data['errorCode']) && $data['errorCode'] === '401.003.01') {
+                Log::warning('M-Pesa: Invalid Access Token during registration. Clearing cache and retrying in 2 seconds...');
+                
+                sleep(2); // Wait for token propagation
+                
+                $token = $this->getAccessToken(true); // Force refresh
+                
+                if ($token) {
+                    $response = Http::withHeaders([
+                        'Accept' => 'application/json',
+                        'Content-Type' => 'application/json',
+                    ])->withToken($token)->post($url, [
+                        'ShortCode' => (string) $this->shortcode,
+                        'ResponseType' => $responseType,
+                        'ConfirmationURL' => $confirmationUrl,
+                        'ValidationURL' => $validationUrl
+                    ]);
+                    $data = $response->json();
+                }
+            }
+
+            Log::info('M-Pesa: C2B URL registration response', [
+                'status_code' => $response->status(),
+                'response' => $data,
+                'body' => $response->body() // Capture raw body just in case JSON parsing hides something
+            ]);
+
+            // Safaricom can return success in multiple ways:
+            // 1. ResponseCode = '0' (most common)
+            // 2. ResponseDescription containing 'Success' (some environments)
+            // 3. HTTP 200 with no ResponseCode on some builds
+            $isSuccess = $response->successful() && (
+                (isset($data['ResponseCode']) && $data['ResponseCode'] == '0') ||
+                (isset($data['ResponseDescription']) && stripos($data['ResponseDescription'], 'success') !== false)
+            );
+
+            if ($isSuccess) {
+                return [
+                    'success' => true,
+                    'message' => $data['ResponseDescription'] ?? 'C2B URLs registered successfully',
+                    'response' => $data
+                ];
+            }
+
+            return [
+                'success' => false,
+                'message' => $data['errorMessage'] ?? $data['ResponseDescription'] ?? 'C2B URL registration failed (HTTP ' . $response->status() . ')',
+                'response' => $data
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('M-Pesa: C2B URL registration exception', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'An error occurred: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Simulate a C2B transaction (Sandbox only)
+     *
+     * @param float $amount Amount to simulate
+     * @param string $msisdn Test phone number
+     * @param string $billRefNumber Account number / Bill reference
+     * @param string $commandId CustomerPayBillOnline or CustomerBuyGoodsOnline
+     * @return array Response with success status and data
+     */
+    public function simulateC2B(float $amount, string $msisdn, string $billRefNumber, string $commandId = 'CustomerPayBillOnline'): array
+    {
+        try {
+            if ($this->environment === 'production') {
+                return [
+                    'success' => false,
+                    'message' => 'Simulation is not supported in production environment'
+                ];
+            }
+
+            $token = $this->getAccessToken();
+            
+            if (!$token) {
+                return [
+                    'success' => false,
+                    'message' => 'Failed to obtain access token'
+                ];
+            }
+
+            $url = $this->baseUrl . '/mpesa/c2b/v1/simulate';
+
+            $payload = [
+                'ShortCode' => (string) $this->shortcode,
+                'CommandID' => $commandId,
+                'Amount' => round($amount),
+                'Msisdn' => $this->normalizePhoneNumber($msisdn),
+                'BillRefNumber' => $billRefNumber
+            ];
+
+            Log::info('M-Pesa: Simulating C2B transaction', [
+                'shortcode' => $this->shortcode,
+                'amount' => $amount,
+                'msisdn' => $msisdn,
+                'bill_ref' => $billRefNumber,
+                'command_id' => $commandId
+            ]);
+
+            $response = Http::withToken($token)->post($url, $payload);
+            $data = $response->json();
+
+            Log::info('M-Pesa: C2B Simulation response', [
+                'status_code' => $response->status(),
+                'response' => $data
+            ]);
+
+            if ($response->successful() && isset($data['ResponseCode']) && $data['ResponseCode'] == '0') {
+                return [
+                    'success' => true,
+                    'message' => $data['ResponseDescription'] ?? 'Simulation request accepted successfully',
+                    'response' => $data
+                ];
+            }
+
+            return [
+                'success' => false,
+                'message' => $data['errorMessage'] ?? $data['ResponseDescription'] ?? 'C2B Simulation failed',
+                'response' => $data
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('M-Pesa: C2B Simulation exception', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'An error occurred: ' . $e->getMessage()
+            ];
+        }
     }
 
     /**
