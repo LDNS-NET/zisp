@@ -818,6 +818,7 @@ function generatePaymentConfirmation(p = null) {
                                             </div>
                                         </div>
                                     </td>
+                                    
                                     <td class="px-6 py-4">
                                         <div class="text-sm font-black text-slate-900 dark:text-white">{{ item.amount }}</div>
                                         <div class="sm:hidden mt-0.5">
