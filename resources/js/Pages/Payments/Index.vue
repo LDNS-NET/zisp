@@ -349,6 +349,7 @@ const filteredUsers = computed(() => {
 
 function openAddModal() {
     form.reset();
+    form.paid_at = normalizeToDatetimeLocal(new Date());
     editing.value = null;
     showModal.value = true;
 }
@@ -1073,6 +1074,13 @@ function generatePaymentConfirmation(p = null) {
                             <TextInput id="phone" v-model="form.phone" type="text" 
                                 class="mt-1 block w-full rounded-xl" placeholder="254..." required />
                             <InputError :message="form.errors.phone" class="mt-1" />
+                        </div>
+
+                        <div>
+                            <InputLabel for="paid_at" value="Payment Date & Time" class="dark:text-slate-300" />
+                            <TextInput id="paid_at" v-model="form.paid_at" type="datetime-local" 
+                                class="mt-1 block w-full rounded-xl" required />
+                            <InputError :message="form.errors.paid_at" class="mt-1" />
                         </div>
 
                         <div class="sm:col-span-2">
