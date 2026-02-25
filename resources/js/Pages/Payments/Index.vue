@@ -782,8 +782,8 @@ function generatePaymentConfirmation(p = null) {
                                 <tr v-for="item in paymentsData" :key="item.uuid" 
                                     class="group cursor-pointer transition-colors"
                                     :class="{
-                                        'bg-amber-50/50 hover:bg-amber-100/50 dark:bg-amber-900/10 dark:hover:bg-amber-900/20': !item.user_id,
-                                        'bg-blue-50/30 hover:bg-blue-100/30 dark:bg-blue-900/5 dark:hover:bg-blue-900/15': item.user_id && item.payment_method === 'manual',
+                                        'bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/30 dark:hover:bg-rose-900/40 border-l-4 border-rose-500': !item.user_id,
+                                        'bg-fuchsia-50/50 hover:bg-fuchsia-100/50 dark:bg-fuchsia-900/10 dark:hover:bg-fuchsia-900/20 border-l-4 border-fuchsia-500': item.user_id && item.payment_method === 'manual',
                                         'hover:bg-slate-50 dark:hover:bg-slate-900/50': item.user_id && item.payment_method !== 'manual'
                                     }"
                                     @click="showPaymentDetails(item)">
