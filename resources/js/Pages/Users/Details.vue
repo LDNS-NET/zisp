@@ -678,15 +678,15 @@ function confirmSubmit() {
                                             <span class="font-bold text-blue-600 dark:text-blue-400">
                                                 {{ renewal.expires_at ? new Date(renewal.expires_at).toLocaleString('en-GB', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—' }}
                                             </span>
-                                            <span v-if="renewal.expires_at && new Date(renewal.expires_at) < new Date()" 
-                                                class="ml-2 px-1.5 py-0.5 bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400 text-[9px] font-black uppercase rounded shadow-sm ring-1 ring-red-200 dark:ring-red-900/50">
-                                                Expired
-                                            </span>
                                         </div>
                                     </div>
                                 </td>
-                                <td class="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
-                                    <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-bold transition-colors duration-200 shadow-sm" 
+                                <td class="px-6 py-4 text-sm">
+                                    <span v-if="renewal.expires_at && new Date(renewal.expires_at) < new Date()"
+                                        class="inline-flex rounded-full px-2.5 py-1 text-xs font-bold transition-colors duration-200 shadow-sm bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 ring-1 ring-red-200 dark:ring-red-900/50">
+                                        Expired
+                                    </span>
+                                    <span v-else class="inline-flex rounded-full px-2.5 py-1 text-xs font-bold transition-colors duration-200 shadow-sm" 
                                         :class="renewal.status === 'active' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 ring-1 ring-green-200 dark:ring-green-900/50' : 'bg-gray-100 text-gray-800 dark:bg-gray-700/50 dark:text-gray-300 ring-1 ring-gray-200 dark:ring-gray-700'">
                                         {{ renewal.status.charAt(0).toUpperCase() + renewal.status.slice(1) }}
                                     </span>
