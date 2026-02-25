@@ -329,6 +329,8 @@ const form = useForm({
     amount: '',
     paid_at: '',
     phone: '', // auto-filled, readonly
+    payment_mode: 'cash',
+    comment: '',
 });
 
 // User search filter for dropdown
@@ -367,6 +369,8 @@ function openEditModal(payment) {
     form.amount = payment.amount;
     form.paid_at = normalizeToDatetimeLocal(payment.paid_at);
     form.phone = payment.phone ?? '';
+    form.payment_mode = payment.payment_mode ?? 'cash';
+    form.comment = payment.comment ?? '';
     editing.value = payment.uuid;
     showModal.value = true;
 }
@@ -775,7 +779,12 @@ function generatePaymentConfirmation(p = null) {
                             </thead>
                             <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
                                 <tr v-for="item in paymentsData" :key="item.uuid" 
-                                    class="group cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-900/50"
+                                    class="group cursor-pointer transition-colors"
+                                    :class="{
+                                        'bg-amber-50/50 hover:bg-amber-100/50 dark:bg-amber-900/10 dark:hover:bg-amber-900/20': !item.user_id,
+                                        'bg-blue-50/30 hover:bg-blue-100/30 dark:bg-blue-900/5 dark:hover:bg-blue-900/15': item.user_id && item.payment_method === 'manual',
+                                        'hover:bg-slate-50 dark:hover:bg-slate-900/50': item.user_id && item.payment_method !== 'manual'
+                                    }"
                                     @click="showPaymentDetails(item)">
                                     <!-- <td class="px-6 py-4" @click.stop>
                                         <input type="checkbox" :value="item.uuid" v-model="selectedTenantPayments"
@@ -804,6 +813,7 @@ function generatePaymentConfirmation(p = null) {
                                             <div class="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-slate-400">
                                                 <PackageIcon class="h-3 w-3" />
                                                 {{ item.checked_label === 'Yes' ? 'Confirmed' : 'Unchecked' }}
+                                                <span v-if="item.payment_mode" class="ml-1 px-1 bg-slate-100 dark:bg-slate-700 rounded">{{ item.payment_mode }}</span>
                                             </div>
                                         </div>
                                     </td>
@@ -938,7 +948,7 @@ function generatePaymentConfirmation(p = null) {
                                                 {{ paymentDetails.checked_label }}
                                             </p>
                                         </div>
-                                        <div class="sm:col-span-2">
+                                        <div>
                                             <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Disbursement Status</p>
                                             <div class="flex items-center gap-2">
                                                 <p class="text-sm font-semibold text-slate-700 dark:text-slate-200">{{ paymentDetails.disbursement_label }}</p>
@@ -946,6 +956,14 @@ function generatePaymentConfirmation(p = null) {
                                                     Ref: {{ paymentDetails.disbursement_ref }}
                                                 </span>
                                             </div>
+                                        </div>
+                                        <div>
+                                            <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Payment Mode</p>
+                                            <p class="text-sm font-semibold text-slate-700 dark:text-slate-200 uppercase">{{ paymentDetails.payment_mode || 'N/A' }}</p>
+                                        </div>
+                                        <div v-if="paymentDetails.comment" class="sm:col-span-2">
+                                            <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Comment / Note</p>
+                                            <p class="text-sm text-slate-600 dark:text-slate-300 italic">"{{ paymentDetails.comment }}"</p>
                                         </div>
                                     </div>
                                 </div>
@@ -1062,6 +1080,23 @@ function generatePaymentConfirmation(p = null) {
                             <TextInput id="receipt_number" v-model="form.receipt_number" type="text" 
                                 class="mt-1 block w-full rounded-xl" placeholder="e.g. QWE123RTY" required />
                             <InputError :message="form.errors.receipt_number" class="mt-1" />
+                        </div>
+
+                        <div>
+                            <InputLabel for="payment_mode" value="Payment Mode" class="dark:text-slate-300" />
+                            <select id="payment_mode" v-model="form.payment_mode" class="mt-1 block w-full rounded-xl border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-white" required>
+                                <option value="cash">Cash</option>
+                                <option value="transfer">Transfer / Bank</option>
+                            </select>
+                            <InputError :message="form.errors.payment_mode" class="mt-1" />
+                        </div>
+
+                        <div class="sm:col-span-2">
+                            <InputLabel for="comment" value="Comment / Note" class="dark:text-slate-300" />
+                            <textarea id="comment" v-model="form.comment" rows="2"
+                                class="mt-1 block w-full rounded-xl border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-white focus:ring-blue-500"
+                                placeholder="Any additional details..."></textarea>
+                            <InputError :message="form.errors.comment" class="mt-1" />
                         </div>
                     </div>
                 </div>

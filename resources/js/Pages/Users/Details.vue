@@ -244,6 +244,7 @@ function confirmSubmit() {
                                           props.user.expires_at,
                                       ).toLocaleString()
                                     : '—',
+                                'Comments / Notes': props.user.comment ?? '—',
                             }"
                             :key="label"
                             class="flex flex-col rounded-xl bg-gray-50 p-4 dark:bg-gray-800"
@@ -640,6 +641,7 @@ function confirmSubmit() {
                             <tr>
                                 <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">Package</th>
                                 <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">Amount Paid</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">Type</th>
                                 <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">Period</th>
                                 <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">Status</th>
                             </tr>
@@ -653,6 +655,17 @@ function confirmSubmit() {
                                     KES {{ Number(renewal.amount).toLocaleString() }}
                                 </td>
                                 <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
+                                    <span class="inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider"
+                                        :class="{
+                                            'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400': renewal.type === 'renewal',
+                                            'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400': renewal.type === 'extension',
+                                            'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400': renewal.type === 'compensation'
+                                        }"
+                                    >
+                                        {{ renewal.type || 'renewal' }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
                                     <div class="flex flex-col gap-0.5">
                                         <div class="flex items-center gap-1.5">
                                             <span class="text-[10px] uppercase font-bold text-gray-400">Start:</span>
@@ -664,6 +677,10 @@ function confirmSubmit() {
                                             <span class="text-[10px] uppercase font-bold text-gray-400">End:</span>
                                             <span class="font-bold text-blue-600 dark:text-blue-400">
                                                 {{ renewal.expires_at ? new Date(renewal.expires_at).toLocaleString('en-GB', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—' }}
+                                            </span>
+                                            <span v-if="renewal.expires_at && new Date(renewal.expires_at) < new Date()" 
+                                                class="ml-2 px-1.5 py-0.5 bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400 text-[9px] font-black uppercase rounded shadow-sm ring-1 ring-red-200 dark:ring-red-900/50">
+                                                Expired
                                             </span>
                                         </div>
                                     </div>

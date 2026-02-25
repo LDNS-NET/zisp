@@ -127,6 +127,7 @@ class TenantUserController extends Controller
                 'is_online' => in_array(strtolower($user->username), $activeUsernames),
                 'expires_at' => $user->expires_at,
                 'expiry_human' => optional($user->expires_at)->diffForHumans(),
+                'comment' => $user->comment,
                 'package' => ($user->package ?: $user->hotspotPackage) ? [
                     'id' => $user->package?->id ?? $user->hotspotPackage?->id,
                     'name' => $user->package?->name ?? $user->hotspotPackage?->name,
@@ -163,6 +164,7 @@ class TenantUserController extends Controller
             'type' => 'required|in:hotspot,pppoe,static',
             'package_id' => 'nullable|exists:packages,id',
             'expires_at' => 'nullable|date',
+            'comment' => 'nullable|string',
         ];
 
         // Conditionally add password requirement
@@ -193,6 +195,7 @@ class TenantUserController extends Controller
                     'type' => $validated['type'],
                     'package_id' => $validated['package_id'],
                     'expires_at' => $validated['expires_at'],
+                    'comment' => $validated['comment'] ?? null,
                     'registered_at' => now(),
                     'created_by' => Auth::id(),
                 ]);
@@ -370,6 +373,7 @@ class TenantUserController extends Controller
             'type' => ['required', Rule::in(['hotspot', 'pppoe', 'static'])],
             'package_id' => 'nullable|exists:packages,id',
             'expires_at' => 'nullable|date',
+            'comment' => 'nullable|string',
         ];
 
         // Conditionally add password requirement
@@ -402,6 +406,20 @@ class TenantUserController extends Controller
                     ($validated['package_id'] === null || $validated['package_id'] === '' || $validated['package_id'] === '0')
                 ) {
                     unset($validated['package_id']);
+                }
+
+                // Detect expiry extension
+                if ($user->isDirty('expires_at') && $user->expires_at && (!$user->getOriginal('expires_at') || $user->expires_at->gt($user->getOriginal('expires_at')))) {
+                    \App\Models\Tenants\PackageRenewal::create([
+                        'user_id' => $user->id,
+                        'package_id' => $user->package_id,
+                        'amount_paid' => 0,
+                        'started_at' => now(),
+                        'expires_at' => $user->expires_at,
+                        'status' => 'active',
+                        'type' => 'extension',
+                        'tenant_id' => $user->tenant_id,
+                    ]);
                 }
 
                 // Final update

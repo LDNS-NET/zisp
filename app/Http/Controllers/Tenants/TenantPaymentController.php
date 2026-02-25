@@ -96,6 +96,8 @@ class TenantPaymentController extends Controller
                     'checked_label' => $checkedBool ? 'Yes' : 'No',
                     'disbursement_label' => $status === 'testing' ? 'Testing Mode' : ($status === 'pending' ? 'Awaiting Disbursement' : ($status === 'completed' ? 'Disbursed / Direct' : ucfirst($status))),
                     'disbursement_ref' => $payment->disbursement_transaction_id,
+                    'comment' => $payment->comment,
+                    'payment_mode' => $payment->payment_mode,
                     'business_name' => $businessName,
                 ];
             });
@@ -177,6 +179,8 @@ class TenantPaymentController extends Controller
             'receipt_number' => 'required|string|max:255|unique:tenant_payments,receipt_number',
             'amount' => 'required|numeric|min:0',
             'paid_at' => 'required|date',
+            'payment_mode' => 'required|string|in:cash,transfer',
+            'comment' => 'nullable|string',
         ]);
 
         $user = NetworkUser::findOrFail($data['user_id']);
@@ -236,6 +240,8 @@ class TenantPaymentController extends Controller
             'receipt_number' => 'required|string|max:255|unique:tenant_payments,receipt_number,' . $tenantPayment->id,
             'amount' => 'required|numeric|min:0',
             'paid_at' => 'required|date',
+            'payment_mode' => 'sometimes|string|in:cash,transfer',
+            'comment' => 'nullable|string',
         ]);
 
         if (isset($data['user_id'])) {

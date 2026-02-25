@@ -20,6 +20,7 @@ class PackageRenewal extends Model
         'started_at',
         'expires_at',
         'status',
+        'type',
     ];
 
     protected $casts = [

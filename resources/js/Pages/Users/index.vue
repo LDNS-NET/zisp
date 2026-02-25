@@ -66,6 +66,7 @@ const form = useForm({
     package_id: '',
     type: 'hotspot',
     expires_at: '',
+    comment: '',
     admin_password: '', // For validation
 });
 
@@ -301,6 +302,7 @@ function openEdit(user) {
     form.package_id = user.package_id ?? '';
     form.type = user.type ?? 'hotspot';
     form.expires_at = user.expires_at ? user.expires_at.slice(0, 16) : '';
+    form.comment = user.comment ?? '';
     showModal.value = true;
 }
 
@@ -903,6 +905,17 @@ const openActions = (user) => {
                             <InputLabel for="expires_at" value="Expiry Date" />
                             <TextInput id="expires_at" type="datetime-local" v-model="form.expires_at" class="mt-1 block w-full" />
                             <InputError :message="form.errors.expires_at" />
+                        </div>
+                        <div class="md:col-span-2">
+                            <InputLabel for="comment" value="Comments / Notes" />
+                            <textarea
+                                id="comment"
+                                v-model="form.comment"
+                                class="mt-1 block w-full border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-md shadow-sm"
+                                rows="3"
+                                placeholder="Add any private notes about this user..."
+                            ></textarea>
+                            <InputError :message="form.errors.comment" />
                         </div>
                     </div>
 

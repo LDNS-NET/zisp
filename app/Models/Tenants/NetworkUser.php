@@ -48,6 +48,7 @@ class NetworkUser extends Authenticatable
         'pending_hotspot_package_id',
         'pending_package_activation_at',
         'status',
+        'comment',
         'registered_at',
         'expiry_notified_at',
         'expiry_warning_sent_at',

@@ -174,6 +174,18 @@ class CompensationController extends Controller
                     'reason' => $validated['reason'],
                 ]);
 
+                // Record in package_renewals for unified history
+                \App\Models\Tenants\PackageRenewal::create([
+                    'user_id' => $user->id,
+                    'package_id' => $user->package_id,
+                    'amount_paid' => 0,
+                    'started_at' => now(),
+                    'expires_at' => $newExpiry,
+                    'status' => 'active',
+                    'type' => 'compensation',
+                    'tenant_id' => $user->tenant_id,
+                ]);
+
                 // Update user expiry and status if suspended
                 $updateData = ['expires_at' => $newExpiry];
                 if ($user->status === 'suspended') {
