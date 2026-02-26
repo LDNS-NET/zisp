@@ -17,8 +17,8 @@ return [
      * Only relevant if you're using the domain or subdomain identification middleware.
      */
     'central_domains' => [
-        'zispbilling.cloud',
-        'www.zispbilling.cloud',
+        'zimaradius.net',
+        'www.zimaradius.net',
         'localhost',
     ],
 
