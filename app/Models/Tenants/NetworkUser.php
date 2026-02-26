@@ -328,105 +328,109 @@ class NetworkUser extends Authenticatable
          *  Sync with RADIUS after creation - ONLY if compensated or paid (has future expiry)
          */
         static::created(function ($user) {
-            // Only sync to RADIUS if they have a future expiry date
-            if (!$user->expires_at || !$user->expires_at->isFuture()) {
-                Log::info("User created without future expiry, skipping RADIUS sync: {$user->username}");
-                return;
-            }
+            try {
+                // Only sync to RADIUS if they have a future expiry date
+                if (!$user->expires_at || !$user->expires_at->isFuture()) {
+                    Log::info("User created without future expiry, skipping RADIUS sync: {$user->username}");
+                    return;
+                }
 
-            // Create radcheck entry (password)
-            Radcheck::create([
-                'username' => $user->username,
-                'attribute' => 'Cleartext-Password',
-                'op' => ':=',
-                'value' => $user->password,
-            ]);
-
-            // Package handling (Standard or Hotspot)
-            $package = $user->package ?: $user->hotspotPackage;
-            
-            if ($package) {
-                // Rate limit
-                $rateValue = "{$package->upload_speed}M/{$package->download_speed}M";
-                Radreply::create([
+                // Create radcheck entry (password)
+                Radcheck::create([
                     'username' => $user->username,
-                    'attribute' => 'Mikrotik-Rate-Limit',
+                    'attribute' => 'Cleartext-Password',
                     'op' => ':=',
-                    'value' => $rateValue,
+                    'value' => $user->password,
                 ]);
 
-                // Simultaneous Use (Devices)
-                $deviceLimit = $package->device_limit ?? 1;
-                Radreply::create([
-                    'username' => $user->username,
-                    'attribute' => 'Simultaneous-Use',
-                    'op' => ':=',
-                    'value' => (string)$deviceLimit,
-                ]);
+                // Package handling (Standard or Hotspot)
+                $package = $user->package ?: $user->hotspotPackage;
+                
+                if ($package) {
+                    // Rate limit
+                    $rateValue = "{$package->upload_speed}M/{$package->download_speed}M";
+                    Radreply::create([
+                        'username' => $user->username,
+                        'attribute' => 'Mikrotik-Rate-Limit',
+                        'op' => ':=',
+                        'value' => $rateValue,
+                    ]);
 
-                // Expiry / Duration handling
-                if ($user->type === 'hotspot') {
-                    // Session-Timeout (Duration in seconds)
-                    $seconds = 0;
-                    $val = $package->duration_value ?? $package->duration ?? 1;
-                    $unit = $package->duration_unit ?? 'days';
-                    
-                    switch ($unit) {
-                        case 'minutes': $seconds = $val * 60; break;
-                        case 'hours':   $seconds = $val * 3600; break;
-                        case 'days':    $seconds = $val * 86400; break;
-                        case 'weeks':   $seconds = $val * 604800; break;
-                        case 'months':  $seconds = $val * 2592000; break;
+                    // Simultaneous Use (Devices)
+                    $deviceLimit = $package->device_limit ?? 1;
+                    Radreply::create([
+                        'username' => $user->username,
+                        'attribute' => 'Simultaneous-Use',
+                        'op' => ':=',
+                        'value' => (string)$deviceLimit,
+                    ]);
+
+                    // Expiry / Duration handling
+                    if ($user->type === 'hotspot') {
+                        // Session-Timeout (Duration in seconds)
+                        $seconds = 0;
+                        $val = $package->duration_value ?? $package->duration ?? 1;
+                        $unit = $package->duration_unit ?? 'days';
+                        
+                        switch ($unit) {
+                            case 'minutes': $seconds = $val * 60; break;
+                            case 'hours':   $seconds = $val * 3600; break;
+                            case 'days':    $seconds = $val * 86400; break;
+                            case 'weeks':   $seconds = $val * 604800; break;
+                            case 'months':  $seconds = $val * 2592000; break;
+                        }
+
+                        if ($seconds > 0) {
+                            Radreply::create([
+                                'username' => $user->username,
+                                'attribute' => 'Session-Timeout',
+                                'op' => ':=',
+                                'value' => (string)$seconds,
+                            ]);
+                        }
                     }
 
-                    if ($seconds > 0) {
-                        Radreply::create([
+                    // Absolute Expiration (Works for all types if expires_at is set)
+                    Radcheck::create([
+                        'username' => $user->username,
+                        'attribute' => 'Expiration',
+                        'op' => ':=',
+                        'value' => $user->expires_at->format('d M Y H:i:s'),
+                    ]);
+
+                    // MAC-Auth synchronization (Primary and linked devices)
+                    if ($user->type === 'hotspot') {
+                        if (!empty($user->mac_address)) {
+                            Radcheck::updateOrCreate(
+                                ['username' => $user->mac_address, 'attribute' => 'Cleartext-Password'],
+                                ['op' => ':=', 'value' => $user->mac_address]
+                            );
+                        }
+
+                        foreach ($user->devices as $device) {
+                            if (!empty($device->mac_address)) {
+                                Radcheck::updateOrCreate(
+                                    [
+                                        'username' => $device->mac_address, 
+                                        'attribute' => 'Cleartext-Password'
+                                    ],
+                                    ['op' => ':=', 'value' => $device->mac_address]
+                                );
+                            }
+                        }
+                    }
+
+                    // Group (Only for non-hotspot or if specifically needed)
+                    if ($user->type !== 'hotspot') {
+                        Radusergroup::create([
                             'username' => $user->username,
-                            'attribute' => 'Session-Timeout',
-                            'op' => ':=',
-                            'value' => (string)$seconds,
+                            'groupname' => $package->name ?? 'default',
+                            'priority' => 1,
                         ]);
                     }
                 }
-
-                // Absolute Expiration (Works for all types if expires_at is set)
-                Radcheck::create([
-                    'username' => $user->username,
-                    'attribute' => 'Expiration',
-                    'op' => ':=',
-                    'value' => $user->expires_at->format('d M Y H:i:s'),
-                ]);
-
-                // MAC-Auth synchronization (Primary and linked devices)
-                if ($user->type === 'hotspot') {
-                    if (!empty($user->mac_address)) {
-                        Radcheck::updateOrCreate(
-                            ['username' => $user->mac_address, 'attribute' => 'Cleartext-Password'],
-                            ['op' => ':=', 'value' => $user->mac_address]
-                        );
-                    }
-
-                    foreach ($user->devices as $device) {
-                        if (!empty($device->mac_address)) {
-                            Radcheck::updateOrCreate(
-                                [
-                                    'username' => $device->mac_address, 
-                                    'attribute' => 'Cleartext-Password'
-                                ],
-                                ['op' => ':=', 'value' => $device->mac_address]
-                            );
-                        }
-                    }
-                }
-
-                // Group (Only for non-hotspot or if specifically needed)
-                if ($user->type !== 'hotspot') {
-                    Radusergroup::create([
-                        'username' => $user->username,
-                        'groupname' => $package->name ?? 'default',
-                        'priority' => 1,
-                    ]);
-                }
+            } catch (\Exception $e) {
+                Log::error("RADIUS creation sync failed for {$user->username}: " . $e->getMessage());
             }
         });
 
@@ -434,111 +438,115 @@ class NetworkUser extends Authenticatable
          *  Update RADIUS entries when user is updated - with guard check
          */
         static::updated(function ($user) {
-            // Remove from RADIUS if not and no future expiry
-            if (!$user->expires_at || !$user->expires_at->isFuture()) {
-                Radcheck::where('username', $user->username)->delete();
-                Radreply::where('username', $user->username)->delete();
-                Radusergroup::where('username', $user->username)->delete();
-                
-                // Also cleanup device macs if hotspot
-                if ($user->type === 'hotspot') {
-                    if (!empty($user->mac_address)) {
-                        Radcheck::where('username', $user->mac_address)->delete();
-                    }
-                    foreach ($user->devices as $device) {
-                        if (!empty($device->mac_address)) {
-                            Radcheck::where('username', $device->mac_address)->delete();
+            try {
+                // Remove from RADIUS if not and no future expiry
+                if (!$user->expires_at || !$user->expires_at->isFuture()) {
+                    Radcheck::where('username', $user->username)->delete();
+                    Radreply::where('username', $user->username)->delete();
+                    Radusergroup::where('username', $user->username)->delete();
+                    
+                    // Also cleanup device macs if hotspot
+                    if ($user->type === 'hotspot') {
+                        if (!empty($user->mac_address)) {
+                            Radcheck::where('username', $user->mac_address)->delete();
+                        }
+                        foreach ($user->devices as $device) {
+                            if (!empty($device->mac_address)) {
+                                Radcheck::where('username', $device->mac_address)->delete();
+                            }
                         }
                     }
-                }
-                return;
-            }
-
-            // Update password if changed
-            Radcheck::updateOrCreate(
-                ['username' => $user->username, 'attribute' => 'Cleartext-Password'],
-                ['op' => ':=', 'value' => $user->password]
-            );
-
-            // Update package-related entries (Standard or Hotspot)
-            $package = $user->package ?: $user->hotspotPackage;
-            
-            if ($package) {
-                $rateValue = "{$package->upload_speed}M/{$package->download_speed}M";
-                Radreply::updateOrCreate(
-                    ['username' => $user->username, 'attribute' => 'Mikrotik-Rate-Limit'],
-                    ['op' => ':=', 'value' => $rateValue]
-                );
-
-                // Simultaneous Use
-                $deviceLimit = $package->device_limit ?? 1;
-                Radreply::updateOrCreate(
-                    ['username' => $user->username, 'attribute' => 'Simultaneous-Use'],
-                    ['op' => ':=', 'value' => (string)$deviceLimit]
-                );
-
-                if ($user->type === 'hotspot') {
-                    $seconds = 0;
-                    $val = $package->duration_value ?? $package->duration ?? 1;
-                    $unit = $package->duration_unit ?? 'days';
-                    
-                    switch ($unit) {
-                        case 'minutes': $seconds = $val * 60; break;
-                        case 'hours':   $seconds = $val * 3600; break;
-                        case 'days':    $seconds = $val * 86400; break;
-                        case 'weeks':   $seconds = $val * 604800; break;
-                        case 'months':  $seconds = $val * 2592000; break;
-                    }
-
-                    if ($seconds > 0) {
-                        Radreply::updateOrCreate(
-                            ['username' => $user->username, 'attribute' => 'Session-Timeout'],
-                            ['op' => ':=', 'value' => (string)$seconds]
-                        );
-                    }
-                    
-                    // Remove group for hotspot
-                    Radusergroup::where('username', $user->username)->delete();
-                } else {
-                    Radusergroup::updateOrCreate(
-                        ['username' => $user->username],
-                        ['groupname' => $package->name ?? 'default', 'priority' => 1]
-                    );
-                    // Remove Session-Timeout
-                    Radreply::where('username', $user->username)->where('attribute', 'Session-Timeout')->delete();
+                    return;
                 }
 
-                // Update Expiration
+                // Update password if changed
                 Radcheck::updateOrCreate(
-                    ['username' => $user->username, 'attribute' => 'Expiration'],
-                    ['op' => ':=', 'value' => $user->expires_at->format('d M Y H:i:s')]
+                    ['username' => $user->username, 'attribute' => 'Cleartext-Password'],
+                    ['op' => ':=', 'value' => $user->password]
                 );
 
-                // MAC-Auth synchronization (Primary and linked devices)
-                if ($user->type === 'hotspot') {
-                    if (!empty($user->mac_address)) {
-                        Radcheck::updateOrCreate(
-                            ['username' => $user->mac_address, 'attribute' => 'Cleartext-Password'],
-                            ['op' => ':=', 'value' => $user->mac_address]
-                        );
-                    }
+                // Update package-related entries (Standard or Hotspot)
+                $package = $user->package ?: $user->hotspotPackage;
+                
+                if ($package) {
+                    $rateValue = "{$package->upload_speed}M/{$package->download_speed}M";
+                    Radreply::updateOrCreate(
+                        ['username' => $user->username, 'attribute' => 'Mikrotik-Rate-Limit'],
+                        ['op' => ':=', 'value' => $rateValue]
+                    );
 
-                    $user->load('devices');
-                    foreach ($user->devices as $device) {
-                        if (!empty($device->mac_address)) {
-                            Radcheck::updateOrCreate(
-                                [
-                                    'username' => $device->mac_address, 
-                                    'attribute' => 'Cleartext-Password'
-                                ],
-                                ['op' => ':=', 'value' => $device->mac_address]
+                    // Simultaneous Use
+                    $deviceLimit = $package->device_limit ?? 1;
+                    Radreply::updateOrCreate(
+                        ['username' => $user->username, 'attribute' => 'Simultaneous-Use'],
+                        ['op' => ':=', 'value' => (string)$deviceLimit]
+                    );
+
+                    if ($user->type === 'hotspot') {
+                        $seconds = 0;
+                        $val = $package->duration_value ?? $package->duration ?? 1;
+                        $unit = $package->duration_unit ?? 'days';
+                        
+                        switch ($unit) {
+                            case 'minutes': $seconds = $val * 60; break;
+                            case 'hours':   $seconds = $val * 3600; break;
+                            case 'days':    $seconds = $val * 86400; break;
+                            case 'weeks':   $seconds = $val * 604800; break;
+                            case 'months':  $seconds = $val * 2592000; break;
+                        }
+
+                        if ($seconds > 0) {
+                            Radreply::updateOrCreate(
+                                ['username' => $user->username, 'attribute' => 'Session-Timeout'],
+                                ['op' => ':=', 'value' => (string)$seconds]
                             );
                         }
+                        
+                        // Remove group for hotspot
+                        Radusergroup::where('username', $user->username)->delete();
+                    } else {
+                        Radusergroup::updateOrCreate(
+                            ['username' => $user->username],
+                            ['groupname' => $package->name ?? 'default', 'priority' => 1]
+                        );
+                        // Remove Session-Timeout
+                        Radreply::where('username', $user->username)->where('attribute', 'Session-Timeout')->delete();
                     }
-                }
 
-                // Cleanup old Access-Period if it exists
-                Radcheck::where('username', $user->username)->where('attribute', 'Access-Period')->delete();
+                    // Update Expiration
+                    Radcheck::updateOrCreate(
+                        ['username' => $user->username, 'attribute' => 'Expiration'],
+                        ['op' => ':=', 'value' => $user->expires_at->format('d M Y H:i:s')]
+                    );
+
+                    // MAC-Auth synchronization (Primary and linked devices)
+                    if ($user->type === 'hotspot') {
+                        if (!empty($user->mac_address)) {
+                            Radcheck::updateOrCreate(
+                                ['username' => $user->mac_address, 'attribute' => 'Cleartext-Password'],
+                                ['op' => ':=', 'value' => $user->mac_address]
+                            );
+                        }
+
+                        $user->load('devices');
+                        foreach ($user->devices as $device) {
+                            if (!empty($device->mac_address)) {
+                                Radcheck::updateOrCreate(
+                                    [
+                                        'username' => $device->mac_address, 
+                                        'attribute' => 'Cleartext-Password'
+                                    ],
+                                    ['op' => ':=', 'value' => $device->mac_address]
+                                );
+                            }
+                        }
+                    }
+
+                    // Cleanup old Access-Period if it exists
+                    Radcheck::where('username', $user->username)->where('attribute', 'Access-Period')->delete();
+                }
+            } catch (\Exception $e) {
+                Log::error("RADIUS update sync failed for {$user->username}: " . $e->getMessage());
             }
         });
 

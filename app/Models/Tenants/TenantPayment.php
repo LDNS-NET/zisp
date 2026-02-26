@@ -84,6 +84,7 @@ class TenantPayment extends Model
         "disbursement_transaction_id",
         "disbursement_response",
         "qbo_id",
+        "mac_address",
     ];
   protected $casts = [
         'checked' => 'boolean',

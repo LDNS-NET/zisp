@@ -352,8 +352,10 @@ class TenantPaymentController extends Controller
     {
         $data = $request->validate([
             'phone' => 'required|string',
-            'package_id' => 'required|exists:packages,id',
+            'package_id' => 'nullable|exists:packages,id',
+            'hotspot_package_id' => 'nullable|exists:tenant_hotspot_packages,id',
             'amount' => 'required|numeric|min:1',
+            'mac_address' => 'nullable|string',
         ]);
 
         // Resolve tenant and country data
@@ -372,7 +374,15 @@ class TenantPaymentController extends Controller
             ], 400);
         }
 
-        $package = \App\Models\Package::findOrFail($data['package_id']);
+        $package = null;
+        $packageName = 'Unknown Package';
+        if (!empty($data['package_id'])) {
+            $package = \App\Models\Package::findOrFail($data['package_id']);
+            $packageName = $package->name;
+        } elseif (!empty($data['hotspot_package_id'])) {
+            $package = \App\Models\Tenants\TenantHotspot::findOrFail($data['hotspot_package_id']);
+            $packageName = $package->name;
+        }
 
         try {
             // Create unique receipt number
@@ -419,7 +429,7 @@ class TenantPaymentController extends Controller
                     $phone,
                     $data['amount'],
                     $receiptNumber,
-                    "Package Payment - {$package->name}"
+                    "Payment - {$packageName}"
                 );
             }
 
@@ -440,14 +450,15 @@ class TenantPaymentController extends Controller
             // Create payment record immediately with pending status
             $payment = TenantPayment::create([
                 'phone' => $phone,
-                'package_id' => $data['package_id'],
-                'hotspot_package_id' => null,
+                'package_id' => $data['package_id'] ?? null,
+                'hotspot_package_id' => $data['hotspot_package_id'] ?? null,
                 'amount' => $data['amount'],
                 'currency' => $currency,
                 'payment_method' => $gateway && $gateway->provider === 'tinypesa' ? 'tinypesa' : 'mpesa',
                 'receipt_number' => $receiptNumber,
                 'status' => 'pending',
                 'checked' => false,
+                'mac_address' => $data['mac_address'] ?? null,
                 'disbursement_type' => 'pending',
                 'disbursement_status' => $gateway 
                     ? ($gateway->mpesa_env === 'sandbox' ? 'testing' : 'completed') 

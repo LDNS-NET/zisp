@@ -117,7 +117,7 @@ class TenantHotspotController extends Controller
         $paymentController = new TenantPaymentController();
         $request->merge([
             'phone' => $data['phone'],
-            'package_id' => $package->id,
+            'hotspot_package_id' => $package->id,
             'amount' => $package->price,
             'tenant_id' => $package->tenant_id,
         ]);
