@@ -153,50 +153,76 @@ class MpesaC2BController extends Controller
                 ->first();
 
             if ($existingPayment) {
-                Log::info('M-Pesa C2B Confirmation: Payment already processed', [
+                Log::info('M-Pesa C2B Confirmation: Payment already processed (by receipt)', [
                     'trans_id' => $data['trans_id'],
-                    'payment_id' => $existingPayment->id,
-                    'tenant_id' => $existingPayment->tenant_id
+                    'payment_id' => $existingPayment->id
                 ]);
                 return response()->json(['ResultCode' => 0, 'ResultDesc' => 'Success']);
             }
 
-            // Identify tenant if user not found
-            $tenantId = $user ? $user->tenant_id : null;
-            if (!$tenantId) {
-                $gateway = \App\Models\TenantPaymentGateway::where('mpesa_shortcode', $data['business_shortcode'])
-                    ->where('is_active', true)
-                    ->first();
-                $tenantId = $gateway ? $gateway->tenant_id : null;
+            // Deduplication backup for concurrent STK/C2B callbacks
+            // Check for any pending payments from the same phone/amount created in the last 5 minutes
+            $recentPending = TenantPayment::withoutGlobalScopes()
+                ->where('phone', $data['msisdn'])
+                ->where('amount', $data['trans_amount'])
+                ->where('status', 'pending')
+                ->where('created_at', '>=', now()->subMinutes(5))
+                ->first();
+
+            if ($recentPending) {
+                Log::info('M-Pesa C2B Confirmation: Linking to recent pending payment instead of creating new', [
+                    'payment_id' => $recentPending->id,
+                    'trans_id' => $data['trans_id']
+                ]);
+                
+                $recentPending->update([
+                    'status' => 'paid',
+                    'receipt_number' => $data['trans_id'],
+                    'mpesa_receipt_number' => $data['trans_id'],
+                    'checked' => true,
+                    'paid_at' => now(),
+                    'response' => array_merge($recentPending->response ?? [], $data['raw_data'])
+                ]);
+                
+                $payment = $recentPending;
+            } else {
+                // Identify tenant if user not found
+                $tenantId = $user ? $user->tenant_id : null;
+                if (!$tenantId) {
+                    $gateway = \App\Models\TenantPaymentGateway::where('mpesa_shortcode', $data['business_shortcode'])
+                        ->where('is_active', true)
+                        ->first();
+                    $tenantId = $gateway ? $gateway->tenant_id : null;
+                }
+
+                // Resolve package
+                $packageId = $user ? $user->package_id : null;
+                $hotspotPackageId = $user ? $user->hotspot_package_id : null;
+
+                // Capture payer name for unassigned payments
+                $payerName = '';
+                if (!$user) {
+                    $payerName = trim(($data['first_name'] ?? '') . ' ' . ($data['middle_name'] ?? '') . ' ' . ($data['last_name'] ?? ''));
+                }
+
+                // Create payment record
+                $payment = TenantPayment::create([
+                    'tenant_id' => $tenantId,
+                    'user_id' => $user ? $user->id : null,
+                    'phone' => $user ? $user->phone : ($payerName ?: $data['msisdn']),
+                    'amount' => $data['trans_amount'],
+                    'currency' => 'KES',
+                    'payment_method' => 'mpesa_c2b',
+                    'receipt_number' => $data['trans_id'],
+                    'status' => 'paid',
+                    'checked' => true,
+                    'paid_at' => now(),
+                    'package_id' => $packageId,
+                    'hotspot_package_id' => $hotspotPackageId,
+                    'disbursement_status' => 'pending', 
+                    'response' => $data['raw_data']
+                ]);
             }
-
-            // Resolve package
-            $packageId = $user ? $user->package_id : null;
-            $hotspotPackageId = $user ? $user->hotspot_package_id : null;
-
-            // Capture payer name for unassigned payments
-            $payerName = '';
-            if (!$user) {
-                $payerName = trim(($data['first_name'] ?? '') . ' ' . ($data['middle_name'] ?? '') . ' ' . ($data['last_name'] ?? ''));
-            }
-
-            // Create payment record
-            $payment = TenantPayment::create([
-                'tenant_id' => $tenantId,
-                'user_id' => $user ? $user->id : null,
-                'phone' => $user ? $user->phone : ($payerName ?: $data['msisdn']),
-                'amount' => $data['trans_amount'],
-                'currency' => 'KES',
-                'payment_method' => 'mpesa_c2b',
-                'receipt_number' => $data['trans_id'],
-                'status' => 'paid',
-                'checked' => true,
-                'paid_at' => now(),
-                'package_id' => $packageId,
-                'hotspot_package_id' => $hotspotPackageId,
-                'disbursement_status' => 'pending', // Will be updated if using custom API
-                'response' => $data['raw_data']
-            ]);
 
             Log::info('M-Pesa C2B Confirmation: Payment record created', [
                 'payment_id' => $payment->id,

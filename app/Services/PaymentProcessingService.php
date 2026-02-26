@@ -18,7 +18,12 @@ class PaymentProcessingService
     public function processSuccess(TenantPayment $payment)
     {
         try {
-            Log::info('Processing successful payment', ['payment_id' => $payment->id, 'method' => $payment->payment_method]);
+            Log::info('Processing successful payment', [
+                'payment_id' => $payment->id, 
+                'method' => $payment->payment_method,
+                'phone' => $payment->phone,
+                'checkout_id' => $payment->checkout_request_id
+            ]);
 
             $isHotspot = (bool)$payment->hotspot_package_id;
             $package = $this->resolvePackage($payment);
@@ -31,11 +36,13 @@ class PaymentProcessingService
             $user = $this->resolveUser($payment, $isHotspot);
 
             if ($user) {
+                Log::info('Existing user found for payment', ['user_id' => $user->id, 'type' => $user->type]);
                 $this->updateExistingUser($user, $package, $payment, $isHotspot);
             } elseif ($isHotspot) {
+                Log::info('No existing hotspot user found, creating new account');
                 $this->createNewHotspotUser($payment, $package);
             } else {
-                Log::warning('PPPoE user not found for payment', ['phone' => $payment->phone, 'payment_id' => $payment->id]);
+                Log::warning('Subscriber (PPPoE/Static) not found for payment', ['phone' => $payment->phone, 'payment_id' => $payment->id]);
                 return false;
             }
 
@@ -63,12 +70,14 @@ class PaymentProcessingService
 
     protected function resolveUser($payment, $isHotspot)
     {
+        // Bypass global scope for tenant payments handling
         $query = NetworkUser::withoutGlobalScopes()->where('tenant_id', $payment->tenant_id);
 
         if ($payment->user_id) {
             return $query->where('id', $payment->user_id)->first();
         }
 
+        // Must match phone and the SPECIFIC type being purchased (allow separate accounts per phone)
         return $query->where('phone', $payment->phone)
             ->where('type', $isHotspot ? 'hotspot' : 'pppoe')
             ->first();
