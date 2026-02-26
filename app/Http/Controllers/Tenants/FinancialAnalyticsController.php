@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Tenants;
 use App\Http\Controllers\Controller;
 use App\Models\Tenants\NetworkUser;
 use App\Models\Tenants\TenantPayment;
-use App\Models\Tenants\TenantActiveUsers;
+use App\Models\Tenants\TenantReportDataPoint;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
