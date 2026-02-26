@@ -74,13 +74,30 @@ class PaymentProcessingService
         $query = NetworkUser::withoutGlobalScopes()->where('tenant_id', $payment->tenant_id);
 
         if ($payment->user_id) {
-            return $query->where('id', $payment->user_id)->first();
+            $user = $query->where('id', $payment->user_id)->first();
+            
+            // If we found a user by ID, verify they are the right type for current purchase
+            // If a PPPoE user is buying a Hotspot package, we should probably look for their Hotspot account instead
+            if ($user && $user->type === ($isHotspot ? 'hotspot' : 'pppoe')) {
+                return $user;
+            }
+            
+            Log::info('User ID in payment does not match purchase type or not found, falling back to phone lookup', [
+                'provided_user_id' => $payment->user_id,
+                'is_hotspot' => $isHotspot
+            ]);
         }
 
         // Must match phone and the SPECIFIC type being purchased (allow separate accounts per phone)
-        return $query->where('phone', $payment->phone)
+        $user = $query->where('phone', $payment->phone)
             ->where('type', $isHotspot ? 'hotspot' : 'pppoe')
             ->first();
+
+        if ($user) {
+            Log::info('Resolved user by phone and type', ['user_id' => $user->id, 'type' => $user->type]);
+        }
+
+        return $user;
     }
 
     protected function updateExistingUser($user, $package, $payment, $isHotspot)

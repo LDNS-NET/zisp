@@ -343,6 +343,7 @@ class TenantHotspotController extends Controller
                 $payment->checked = true;
                 $payment->transaction_id = $callbackData['mpesa_receipt_number']; // Keep filling this for compatibility
                 $payment->mpesa_receipt_number = $callbackData['mpesa_receipt_number'];
+                $payment->receipt_number = $callbackData['mpesa_receipt_number'];
                 $payment->result_code = $callbackData['result_code'];
                 $payment->result_desc = $callbackData['result_desc'];
                 $payment->response = array_merge($payment->response ?? [], $callbackData['raw_data']);

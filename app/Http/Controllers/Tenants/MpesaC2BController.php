@@ -149,7 +149,10 @@ class MpesaC2BController extends Controller
         try {
             // Check if payment already exists
             $existingPayment = TenantPayment::withoutGlobalScopes()
-                ->where('receipt_number', $data['trans_id'])
+                ->where(function($q) use ($data) {
+                    $q->where('receipt_number', $data['trans_id'])
+                      ->orWhere('mpesa_receipt_number', $data['trans_id']);
+                })
                 ->first();
 
             if ($existingPayment) {
