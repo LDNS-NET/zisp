@@ -11,8 +11,13 @@ import {
 import debounce from 'lodash/debounce';
 
 const props = defineProps({
+    users: Object,
+    compensations: Object,
+    locations: Array,
+    routers: Array,
     stats: Object,
     default_template: Object,
+    filters: Object,
 });
 
 const search = ref(props.filters.search || '');
