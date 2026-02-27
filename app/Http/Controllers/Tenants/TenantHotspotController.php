@@ -68,33 +68,79 @@ class TenantHotspotController extends Controller
         // Filter out bank as it's not configured
         $gateways = array_filter($gateways, fn($g) => $g !== 'bank');
 
-        // Load categories and packages
+        // Load tenant categories
         $categories = HotspotCategory::where('tenant_id', $tenant->id)->orderBy('display_order')->get();
         
         $packages = TenantHotspot::where('tenant_id', $tenant->id)
             ->with(['package', 'hotspotCategory'])
-            ->get()
-            ->sortBy([
-                ['hotspotCategory.display_order', 'asc'],
-                ['package.price', 'asc'],
-            ]);
+            ->get();
 
-        // If no categories exist, we might want to provide some default behavior or just group everything as 'Other'
-        // But for this task, we assume the tenant will create them or we could group by duration if null.
-        
-        $groupedPackages = $packages->groupBy(function($item) {
-            return $item->hotspotCategory ? $item->hotspotCategory->name : 'General';
-        });
+        // Helper to get auto category name
+        $getAutoCategory = function($item) {
+            $value = $item->duration_value;
+            $unit = $item->duration_unit; // 'h', 'd'
+            
+            $days = $unit === 'h' ? $value / 24 : $value;
+            
+            if ($days <= 1) return 'Daily';
+            if ($days <= 7) return 'Weekly';
+            if ($days <= 31) return 'Monthly';
+            return 'Yearly';
+        };
+
+        $groupedPackages = [];
+        if ($categories->isEmpty()) {
+            // Auto-categorize everything
+            $defaultNames = ['Daily', 'Weekly', 'Monthly', 'Yearly'];
+            $defaultOrderMap = array_flip($defaultNames);
+            
+            foreach ($packages as $p) {
+                $name = $getAutoCategory($p);
+                $groupedPackages[$name][] = $p;
+            }
+            
+            // Create virtual categories for the frontend tabs
+            $categories = collect($defaultNames)
+                ->filter(fn($name) => isset($groupedPackages[$name]))
+                ->map(fn($name) => (object)[
+                    'id' => $name, 
+                    'name' => $name, 
+                    'display_order' => $defaultOrderMap[$name]
+                ])
+                ->values();
+        } else {
+            // Use tenant categories
+            foreach ($packages as $p) {
+                $name = $p->hotspotCategory ? $p->hotspotCategory->name : 'Other';
+                $groupedPackages[$name][] = $p;
+            }
+            
+            // Ensure used categories are in the list (especially 'Other')
+            if (isset($groupedPackages['Other']) && !$categories->contains('name', 'Other')) {
+                $categories->push((object)[
+                    'id' => 'other', 
+                    'name' => 'Other', 
+                    'display_order' => 999
+                ]);
+            }
+        }
+
+        // Sort packages within each group by price
+        foreach ($groupedPackages as $name => $items) {
+            usort($groupedPackages[$name], function($a, $b) {
+                return $a->price <=> $b->price;
+            });
+        }
 
         // Return to Inertia
         return Inertia::render('Hotspot/Index', [
             'tenant' => $tenantData,
-            'packages' => $packages, // Still send flat list if frontend prefers grouping
+            'packages' => $packages,
             'categories' => $categories,
             'groupedPackages' => $groupedPackages,
             'settings' => $settings,
             'country' => $tenant->country_code ?? 'KE',
-            'paymentMethods' => array_values($gateways), // Re-index array
+            'paymentMethods' => array_values($gateways),
         ]);
     }
 
