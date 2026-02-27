@@ -67,10 +67,31 @@ class TenantHotspotController extends Controller
         // Filter out bank as it's not configured
         $gateways = array_filter($gateways, fn($g) => $g !== 'bank');
 
+        // Load categories and packages
+        $categories = HotspotCategory::where('tenant_id', $tenant->id)->orderBy('display_order')->get();
+        
+        $packages = TenantHotspot::where('tenant_id', $tenant->id)
+            ->with(['package', 'hotspotCategory'])
+            ->get()
+            ->sortBy([
+                ['hotspotCategory.display_order', 'asc'],
+                ['package.price', 'asc'],
+            ]);
+
+        // If no categories exist, we might want to provide some default behavior or just group everything as 'Other'
+        // But for this task, we assume the tenant will create them or we could group by duration if null.
+        
+        $groupedPackages = $packages->groupBy(function($item) {
+            return $item->hotspotCategory ? $item->hotspotCategory->name : 'General';
+        });
+
         // Return to Inertia
-        return inertia('Hotspot/Index', [
+        return Inertia::render('Hotspot/Index', [
             'tenant' => $tenantData,
-            'packages' => $packages,
+            'packages' => $packages, // Still send flat list if frontend prefers grouping
+            'categories' => $categories,
+            'groupedPackages' => $groupedPackages,
+            'settings' => $settings,
             'country' => $tenant->country_code ?? 'KE',
             'paymentMethods' => array_values($gateways), // Re-index array
         ]);

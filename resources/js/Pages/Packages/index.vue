@@ -68,6 +68,7 @@ const form = useForm({
     download_speed: '',
     burst_limit: '',
     device_limit: '',
+    hotspot_category_id: null,
 });
 
 function openCreate() {
@@ -89,6 +90,7 @@ function openEdit(pkg) {
     form.download_speed = pkg.download_speed;
     form.burst_limit = pkg.burst_limit;
     form.device_limit = pkg.device_limit;
+    form.hotspot_category_id = pkg.hotspot_category_id;
     showModal.value = true;
 }
 
@@ -401,11 +403,22 @@ function remove(pkg) {
 
                         <div v-if="form.type === 'hotspot'">
                             <InputLabel for="device_limit" value="Device Limit" />
-                            <TextInput id="device_limit" v-model="form.device_limit" type="number" class="mt-1 w-full" />
-                            <InputError :message="form.errors.device_limit" />
+                            <TextInput id="device_limit" type="number" class="mt-1 block w-full" v-model="form.device_limit" required />
+                            <InputError class="mt-2" :message="form.errors.device_limit" />
                         </div>
 
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="mt-4" v-if="form.type === 'hotspot'">
+                            <InputLabel for="hotspot_category_id" value="Hotspot Category" />
+                            <select id="hotspot_category_id" class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm" v-model="form.hotspot_category_id">
+                                <option :value="null">Select Category</option>
+                                <option v-for="category in categories" :key="category.id" :value="category.id">
+                                    {{ category.name }}
+                                </option>
+                            </select>
+                            <InputError class="mt-2" :message="form.errors.hotspot_category_id" />
+                        </div>
+
+                        <div class="mt-4 grid grid-cols-2 gap-4">
                             <div>
                                 <InputLabel for="upload_speed" value="Upload Speed (Mbps)" />
                                 <TextInput id="upload_speed" v-model="form.upload_speed" type="number" class="mt-1 w-full" required />

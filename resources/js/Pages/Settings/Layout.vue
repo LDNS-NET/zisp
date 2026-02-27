@@ -11,6 +11,7 @@ import {
     Wallet,
     Cog,
     Server,
+    Layers,
 } from 'lucide-vue-next';
 
 const page = usePage();
@@ -26,9 +27,16 @@ const settingsTabs = [
     },
     {
         key: 'hotspot',
-        label: 'Hotspot',
+        label: 'Hotspot Settings',
         icon: Wifi,
         route: 'settings.hotspot.edit',
+        roles: ['tenant_admin', 'admin', 'network_engineer'],
+    },
+    {
+        key: 'hotspot_categories',
+        label: 'Hotspot Categories',
+        icon: Layers,
+        route: 'settings.hotspot.categories.index',
         roles: ['tenant_admin', 'admin', 'network_engineer'],
     },
     {

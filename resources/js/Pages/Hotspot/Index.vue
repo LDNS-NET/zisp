@@ -22,7 +22,32 @@ const deviceMac = ref('');
 const maxPollingAttempts = 40; // 40 * 3s = 120s (2 minutes)
 
 import { countries } from '@/Data/countries';
-const props = defineProps(['tenant', 'packages', 'country', 'paymentMethods']);
+const props = defineProps(['tenant', 'packages', 'country', 'paymentMethods', 'categories', 'groupedPackages']);
+
+// Default active category
+const activeCategory = ref(null);
+
+onMounted(() => {
+    // Capture MAC address from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    deviceMac.value = urlParams.get('mac') || '';
+
+    // Lazy load the logo to prioritize page rendering
+    if (page.props.tenant?.logo) {
+        setTimeout(() => {
+            logoUrl.value = page.props.tenant.logo;
+        }, 300); // Slight delay to ensure content paint first
+    }
+
+    // Set initial category
+    if (props.categories && props.categories.length > 0) {
+        activeCategory.value = props.categories[0].name;
+    } else if (props.groupedPackages && Object.keys(props.groupedPackages).length > 0) {
+        activeCategory.value = Object.keys(props.groupedPackages)[0];
+    } else {
+        activeCategory.value = 'General';
+    }
+});
 
 const currentCountry = computed(() => {
     return countries.find(c => c.code === props.country) || countries.find(c => c.code === 'KE');
@@ -61,22 +86,9 @@ const logoUrl = ref(null);
 
 // Packages received from Inertia
 const page = usePage();
-const hotspots = computed(() => {
-    const packages = page.props?.packages || [];
-    return packages;
-});
 
-onMounted(() => {
-    // Capture MAC address from URL
-    const urlParams = new URLSearchParams(window.location.search);
-    deviceMac.value = urlParams.get('mac') || '';
-
-    // Lazy load the logo to prioritize page rendering
-    if (page.props.tenant?.logo) {
-        setTimeout(() => {
-            logoUrl.value = page.props.tenant.logo;
-        }, 300); // Slight delay to ensure content paint first
-    }
+const currentHotspots = computed(() => {
+    return props.groupedPackages ? (props.groupedPackages[activeCategory.value] || []) : props.packages;
 });
 
 function openModal(hotspot) {
@@ -687,67 +699,72 @@ function formatPhoneNumber(event) {
                     <div class="flex items-center justify-between mb-6">
                         <h2 class="text-2xl font-bold text-slate-900">Available Packages</h2>
                         <span class="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-xs font-bold uppercase tracking-wider">
-                            {{ hotspots.length }} Plans
+                            {{ currentHotspots.length }} Plans
                         </span>
                     </div>
 
-                    <div v-if="hotspots.length === 0" class="text-center py-20 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
+                    <!-- Category Tabs (Daily, Weekly, Monthly, etc.) -->
+                    <div v-if="categories && categories.length > 0" class="flex gap-2 overflow-x-auto pb-4 mb-6 scrollbar-hide">
+                        <button 
+                            v-for="cat in categories" 
+                            :key="cat.id"
+                            @click="activeCategory = cat.name"
+                            class="whitespace-nowrap px-6 py-2.5 rounded-xl font-bold transition-all duration-300 transform active:scale-95"
+                            :class="activeCategory === cat.name 
+                                ? 'bg-blue-600 text-white shadow-lg shadow-blue-200 ring-2 ring-blue-100' 
+                                : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-100'"
+                        >
+                            {{ cat.name }}
+                        </button>
+                    </div>
+
+                    <div v-if="currentHotspots.length === 0" class="text-center py-20 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
                         <div class="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
                             <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                             </svg>
                         </div>
-                        <h3 class="text-lg font-medium text-gray-900">No hotspot packages available</h3>
-                        <p class="text-gray-500 mt-1">Please check back later</p>
+                        <h3 class="text-lg font-medium text-gray-900">No hotspot packages in this category</h3>
+                        <p class="text-gray-500 mt-1">Please explore other tabs or check back later</p>
                     </div>
 
-                    <!-- Optimized Row-based Package List (Horizontal Scroll on Mobile, Grid on Desktop) -->
-                    <div v-else class="flex overflow-x-auto pb-4 gap-4 md:grid md:grid-cols-2 lg:grid-cols-3 md:overflow-visible">
+                    <!-- Optimized Minimalist Package Cards (Grid) -->
+                    <div v-else class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                         <div 
-                            v-for="hotspot in hotspots" 
+                            v-for="hotspot in currentHotspots" 
                             :key="hotspot.id" 
-                            class="flex-shrink-0 w-[280px] md:w-auto bg-slate-50/50 rounded-2xl border border-slate-100 p-6 hover:bg-white hover:border-blue-200 transition-all duration-300 hover:shadow-md flex flex-col justify-between"
+                            class="group relative bg-white rounded-2xl border border-slate-100 p-4 hover:border-blue-400 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/5 flex flex-col justify-between overflow-hidden"
                         >
-                            <div class="space-y-4">
-                                <!-- Name & Speed -->
-                                <div>
-                                    <h3 class="text-xl font-black text-gray-900 truncate mb-2">
+                            <div class="flex justify-between items-start mb-3">
+                                <div class="space-y-1">
+                                    <h3 class="text-lg font-bold text-gray-900 leading-tight">
                                         {{ hotspot.name }}
                                     </h3>
-                                    <div class="flex items-center text-[10px] text-blue-600 font-black bg-blue-50/80 w-fit px-2 py-1 rounded-lg uppercase tracking-wider">
-                                        <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                                        
-                                        {{ hotspot.download_speed }}Mbps
+                                    <div class="flex items-center gap-2">
+                                        <div class="flex items-center text-[10px] text-blue-600 font-black bg-blue-50 px-2 py-0.5 rounded-lg uppercase tracking-wider">
+                                            {{ hotspot.download_speed }}Mbps
+                                        </div>
+                                        <div v-if="hotspot.device_limit" class="flex items-center text-[10px] text-slate-500 font-bold bg-slate-100 px-2 py-0.5 rounded-lg uppercase tracking-wider">
+                                            {{ hotspot.device_limit }} Devices
+                                        </div>
                                     </div>
                                 </div>
-
-                                <!-- Price & Details -->
-                                <div class="py-4 border-y border-slate-100">
-                                    <div class="items-baseline gap-1 mb-2">
-                                        <span class="text-2xl font-black text-gray-900">{{ currentCountry.currency }}</span>
-                                        <span class="text-4xl font-black text-gray-900 tracking-tight">{{ hotspot.price }}</span>
-                                    </div>
-                                    <div class="flex items-center text-[11px] font-bold text-gray-500 gap-3">
-                                        <span class="flex items-center">
-                                            <svg class="w-3.5 h-3.5 mr-1 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                                            {{ hotspot.device_limit }} Devices
-                                        </span>
-                                        <span v-if="hotspot.validity" class="flex items-center">
-                                            <svg class="w-3.5 h-3.5 mr-1 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                            {{ hotspot.validity }}
-                                        </span>
-                                    </div>
+                                <div class="text-right">
+                                    <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{{ currentCountry.currency }}</div>
+                                    <div class="text-2xl font-black text-blue-600 leading-none">{{ Math.round(hotspot.price) }}</div>
                                 </div>
                             </div>
 
-                            <!-- Action -->
-                            <div class="mt-6">
+                            <div class="flex items-center justify-between pt-3 border-t border-slate-50 mt-2">
+                                <div class="text-[11px] font-bold text-slate-500 flex items-center">
+                                    <svg class="w-3.5 h-3.5 mr-1 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    {{ hotspot.validity || (hotspot.duration_value + ' ' + (hotspot.duration_unit === 'h' ? 'Hours' : 'Days')) }}
+                                </div>
                                 <button 
                                     @click="openModal(hotspot)"
-                                    class="w-full bg-slate-900 text-white font-black py-3.5 px-6 rounded-xl hover:bg-blue-600 transition-all duration-300 shadow-sm hover:shadow-blue-500/20 flex items-center justify-center gap-2 uppercase tracking-tighter text-sm active:scale-95"
+                                    class="bg-blue-600 text-white font-black py-2 px-4 rounded-xl hover:bg-slate-900 transition-all duration-300 shadow-sm hover:shadow-blue-500/20 text-[11px] uppercase tracking-tighter active:scale-95 group-hover:bg-blue-700"
                                 >
-                                    Select Plan
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                                    Buy Now
                                 </button>
                             </div>
                         </div>

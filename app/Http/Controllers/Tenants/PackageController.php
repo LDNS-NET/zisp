@@ -28,10 +28,13 @@ class PackageController extends Controller
 
         $currency = auth()->user()?->tenant?->currency ?? 'KES';
 
+        $categories = \App\Models\Tenants\HotspotCategory::orderBy('display_order')->get();
+
         return Inertia::render('Packages/index', [
             'packages'   => $packages->items(),
             'pagination' => $packages->toArray(),
             'currency'   => $currency,
+            'categories' => $categories,
             'filters'    => [
                 'search' => $request->search,
             ],
@@ -76,6 +79,7 @@ class PackageController extends Controller
                         'download_speed'  => $package->download_speed,
                         'burst_limit'     => $package->burst_limit,
                         'created_by'      => auth()->id(),
+                        'hotspot_category_id' => $package->hotspot_category_id,
                     ]);
                 }
             });
@@ -115,6 +119,7 @@ class PackageController extends Controller
                             'upload_speed'    => $package->upload_speed,
                             'download_speed'  => $package->download_speed,
                             'burst_limit'     => $package->burst_limit,
+                            'hotspot_category_id' => $package->hotspot_category_id,
                         ]
                     );
                 } elseif ($oldType === 'hotspot') {
@@ -189,6 +194,7 @@ class PackageController extends Controller
             'download_speed' => ['required', 'numeric', 'min:1'],
             'burst_limit'    => ['nullable', 'numeric', 'min:0'],
             'device_limit'   => ['nullable', 'integer', 'min:1'],
+            'hotspot_category_id' => ['nullable', 'exists:hotspot_categories,id'],
         ];
 
         if ($request->input('type') === 'hotspot') {

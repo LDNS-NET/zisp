@@ -20,8 +20,14 @@ class TenantHotspot extends Model
         'download_speed',
         'burst_limit',
         'created_by',
+        'hotspot_category_id',
         //'domain',
     ];
+
+    public function hotspotCategory()
+    {
+        return $this->belongsTo(HotspotCategory::class, 'hotspot_category_id');
+    }
 
     public function package()
     {

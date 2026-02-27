@@ -29,7 +29,13 @@ class Package extends Model
         'burst_limit',
         'created_by',
         'tenant_id',
+        'hotspot_category_id',
     ];
+
+    public function hotspotCategory()
+    {
+        return $this->belongsTo(\App\Models\Tenants\HotspotCategory::class, 'hotspot_category_id');
+    }
 
     public function tenant()
     {
