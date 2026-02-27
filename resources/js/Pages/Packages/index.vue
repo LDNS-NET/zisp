@@ -15,7 +15,9 @@ import {
     Zap,
     Clock,
     DollarSign,
-    Search
+    Search,
+    Layers,
+    Settings2
 } from 'lucide-vue-next';
 import Modal from '@/Components/Modal.vue';
 import InputLabel from '@/Components/InputLabel.vue';
@@ -34,6 +36,7 @@ const props = defineProps({
     filters: Object,
     pagination: Object,
     currency: String,
+    categories: Array,
 });
 
 const page = usePage();
@@ -57,6 +60,12 @@ const showModal = ref(false);
 const showActionsModal = ref(false);
 const selectedPackage = ref(null);
 const selectedPackages = ref([]);
+
+const showCategoryModal = ref(false);
+const categoryForm = useForm({
+    name: '',
+    display_order: 0,
+});
 
 const form = useForm({
     name: '',
@@ -164,6 +173,19 @@ function remove(pkg) {
         });
     }
 }
+
+function submitCategory() {
+    categoryForm.post(route('settings.hotspot.categories.store'), {
+        onSuccess: () => {
+            showCategoryModal.value = false;
+            categoryForm.reset();
+            toast.success('Category added successfully');
+        },
+        onError: () => {
+            toast.error('Failed to add category');
+        },
+    });
+}
 </script>
 
 <template>
@@ -180,10 +202,16 @@ function remove(pkg) {
                         Manage your service packages and pricing
                     </p>
                 </div>
-                <PrimaryButton @click="openCreate" class="flex items-center gap-2">
-                    <Plus class="w-4 h-4" />
-                    <span>Add Package</span>
-                </PrimaryButton>
+                <div class="flex items-center gap-3">
+                    <PrimaryButton @click="showCategoryModal = true" class="flex items-center gap-2 bg-slate-100 !text-slate-700 hover:bg-slate-200 border-none shadow-none">
+                        <Layers class="w-4 h-4" />
+                        <span>Add Category</span>
+                    </PrimaryButton>
+                    <PrimaryButton @click="openCreate" class="flex items-center gap-2">
+                        <Plus class="w-4 h-4" />
+                        <span>Add Package</span>
+                    </PrimaryButton>
+                </div>
             </div>
         </template>
 
@@ -474,6 +502,63 @@ function remove(pkg) {
                         </div>
                         <span class="text-sm font-medium text-red-600 dark:text-red-400">Delete Package</span>
                     </button>
+                </div>
+            </div>
+        </Modal>
+
+        <!-- Category Management Modal -->
+        <Modal :show="showCategoryModal" @close="showCategoryModal = false" maxWidth="md">
+            <div class="p-6 dark:bg-slate-800 dark:text-white">
+                <div class="flex items-center justify-between mb-4 pb-2 border-b border-gray-100 dark:border-slate-700">
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-white flex items-center gap-2">
+                        <Layers class="w-5 h-5 text-blue-600" />
+                        Hotspot Categories
+                    </h3>
+                    <button @click="showCategoryModal = false" class="text-gray-400 hover:text-gray-500">
+                        <XCircle class="w-5 h-5" />
+                    </button>
+                </div>
+
+                <!-- Add New Category Form -->
+                <form @submit.prevent="submitCategory" class="mb-6 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-100 dark:border-slate-700">
+                    <h4 class="text-sm font-bold text-slate-700 dark:text-slate-300 mb-3 uppercase tracking-wider">Quick Add Category</h4>
+                    <div class="space-y-4">
+                        <div>
+                            <InputLabel for="cat_name" value="Category Name" />
+                            <TextInput id="cat_name" v-model="categoryForm.name" class="mt-1 block w-full" placeholder="e.g. Daily, Monthly" required />
+                            <InputError :message="categoryForm.errors.name" />
+                        </div>
+                        <div>
+                            <InputLabel for="cat_order" value="Display Order" />
+                            <TextInput id="cat_order" type="number" v-model="categoryForm.display_order" class="mt-1 block w-full" />
+                            <InputError :message="categoryForm.errors.display_order" />
+                        </div>
+                        <div class="flex justify-end">
+                            <PrimaryButton :disabled="categoryForm.processing" class="w-full justify-center">
+                                <Plus class="w-4 h-4 mr-2" />
+                                Add Category
+                            </PrimaryButton>
+                        </div>
+                    </div>
+                </form>
+
+                <!-- List of Categories -->
+                <div v-if="categories && categories.length > 0">
+                    <h4 class="text-sm font-bold text-slate-700 dark:text-slate-300 mb-3 uppercase tracking-wider">Current Categories</h4>
+                    <div class="space-y-2 max-h-60 overflow-y-auto pr-2">
+                        <div v-for="cat in categories" :key="cat.id" class="flex items-center justify-between p-3 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-700 rounded-lg shadow-sm">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center font-bold text-blue-600 dark:text-blue-400 text-xs">
+                                    {{ cat.display_order }}
+                                </div>
+                                <span class="font-medium text-slate-900 dark:text-white">{{ cat.name }}</span>
+                            </div>
+                            <div class="text-xs text-slate-400 italic">Manage in Settings</div>
+                        </div>
+                    </div>
+                </div>
+                <div v-else class="text-center py-6 text-slate-500 text-sm">
+                    No categories created yet.
                 </div>
             </div>
         </Modal>
