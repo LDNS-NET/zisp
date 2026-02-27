@@ -22,6 +22,7 @@ class HotspotCategoryController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'display_order' => 'nullable|integer',
+            'is_default' => 'nullable|boolean',
         ]);
 
         $tenantId = tenant()?->id ?? auth()->user()?->tenant_id;
@@ -43,6 +44,7 @@ class HotspotCategoryController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'display_order' => 'nullable|integer',
+            'is_default' => 'nullable|boolean',
         ]);
 
         $category->update($validated);

@@ -758,7 +758,7 @@ function formatPhoneNumber(event) {
                             <div class="flex items-center justify-between pt-4 border-t border-slate-50 mt-4">
                                 <div class="text-[11px] font-bold text-slate-500 flex items-center">
                                     <svg class="w-3.5 h-3.5 mr-1 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                    {{ hotspot.validity || (hotspot.duration_value + ' ' + (hotspot.duration_unit === 'h' ? 'Hours' : 'Days')) }}
+                                    {{ hotspot.validity || (hotspot.duration_value + ' ' + hotspot.duration_unit.charAt(0).toUpperCase() + hotspot.duration_unit.slice(1)) }}
                                 </div>
                                 <button 
                                     @click="openModal(hotspot)"

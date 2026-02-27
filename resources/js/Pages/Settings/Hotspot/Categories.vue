@@ -19,6 +19,7 @@ const editingCategory = ref(null);
 const form = useForm({
     name: '',
     display_order: 0,
+    is_default: false,
 });
 
 const openCreate = () => {
@@ -31,6 +32,7 @@ const openEdit = (category) => {
     editingCategory.value = category;
     form.name = category.name;
     form.display_order = category.display_order;
+    form.is_default = !!category.is_default;
     showModal.value = true;
 };
 
@@ -78,6 +80,7 @@ const deleteCategory = (id) => {
                                     <tr>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Default</th>
                                         <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                     </tr>
                                 </thead>
@@ -85,6 +88,10 @@ const deleteCategory = (id) => {
                                     <tr v-for="category in categories" :key="category.id">
                                         <td class="px-6 py-4 whitespace-nowrap">{{ category.name }}</td>
                                         <td class="px-6 py-4 whitespace-nowrap">{{ category.display_order }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span v-if="category.is_default" class="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">Default</span>
+                                            <span v-else class="text-gray-400">-</span>
+                                        </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                             <button @click="openEdit(category)" class="text-indigo-600 hover:text-indigo-900 mr-4">Edit</button>
                                             <button @click="deleteCategory(category.id)" class="text-red-600 hover:text-red-900">Delete</button>
@@ -118,6 +125,11 @@ const deleteCategory = (id) => {
                         <InputLabel for="display_order" value="Display Order" />
                         <TextInput id="display_order" type="number" class="mt-1 block w-full" v-model="form.display_order" />
                         <InputError class="mt-2" :message="form.errors.display_order" />
+                    </div>
+
+                    <div class="mt-4 flex items-center">
+                        <input type="checkbox" id="is_default" v-model="form.is_default" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" />
+                        <label for="is_default" class="ml-2 text-sm text-gray-600 dark:text-gray-400">Set as default for packages without category</label>
                     </div>
 
                     <div class="mt-6 flex justify-end">

@@ -62,9 +62,11 @@ const selectedPackage = ref(null);
 const selectedPackages = ref([]);
 
 const showCategoryModal = ref(false);
+const editingCategory = ref(null);
 const categoryForm = useForm({
     name: '',
     display_order: 0,
+    is_default: false,
 });
 
 const form = useForm({
@@ -174,17 +176,46 @@ function remove(pkg) {
     }
 }
 
+function editCategory(cat) {
+    editingCategory.value = cat.id;
+    categoryForm.name = cat.name;
+    categoryForm.display_order = cat.display_order;
+    categoryForm.is_default = !!cat.is_default;
+}
+
+function cancelCategoryEdit() {
+    editingCategory.value = null;
+    categoryForm.reset();
+}
+
+function deleteCategory(cat) {
+    if (confirm(`Are you sure you want to delete the category "${cat.name}"?`)) {
+        router.delete(route('settings.hotspot.categories.destroy', cat.id), {
+            onSuccess: () => toast.success('Category deleted successfully'),
+            onError: () => toast.error('Failed to delete category'),
+        });
+    }
+}
+
 function submitCategory() {
-    categoryForm.post(route('settings.hotspot.categories.store'), {
-        onSuccess: () => {
-            showCategoryModal.value = false;
-            categoryForm.reset();
-            toast.success('Category added successfully');
-        },
-        onError: () => {
-            toast.error('Failed to add category');
-        },
-    });
+    if (editingCategory.value) {
+        categoryForm.put(route('settings.hotspot.categories.update', editingCategory.value), {
+            onSuccess: () => {
+                editingCategory.value = null;
+                categoryForm.reset();
+                toast.success('Category updated successfully');
+            },
+            onError: () => toast.error('Failed to update category'),
+        });
+    } else {
+        categoryForm.post(route('settings.hotspot.categories.store'), {
+            onSuccess: () => {
+                categoryForm.reset();
+                toast.success('Category added successfully');
+            },
+            onError: () => toast.error('Failed to add category'),
+        });
+    }
 }
 </script>
 
@@ -519,25 +550,39 @@ function submitCategory() {
                     </button>
                 </div>
 
-                <!-- Add New Category Form -->
+                <!-- Add/Edit Category Form -->
                 <form @submit.prevent="submitCategory" class="mb-6 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-100 dark:border-slate-700">
-                    <h4 class="text-sm font-bold text-slate-700 dark:text-slate-300 mb-3 uppercase tracking-wider">Quick Add Category</h4>
+                    <h4 class="text-sm font-bold text-slate-700 dark:text-slate-300 mb-3 uppercase tracking-wider">
+                        {{ editingCategory ? 'Edit Category' : 'Quick Add Category' }}
+                    </h4>
                     <div class="space-y-4">
                         <div>
                             <InputLabel for="cat_name" value="Category Name" />
                             <TextInput id="cat_name" v-model="categoryForm.name" class="mt-1 block w-full" placeholder="e.g. Daily, Monthly" required />
                             <InputError :message="categoryForm.errors.name" />
                         </div>
-                        <div>
-                            <InputLabel for="cat_order" value="Display Order" />
-                            <TextInput id="cat_order" type="number" v-model="categoryForm.display_order" class="mt-1 block w-full" />
-                            <InputError :message="categoryForm.errors.display_order" />
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <InputLabel for="cat_order" value="Display Order" />
+                                <TextInput id="cat_order" type="number" v-model="categoryForm.display_order" class="mt-1 block w-full" />
+                                <InputError :message="categoryForm.errors.display_order" />
+                            </div>
+                            <div class="flex items-end pb-2">
+                                <label class="flex items-center gap-2 cursor-pointer group">
+                                    <input type="checkbox" v-model="categoryForm.is_default" class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 dark:bg-slate-900 dark:border-slate-600" />
+                                    <span class="text-xs font-medium text-slate-600 dark:text-slate-400 group-hover:text-blue-600 transition-colors">Default</span>
+                                </label>
+                            </div>
                         </div>
-                        <div class="flex justify-end">
-                            <PrimaryButton :disabled="categoryForm.processing" class="w-full justify-center">
-                                <Plus class="w-4 h-4 mr-2" />
-                                Add Category
+                        <div class="flex gap-2">
+                            <PrimaryButton :disabled="categoryForm.processing" class="flex-1 justify-center">
+                                <Save v-if="editingCategory" class="w-4 h-4 mr-2" />
+                                <Plus v-else class="w-4 h-4 mr-2" />
+                                {{ editingCategory ? 'Update' : 'Add' }}
                             </PrimaryButton>
+                            <button v-if="editingCategory" type="button" @click="cancelCategoryEdit" class="px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
+                                Cancel
+                            </button>
                         </div>
                     </div>
                 </form>
@@ -551,9 +596,21 @@ function submitCategory() {
                                 <div class="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center font-bold text-blue-600 dark:text-blue-400 text-xs">
                                     {{ cat.display_order }}
                                 </div>
-                                <span class="font-medium text-slate-900 dark:text-white">{{ cat.name }}</span>
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-medium text-slate-900 dark:text-white">{{ cat.name }}</span>
+                                        <span v-if="cat.is_default" class="px-1.5 py-0.5 text-[10px] font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-md">DEFAULT</span>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="text-xs text-slate-400 italic">Manage in Settings</div>
+                            <div class="flex items-center gap-1">
+                                <button @click="editCategory(cat)" class="p-1.5 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors rounded-md hover:bg-slate-50 dark:hover:bg-slate-800">
+                                    <Edit class="w-4 h-4" />
+                                </button>
+                                <button @click="deleteCategory(cat)" class="p-1.5 text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors rounded-md hover:bg-slate-50 dark:hover:bg-slate-800">
+                                    <Trash2 class="w-4 h-4" />
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -13,6 +13,11 @@ class HotspotCategory extends Model
         'tenant_id',
         'name',
         'display_order',
+        'is_default',
+    ];
+
+    protected $casts = [
+        'is_default' => 'boolean',
     ];
 
     public function packages()
@@ -30,6 +35,16 @@ class HotspotCategory extends Model
         static::addGlobalScope('tenant', function ($query) {
             if (tenant()) {
                 $query->where('tenant_id', tenant()->id);
+            }
+        });
+
+        static::saving(function ($category) {
+            if ($category->is_default) {
+                // If this is set as default, unset all others for this tenant
+                static::withoutGlobalScope('tenant')
+                    ->where('tenant_id', $category->tenant_id)
+                    ->where('id', '!=', $category->id)
+                    ->update(['is_default' => false]);
             }
         });
     }

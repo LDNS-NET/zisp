@@ -70,6 +70,7 @@ class TenantHotspotController extends Controller
 
         // Load tenant categories
         $categories = HotspotCategory::where('tenant_id', $tenant->id)->orderBy('display_order')->get();
+        $defaultCategory = $categories->firstWhere('is_default', true);
         
         $packages = TenantHotspot::where('tenant_id', $tenant->id)
             ->with(['package', 'hotspotCategory'])
@@ -78,9 +79,16 @@ class TenantHotspotController extends Controller
         // Helper to get auto category name
         $getAutoCategory = function($item) {
             $value = $item->duration_value;
-            $unit = $item->duration_unit; // 'h', 'd'
+            $unit = $item->duration_unit; 
             
-            $days = $unit === 'h' ? $value / 24 : $value;
+            $days = match($unit) {
+                'minutes' => $value / 1440,
+                'hours'   => $value / 24,
+                'days'    => $value,
+                'weeks'   => $value * 7,
+                'months'  => $value * 30,
+                default   => $value
+            };
             
             if ($days <= 1) return 'Daily';
             if ($days <= 7) return 'Weekly';
@@ -111,17 +119,25 @@ class TenantHotspotController extends Controller
         } else {
             // Use tenant categories
             foreach ($packages as $p) {
-                $name = $p->hotspotCategory ? $p->hotspotCategory->name : 'Other';
+                if ($p->hotspotCategory) {
+                    $name = $p->hotspotCategory->name;
+                } elseif ($defaultCategory) {
+                    $name = $defaultCategory->name;
+                } else {
+                    $name = $getAutoCategory($p);
+                }
                 $groupedPackages[$name][] = $p;
             }
             
-            // Ensure used categories are in the list (especially 'Other')
-            if (isset($groupedPackages['Other']) && !$categories->contains('name', 'Other')) {
-                $categories->push((object)[
-                    'id' => 'other', 
-                    'name' => 'Other', 
-                    'display_order' => 999
-                ]);
+            // Ensure all used categories are in the list for tabs
+            foreach (array_keys($groupedPackages) as $name) {
+                if (!$categories->contains('name', $name)) {
+                    $categories->push((object)[
+                        'id' => strtolower($name), 
+                        'name' => $name, 
+                        'display_order' => 999
+                    ]);
+                }
             }
         }
 
