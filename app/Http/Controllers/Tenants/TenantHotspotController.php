@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use App\Jobs\CheckIntaSendPaymentStatusJob;
 use App\Services\CountryService;
+use App\Models\Tenants\HotspotCategory;
 
 use App\Models\Tenants\TenantGeneralSetting;
 use App\Services\PaymentProcessingService;

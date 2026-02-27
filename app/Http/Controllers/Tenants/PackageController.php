@@ -10,6 +10,7 @@ use Inertia\Inertia;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 use App\Services\Mikrotik\HotspotProfileService;
+use App\Models\Tenants\HotspotCategory;
 
 class PackageController extends Controller
 {
@@ -28,7 +29,7 @@ class PackageController extends Controller
 
         $currency = auth()->user()?->tenant?->currency ?? 'KES';
 
-        $categories = \App\Models\Tenants\HotspotCategory::orderBy('display_order')->get();
+        $categories = HotspotCategory::orderBy('display_order')->get();
 
         return Inertia::render('Packages/index', [
             'packages'   => $packages->items(),
