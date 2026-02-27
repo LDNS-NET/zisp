@@ -496,7 +496,6 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode', 'sta
                 ->name('settings.hotspot.update');
 
             // Hotspot Categories
-            Route::get('settings/hotspot/categories', [\App\Http\Controllers\Tenants\HotspotCategoryController::class, 'index'])->name('settings.hotspot.categories.index');
             Route::post('settings/hotspot/categories', [\App\Http\Controllers\Tenants\HotspotCategoryController::class, 'store'])->name('settings.hotspot.categories.store');
             Route::put('settings/hotspot/categories/{category}', [\App\Http\Controllers\Tenants\HotspotCategoryController::class, 'update'])->name('settings.hotspot.categories.update');
             Route::delete('settings/hotspot/categories/{category}', [\App\Http\Controllers\Tenants\HotspotCategoryController::class, 'destroy'])->name('settings.hotspot.categories.destroy');

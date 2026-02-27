@@ -23,10 +23,14 @@ class TenantHotspotSettingsController extends Controller
         }
 
         $setting = TenantHotspotSetting::where('tenant_id', $tenantId)->first();
+        $categories = \App\Models\Tenants\HotspotCategory::where('tenant_id', $tenantId)
+            ->orderBy('display_order')
+            ->get();
 
         // return as plain array for clean JSON props
         return Inertia::render('Settings/Hotspot/Hotspot', [
             'settings' => $setting ? $setting->toArray() : null,
+            'categories' => $categories,
         ]);
     }
 

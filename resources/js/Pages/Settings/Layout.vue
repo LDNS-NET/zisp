@@ -33,13 +33,6 @@ const settingsTabs = [
         roles: ['tenant_admin', 'admin', 'network_engineer'],
     },
     {
-        key: 'hotspot_categories',
-        label: 'Hotspot Categories',
-        icon: Layers,
-        route: 'settings.hotspot.categories.index',
-        roles: ['tenant_admin', 'admin', 'network_engineer'],
-    },
-    {
         key: 'sms',
         label: 'SMS Gateway',
         icon: Smartphone,
