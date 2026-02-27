@@ -42,15 +42,16 @@ class TenantHotspotController extends Controller
         $tenant = Tenant::where('subdomain', $subdomain)->firstOrFail();
 
         // Get merged tenant settings (Logo, Business Name, etc.)
-        $settings = TenantGeneralSetting::where('tenant_id', $tenant->id)->first();
+        $generalSettings = TenantGeneralSetting::where('tenant_id', $tenant->id)->first();
+        $hotspotSettings = \App\Models\TenantHotspotSetting::where('tenant_id', $tenant->id)->first();
         
         $tenantData = $tenant->toArray();
-        if ($settings) {
+        if ($generalSettings) {
             // Apply overrides from General Settings
-            $tenantData['name'] = $settings->business_name ?: ($tenantData['name'] ?: $tenantData['id']); // Prefer business name, then tenant name, then ID
-            $tenantData['logo'] = $settings->logo ? '/storage/' . $settings->logo : null;
-            $tenantData['support_phone'] = $settings->support_phone ?: ($settings->primary_phone ?: $tenant->phone);
-            $tenantData['support_email'] = $settings->support_email ?: $settings->primary_email;
+            $tenantData['name'] = $generalSettings->business_name ?: ($tenantData['name'] ?: $tenantData['id']); // Prefer business name, then tenant name, then ID
+            $tenantData['logo'] = $generalSettings->logo ? '/storage/' . $generalSettings->logo : null;
+            $tenantData['support_phone'] = $generalSettings->support_phone ?: ($generalSettings->primary_phone ?: $tenant->phone);
+            $tenantData['support_email'] = $generalSettings->support_email ?: $generalSettings->primary_email;
         } else {
             $tenantData['support_phone'] = $tenant->phone;
         }
@@ -154,7 +155,7 @@ class TenantHotspotController extends Controller
             'packages' => $packages,
             'categories' => $categories,
             'groupedPackages' => $groupedPackages,
-            'settings' => $settings,
+            'settings' => $hotspotSettings,
             'country' => $tenant->country_code ?? 'KE',
             'paymentMethods' => array_values($gateways),
         ]);
@@ -169,21 +170,22 @@ class TenantHotspotController extends Controller
         $subdomain = explode('.', $host)[0];
         $tenant = Tenant::where('subdomain', $subdomain)->firstOrFail();
 
-        $settings = TenantGeneralSetting::where('tenant_id', $tenant->id)->first();
+        $generalSettings = TenantGeneralSetting::where('tenant_id', $tenant->id)->first();
+        $hotspotSettings = \App\Models\TenantHotspotSetting::where('tenant_id', $tenant->id)->first();
         
         $tenantData = $tenant->toArray();
-        if ($settings) {
-            $tenantData['name'] = $settings->business_name ?: ($tenantData['name'] ?: $tenantData['id']);
-            $tenantData['logo'] = $settings->logo ? '/storage/' . $settings->logo : null;
-            $tenantData['support_phone'] = $settings->support_phone ?: ($settings->primary_phone ?: $tenant->phone);
-            $tenantData['support_email'] = $settings->support_email ?: $settings->primary_email;
+        if ($generalSettings) {
+            $tenantData['name'] = $generalSettings->business_name ?: ($tenantData['name'] ?: $tenantData['id']);
+            $tenantData['logo'] = $generalSettings->logo ? '/storage/' . $generalSettings->logo : null;
+            $tenantData['support_phone'] = $generalSettings->support_phone ?: ($generalSettings->primary_phone ?: $tenant->phone);
+            $tenantData['support_email'] = $generalSettings->support_email ?: $generalSettings->primary_email;
         } else {
             $tenantData['support_phone'] = $tenant->phone;
         }
 
         return inertia('Hotspot/Suspended', [
             'tenant' => $tenantData,
-            'settings' => $settings,
+            'settings' => $hotspotSettings,
         ]);
     }
 
