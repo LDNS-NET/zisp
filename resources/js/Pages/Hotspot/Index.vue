@@ -723,7 +723,7 @@ function formatPhoneNumber(event) {
 
                                 <!-- Price & Details -->
                                 <div class="py-4 border-y border-slate-100">
-                                    <div class="flex items-baseline gap-1 mb-2">
+                                    <div class="items-baseline gap-1 mb-2">
                                         <span class="text-2xl font-black text-gray-900">{{ currentCountry.currency }}</span>
                                         <span class="text-4xl font-black text-gray-900 tracking-tight">{{ hotspot.price }}</span>
                                     </div>
