@@ -659,7 +659,7 @@ function formatPhoneNumber(event) {
 
 <template>
     <Head title="Hotspot" />
-    <div :class="['min-h-screen relative flex flex-col transition-all duration-700', theme.bg, theme.text, currentTemplate === 'neon-cyber' ? 'h-screen overflow-hidden p-0' : 'p-4 md:p-8']">
+    <div :class="['min-h-screen relative flex flex-col transition-all duration-700', theme.bg, theme.text, currentTemplate === 'neon-cyber' ? 'h-screen overflow-hidden p-0' : 'p-4 md:p-8', theme.layout === 'split' ? 'lg:flex-row' : '']">
         <!-- Background Asset for Split/Neon -->
         <div v-if="currentTemplate === 'neon-cyber'" class="hidden lg:block lg:w-1/2 h-full relative overflow-hidden bg-black border-r border-pink-500/20">
              <!-- Clean Neon Glow -->
