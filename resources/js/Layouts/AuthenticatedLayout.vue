@@ -133,7 +133,7 @@ const navigation = [
         { name: 'Mikrotiks', href: route('mikrotiks.index'), active: 'mikrotiks.*', countKey: 'mikrotiks', roles: ['tenant_admin', 'network_engineer', 'technical', 'network_admin'], permission: 'view_routers' },
         //{ name: 'TR-069 Devices', href: route('devices.index'), active: 'devices.*', roles: ['tenant_admin', 'network_engineer', 'technical'], permission: 'view_equipment' },
         { name: 'Equipment', href: route('equipment.index'), active: 'equipment.*', roles: ['tenant_admin', 'admin', 'network_engineer', 'technical'], permission: 'view_equipment' },
-        {name: 'Inventory', href: route('inventory.index'), active: 'inventory.*', roles: ['tenant_admin', 'admin', 'network_engineer', 'technical'], permission: 'view_inventory' },
+        //{name: 'Inventory', href: route('inventory.index'), active: 'inventory.*', roles: ['tenant_admin', 'admin', 'network_engineer', 'technical'], permission: 'view_inventory' },
     ]},
 
     
