@@ -24,9 +24,15 @@ class HotspotCategoryController extends Controller
             'display_order' => 'nullable|integer',
         ]);
 
+        $tenantId = tenant()?->id ?? auth()->user()?->tenant_id;
+
+        if (!$tenantId) {
+            return back()->with('error', 'Tenant context not resolved. Please refresh and try again.');
+        }
+
         HotspotCategory::create([
             ...$validated,
-            'tenant_id' => tenant()->id,
+            'tenant_id' => $tenantId,
         ]);
 
         return back()->with('success', 'Category created successfully');
