@@ -729,14 +729,14 @@ function formatPhoneNumber(event) {
                     </div>
 
                     <!-- Optimized Minimalist Package Cards (Grid) -->
-                    <div v-else class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                    <div v-else class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
                         <div 
                             v-for="hotspot in currentHotspots" 
                             :key="hotspot.id" 
-                            class="group relative bg-white rounded-2xl border border-slate-100 p-4 hover:border-blue-400 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/5 flex flex-col justify-between overflow-hidden"
+                            class="group relative bg-white rounded-2xl border border-slate-100 p-6 hover:border-blue-400 transition-all duration-300 shadow-sm hover:shadow-xl hover:shadow-blue-500/5 flex flex-col justify-between overflow-hidden"
                         >
-                            <div class="flex justify-between items-start mb-3">
-                                <div class="space-y-1">
+                            <div class="flex justify-between items-start mb-4">
+                                <div class="space-y-2">
                                     <h3 class="text-lg font-bold text-gray-900 leading-tight">
                                         {{ hotspot.name }}
                                     </h3>
@@ -755,14 +755,14 @@ function formatPhoneNumber(event) {
                                 </div>
                             </div>
 
-                            <div class="flex items-center justify-between pt-3 border-t border-slate-50 mt-2">
+                            <div class="flex items-center justify-between pt-4 border-t border-slate-50 mt-4">
                                 <div class="text-[11px] font-bold text-slate-500 flex items-center">
                                     <svg class="w-3.5 h-3.5 mr-1 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                     {{ hotspot.validity || (hotspot.duration_value + ' ' + (hotspot.duration_unit === 'h' ? 'Hours' : 'Days')) }}
                                 </div>
                                 <button 
                                     @click="openModal(hotspot)"
-                                    class="bg-blue-600 text-white font-black py-2 px-4 rounded-xl hover:bg-slate-900 transition-all duration-300 shadow-sm hover:shadow-blue-500/20 text-[11px] uppercase tracking-tighter active:scale-95 group-hover:bg-blue-700"
+                                    class="bg-blue-600 text-white font-black py-2.5 px-5 rounded-xl hover:bg-slate-900 transition-all duration-300 shadow-sm hover:shadow-blue-500/20 text-[11px] uppercase tracking-tighter active:scale-95 group-hover:bg-blue-700"
                                 >
                                     Buy Now
                                 </button>
