@@ -716,7 +716,8 @@ function formatPhoneNumber(event) {
                                     </h3>
                                     <div class="flex items-center text-[10px] text-blue-600 font-black bg-blue-50/80 w-fit px-2 py-1 rounded-lg uppercase tracking-wider">
                                         <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                                        {{ hotspot.download_speed }}
+                                        
+                                        {{ hotspot.download_speed }}Mbps
                                     </div>
                                 </div>
 
