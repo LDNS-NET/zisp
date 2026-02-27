@@ -11,13 +11,27 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('packages', function (Blueprint $table) {
-            $table->foreignId('hotspot_category_id')->nullable()->constrained('hotspot_categories')->onDelete('set null');
-        });
+        if (!Schema::hasColumn('packages', 'hotspot_category_id')) {
+            Schema::table('packages', function (Blueprint $table) {
+                $table->foreignId('hotspot_category_id')->nullable()->constrained('hotspot_categories')->onDelete('set null');
+            });
+        } else {
+            // If column exists, just add the constraint
+            Schema::table('packages', function (Blueprint $table) {
+                $table->foreign('hotspot_category_id')->references('id')->on('hotspot_categories')->onDelete('set null');
+            });
+        }
 
-        Schema::table('tenant_hotspot_packages', function (Blueprint $table) {
-            $table->foreignId('hotspot_category_id')->nullable()->constrained('hotspot_categories')->onDelete('set null');
-        });
+        if (!Schema::hasColumn('tenant_hotspot_packages', 'hotspot_category_id')) {
+            Schema::table('tenant_hotspot_packages', function (Blueprint $table) {
+                $table->foreignId('hotspot_category_id')->nullable()->constrained('hotspot_categories')->onDelete('set null');
+            });
+        } else {
+            // If column exists, just add the constraint
+            Schema::table('tenant_hotspot_packages', function (Blueprint $table) {
+                $table->foreign('hotspot_category_id')->references('id')->on('hotspot_categories')->onDelete('set null');
+            });
+        }
     }
 
     /**
