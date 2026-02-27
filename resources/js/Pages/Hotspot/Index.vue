@@ -662,11 +662,9 @@ function formatPhoneNumber(event) {
     <div :class="['min-h-screen relative flex flex-col transition-all duration-700', theme.bg, theme.text, currentTemplate === 'neon-cyber' ? 'h-screen overflow-hidden p-0' : 'p-4 md:p-8']">
         <!-- Background Asset for Split/Neon -->
         <div v-if="currentTemplate === 'neon-cyber'" class="hidden lg:block lg:w-1/2 h-full relative overflow-hidden bg-black border-r border-pink-500/20">
-             <!-- CSS Mesh / Laser Grid -->
-             <div class="absolute inset-0 opacity-20" 
-                  style="background-image: linear-gradient(#ec4899 1px, transparent 1px), linear-gradient(90deg, #ec4899 1px, transparent 1px); background-size: 40px 40px;">
-             </div>
-             <div class="absolute inset-0 bg-gradient-to-br from-pink-500/10 via-transparent to-transparent"></div>
+             <!-- Clean Neon Glow -->
+             <div class="absolute inset-0 bg-gradient-to-br from-pink-900/20 via-black to-black"></div>
+             <div class="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(236,72,153,0.1),transparent_70%)]"></div>
         </div>
 
         <!-- Decorative Background Elements (Non-split) -->
