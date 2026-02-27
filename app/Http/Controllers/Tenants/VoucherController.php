@@ -560,6 +560,33 @@ class VoucherController extends Controller
         }
     }
 
+    /**
+ * Display the specified voucher.
+ */
+public function show(Voucher $voucher)
+{
+    $this->authorizeAccess($voucher);
+    
+    // Load relationships
+    $voucher->load(['package', 'usedBy']);
+    
+    // If it's an API request (like from your modal), return JSON
+    if (request()->wantsJson()) {
+        return response()->json([
+            'voucher' => $voucher,
+            'currency' => auth()->user()?->tenant?->currency ?? 'KES',
+        ]);
+    }
+    
+    // For Inertia requests, you can return an Inertia response
+    // or redirect back with the voucher data for the modal
+    return redirect()->back()->with([
+        'viewing' => true,
+        'selectedVoucherId' => $voucher->id,
+        'voucher' => $voucher
+    ]);
+}
+
 
 
     /**
