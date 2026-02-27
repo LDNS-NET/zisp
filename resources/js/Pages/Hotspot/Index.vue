@@ -56,109 +56,115 @@ const theme = computed(() => {
     if (t === 'modern-dark') {
         return {
             layout: 'sidebar',
-            bg: 'bg-slate-950',
-            card: 'bg-slate-900/70 border-slate-800 shadow-2xl shadow-black/20',
-            text: 'text-white',
-            subtext: 'text-slate-400',
-            accent: 'text-blue-400',
-            accentBg: 'bg-blue-500/10',
-            button: 'bg-blue-600 hover:bg-blue-500',
-            secondaryButton: 'bg-slate-800 hover:bg-slate-700 text-white',
-            input: 'bg-slate-900 border-slate-700 text-white focus:ring-blue-500',
-            badge: 'bg-slate-800 text-slate-300',
-            tabActive: 'bg-slate-800 text-blue-400 shadow-lg shadow-black/20',
-            tabInactive: 'text-slate-400 hover:text-slate-200',
-            packageCard: 'bg-slate-900 border-slate-800 hover:border-blue-500/50 hover:shadow-blue-500/10',
-            decorative: 'opacity-10'
+            navStyle: 'pills-vertical',
+            bg: 'bg-zinc-950',
+            card: 'bg-zinc-900/80 border-zinc-800 shadow-2xl',
+            text: 'text-zinc-100',
+            subtext: 'text-zinc-500',
+            accent: 'text-emerald-400',
+            accentBg: 'bg-emerald-500/10',
+            button: 'bg-emerald-600 hover:bg-emerald-500 text-white',
+            secondaryButton: 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300',
+            input: 'bg-zinc-900 border-zinc-800 text-white focus:ring-emerald-500',
+            badge: 'bg-zinc-800 text-emerald-400',
+            tabActive: 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/20',
+            tabInactive: 'text-zinc-500 hover:text-zinc-200',
+            packageCard: 'bg-zinc-900 border-zinc-800 hover:border-emerald-500/50 hover:shadow-emerald-500/10',
+            decorative: 'opacity-5'
         };
     }
-    if (t === 'vibrant-gradient') {
+    if (t === 'lumen-soft') {
         return {
             layout: 'hero',
-            bg: 'bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500',
-            card: 'bg-white/95 border-white/20 shadow-2xl shadow-indigo-950/30',
+            navStyle: 'slide-up',
+            bg: 'bg-slate-50',
+            card: 'bg-white border-white shadow-[0_20px_50px_rgba(0,0,0,0.05)] rounded-[2.5rem]',
             text: 'text-slate-900',
-            subtext: 'text-slate-600',
+            subtext: 'text-slate-400',
             accent: 'text-indigo-600',
             accentBg: 'bg-indigo-50',
-            button: 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:shadow-lg hover:shadow-indigo-500/30',
-            secondaryButton: 'bg-slate-100 hover:bg-slate-200 text-slate-800',
-            input: 'bg-white border-slate-200 focus:ring-indigo-500',
-            badge: 'bg-indigo-50 text-indigo-700',
-            tabActive: 'bg-indigo-600 text-white shadow-lg shadow-indigo-200',
-            tabInactive: 'bg-white/50 text-slate-600 hover:bg-white/80',
-            packageCard: 'bg-white border-slate-100 hover:border-indigo-400 hover:shadow-indigo-500/5',
-            decorative: 'opacity-40'
+            button: 'bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl',
+            secondaryButton: 'bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-2xl',
+            input: 'bg-slate-50 border-transparent focus:bg-white focus:ring-indigo-500 rounded-2xl',
+            badge: 'bg-indigo-50 text-indigo-600',
+            tabActive: 'bg-white text-indigo-600 shadow-xl shadow-indigo-100 border border-indigo-100',
+            tabInactive: 'text-slate-400 hover:text-slate-600',
+            packageCard: 'bg-white border-slate-50 hover:shadow-2xl hover:shadow-indigo-100 transition-all rounded-[2rem]',
+            decorative: 'opacity-20'
         };
     }
     if (t === 'glassmorphism') {
         return {
             layout: 'centered',
-            bg: 'bg-[#0f172a] bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-blue-900 via-slate-900 to-black',
-            card: 'backdrop-blur-xl bg-white/10 border border-white/10 shadow-2xl shadow-black/50',
+            navStyle: 'scroll-flow',
+            bg: 'bg-[#030712] bg-[radial-gradient(circle_at_50%_-20%,_#1e1b4b,_#030712)]',
+            card: 'backdrop-blur-3xl bg-white/5 border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.8)] rounded-3xl',
             text: 'text-white',
-            subtext: 'text-blue-100/70',
-            accent: 'text-blue-300',
+            subtext: 'text-blue-100/50',
+            accent: 'text-cyan-400',
             accentBg: 'bg-white/5',
-            button: 'backdrop-blur-md bg-white/20 hover:bg-white/30 text-white border border-white/20 shadow-lg',
-            secondaryButton: 'bg-white/5 hover:bg-white/10 text-white',
-            input: 'bg-black/20 border-white/10 text-white placeholder:text-white/30 focus:bg-black/40',
-            badge: 'bg-white/10 text-blue-200',
-            tabActive: 'bg-white/20 text-white border border-white/20 shadow-inner',
-            tabInactive: 'text-white/60 hover:text-white hover:bg-white/5',
-            packageCard: 'backdrop-blur-md bg-white/5 border-white/10 hover:border-white/30 hover:bg-white/10',
-            decorative: 'opacity-50'
+            button: 'backdrop-blur-md bg-gradient-to-r from-cyan-500/40 to-blue-500/40 hover:from-cyan-500/60 hover:to-blue-500/60 text-white border border-white/10 rounded-2xl',
+            secondaryButton: 'bg-white/5 hover:bg-white/10 text-white rounded-2xl',
+            input: 'bg-white/5 border-white/10 text-white placeholder:text-white/20 focus:bg-white/10 rounded-2xl',
+            badge: 'bg-cyan-500/20 text-cyan-300',
+            tabActive: 'bg-white/20 text-white border border-white/20 shadow-lg scale-105',
+            tabInactive: 'text-white/40 hover:text-white hover:bg-white/5',
+            packageCard: 'backdrop-blur-xl bg-white/5 border border-white/5 hover:border-white/20 hover:bg-white/10 rounded-3xl',
+            decorative: 'opacity-60'
         };
     }
     if (t === 'minimalist-clean') {
         return {
             layout: 'editorial',
+            navStyle: 'underline',
             bg: 'bg-white',
-            card: 'bg-white border-[1px] border-slate-100 shadow-none',
-            text: 'text-black',
+            card: 'bg-white border-2 border-slate-950 shadow-none rounded-none',
+            text: 'text-slate-950',
             subtext: 'text-slate-500',
-            accent: 'text-black font-black',
-            accentBg: 'bg-slate-50',
-            button: 'bg-black hover:bg-slate-800 text-white rounded-none tracking-widest uppercase text-[10px]',
-            secondaryButton: 'bg-white border border-black hover:bg-slate-50 text-black rounded-none',
-            input: 'bg-white border-slate-200 rounded-none focus:border-black focus:ring-0',
+            accent: 'text-slate-950 font-black',
+            accentBg: 'bg-slate-100',
+            button: 'bg-slate-950 hover:bg-slate-800 text-white rounded-none tracking-widest uppercase text-[10px]',
+            secondaryButton: 'bg-white border border-slate-950 hover:bg-slate-50 text-slate-950 rounded-none',
+            input: 'bg-white border-slate-200 rounded-none focus:border-slate-950 focus:ring-0',
             badge: 'bg-slate-100 text-slate-800 rounded-none',
-            tabActive: 'border-b-2 border-black text-black font-black',
-            tabInactive: 'text-slate-400 hover:text-black',
-            packageCard: 'bg-white border-slate-100 hover:border-black rounded-none p-8',
+            tabActive: 'border-b-4 border-slate-950 text-slate-950 font-black px-0',
+            tabInactive: 'text-slate-400 hover:text-slate-950 px-0',
+            packageCard: 'bg-white border-2 border-slate-50 hover:border-slate-950 rounded-none p-8',
             decorative: 'hidden'
         };
     }
-    if (t === 'corporate-split') {
+    if (t === 'neon-cyber') {
         return {
             layout: 'split',
-            bg: 'bg-slate-50',
-            card: 'bg-white shadow-2xl overflow-hidden',
-            text: 'text-slate-900',
-            subtext: 'text-slate-500',
-            accent: 'text-blue-700',
-            accentBg: 'bg-blue-50',
-            button: 'bg-blue-700 hover:bg-blue-800',
-            secondaryButton: 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-none',
-            input: 'bg-white border-slate-200 focus:border-blue-700',
-            badge: 'bg-blue-50 text-blue-700',
-            tabActive: 'bg-blue-700 text-white font-bold',
-            tabInactive: 'text-slate-500 hover:text-blue-700',
-            packageCard: 'bg-white border border-slate-100 hover:border-blue-700/30 shadow-md hover:shadow-xl',
-            decorative: 'bg-blue-900',
-            heroImage: 'corporate_hotspot_bg'
+            navStyle: 'rolling',
+            bg: 'bg-black',
+            card: 'bg-zinc-950 border border-zinc-800 shadow-[0_0_20px_rgba(236,72,153,0.1)] rounded-xl',
+            text: 'text-zinc-100',
+            subtext: 'text-zinc-600',
+            accent: 'text-pink-500',
+            accentBg: 'bg-pink-500/5',
+            button: 'bg-pink-600 hover:bg-pink-500 text-white shadow-[0_0_15px_rgba(236,72,153,0.4)] rounded-lg',
+            secondaryButton: 'bg-zinc-900 hover:bg-zinc-800 text-pink-500 border border-pink-500/30 rounded-lg',
+            input: 'bg-black border-zinc-800 text-pink-500 focus:border-pink-500 focus:ring-pink-500/20 rounded-lg',
+            badge: 'bg-pink-500/10 text-pink-500 border border-pink-500/20',
+            tabActive: 'bg-pink-600 text-white shadow-[0_0_15px_rgba(236,72,153,0.4)]',
+            tabInactive: 'text-zinc-500 hover:text-pink-400',
+            packageCard: 'bg-zinc-950 border border-zinc-800 hover:border-pink-500 hover:shadow-[0_0_30px_rgba(236,72,153,0.2)] rounded-2xl',
+            decorative: 'opacity-20',
+            heroImage: 'neon_city_bg'
         };
     }
     // Default
     return {
         layout: 'classic',
+        navStyle: 'classic',
         bg: 'bg-slate-50',
         card: 'bg-white border-slate-200 shadow-sm',
         text: 'text-slate-900',
         subtext: 'text-slate-500',
         accent: 'text-blue-600',
         accentBg: 'bg-slate-50',
-        button: 'bg-blue-600 hover:bg-slate-900',
+        button: 'bg-blue-600 hover:bg-slate-900 text-white',
         secondaryButton: 'bg-slate-50 hover:bg-slate-100 text-slate-700',
         input: 'bg-white border-gray-200 focus:ring-blue-500',
         badge: 'bg-slate-100 text-slate-700',
@@ -877,18 +883,90 @@ function formatPhoneNumber(event) {
                     <div :class="['h-1 w-12 rounded-full bg-blue-600', theme.accentBg]"></div>
                 </div>
 
-                <!-- Category Navigation -->
-                <div v-if="props.categories && props.categories.length > 0" class="relative group">
-                    <div class="flex items-center gap-2 overflow-x-auto pb-4 no-scrollbar scroll-smooth">
+                <!-- Dynamic Category Navigation Router -->
+                <div v-if="props.categories && props.categories.length > 0" class="relative">
+                    <!-- 1. Rolling / Scroll Flow Navigation (Glassmorphism / Neon) -->
+                    <div v-if="theme.navStyle === 'rolling' || theme.navStyle === 'scroll-flow'" class="flex items-center gap-4 overflow-x-auto pb-6 no-scrollbar snap-x">
                         <button 
                             v-for="category in props.categories" 
                             :key="category.id"
                             @click="activeCategory = category.name"
                             :class="[
-                                'whitespace-nowrap px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 border-2',
+                                'whitespace-nowrap px-8 py-3 rounded-full text-sm font-black transition-all duration-500 snap-center transform',
                                 activeCategory === category.name 
-                                    ? theme.tabActive + ' border-transparent' 
-                                    : 'border-transparent ' + theme.tabInactive
+                                    ? theme.tabActive + ' scale-110 rotate-1' 
+                                    : theme.tabInactive + ' opacity-50 hover:opacity-100 hover:scale-105'
+                            ]"
+                        >
+                            {{ category.name }}
+                        </button>
+                    </div>
+
+                    <!-- 2. Slide Up / Staggered Navigation (Lumen / Vibrant) -->
+                    <div v-else-if="theme.navStyle === 'slide-up'" class="flex items-center gap-2 overflow-x-auto pb-6 no-scrollbar">
+                        <button 
+                            v-for="(category, index) in props.categories" 
+                            :key="category.id"
+                            @click="activeCategory = category.name"
+                            :class="[
+                                'whitespace-nowrap px-6 py-3 rounded-2xl text-sm font-bold transition-all duration-700 ease-out translate-y-0',
+                                activeCategory === category.name 
+                                    ? theme.tabActive + ' -translate-y-2' 
+                                    : theme.tabInactive
+                            ]"
+                            :style="{ transitionDelay: `${index * 50}ms` }"
+                        >
+                            {{ category.name }}
+                        </button>
+                    </div>
+
+                    <!-- 3. Vertical Pills Navigation (Modern SaaS / Sidebar) -->
+                    <div v-else-if="theme.navStyle === 'pills-vertical'" class="flex flex-col gap-2 mb-8">
+                        <button 
+                            v-for="category in props.categories" 
+                            :key="category.id"
+                            @click="activeCategory = category.name"
+                            :class="[
+                                'w-full text-left px-5 py-4 rounded-xl text-sm font-bold transition-all duration-400 group flex items-center justify-between',
+                                activeCategory === category.name 
+                                    ? theme.tabActive 
+                                    : theme.tabInactive + ' bg-zinc-900/50 hover:bg-zinc-900'
+                            ]"
+                        >
+                            <span>{{ category.name }}</span>
+                            <svg v-if="activeCategory === category.name" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"></path></svg>
+                        </button>
+                    </div>
+
+                    <!-- 4. Underline Navigation (Minimalist) -->
+                    <div v-else-if="theme.navStyle === 'underline'" class="flex items-center gap-10 overflow-x-auto pb-4 no-scrollbar border-b border-slate-100">
+                        <button 
+                            v-for="category in props.categories" 
+                            :key="category.id"
+                            @click="activeCategory = category.name"
+                            :class="[
+                                'whitespace-nowrap py-4 text-xs tracking-widest uppercase transition-all duration-300 relative',
+                                activeCategory === category.name 
+                                    ? 'text-slate-950 font-black' 
+                                    : 'text-slate-400 hover:text-slate-600'
+                            ]"
+                        >
+                            {{ category.name }}
+                            <div v-if="activeCategory === category.name" class="absolute bottom-0 left-0 w-full h-1 bg-slate-950 animate-in slide-in-from-left duration-300"></div>
+                        </button>
+                    </div>
+
+                    <!-- Default / Classic Navigation -->
+                    <div v-else class="flex items-center gap-2 overflow-x-auto pb-4 no-scrollbar">
+                        <button 
+                            v-for="category in props.categories" 
+                            :key="category.id"
+                            @click="activeCategory = category.name"
+                            :class="[
+                                'whitespace-nowrap px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300',
+                                activeCategory === category.name 
+                                    ? theme.tabActive 
+                                    : theme.tabInactive
                             ]"
                         >
                             {{ category.name }}
