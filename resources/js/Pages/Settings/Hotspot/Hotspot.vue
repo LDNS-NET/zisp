@@ -128,8 +128,12 @@ const deleteCategory = (id) => {
                                         v-model="form.portal_template"
                                         class="mt-1 block w-full rounded-lg border-gray-300 dark:border-slate-700 dark:bg-slate-900 dark:text-gray-100 focus:ring-blue-500 focus:border-blue-500"
                                     >
-                                        <option value="default">Default</option>
-                                        <option value="modern-dark">Modern Dark</option>
+                                        <option value="default">Classic Professional</option>
+                                        <option value="modern-dark">Modern SaaS (Dark)</option>
+                                        <option value="vibrant-gradient">Vibrant Energy</option>
+                                        <option value="glassmorphism">Glassmorphism Pro</option>
+                                        <option value="minimalist-clean">Minimalist Clean</option>
+                                        <option value="corporate-split">Professional Split</option>
                                     </select>
                                     <InputError class="mt-2" :message="form.errors.portal_template" />
                                 </div>
