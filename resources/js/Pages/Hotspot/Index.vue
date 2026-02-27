@@ -65,7 +65,7 @@ const theme = computed(() => {
             accentBg: 'bg-emerald-500/10',
             button: 'bg-emerald-600 hover:bg-emerald-500 text-white',
             secondaryButton: 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300',
-            input: 'bg-zinc-900 border-zinc-800 text-white focus:ring-emerald-500',
+            input: 'bg-zinc-900 border-zinc-800 text-zinc-100 placeholder:text-zinc-600 focus:bg-zinc-800 focus:ring-emerald-500',
             badge: 'bg-zinc-800 text-emerald-400',
             tabActive: 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/20',
             tabInactive: 'text-zinc-500 hover:text-zinc-200',
@@ -85,7 +85,7 @@ const theme = computed(() => {
             accentBg: 'bg-indigo-50',
             button: 'bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl',
             secondaryButton: 'bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-2xl',
-            input: 'bg-slate-50 border-transparent focus:bg-white focus:ring-indigo-500 rounded-2xl',
+            input: 'bg-slate-50 border-transparent text-slate-900 placeholder:text-slate-400 focus:bg-white focus:ring-indigo-500 rounded-2xl',
             badge: 'bg-indigo-50 text-indigo-600',
             tabActive: 'bg-white text-indigo-600 shadow-xl shadow-indigo-100 border border-indigo-100',
             tabInactive: 'text-slate-400 hover:text-slate-600',
@@ -105,7 +105,7 @@ const theme = computed(() => {
             accentBg: 'bg-white/5',
             button: 'backdrop-blur-md bg-gradient-to-r from-cyan-500/40 to-blue-500/40 hover:from-cyan-500/60 hover:to-blue-500/60 text-white border border-white/10 rounded-2xl',
             secondaryButton: 'bg-white/5 hover:bg-white/10 text-white rounded-2xl',
-            input: 'bg-white/5 border-white/10 text-white placeholder:text-white/20 focus:bg-white/10 rounded-2xl',
+            input: 'bg-white/5 border-white/10 text-white placeholder:text-white/20 focus:bg-white/10 focus:ring-cyan-500 rounded-2xl',
             badge: 'bg-cyan-500/20 text-cyan-300',
             tabActive: 'bg-white/20 text-white border border-white/20 shadow-lg scale-105',
             tabInactive: 'text-white/40 hover:text-white hover:bg-white/5',
@@ -145,13 +145,12 @@ const theme = computed(() => {
             accentBg: 'bg-pink-500/5',
             button: 'bg-pink-600 hover:bg-pink-500 text-white shadow-[0_0_15px_rgba(236,72,153,0.4)] rounded-lg',
             secondaryButton: 'bg-zinc-900 hover:bg-zinc-800 text-pink-500 border border-pink-500/30 rounded-lg',
-            input: 'bg-black border-zinc-800 text-pink-500 focus:border-pink-500 focus:ring-pink-500/20 rounded-lg',
+            input: 'bg-zinc-950 border-zinc-800 text-pink-500 placeholder:text-pink-900 focus:bg-zinc-900 focus:border-pink-500 focus:ring-pink-500/20 rounded-lg',
             badge: 'bg-pink-500/10 text-pink-500 border border-pink-500/20',
             tabActive: 'bg-pink-600 text-white shadow-[0_0_15px_rgba(236,72,153,0.4)]',
             tabInactive: 'text-zinc-500 hover:text-pink-400',
             packageCard: 'bg-zinc-950 border border-zinc-800 hover:border-pink-500 hover:shadow-[0_0_30px_rgba(236,72,153,0.2)] rounded-2xl',
-            decorative: 'opacity-20',
-            heroImage: 'neon_city_bg'
+            decorative: 'opacity-20'
         };
     }
     // Default
@@ -660,23 +659,24 @@ function formatPhoneNumber(event) {
 
 <template>
     <Head title="Hotspot" />
-    <div :class="['min-h-screen relative flex flex-col transition-all duration-700', theme.bg, theme.text, theme.layout === 'split' ? 'h-screen overflow-hidden p-0' : 'p-4 md:p-8']">
-        <!-- Background Asset for Split/Corporate -->
-        <div v-if="theme.layout === 'split'" class="hidden lg:block lg:w-1/2 h-full relative overflow-hidden">
-             <img :src="'/storage/brain/' + $page.props.conversationId + '/' + theme.heroImage + '.png'" class="absolute inset-0 w-full h-full object-cover" alt="Enterprise Connect" />
-             <div class="absolute inset-0 bg-blue-900/40 backdrop-blur-[2px]"></div>
-             <div class="absolute inset-0 flex flex-col justify-end p-20 text-white">
-                <div class="max-w-md">
-                    <h2 class="text-5xl font-black mb-6 leading-tight">Fast. Secure. Uninterrupted.</h2>
-                    <p class="text-xl text-white/80 leading-relaxed mb-10">Connected to our premium enterprise network. Experience the speed of light with ZISP connectivity.</p>
-                </div>
+    <div :class="['min-h-screen relative flex flex-col transition-all duration-700', theme.bg, theme.text, currentTemplate === 'neon-cyber' ? 'h-screen overflow-hidden p-0' : 'p-4 md:p-8']">
+        <!-- Background Asset for Split/Neon -->
+        <div v-if="currentTemplate === 'neon-cyber'" class="hidden lg:block lg:w-1/2 h-full relative overflow-hidden bg-black border-r border-pink-500/20">
+             <!-- CSS Mesh / Laser Grid -->
+             <div class="absolute inset-0 opacity-20" 
+                  style="background-image: linear-gradient(#ec4899 1px, transparent 1px), linear-gradient(90deg, #ec4899 1px, transparent 1px); background-size: 40px 40px;">
              </div>
+             <div class="absolute inset-0 bg-gradient-to-br from-pink-500/10 via-transparent to-transparent"></div>
         </div>
 
         <!-- Decorative Background Elements (Non-split) -->
-        <div v-if="theme.layout !== 'split'" :class="['absolute top-0 left-0 w-full h-full pointer-events-none transition-opacity duration-700', theme.decorative]">
-            <div class="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-blue-500/10 rounded-full blur-[120px]"></div>
-            <div class="absolute top-[20%] -right-[10%] w-[30%] h-[30%] bg-indigo-500/10 rounded-full blur-[100px]"></div>
+        <div v-if="currentTemplate !== 'neon-cyber'" :class="['absolute top-0 left-0 w-full h-full pointer-events-none transition-opacity duration-700 overflow-hidden', theme.decorative]">
+            <!-- Dynamic Blobs for Lumen/Modern -->
+            <div v-if="currentTemplate === 'lumen-soft'" class="absolute -top-[20%] -left-[10%] w-[60%] h-[60%] bg-indigo-200/40 rounded-full blur-[160px] animate-pulse"></div>
+            <div v-if="currentTemplate === 'lumen-soft'" class="absolute -bottom-[10%] -right-[10%] w-[50%] h-[50%] bg-blue-100/40 rounded-full blur-[140px]"></div>
+            
+            <div v-if="currentTemplate !== 'lumen-soft'" class="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-blue-500/10 rounded-full blur-[120px]"></div>
+            <div v-if="currentTemplate !== 'lumen-soft'" class="absolute top-[20%] -right-[10%] w-[30%] h-[30%] bg-indigo-500/10 rounded-full blur-[100px]"></div>
         </div>
 
         <!-- LAYOUT ROUTER -->
@@ -688,7 +688,7 @@ function formatPhoneNumber(event) {
             
             <div :class="[
                 'grid gap-8 items-start',
-                theme.layout === 'sidebar' || theme.layout === 'classic' ? 'grid-cols-1 lg:grid-cols-12' : 'grid-cols-1',
+                theme.layout === 'sidebar' || theme.layout === 'classic' || theme.layout === 'editorial' ? 'grid-cols-1 lg:grid-cols-12' : 'grid-cols-1',
                 theme.layout === 'centered' ? 'max-w-3xl w-full' : '',
                 theme.layout === 'split' ? 'max-w-xl w-full mx-auto' : ''
             ]">
@@ -696,7 +696,7 @@ function formatPhoneNumber(event) {
             <!-- Left Column: Branding / Info (Desktop) -->
             <div :class="[
                 'space-y-6',
-                theme.layout === 'sidebar' || theme.layout === 'classic' ? 'lg:col-span-4 lg:sticky lg:top-8' : '',
+                theme.layout === 'sidebar' || theme.layout === 'classic' || theme.layout === 'editorial' ? 'lg:col-span-4 lg:sticky lg:top-8' : '',
                 theme.layout === 'hero' ? 'max-w-4xl mx-auto w-full text-center' : '',
                 theme.layout === 'centered' ? 'w-full text-center mb-0' : '',
                 theme.layout === 'split' ? 'w-full' : ''
@@ -874,7 +874,7 @@ function formatPhoneNumber(event) {
             <!-- Right Column: Packages & Categories -->
             <div :class="[
                 'transition-all duration-700 space-y-8',
-                theme.layout === 'sidebar' || theme.layout === 'classic' ? 'lg:col-span-8' : 'w-full',
+                theme.layout === 'sidebar' || theme.layout === 'classic' || theme.layout === 'editorial' ? 'lg:col-span-8' : 'w-full',
                 theme.layout === 'centered' ? 'max-w-4xl mx-auto' : ''
             ]">
                 <!-- Section Header -->
@@ -1098,7 +1098,7 @@ function formatPhoneNumber(event) {
                                     @input="formatPhoneNumber"
                                     type="tel"
                                     placeholder="Enter phone number"
-                                    :class="['w-full pl-4 pr-4 py-3.5 border-2 rounded-xl focus:bg-white text-lg transition-all font-mono', theme.input]"
+                                    :class="['w-full pl-4 pr-4 py-3.5 border-2 rounded-xl text-lg transition-all font-mono', theme.input]"
                                     :disabled="isProcessing"
                                 />
                             </div>
