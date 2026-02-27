@@ -389,6 +389,7 @@ function remove(pkg) {
                             <div class="flex gap-2">
                                 <TextInput id="duration_value" v-model="form.duration_value" type="number" min="1" class="mt-1 w-1/2" required />
                                 <select v-model="form.duration_unit" class="mt-1 w-1/2 rounded-md border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                    <option value="minutes">Minutes</option>
                                     <option value="hours">Hours</option>
                                     <option value="days">Days</option>
                                     <option value="weeks">Weeks</option>

@@ -23,7 +23,7 @@ class PackageController extends Controller
                 $q->where('name', 'like', "%{$request->search}%")
                   ->orWhere('type', 'like', "%{$request->search}%");
             })
-            ->paginate($request->get('per_page', 10))
+            ->paginate($request->get('per_page', 20))
             ->withQueryString();
 
         $currency = auth()->user()?->tenant?->currency ?? 'KES';
