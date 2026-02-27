@@ -130,6 +130,9 @@ const deleteCategory = (id) => {
                                     >
                                         <option value="default">Default</option>
                                         <option value="modern-dark">Modern Dark</option>
+                                        <option value="vibrant-gradient">Vibrant Gradient</option>
+                                        <option value="glassmorphism">Glassmorphism</option>
+                                        <option value="minimalist-clean">Minimalist Clean</option>
                                     </select>
                                     <InputError class="mt-2" :message="form.errors.portal_template" />
                                 </div>

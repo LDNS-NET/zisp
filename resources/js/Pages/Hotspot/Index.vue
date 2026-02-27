@@ -22,7 +22,7 @@ const deviceMac = ref('');
 const maxPollingAttempts = 40; // 40 * 3s = 120s (2 minutes)
 
 import { countries } from '@/Data/countries';
-const props = defineProps(['tenant', 'packages', 'country', 'paymentMethods', 'categories', 'groupedPackages']);
+const props = defineProps(['tenant', 'packages', 'country', 'paymentMethods', 'categories', 'groupedPackages', 'settings']);
 
 // Default active category
 const activeCategory = ref(null);
@@ -47,6 +47,101 @@ onMounted(() => {
     } else {
         activeCategory.value = 'General';
     }
+});
+
+const currentTemplate = computed(() => props.settings?.portal_template || 'default');
+
+const theme = computed(() => {
+    const t = currentTemplate.value;
+    if (t === 'modern-dark') {
+        return {
+            bg: 'bg-slate-950',
+            card: 'bg-slate-900/70 border-slate-800 shadow-2xl shadow-black/20',
+            text: 'text-white',
+            subtext: 'text-slate-400',
+            accent: 'text-blue-400',
+            accentBg: 'bg-blue-500/10',
+            button: 'bg-blue-600 hover:bg-blue-500',
+            secondaryButton: 'bg-slate-800 hover:bg-slate-700 text-white',
+            input: 'bg-slate-900 border-slate-700 text-white focus:ring-blue-500',
+            badge: 'bg-slate-800 text-slate-300',
+            tabActive: 'bg-slate-800 text-blue-400 shadow-lg shadow-black/20',
+            tabInactive: 'text-slate-400 hover:text-slate-200',
+            packageCard: 'bg-slate-900 border-slate-800 hover:border-blue-500/50 hover:shadow-blue-500/10',
+            decorative: 'opacity-10'
+        };
+    }
+    if (t === 'vibrant-gradient') {
+        return {
+            bg: 'bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500',
+            card: 'bg-white/95 border-white/20 shadow-2xl shadow-indigo-950/30',
+            text: 'text-slate-900',
+            subtext: 'text-slate-600',
+            accent: 'text-indigo-600',
+            accentBg: 'bg-indigo-50',
+            button: 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:shadow-lg hover:shadow-indigo-500/30',
+            secondaryButton: 'bg-slate-100 hover:bg-slate-200 text-slate-800',
+            input: 'bg-white border-slate-200 focus:ring-indigo-500',
+            badge: 'bg-indigo-50 text-indigo-700',
+            tabActive: 'bg-indigo-600 text-white shadow-lg shadow-indigo-200',
+            tabInactive: 'bg-white/50 text-slate-600 hover:bg-white/80',
+            packageCard: 'bg-white border-slate-100 hover:border-indigo-400 hover:shadow-indigo-500/5',
+            decorative: 'opacity-40'
+        };
+    }
+    if (t === 'glassmorphism') {
+        return {
+            bg: 'bg-[#0f172a] bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-blue-900 via-slate-900 to-black',
+            card: 'backdrop-blur-xl bg-white/10 border border-white/10 shadow-2xl shadow-black/50',
+            text: 'text-white',
+            subtext: 'text-blue-100/70',
+            accent: 'text-blue-300',
+            accentBg: 'bg-white/5',
+            button: 'backdrop-blur-md bg-white/20 hover:bg-white/30 text-white border border-white/20 shadow-lg',
+            secondaryButton: 'bg-white/5 hover:bg-white/10 text-white',
+            input: 'bg-black/20 border-white/10 text-white placeholder:text-white/30 focus:bg-black/40',
+            badge: 'bg-white/10 text-blue-200',
+            tabActive: 'bg-white/20 text-white border border-white/20 shadow-inner',
+            tabInactive: 'text-white/60 hover:text-white hover:bg-white/5',
+            packageCard: 'backdrop-blur-md bg-white/5 border-white/10 hover:border-white/30 hover:bg-white/10',
+            decorative: 'opacity-50'
+        };
+    }
+    if (t === 'minimalist-clean') {
+        return {
+            bg: 'bg-white',
+            card: 'bg-white border-[1px] border-slate-100 shadow-none',
+            text: 'text-black',
+            subtext: 'text-slate-500',
+            accent: 'text-black font-black',
+            accentBg: 'bg-slate-50',
+            button: 'bg-black hover:bg-slate-800 text-white rounded-none tracking-widest uppercase text-[10px]',
+            secondaryButton: 'bg-white border border-black hover:bg-slate-50 text-black rounded-none',
+            input: 'bg-white border-slate-200 rounded-none focus:border-black focus:ring-0',
+            badge: 'bg-slate-100 text-slate-800 rounded-none',
+            tabActive: 'border-b-2 border-black text-black font-black',
+            tabInactive: 'text-slate-400 hover:text-black',
+            packageCard: 'bg-white border-slate-100 hover:border-black rounded-none p-8',
+            decorative: 'hidden'
+        };
+    }
+    // Default
+    return {
+        bg: 'bg-slate-50',
+        card: 'bg-white border-slate-200 shadow-sm',
+        text: 'text-slate-900',
+        subtext: 'text-slate-500',
+        accent: 'text-blue-600',
+        accentBg: 'bg-slate-50',
+        button: 'bg-blue-600 hover:bg-slate-900',
+        secondaryButton: 'bg-slate-50 hover:bg-slate-100 text-slate-700',
+        input: 'bg-white border-gray-200 focus:ring-blue-500',
+        badge: 'bg-slate-100 text-slate-700',
+        tabActive: 'bg-blue-600 text-white shadow-lg shadow-blue-200',
+        tabInactive: 'bg-slate-50 text-slate-600 hover:bg-slate-100',
+        packageCard: 'bg-white border-slate-100 hover:border-blue-400 hover:shadow-blue-500/5',
+        decorative: 'opacity-40'
+    };
 });
 
 const currentCountry = computed(() => {
@@ -534,11 +629,11 @@ function formatPhoneNumber(event) {
 
 <template>
     <Head title="Hotspot" />
-    <div class="min-h-screen bg-slate-50 p-4 md:p-8 relative overflow-hidden">
-        <!-- Decorative Background Elements (CSS only, no weight) -->
-        <div class="absolute top-0 left-0 w-full h-full pointer-events-none opacity-40">
-            <div class="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-blue-100/30 rounded-full blur-[120px]"></div>
-            <div class="absolute top-[20%] -right-[10%] w-[30%] h-[30%] bg-indigo-100/20 rounded-full blur-[100px]"></div>
+    <div :class="['min-h-screen p-4 md:p-8 relative overflow-hidden transition-all duration-700', theme.bg, theme.text]">
+        <!-- Decorative Background Elements -->
+        <div :class="['absolute top-0 left-0 w-full h-full pointer-events-none transition-opacity duration-700', theme.decorative]">
+            <div class="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-blue-500/10 rounded-full blur-[120px]"></div>
+            <div class="absolute top-[20%] -right-[10%] w-[30%] h-[30%] bg-indigo-500/10 rounded-full blur-[100px]"></div>
         </div>
 
         <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 items-start relative z-10">
@@ -546,53 +641,51 @@ function formatPhoneNumber(event) {
             <!-- Left Column: Branding / Info (Desktop) -->
             <div class="lg:col-span-4 lg:sticky lg:top-8 space-y-6">
                 <!-- Branding Card -->
-                <div class="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm">
-                    <div class="inline-flex items-center justify-center w-20 h-20 bg-slate-50 rounded-full mb-6 overflow-hidden ring-4 ring-slate-100 relative shadow-inner">
+                <div :class="['rounded-2xl p-8 border transition-all duration-700', theme.card]">
+                    <div :class="['inline-flex items-center justify-center w-20 h-20 rounded-full mb-6 overflow-hidden ring-4 relative shadow-inner transition-all duration-700', theme.accentBg, currentTemplate === 'default' ? 'ring-slate-100' : 'ring-white/5']">
                         <!-- Lazy loaded logo -->
-                        <img v-if="logoUrl" :src="logoUrl" alt="Logo" class="w-full h-full object-cover transition-opacity duration-700 opacity-100" />
+                        <img v-if="logoUrl" :src="logoUrl" alt="Logo" class="w-full h-full object-cover" />
                         
                         <!-- Fallback Placeholder -->
-                        <svg v-else class="w-10 h-10 text-slate-400 transition-opacity duration-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg v-else :class="['w-10 h-10 transition-colors', theme.subtext]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"></path>
                         </svg>
                     </div>
-                    <h1 class="text-3xl font-bold text-slate-900 mb-2">{{ $page.props.tenant?.name || 'Hotspot Access' }}</h1>
-                    <p class="text-slate-500 leading-relaxed max-w-sm">
+                    <h1 :class="['text-3xl font-bold mb-2', theme.text]">{{ $page.props.tenant?.name || 'Hotspot Access' }}</h1>
+                    <p :class="['leading-relaxed max-w-sm', theme.subtext]">
                         Welcome to our high-speed network. Login or choose a package to connect instantly.
                     </p>
                     
                      <!-- Contact Info -->
-                    <div v-if="$page.props.tenant?.support_phone || $page.props.tenant?.support_email" class="mt-8 pt-6 border-t border-slate-100 space-y-3">
-                        <div v-if="$page.props.tenant?.support_phone" class="flex items-center gap-3 text-slate-600">
-                            <div class="p-2 bg-slate-50 rounded-lg">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
+                    <div v-if="$page.props.tenant?.support_phone || $page.props.tenant?.support_email" :class="['mt-8 pt-6 border-t space-y-3', currentTemplate === 'default' ? 'border-slate-100' : 'border-white/5']">
+                        <div v-if="$page.props.tenant?.support_phone" :class="['flex items-center gap-3', theme.subtext]">
+                            <div :class="['p-2 rounded-lg', theme.accentBg]">
+                                <svg :class="['w-5 h-5', theme.accent]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
                             </div>
                             <span class="font-medium">{{ $page.props.tenant.support_phone }}</span>
                         </div>
-                        <div v-if="$page.props.tenant?.support_email" class="flex items-center gap-3 text-slate-600">
-                            <div class="p-2 bg-slate-50 rounded-lg">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                        <div v-if="$page.props.tenant?.support_email" :class="['flex items-center gap-3', theme.subtext]">
+                            <div :class="['p-2 rounded-lg', theme.accentBg]">
+                                <svg :class="['w-5 h-5', theme.accent]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
                             </div>
-                            <span class="font-medium">{{ $page.props.tenant.support_email }}</span>
+                            <span class="font-medium text-xs lg:text-sm">{{ $page.props.tenant.support_email }}</span>
                         </div>
                     </div>
                 </div>
                 
                 <!-- Login Panel with Tabs -->
-                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+                <div :class="['rounded-2xl p-6 border transition-all duration-700', theme.card]">
                     <!-- Tab Switcher -->
-                    <div class="flex p-1 bg-gray-100 rounded-xl mb-6">
+                    <div :class="['flex p-1 rounded-xl mb-6', currentTemplate === 'default' ? 'bg-gray-100' : 'bg-white/5']">
                         <button 
                             @click="activeTab = 'voucher'"
-                            class="flex-1 py-2 text-sm font-bold rounded-lg transition-all duration-200"
-                            :class="activeTab === 'voucher' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'"
+                            :class="['flex-1 py-2 text-sm font-bold rounded-lg transition-all duration-200', activeTab === 'voucher' ? theme.tabActive : theme.tabInactive]"
                         >
                             Voucher
                         </button>
                         <button 
                             @click="activeTab = 'member'"
-                            class="flex-1 py-2 text-sm font-bold rounded-lg transition-all duration-200"
-                            :class="activeTab === 'member' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'"
+                            :class="['flex-1 py-2 text-sm font-bold rounded-lg transition-all duration-200', activeTab === 'member' ? theme.tabActive : theme.tabInactive]"
                         >
                             Member Login
                         </button>
@@ -601,12 +694,12 @@ function formatPhoneNumber(event) {
                     <!-- Voucher Panel -->
                     <div v-if="activeTab === 'voucher'">
                         <div class="flex items-center gap-3 mb-4">
-                            <div class="p-2 bg-green-100 text-green-600 rounded-lg">
-                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div :class="['p-2 rounded-lg', theme.accentBg]">
+                                <svg :class="['w-6 h-6', theme.accent]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"></path>
                                 </svg>
                             </div>
-                            <h3 class="text-lg font-bold text-gray-900">Have a Voucher?</h3>
+                            <h3 :class="['text-lg font-bold', theme.text]">Have a Voucher?</h3>
                         </div>
                         
                         <div class="space-y-3">
@@ -614,7 +707,7 @@ function formatPhoneNumber(event) {
                                 v-model="voucherCode"
                                 type="text"
                                 placeholder="Enter Code (e.g. AB123)"
-                                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-lg uppercase font-mono tracking-widest text-center text-gray-900"
+                                :class="['w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:border-transparent text-lg uppercase font-mono tracking-widest text-center transition-all', theme.input]"
                                 :disabled="isAuthenticatingVoucher"
                                 @keyup.enter="authenticateVoucher"
                             />
@@ -622,7 +715,7 @@ function formatPhoneNumber(event) {
                             <button
                                 @click="authenticateVoucher"
                                 :disabled="isAuthenticatingVoucher || !voucherCode"
-                                class="w-full bg-emerald-600 text-white font-bold py-3.5 px-4 rounded-xl hover:bg-emerald-700 transition-all duration-300 transform active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed shadow-sm flex items-center justify-center gap-2"
+                                :class="['w-full text-white font-bold py-3.5 px-4 rounded-xl transition-all duration-300 transform active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed shadow-sm flex items-center justify-center gap-2', theme.button]"
                             >
                                 <svg v-if="isAuthenticatingVoucher" class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -637,12 +730,12 @@ function formatPhoneNumber(event) {
                     <!-- Member Login Panel -->
                     <div v-else>
                         <div class="flex items-center gap-3 mb-4">
-                            <div class="p-2 bg-blue-100 text-blue-600 rounded-lg">
-                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div :class="['p-2 rounded-lg', theme.accentBg]">
+                                <svg :class="['w-6 h-6', theme.accent]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                                 </svg>
                             </div>
-                            <h3 class="text-lg font-bold text-gray-900">Member Login</h3>
+                            <h3 :class="['text-lg font-bold', theme.text]">Member Login</h3>
                         </div>
                         
                         <div class="space-y-3">
@@ -650,14 +743,14 @@ function formatPhoneNumber(event) {
                                 v-model="memberUsername"
                                 type="text"
                                 placeholder="Username"
-                                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm text-gray-900"
+                                :class="['w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:border-transparent text-sm transition-all', theme.input]"
                                 :disabled="isAuthenticatingMember"
                             />
                             <input
                                 v-model="memberPassword"
                                 type="password"
                                 placeholder="Password"
-                                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm text-gray-900"
+                                :class="['w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:border-transparent text-sm transition-all', theme.input]"
                                 :disabled="isAuthenticatingMember"
                                 @keyup.enter="authenticateMember"
                             />
@@ -665,7 +758,7 @@ function formatPhoneNumber(event) {
                             <button
                                 @click="authenticateMember"
                                 :disabled="isAuthenticatingMember || !memberUsername || !memberPassword"
-                                class="w-full bg-blue-600 text-white font-bold py-3.5 px-4 rounded-xl hover:bg-blue-700 transition-all duration-300 transform active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed shadow-sm flex items-center justify-center gap-2"
+                                :class="['w-full text-white font-bold py-3.5 px-4 rounded-xl transition-all duration-300 transform active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed shadow-sm flex items-center justify-center gap-2', theme.button]"
                             >
                                 <svg v-if="isAuthenticatingMember" class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -695,10 +788,10 @@ function formatPhoneNumber(event) {
 
             <!-- Right Column: Packages (Desktop) -->
             <div class="lg:col-span-8">
-                <div class="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-200">
+                <div :class="['rounded-3xl p-6 md:p-8 border transition-all duration-700', theme.card]">
                     <div class="flex items-center justify-between mb-6">
-                        <h2 class="text-2xl font-bold text-slate-900">Available Packages</h2>
-                        <span class="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-xs font-bold uppercase tracking-wider">
+                        <h2 :class="['text-2xl font-bold', theme.text]">Available Packages</h2>
+                        <span :class="['px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider', theme.badge]">
                             {{ currentHotspots.length }} Plans
                         </span>
                     </div>
@@ -709,23 +802,20 @@ function formatPhoneNumber(event) {
                             v-for="cat in categories" 
                             :key="cat.id"
                             @click="activeCategory = cat.name"
-                            class="whitespace-nowrap px-6 py-2.5 rounded-xl font-bold transition-all duration-300 transform active:scale-95"
-                            :class="activeCategory === cat.name 
-                                ? 'bg-blue-600 text-white shadow-lg shadow-blue-200 ring-2 ring-blue-100' 
-                                : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-100'"
+                            :class="['whitespace-nowrap px-6 py-2.5 rounded-xl font-bold transition-all duration-300 transform active:scale-95', activeCategory === cat.name ? theme.tabActive : theme.tabInactive]"
                         >
                             {{ cat.name }}
                         </button>
                     </div>
 
-                    <div v-if="currentHotspots.length === 0" class="text-center py-20 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
-                        <div class="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
-                            <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div v-if="currentHotspots.length === 0" :class="['text-center py-20 rounded-2xl border-2 border-dashed', currentTemplate === 'default' ? 'bg-gray-50 border-gray-200' : 'bg-white/5 border-white/10']">
+                        <div :class="['inline-flex items-center justify-center w-16 h-16 rounded-full mb-4', theme.accentBg]">
+                            <svg :class="['w-8 h-8', theme.accent]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                             </svg>
                         </div>
-                        <h3 class="text-lg font-medium text-gray-900">No hotspot packages in this category</h3>
-                        <p class="text-gray-500 mt-1">Please explore other tabs or check back later</p>
+                        <h3 :class="['text-lg font-medium', theme.text]">No hotspot packages in this category</h3>
+                        <p :class="['mt-1', theme.subtext]">Please explore other tabs or check back later</p>
                     </div>
 
                     <!-- Optimized Minimalist Package Cards (Grid) -->
@@ -733,36 +823,36 @@ function formatPhoneNumber(event) {
                         <div 
                             v-for="hotspot in currentHotspots" 
                             :key="hotspot.id" 
-                            class="group relative bg-white rounded-2xl border border-slate-100 p-6 hover:border-blue-400 transition-all duration-300 shadow-sm hover:shadow-xl hover:shadow-blue-500/5 flex flex-col justify-between overflow-hidden"
+                            :class="['group relative rounded-2xl border p-6 transition-all duration-300 flex flex-col justify-between overflow-hidden', theme.packageCard]"
                         >
                             <div class="flex justify-between items-start mb-4">
                                 <div class="space-y-2">
-                                    <h3 class="text-lg font-bold text-gray-900 leading-tight">
+                                    <h3 :class="['text-lg font-bold leading-tight', theme.text]">
                                         {{ hotspot.name }}
                                     </h3>
                                     <div class="flex items-center gap-2">
-                                        <div class="flex items-center text-[10px] text-blue-600 font-black bg-blue-50 px-2 py-0.5 rounded-lg uppercase tracking-wider">
+                                        <div :class="['flex items-center text-[10px] font-black px-2 py-0.5 rounded-lg uppercase tracking-wider', theme.badge]">
                                             {{ hotspot.download_speed }}Mbps
                                         </div>
-                                        <div v-if="hotspot.device_limit" class="flex items-center text-[10px] text-slate-500 font-bold bg-slate-100 px-2 py-0.5 rounded-lg uppercase tracking-wider">
+                                        <div v-if="hotspot.device_limit" :class="['flex items-center text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider', theme.badge]">
                                             {{ hotspot.device_limit }} Devices
                                         </div>
                                     </div>
                                 </div>
                                 <div class="text-right">
-                                    <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{{ currentCountry.currency }}</div>
-                                    <div class="text-2xl font-black text-blue-600 leading-none">{{ Math.round(hotspot.price) }}</div>
+                                    <div :class="['text-[10px] font-black uppercase tracking-widest leading-none mb-1', theme.subtext]">{{ currentCountry.currency }}</div>
+                                    <div :class="['text-2xl font-black leading-none', theme.accent]">{{ Math.round(hotspot.price) }}</div>
                                 </div>
                             </div>
 
-                            <div class="flex items-center justify-between pt-4 border-t border-slate-50 mt-4">
-                                <div class="text-[11px] font-bold text-slate-500 flex items-center">
-                                    <svg class="w-3.5 h-3.5 mr-1 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <div :class="['flex items-center justify-between pt-4 border-t mt-4', currentTemplate === 'default' ? 'border-slate-50' : 'border-white/5']">
+                                <div :class="['text-[11px] font-bold flex items-center', theme.subtext]">
+                                    <svg class="w-3.5 h-3.5 mr-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                     {{ hotspot.validity || (hotspot.duration_value + ' ' + hotspot.duration_unit.charAt(0).toUpperCase() + hotspot.duration_unit.slice(1)) }}
                                 </div>
                                 <button 
                                     @click="openModal(hotspot)"
-                                    class="bg-blue-600 text-white font-black py-2.5 px-5 rounded-xl hover:bg-slate-900 transition-all duration-300 shadow-sm hover:shadow-blue-500/20 text-[11px] uppercase tracking-tighter active:scale-95 group-hover:bg-blue-700"
+                                    :class="['text-white font-black py-2.5 px-5 rounded-xl transition-all duration-300 shadow-sm text-[11px] uppercase tracking-tighter active:scale-95', theme.button]"
                                 >
                                     Buy Now
                                 </button>
@@ -789,53 +879,49 @@ function formatPhoneNumber(event) {
                     <p class="text-white/80 text-sm relative z-10">Secure payment via {{ paymentMethod === 'paystack' ? 'Paystack' : (paymentMethod === 'flutterwave' ? 'Flutterwave' : (paymentMethod === 'momo' ? 'MTN MoMo' : 'M-Pesa')) }}</p>
                 </div>
 
-                <div class="p-6">
+                <div :class="['p-6 transition-all duration-700', theme.bg]">
                     <div v-if="selectedHotspot" class="space-y-6">
                         <!-- Payment Method Selection -->
-                        <div v-if="supportedMethods.length > 1" class="flex p-1 bg-gray-100 rounded-xl">
+                        <div v-if="supportedMethods.length > 1" :class="['flex p-1 rounded-xl mb-6 transition-colors', currentTemplate === 'default' ? 'bg-gray-100' : 'bg-white/5']">
                             <button 
                                 v-if="supportedMethods.includes('mpesa')"
                                 @click="paymentMethod = 'mpesa'"
-                                class="flex-1 py-2 text-sm font-bold rounded-lg transition-all duration-200"
-                                :class="paymentMethod === 'mpesa' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'"
+                                :class="['flex-1 py-2 text-sm font-bold rounded-lg transition-all duration-200', paymentMethod === 'mpesa' ? theme.tabActive : theme.tabInactive]"
                             >
                                 M-Pesa
                             </button>
                             <button 
                                 v-if="supportedMethods.includes('momo')"
                                 @click="paymentMethod = 'momo'"
-                                class="flex-1 py-2 text-sm font-bold rounded-lg transition-all duration-200"
-                                :class="paymentMethod === 'momo' ? 'bg-white text-yellow-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'"
+                                :class="['flex-1 py-2 text-sm font-bold rounded-lg transition-all duration-200', paymentMethod === 'momo' ? theme.tabActive : theme.tabInactive]"
                             >
                                 MTN MoMo
                             </button>
                             <button 
                                 v-if="supportedMethods.includes('paystack')"
                                 @click="paymentMethod = 'paystack'"
-                                class="flex-1 py-2 text-sm font-bold rounded-lg transition-all duration-200"
-                                :class="paymentMethod === 'paystack' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'"
+                                :class="['flex-1 py-2 text-sm font-bold rounded-lg transition-all duration-200', paymentMethod === 'paystack' ? theme.tabActive : theme.tabInactive]"
                             >
                                 Paystack
                             </button>
                             <button 
                                 v-if="supportedMethods.includes('flutterwave')"
                                 @click="paymentMethod = 'flutterwave'"
-                                class="flex-1 py-2 text-sm font-bold rounded-lg transition-all duration-200"
-                                :class="paymentMethod === 'flutterwave' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'"
+                                :class="['flex-1 py-2 text-sm font-bold rounded-lg transition-all duration-200', paymentMethod === 'flutterwave' ? theme.tabActive : theme.tabInactive]"
                             >
                                 Flutterwave
                             </button>
                         </div>
-                        <div class="bg-gray-50 rounded-xl p-4 border border-gray-100 flex justify-between items-center">
+                        <div :class="['rounded-xl p-4 border flex justify-between items-center transition-all duration-700', theme.card]">
                             <div>
-                                <h4 class="font-bold text-gray-900">{{ selectedHotspot.name }}</h4>
-                                <div class="text-xs text-gray-500">{{ selectedHotspot.duration_value }} {{ selectedHotspot.duration_unit }} • {{ selectedHotspot.device_limit }} Devices</div>
+                                <h4 :class="['font-bold', theme.text]">{{ selectedHotspot.name }}</h4>
+                                <div :class="['text-xs', theme.subtext]">{{ selectedHotspot.duration_value }} {{ selectedHotspot.duration_unit }} • {{ selectedHotspot.device_limit }} Devices</div>
                             </div>
-                            <div class="text-xl font-bold text-blue-600">{{ currentCountry.currency }} {{ selectedHotspot.price }}</div>
+                            <div :class="['text-xl font-bold', theme.accent]">{{ currentCountry.currency }} {{ selectedHotspot.price }}</div>
                         </div>
 
                         <div>
-                            <label class="block text-sm font-bold text-gray-700 mb-2">
+                            <label :class="['block text-sm font-bold mb-2', theme.text]">
                                 {{ paymentMethod === 'paystack' ? 'Phone Number (for your account)' : (paymentMethod === 'momo' ? 'MoMo Phone Number' : 'M-Pesa Phone Number') }} 
                                 ({{ currentCountry.dial_code }})
                             </label>
@@ -845,11 +931,11 @@ function formatPhoneNumber(event) {
                                     @input="formatPhoneNumber"
                                     type="tel"
                                     placeholder="Enter phone number"
-                                    class="w-full pl-4 pr-4 py-3.5 bg-gray-50 border-2 border-gray-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-0 text-lg transition-colors font-mono"
+                                    :class="['w-full pl-4 pr-4 py-3.5 border-2 rounded-xl focus:bg-white text-lg transition-all font-mono', theme.input]"
                                     :disabled="isProcessing"
                                 />
                             </div>
-                            <p class="text-xs text-gray-500 mt-2">Format: {{ currentCountry.code === 'KE' ? '07XXXXXXXX or 01XXXXXXXX' : 'e.g. ' + currentCountry.dial_code + 'XXXXXXXX' }}</p>
+                            <p :class="['text-xs mt-2', theme.subtext]">Format: {{ currentCountry.code === 'KE' ? '07XXXXXXXX or 01XXXXXXXX' : 'e.g. ' + currentCountry.dial_code + 'XXXXXXXX' }}</p>
                         </div>
 
                         <div v-if="paymentMessage" class="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-xl flex items-start gap-3 relative overflow-hidden">
@@ -875,19 +961,19 @@ function formatPhoneNumber(event) {
                              <span class="text-sm font-medium">{{ paymentError }}</span>
                         </div>
 
-                        <div v-if="userCredentials" class="bg-blue-50 border border-blue-200 rounded-xl p-4">
-                            <h4 class="font-bold text-blue-900 mb-2 text-sm uppercase tracking-wide">Login Credentials</h4>
+                        <div v-if="userCredentials" :class="['rounded-xl p-4 transition-all duration-700', theme.card]">
+                            <h4 :class="['font-bold mb-2 text-sm uppercase tracking-wide', theme.text]">Login Credentials</h4>
                             <div class="grid grid-cols-2 gap-4 mb-4">
-                                <div class="bg-white p-2 rounded-lg border border-blue-100">
-                                    <div class="text-xs text-gray-500 mb-1">Username</div>
-                                    <div class="font-mono font-bold text-lg text-blue-600">{{ userCredentials.username }}</div>
+                                <div :class="['p-2 rounded-lg border transition-all', currentTemplate === 'default' ? 'bg-white border-blue-100' : 'bg-white/5 border-white/10']">
+                                    <div :class="['text-xs mb-1', theme.subtext]">Username</div>
+                                    <div :class="['font-mono font-bold text-lg', theme.accent]">{{ userCredentials.username }}</div>
                                 </div>
-                                <div class="bg-white p-2 rounded-lg border border-blue-100">
-                                    <div class="text-xs text-gray-500 mb-1">Password</div>
-                                    <div class="font-mono font-bold text-lg text-blue-600">{{ userCredentials.password }}</div>
+                                <div :class="['p-2 rounded-lg border transition-all', currentTemplate === 'default' ? 'bg-white border-blue-100' : 'bg-white/5 border-white/10']">
+                                    <div :class="['text-xs mb-1', theme.subtext]">Password</div>
+                                    <div :class="['font-mono font-bold text-lg', theme.accent]">{{ userCredentials.password }}</div>
                                 </div>
                             </div>
-                            <div class="bg-blue-600 text-white p-3 rounded-lg flex items-center justify-between">
+                            <div :class="['p-3 rounded-lg flex items-center justify-between transition-all shadow-lg', theme.button]">
                                 <div class="text-xs font-bold uppercase opacity-80">Validity Period</div>
                                 <div class="font-black text-sm uppercase tracking-tighter">Starts on first login: {{ userCredentials.duration }}</div>
                             </div>
@@ -898,7 +984,7 @@ function formatPhoneNumber(event) {
                                 v-if="!paymentMessage" 
                                 @click="processPayment"
                                 :disabled="isProcessing || !isValidPhoneNumber"
-                                class="w-full bg-slate-900 text-white font-bold py-4 px-6 rounded-xl hover:bg-blue-600 transition-all shadow-lg transform active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
+                                :class="['w-full font-bold py-4 px-6 rounded-xl transition-all shadow-lg transform active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2 text-white', theme.button]"
                             >
                                 <span v-if="isProcessing">Processing...</span>
                                 <span v-else>Pay {{ currentCountry.currency }} {{ selectedHotspot.price }}</span>
@@ -908,7 +994,7 @@ function formatPhoneNumber(event) {
                                 v-if="paymentMessage && !userCredentials"
                                 @click="checkPaymentStatus"
                                 :disabled="isCheckingPayment"
-                                class="w-full bg-blue-600 text-white font-bold py-4 px-6 rounded-xl hover:bg-blue-700 transition-all flex justify-center items-center gap-2"
+                                :class="['w-full font-bold py-4 px-6 rounded-xl transition-all flex justify-center items-center gap-2 text-white', theme.button]"
                             >
                                 <span v-if="isCheckingPayment">Checking Status...</span>
                                 <span v-else>I have Paid, Check Status</span>

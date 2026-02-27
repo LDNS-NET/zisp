@@ -183,6 +183,7 @@ class TenantHotspotController extends Controller
 
         return inertia('Hotspot/Suspended', [
             'tenant' => $tenantData,
+            'settings' => $settings,
         ]);
     }
 
