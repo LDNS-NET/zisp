@@ -63,4 +63,9 @@ return [
         'environment' => env('QUICKBOOKS_ENVIRONMENT', 'sandbox'),
     ],
 
+    'talksasa' => [
+        'api_key' => env('TALKSASA_API_KEY'),
+        'sender_id' => env('TALKSASA_SENDER_ID'),
+    ],
+
 ];

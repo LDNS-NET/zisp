@@ -2,7 +2,9 @@
 
 namespace App\Services;
 
+use App\Models\Tenant;
 use App\Models\TenantSmsGateway;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class SmsGatewayService
@@ -243,12 +245,22 @@ class SmsGatewayService
      */
     protected function sendViaTalksasaDefault(string $tenantId, string $phoneNumber, string $message): array
     {
-        $tenant = \App\Models\Tenant::find($tenantId);
-        
-        if (!$tenant) {
+        // IMPORTANT: We must query the Tenant model using the central database connection.
+        // When this method is called from a queued job, the DB connection may have been
+        // switched to the tenant's database by QueueTenancyBootstrapper. Without explicitly
+        // specifying the central connection, Tenant::find() would query the wrong DB and
+        // return null — causing SMS to stay in 'pending' forever.
+        $centralConnection = config('tenancy.database.central_connection', config('database.default'));
+        $tenantData = DB::connection($centralConnection)
+            ->table('tenants')
+            ->where('id', $tenantId)
+            ->first();
+
+        if (!$tenantData) {
+            Log::error("[SMS] Tenant not found in central DB for ID: {$tenantId}");
             return [
                 'success' => false,
-                'message' => "Tenant context not found."
+                'message' => "Tenant context not found for ID: {$tenantId}"
             ];
         }
 
@@ -256,27 +268,31 @@ class SmsGatewayService
         $charCount = mb_strlen($message);
         $units = ceil($charCount / 40);
         $cost = $units * 0.39;
+        $currentBalance = $tenantData->sms_balance ?? 0;
 
         // Check balance
-        if ($tenant->sms_balance < $cost) {
+        if ($currentBalance < $cost) {
             return [
                 'success' => false,
-                'message' => "Insufficient SMS balance (Cost: {$cost}, Balance: {$tenant->sms_balance}). Please top up."
+                'message' => "Insufficient SMS balance (Cost: {$cost}, Balance: {$currentBalance}). Please top up."
             ];
         }
 
         $this->talksasaService->setCredentials([
-            'api_key' => env('TALKSASA_API_KEY'),
-            'sender_id' => env('TALKSASA_SENDER_ID'),
+            'api_key' => config('services.talksasa.api_key'),
+            'sender_id' => config('services.talksasa.sender_id'),
         ]);
         
         $result = $this->talksasaService->sendSMS($phoneNumber, $message);
 
-        // Deduct balance on success
+        // Deduct balance on success — update via central connection directly to avoid tenant DB confusion
         if ($result['success']) {
-            $tenant->sms_balance -= $cost;
-            $tenant->save();
-            Log::info("[SMS] Deducted {$cost} from tenant {$tenantId} for SMS to {$phoneNumber}. Remaining balance: {$tenant->sms_balance}");
+            $newBalance = $currentBalance - $cost;
+            DB::connection($centralConnection)
+                ->table('tenants')
+                ->where('id', $tenantId)
+                ->update(['sms_balance' => $newBalance]);
+            Log::info("[SMS] Deducted {$cost} from tenant {$tenantId} for SMS to {$phoneNumber}. Remaining balance: {$newBalance}");
         }
 
         return $result;

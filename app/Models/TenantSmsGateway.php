@@ -9,7 +9,22 @@ use Illuminate\Support\Facades\Crypt;
 class TenantSmsGateway extends Model
 {
     use SoftDeletes;
-    
+
+    /**
+     * Always use the central DB connection for this model.
+     * This is critical for queued jobs where the DB context may have been
+     * switched to a tenant DB by QueueTenancyBootstrapper.
+     * The central_connection defaults to the app's default DB if not explicitly set.
+     */
+    protected $connection;
+
+    public function __construct(array $attributes = [])
+    {
+        parent::__construct($attributes);
+        // Dynamically resolve the central connection so config changes are respected
+        $this->connection = config('tenancy.database.central_connection', config('database.default'));
+    }
+
     protected $fillable = [
         'tenant_id', 
         'provider', 

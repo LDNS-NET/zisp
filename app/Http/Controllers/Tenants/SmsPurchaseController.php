@@ -24,7 +24,7 @@ class SmsPurchaseController extends Controller
     public function initialize(Request $request)
     {
         $request->validate([
-            'amount' => 'required|numeric|in:50,80,100,200,500,1000,1500,3000,5000,10000',
+            'amount' => 'required|numeric|min:50',
         ]);
 
         $tenant = tenant() ?: auth()->user()->tenant;
