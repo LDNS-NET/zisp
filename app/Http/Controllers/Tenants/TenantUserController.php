@@ -1121,13 +1121,13 @@ class TenantUserController extends Controller
                 'user_id' => $user->id,
                 'tenant_id' => $auth_tenant_id = auth()->user()->tenant_id ?? $user->tenant_id,
                 'amount' => $amountToPay,
-                'method' => 'wallet',
-                'reference' => 'WALL-R-' . strtoupper(\Str::random(8)),
+                'payment_method' => 'Wallet',
+                'payment_mode' => 'Wallet',
+                'receipt_number' => 'WALL-R-' . strtoupper(\Str::random(8)),
                 'status' => 'completed',
-                'type' => 'renewal',
-                'description' => 'Wallet payment for previously free/unpaid active duration.',
-                'recorded_by' => auth()->id(),
-                'payment_date' => now()
+                'comment' => 'Wallet payment for previously unpaid active duration.',
+                'created_by' => auth()->id(),
+                'paid_at' => now()
             ]);
 
             $renewal->amount_paid = $amountToPay;
