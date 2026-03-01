@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue';
-import { useForm } from '@inertiajs/vue3';
+import { useForm, router } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Modal from '@/Components/Modal.vue';
 import TextInput from '@/Components/TextInput.vue';
@@ -108,6 +108,31 @@ function confirmSubmit() {
     } else {
         form.post(route('users.store'), options);
     }
+}
+
+const processingPayment = ref(null);
+
+function payWithBalance(renewal) {
+    if (!confirm('Are you sure you want to deduct the package price from this user\'s wallet balance?')) {
+        return;
+    }
+    
+    processingPayment.value = renewal.id;
+    
+    router.post(route('users.renewals.pay-with-balance', { user: props.user.id, renewal: renewal.id }), {}, {
+        preserveScroll: true,
+        onSuccess: () => {
+            // Toast will be shown from the flash messages if present, or we can just rely on the session flash
+            processingPayment.value = null;
+        },
+        onError: () => {
+            // the toast is handled via page props usually, or we can leave it
+            processingPayment.value = null;
+        },
+        onFinish: () => {
+            processingPayment.value = null;
+        }
+    });
 }
 </script>
 
@@ -682,18 +707,29 @@ function confirmSubmit() {
                                     </div>
                                 </td>
                                 <td class="px-6 py-4 text-sm">
-                                    <span v-if="renewal.expires_at && new Date(renewal.expires_at) < new Date()"
-                                        class="inline-flex rounded-full px-2.5 py-1 text-xs font-bold transition-colors duration-200 shadow-sm bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 ring-1 ring-red-200 dark:ring-red-900/50">
-                                        Expired
-                                    </span>
-                                    <span v-else class="inline-flex rounded-full px-2.5 py-1 text-xs font-bold transition-colors duration-200 shadow-sm" 
-                                        :class="renewal.status === 'active' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 ring-1 ring-green-200 dark:ring-green-900/50' : 'bg-gray-100 text-gray-800 dark:bg-gray-700/50 dark:text-gray-300 ring-1 ring-gray-200 dark:ring-gray-700'">
-                                        {{ renewal.status.charAt(0).toUpperCase() + renewal.status.slice(1) }}
-                                    </span>
+                                    <div class="flex flex-col gap-2 items-start">
+                                        <div class="flex items-center gap-2">
+                                            <span v-if="renewal.expires_at && new Date(renewal.expires_at) < new Date()"
+                                                class="inline-flex rounded-full px-2.5 py-1 text-xs font-bold transition-colors duration-200 shadow-sm bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 ring-1 ring-red-200 dark:ring-red-900/50">
+                                                Expired
+                                            </span>
+                                            <span v-else class="inline-flex rounded-full px-2.5 py-1 text-xs font-bold transition-colors duration-200 shadow-sm" 
+                                                :class="renewal.status === 'active' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 ring-1 ring-green-200 dark:ring-green-900/50' : 'bg-gray-100 text-gray-800 dark:bg-gray-700/50 dark:text-gray-300 ring-1 ring-gray-200 dark:ring-gray-700'">
+                                                {{ renewal.status.charAt(0).toUpperCase() + renewal.status.slice(1) }}
+                                            </span>
+                                        </div>
+                                        <button v-if="Number(renewal.amount) === 0" 
+                                                @click.prevent="payWithBalance(renewal)"
+                                                :disabled="processingPayment === renewal.id"
+                                                class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 rounded-lg text-xs font-bold transition-colors disabled:opacity-50 border border-indigo-100 dark:border-indigo-500/20 shadow-sm mt-1">
+                                            <Wallet class="w-3.5 h-3.5" />
+                                            <span>{{ processingPayment === renewal.id ? 'Processing...' : 'Pay via Wallet' }}</span>
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                             <tr v-if="!props.renewals.data || props.renewals.data.length === 0">
-                                <td colspan="4" class="px-6 py-12 text-center">
+                                <td colspan="5" class="px-6 py-12 text-center">
                                     <History class="w-12 h-12 text-gray-200 dark:text-gray-700 mx-auto mb-3" />
                                     <p class="text-sm font-medium text-gray-500 dark:text-gray-400">No renewal history found for this user.</p>
                                 </td>

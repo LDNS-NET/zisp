@@ -330,6 +330,7 @@ class TenantUserController extends Controller
                 'id' => $renewal->id,
                 'package_name' => $renewal->package?->name ?? 'N/A',
                 'amount' => $renewal->amount_paid,
+                'type' => $renewal->type ?? 'renewal',
                 'started_at' => $renewal->started_at,
                 'expires_at' => $renewal->expires_at,
                 'status' => $renewal->status,
@@ -1085,6 +1086,63 @@ class TenantUserController extends Controller
                 'trace' => $e->getTraceAsString()
             ]);
             return back()->withErrors(['error' => 'RADIUS sync failed: ' . $e->getMessage()]);
+        }
+    }
+
+    public function payRenewalWithBalance(\App\Models\Tenants\NetworkUser $user, \App\Models\Tenants\PackageRenewal $renewal)
+    {
+        try {
+            // Verify the renewal belongs to the user
+            if ($renewal->user_id !== $user->id) {
+                return back()->with('error', 'Invalid renewal record.');
+            }
+
+            // Check if amount is already paid
+            if ((float)$renewal->amount_paid > 0) {
+                return back()->with('error', 'This duration has already been paid for.');
+            }
+
+            // Determine the price to deduct based on actual user's package
+            // Using user->package->price as the reliable cost for a 1-month equivalent renewal
+            $amountToPay = $user->package->price ?? 0;
+
+            if ($amountToPay <= 0) {
+                return back()->with('error', 'Unable to determine the package price to pay.');
+            }
+
+            if ($user->wallet_balance < $amountToPay) {
+                return back()->with('error', "Insufficient wallet balance. Please top up KES " . number_format($amountToPay - $user->wallet_balance) . " to proceed.");
+            }
+
+            \DB::beginTransaction();
+
+            $user->wallet_balance -= $amountToPay;
+            $user->save();
+
+            \App\Models\Tenants\TenantPayment::create([
+                'user_id' => $user->id,
+                'tenant_id' => $auth_tenant_id = auth()->user()->tenant_id ?? $user->tenant_id,
+                'amount' => $amountToPay,
+                'method' => 'wallet',
+                'reference' => 'WALL-R-' . strtoupper(\Str::random(8)),
+                'status' => 'completed',
+                'type' => 'renewal',
+                'description' => 'Wallet payment for previously free/unpaid active duration.',
+                'recorded_by' => auth()->id(),
+                'payment_date' => now()
+            ]);
+
+            $renewal->amount_paid = $amountToPay;
+            $renewal->save();
+
+            \DB::commit();
+
+            return back()->with('success', 'Successfully paid for the duration using wallet balance.');
+
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            \Log::error('Failed to pay renewal with balance: ' . $e->getMessage());
+            return back()->withErrors(['error' => 'Failed to process payment: ' . $e->getMessage()]);
         }
     }
 }
