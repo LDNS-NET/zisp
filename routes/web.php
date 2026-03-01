@@ -283,6 +283,8 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode', 'sta
                 ->middleware('throttle:bulk_actions')
                 ->name('users.sync-to-radius');
             Route::post('users/details', [TenantUserController::class, 'update'])->name('users.details.update');
+            Route::post('users/{user}/renewals/{renewal}/pay-with-balance', [TenantUserController::class, 'payRenewalWithBalance'])
+                ->name('users.renewals.pay-with-balance');
             
             Route::resource('users', TenantUserController::class)->middleware('throttle:user_crud');
         });
