@@ -349,8 +349,9 @@ const formatDate = (date) => {
 
                 <template v-if="activeTab === 'users'">
                     <!-- Advanced Filters & Actions -->
+                    <!-- Advanced Filters & Actions -->
                     <div
-                        class="mb-8 rounded-[2.5rem] border border-slate-200 bg-white p-6 shadow-2xl shadow-slate-200/50 dark:border-slate-800 dark:bg-slate-900 dark:shadow-none"
+                        class="mb-8 rounded-[2.5rem] border border-slate-300 bg-white p-6 shadow-xl shadow-slate-300/60 dark:border-slate-800 dark:bg-slate-900 dark:shadow-none"
                     >
                         <div
                             class="flex flex-col items-center gap-6 lg:flex-row"
@@ -364,7 +365,7 @@ const formatDate = (date) => {
                                     v-model="search"
                                     type="text"
                                     placeholder="Search by name, account or phone..."
-                                    class="focus:ring-primary-500/20 w-full rounded-2xl border-none bg-slate-50 py-3.5 pl-12 pr-4 text-base font-medium text-slate-900 transition-all placeholder:text-slate-400 hover:bg-slate-100 focus:bg-white focus:ring-4 dark:bg-slate-800/80 dark:text-white dark:hover:bg-slate-800 dark:focus:bg-slate-800"
+                                    class="focus:ring-primary-500/20 w-full rounded-2xl border border-slate-200 bg-slate-100 py-3.5 pl-12 pr-4 text-base font-medium text-slate-900 transition-all placeholder:text-slate-400 hover:border-slate-300 hover:bg-slate-200 focus:border-transparent focus:bg-white focus:ring-4 dark:border-slate-700 dark:bg-slate-800/80 dark:text-white dark:hover:border-slate-600 dark:hover:bg-slate-800 dark:focus:border-transparent dark:focus:bg-slate-800"
                                 />
                             </div>
 
@@ -379,7 +380,7 @@ const formatDate = (date) => {
                                     />
                                     <select
                                         v-model="location"
-                                        class="focus:ring-primary-500/20 w-full cursor-pointer appearance-none rounded-2xl border-none bg-slate-50 py-3.5 pl-12 pr-4 text-sm font-medium text-slate-900 transition-all hover:bg-slate-100 focus:bg-white focus:ring-4 dark:bg-slate-800/80 dark:text-white dark:hover:bg-slate-800 dark:focus:bg-slate-800"
+                                        class="focus:ring-primary-500/20 w-full cursor-pointer appearance-none rounded-2xl border border-slate-200 bg-slate-100 py-3.5 pl-12 pr-4 text-sm font-medium text-slate-900 transition-all hover:border-slate-300 hover:bg-slate-200 focus:border-transparent focus:bg-white focus:ring-4 dark:border-slate-700 dark:bg-slate-800/80 dark:text-white dark:hover:border-slate-600 dark:hover:bg-slate-800 dark:focus:border-transparent dark:focus:bg-slate-800"
                                     >
                                         <option value="">All Regions</option>
                                         <option
@@ -402,7 +403,7 @@ const formatDate = (date) => {
                                     />
                                     <select
                                         v-model="routerId"
-                                        class="focus:ring-primary-500/20 w-full cursor-pointer appearance-none rounded-2xl border-none bg-slate-50 py-3.5 pl-12 pr-4 text-sm font-medium text-slate-900 transition-all hover:bg-slate-100 focus:bg-white focus:ring-4 dark:bg-slate-800/80 dark:text-white dark:hover:bg-slate-800 dark:focus:bg-slate-800"
+                                        class="focus:ring-primary-500/20 w-full cursor-pointer appearance-none rounded-2xl border border-slate-200 bg-slate-100 py-3.5 pl-12 pr-4 text-sm font-medium text-slate-900 transition-all hover:border-slate-300 hover:bg-slate-200 focus:border-transparent focus:bg-white focus:ring-4 dark:border-slate-700 dark:bg-slate-800/80 dark:text-white dark:hover:border-slate-600 dark:hover:bg-slate-800 dark:focus:border-transparent dark:focus:bg-slate-800"
                                     >
                                         <option value="">
                                             All Controllers
