@@ -1117,20 +1117,6 @@ class TenantUserController extends Controller
             $user->wallet_balance -= $amountToPay;
             $user->save();
 
-            \App\Models\Tenants\TenantPayment::create([
-                'user_id' => $user->id,
-                'phone' => $user->phone ?? '0000000000',
-                'tenant_id' => $auth_tenant_id = auth()->user()->tenant_id ?? $user->tenant_id,
-                'amount' => $amountToPay,
-                'payment_method' => 'Wallet',
-                'payment_mode' => 'Wallet',
-                'receipt_number' => 'WALL-R-' . strtoupper(\Str::random(8)),
-                'status' => 'completed',
-                'comment' => 'Wallet payment for previously unpaid active duration.',
-                'created_by' => auth()->id(),
-                'paid_at' => now()
-            ]);
-
             $renewal->amount_paid = $amountToPay;
             $renewal->save();
 
