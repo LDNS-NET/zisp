@@ -85,6 +85,8 @@ class TenantSMSController extends Controller
             'recipients' => 'nullable|array',
             'recipients.*' => 'exists:network_users,id',
             'filters' => 'nullable|array',
+            'filters.locations' => 'nullable|array',
+            'filters.locations.*' => 'nullable|string|max:255',
             'message' => 'required|string|max:500',
         ]);
 
@@ -92,9 +94,13 @@ class TenantSMSController extends Controller
             $query = NetworkUser::query();
             $filters = $validated['filters'];
 
-            if (!empty($filters['location'])) {
-                // Partial match — matches any location name containing the typed text
-                $query->where('location', 'like', '%' . $filters['location'] . '%');
+            if (!empty($filters['locations'])) {
+                // OR match across all selected locations (partial text match per location)
+                $query->where(function ($q) use ($filters) {
+                    foreach ($filters['locations'] as $loc) {
+                        $q->orWhere('location', 'like', '%' . $loc . '%');
+                    }
+                });
             }
             if (!empty($filters['package_id'])) {
                 $query->where('package_id', $filters['package_id']);
@@ -235,9 +241,13 @@ class TenantSMSController extends Controller
     {
         $query = NetworkUser::query();
         
-        if ($request->location) {
-            // Partial match — same as the store() filter
-            $query->where('location', 'like', '%' . $request->location . '%');
+        if (!empty($request->locations) && is_array($request->locations)) {
+            // OR match across all selected locations
+            $query->where(function ($q) use ($request) {
+                foreach ($request->locations as $loc) {
+                    $q->orWhere('location', 'like', '%' . $loc . '%');
+                }
+            });
         }
         if ($request->package_id) {
             $query->where('package_id', $request->package_id);

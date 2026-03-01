@@ -80,13 +80,30 @@ const composeMode = ref('filter'); // 'filter' or 'manual'
 const recipientCount = ref(0);
 const isCalculating = ref(false);
 
-// Location autocomplete state
+// Location multi-tag state
+const locationInput = ref('');
 const showLocationSuggestions = ref(false);
+
 const filteredLocationSuggestions = computed(() => {
-    const q = (form.filters.location || '').toLowerCase().trim();
-    if (!q) return props.locations || [];
-    return (props.locations || []).filter(loc => loc.toLowerCase().includes(q));
+    const q = locationInput.value.toLowerCase().trim();
+    const selected = form.filters.locations || [];
+    // Show only locations not already added
+    const pool = (props.locations || []).filter(loc => !selected.includes(loc));
+    if (!q) return pool;
+    return pool.filter(loc => loc.toLowerCase().includes(q));
 });
+
+const addLocation = (loc) => {
+    const trimmed = loc.trim();
+    if (!trimmed || form.filters.locations.includes(trimmed)) return;
+    form.filters.locations.push(trimmed);
+    locationInput.value = '';
+    showLocationSuggestions.value = false;
+};
+
+const removeLocation = (index) => {
+    form.filters.locations.splice(index, 1);
+};
 
 const availableVariables = [
     { label: 'Full Name', value: '{full_name}' },
@@ -102,7 +119,7 @@ const availableVariables = [
 const form = useForm({
     recipients: [], // Array of {id, full_name, phone} objects
     filters: {
-        location: '',
+        locations: [],  // Array of location strings (multi-select)
         package_id: '',
         status: '', // 'active', 'expired', 'expiring_soon'
         search: '',
@@ -207,9 +224,8 @@ watch(() => form.filters, debounce(async (newFilters) => {
 const openCompose = () => {
     form.reset();
     showCompose.value = true;
-    // Trigger initial count
     if (composeMode.value === 'filter') {
-        form.filters = { location: '', package_id: '', status: '', search: '' }; // Trigger watcher
+        form.filters = { locations: [], package_id: '', status: '', search: '' }; // Trigger watcher
     }
 };
 
@@ -494,16 +510,42 @@ const formatDate = (date) => {
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                         <MapPin class="w-3 h-3 inline mr-1" /> Location / Building
                                     </label>
-                                    <input
-                                        v-model="form.filters.location"
-                                        type="text"
-                                        placeholder="Type location name..."
-                                        autocomplete="off"
-                                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 text-sm"
-                                        @focus="showLocationSuggestions = true"
-                                        @blur="setTimeout(() => showLocationSuggestions = false, 150)"
-                                    />
-                                    <!-- Autocomplete suggestions -->
+
+                                    <!-- Tag chips for selected locations -->
+                                    <div
+                                        class="min-h-[38px] w-full flex flex-wrap gap-1.5 items-center rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1.5 cursor-text"
+                                        @click="$refs.locationInputRef.focus()"
+                                    >
+                                        <span
+                                            v-for="(loc, i) in form.filters.locations"
+                                            :key="i"
+                                            class="inline-flex items-center gap-1 bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 text-xs font-medium px-2 py-0.5 rounded-full"
+                                        >
+                                            <MapPin class="w-2.5 h-2.5 flex-shrink-0" />
+                                            {{ loc }}
+                                            <button
+                                                type="button"
+                                                @click.stop="removeLocation(i)"
+                                                class="ml-0.5 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                                            ><X class="w-2.5 h-2.5" /></button>
+                                        </span>
+
+                                        <!-- Text input -->
+                                        <input
+                                            ref="locationInputRef"
+                                            v-model="locationInput"
+                                            type="text"
+                                            placeholder="Type location, press Enter..."
+                                            autocomplete="off"
+                                            class="flex-1 min-w-[100px] border-0 bg-transparent text-sm text-gray-700 dark:text-gray-200 outline-none focus:ring-0 p-0 placeholder-gray-400"
+                                            @focus="showLocationSuggestions = true"
+                                            @blur="setTimeout(() => showLocationSuggestions = false, 150)"
+                                            @keydown.enter.prevent="addLocation(locationInput)"
+                                            @keydown.backspace="!locationInput && form.filters.locations.length && removeLocation(form.filters.locations.length - 1)"
+                                        />
+                                    </div>
+
+                                    <!-- Autocomplete dropdown -->
                                     <div
                                         v-if="showLocationSuggestions && filteredLocationSuggestions.length > 0"
                                         class="absolute z-50 left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl max-h-48 overflow-y-auto"
@@ -512,22 +554,13 @@ const formatDate = (date) => {
                                             v-for="loc in filteredLocationSuggestions"
                                             :key="loc"
                                             type="button"
-                                            @mousedown.prevent="form.filters.location = loc; showLocationSuggestions = false"
+                                            @mousedown.prevent="addLocation(loc)"
                                             class="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-orange-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-2"
                                         >
                                             <MapPin class="w-3 h-3 text-orange-500 flex-shrink-0" />
                                             {{ loc }}
                                         </button>
                                     </div>
-                                    <!-- Clear button -->
-                                    <button
-                                        v-if="form.filters.location"
-                                        type="button"
-                                        @click="form.filters.location = ''"
-                                        class="absolute right-2 top-8 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                                    >
-                                        <X class="w-3.5 h-3.5" />
-                                    </button>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
