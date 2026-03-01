@@ -505,7 +505,7 @@ const formatDate = (date) => {
                         <!-- Smart Filters Section -->
                         <div v-show="composeMode === 'filter'" class="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
                             
-                            <div class="grid grid-cols-2 gap-4">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div class="relative">
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                         <MapPin class="w-3 h-3 inline mr-1" /> Location / Building
@@ -530,19 +530,31 @@ const formatDate = (date) => {
                                             ><X class="w-2.5 h-2.5" /></button>
                                         </span>
 
-                                        <!-- Text input -->
-                                        <input
-                                            ref="locationInputRef"
-                                            v-model="locationInput"
-                                            type="text"
-                                            placeholder="Type location, press Enter..."
-                                            autocomplete="off"
-                                            class="flex-1 min-w-[100px] border-0 bg-transparent text-sm text-gray-700 dark:text-gray-200 outline-none focus:ring-0 p-0 placeholder-gray-400"
-                                            @focus="showLocationSuggestions = true"
-                                            @blur="setTimeout(() => showLocationSuggestions = false, 150)"
-                                            @keydown.enter.prevent="addLocation(locationInput)"
-                                            @keydown.backspace="!locationInput && form.filters.locations.length && removeLocation(form.filters.locations.length - 1)"
-                                        />
+                                        <!-- Text input and Add button -->
+                                        <div class="flex-1 flex items-center min-w-[120px]">
+                                            <input
+                                                ref="locationInputRef"
+                                                v-model="locationInput"
+                                                type="text"
+                                                placeholder="Type location, press Enter..."
+                                                autocomplete="off"
+                                                class="w-full border-0 bg-transparent text-sm text-gray-700 dark:text-gray-200 outline-none focus:ring-0 p-0 placeholder-gray-400"
+                                                @focus="showLocationSuggestions = true"
+                                                @blur="setTimeout(() => showLocationSuggestions = false, 150)"
+                                                @keydown.enter.prevent="addLocation(locationInput)"
+                                                @keydown.backspace="!locationInput && form.filters.locations.length && removeLocation(form.filters.locations.length - 1)"
+                                            />
+                                            <button 
+                                                v-if="locationInput.trim()"
+                                                type="button"
+                                                @click.stop="addLocation(locationInput); $refs.locationInputRef.focus()"
+                                                @touchstart.prevent="addLocation(locationInput); $refs.locationInputRef.focus()"
+                                                class="ml-1 p-1 bg-orange-100 hover:bg-orange-200 dark:bg-orange-900/40 dark:hover:bg-orange-800/60 text-orange-600 dark:text-orange-400 rounded transition-colors"
+                                                title="Add location"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                            </button>
+                                        </div>
                                     </div>
 
                                     <!-- Autocomplete dropdown -->
@@ -555,6 +567,7 @@ const formatDate = (date) => {
                                             :key="loc"
                                             type="button"
                                             @mousedown.prevent="addLocation(loc)"
+                                            @touchstart.prevent="addLocation(loc)"
                                             class="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-orange-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-2"
                                         >
                                             <MapPin class="w-3 h-3 text-orange-500 flex-shrink-0" />
