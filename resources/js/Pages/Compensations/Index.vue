@@ -24,9 +24,17 @@ const search = ref(props.filters.search || '');
 const location = ref(props.filters.location || '');
 const routerId = ref(props.filters.router_id || '');
 const showCompensateModal = ref(false);
+const showDetailsModal = ref(false);
+const selectedCompensation = ref(null);
 const selectedUsers = ref([]);
 const activeTab = ref('users');
 const isBulkMode = ref(false);
+
+const openDetailsModal = (comp) => {
+    selectedCompensation.value = comp;
+    showDetailsModal.value = true;
+};
+
 
 const compensateForm = useForm({
     user_ids: [],
@@ -37,6 +45,7 @@ const compensateForm = useForm({
     search: '',
     location: '',
     notify_users: false,
+    compensation_type: 'system',
     sms_template: props.default_template?.content || '',
 });
 
@@ -395,7 +404,7 @@ const formatDate = (date) => {
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-                                    <tr v-for="comp in compensations.data" :key="comp.id" class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-all duration-300">
+                                    <tr v-for="comp in compensations.data" :key="comp.id" @click="openDetailsModal(comp)" class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-all duration-300 cursor-pointer">
                                         <td class="px-8 py-6">
                                             <div class="flex items-center gap-3">
                                                 <Calendar class="w-4.5 h-4.5 text-primary-500" />
@@ -408,10 +417,18 @@ const formatDate = (date) => {
                                         <td class="px-8 py-6">
                                             <span class="text-base font-bold text-slate-900 dark:text-white">{{ comp.user?.full_name || 'Legacy Account' }}</span>
                                         </td>
-                                        <td class="px-8 py-6 text-center">
-                                            <span class="inline-flex items-center px-4 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-sm font-black italic rounded-xl border border-emerald-100 dark:border-emerald-500/20">
-                                                +{{ comp.duration_value }} {{ comp.duration_unit }}
-                                            </span>
+                                        <td class="px-8 py-6 text-center text-sm font-black italic">
+                                            <div class="flex flex-col items-center gap-2">
+                                                <span class="inline-flex items-center px-4 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl border border-emerald-100 dark:border-emerald-500/20">
+                                                    +{{ comp.duration_value }} {{ comp.duration_unit }}
+                                                </span>
+                                                <span 
+                                                    class="inline-flex items-center px-2 py-0.5 text-[10px] font-bold uppercase rounded-md border"
+                                                    :class="comp.type === 'payment' ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-100 dark:border-indigo-500/20' : 'bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700'"
+                                                >
+                                                    {{ comp.type === 'payment' ? 'Paid via Wallet' : 'System Grant' }}
+                                                </span>
+                                            </div>
                                         </td>
                                         <td class="px-8 py-6">
                                             <div class="flex items-center gap-3">
@@ -474,6 +491,30 @@ const formatDate = (date) => {
                     </div>
 
                     <div class="space-y-8">
+                        <div class="space-y-3">
+                            <label class="text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Compensation Type</label>
+                            <div class="grid grid-cols-2 gap-4">
+                                <label class="cursor-pointer">
+                                    <input type="radio" v-model="compensateForm.compensation_type" value="system" class="peer sr-only" />
+                                    <div class="flex items-center justify-center p-4 bg-slate-50 dark:bg-slate-800/80 border-2 border-transparent peer-checked:border-primary peer-checked:bg-primary/5 rounded-2xl transition-all">
+                                        <div class="flex flex-col items-center">
+                                            <span class="text-sm font-black text-slate-900 dark:text-white">System Grant</span>
+                                            <span class="text-[10px] text-slate-500 uppercase tracking-widest">Free Extension</span>
+                                        </div>
+                                    </div>
+                                </label>
+                                <label class="cursor-pointer" title="Deducts exact package price from user's wallet balance">
+                                    <input type="radio" v-model="compensateForm.compensation_type" value="payment" class="peer sr-only" />
+                                    <div class="flex items-center justify-center p-4 bg-slate-50 dark:bg-slate-800/80 border-2 border-transparent peer-checked:border-indigo-500 peer-checked:bg-indigo-500/5 rounded-2xl transition-all">
+                                        <div class="flex flex-col items-center">
+                                            <span class="text-sm font-black text-slate-900 dark:text-white">Paid via Wallet</span>
+                                            <span class="text-[10px] text-slate-500 uppercase tracking-widest">Deducts Balance</span>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
                         <div class="grid grid-cols-2 gap-8">
                             <div class="space-y-3">
                                 <label class="text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Duration Value</label>
@@ -578,6 +619,79 @@ const formatDate = (date) => {
                             <Plus v-if="!compensateForm.processing" class="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
                             <span v-if="!compensateForm.processing">Deploy Compensation</span>
                             <span v-else>Processing Deployment...</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Compensation Details Modal -->
+        <div v-if="showDetailsModal && selectedCompensation" class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-slate-950/40 backdrop-blur-md" @click="showDetailsModal = false"></div>
+            
+            <div class="relative bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl w-full max-w-lg border border-white/20 dark:border-slate-800 overflow-hidden transform transition-all animate-in zoom-in-95 duration-300">
+                <div class="absolute top-0 left-0 -mt-16 -ml-16 w-48 h-48 rounded-full blur-3xl" :class="selectedCompensation.type === 'payment' ? 'bg-indigo-500/10' : 'bg-emerald-500/10'"></div>
+                
+                <div class="relative p-10">
+                    <div class="flex justify-between items-start mb-8">
+                        <div class="flex items-center gap-4">
+                            <div class="w-14 h-14 rounded-[1.5rem] bg-gradient-to-br flex items-center justify-center text-white shadow-xl shadow-slate-500/20"
+                                :class="selectedCompensation.type === 'payment' ? 'from-indigo-400 to-indigo-600' : 'from-emerald-400 to-emerald-600'">
+                                <History class="w-6 h-6" />
+                            </div>
+                            <div>
+                                <h2 class="text-xl font-black text-slate-900 dark:text-white tracking-tight">Timeline Event</h2>
+                                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded flex items-center gap-1 w-max mt-1">
+                                    {{ formatDate(selectedCompensation.created_at) }}
+                                </span>
+                            </div>
+                        </div>
+                        <button @click="showDetailsModal = false" class="p-2 hover:bg-slate-100 dark:bg-slate-800 rounded-full transition-colors text-slate-400">
+                            <X class="w-5 h-5" />
+                        </button>
+                    </div>
+
+                    <div class="space-y-6">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl">
+                                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none block mb-1">Account Holder</span>
+                                <span class="text-sm font-bold text-slate-900 dark:text-white">{{ selectedCompensation.user?.full_name || 'N/A' }}</span>
+                            </div>
+                            <div class="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl">
+                                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none block mb-1">Event Type</span>
+                                <span class="text-sm font-bold truncate block" :class="selectedCompensation.type === 'payment' ? 'text-indigo-600 dark:text-indigo-400' : 'text-emerald-600 dark:text-emerald-400'">
+                                    {{ selectedCompensation.type === 'payment' ? 'Paid via Wallet' : 'System Grant' }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl flex items-center justify-between">
+                            <div class="flex flex-col">
+                                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none block mb-1">Old Expiration</span>
+                                <span class="text-sm font-medium text-slate-600 dark:text-slate-400 line-through">{{ formatDate(selectedCompensation.old_expires_at) }}</span>
+                            </div>
+                            <ArrowUpRight class="w-5 h-5 text-emerald-500 mx-2" />
+                            <div class="flex flex-col items-end">
+                                <span class="text-[10px] font-black text-emerald-500/70 uppercase tracking-widest leading-none block mb-1">+{{ selectedCompensation.duration_value }} {{ selectedCompensation.duration_unit }}</span>
+                                <span class="text-sm font-bold text-slate-900 dark:text-emerald-400">{{ formatDate(selectedCompensation.new_expires_at) }}</span>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-2xl">
+                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none block mb-3">Admin Signature & Reason</span>
+                            <div class="flex items-start gap-3">
+                                <div class="w-8 h-8 shrink-0 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center font-black text-xs text-slate-500 uppercase mt-0.5">
+                                    {{ selectedCompensation.creator?.name ? selectedCompensation.creator.name.charAt(0) : 'S' }}
+                                </div>
+                                <div class="flex flex-col">
+                                    <span class="text-sm font-bold text-slate-700 dark:text-slate-300">{{ selectedCompensation.creator?.name || 'System' }}</span>
+                                    <span class="text-sm text-slate-500 italic mt-1 leading-relaxed">{{ selectedCompensation.reason || 'No additional reason provided.' }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button @click="showDetailsModal = false" class="w-full py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-slate-800 dark:hover:bg-slate-100 transition-colors">
+                            Close Record
                         </button>
                     </div>
                 </div>
