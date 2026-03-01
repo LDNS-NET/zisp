@@ -1089,8 +1089,12 @@ class TenantUserController extends Controller
         }
     }
 
-    public function payRenewalWithBalance(\App\Models\Tenants\NetworkUser $user, \App\Models\Tenants\PackageRenewal $renewal)
+    public function payRenewalWithBalance(\Illuminate\Http\Request $request, \App\Models\Tenants\NetworkUser $user, \App\Models\Tenants\PackageRenewal $renewal)
     {
+        $validated = $request->validate([
+            'amount' => 'required|numeric|min:0.01'
+        ]);
+
         try {
             // Verify the renewal belongs to the user
             if ($renewal->user_id !== $user->id) {
@@ -1102,13 +1106,7 @@ class TenantUserController extends Controller
                 return back()->with('error', 'This duration has already been paid for.');
             }
 
-            // Determine the price to deduct based on actual user's package
-            // Using user->package->price as the reliable cost for a 1-month equivalent renewal
-            $amountToPay = $user->package->price ?? 0;
-
-            if ($amountToPay <= 0) {
-                return back()->with('error', 'Unable to determine the package price to pay.');
-            }
+            $amountToPay = (float)$validated['amount'];
 
             if ($user->wallet_balance < $amountToPay) {
                 return back()->with('error', "Insufficient wallet balance. Please top up KES " . number_format($amountToPay - $user->wallet_balance) . " to proceed.");

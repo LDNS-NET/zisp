@@ -110,27 +110,30 @@ function confirmSubmit() {
     }
 }
 
-const processingPayment = ref(null);
+const showPayWalletModal = ref(false);
+const selectedRenewal = ref(null);
+const payWalletForm = useForm({
+    amount: ''
+});
 
-function payWithBalance(renewal) {
-    if (!confirm('Are you sure you want to deduct the package price from this user\'s wallet balance?')) {
-        return;
-    }
-    
-    processingPayment.value = renewal.id;
-    
-    router.post(route('users.renewals.pay-with-balance', { user: props.user.uuid, renewal: renewal.id }), {}, {
+function openPayWalletModal(renewal) {
+    selectedRenewal.value = renewal;
+    payWalletForm.amount = props.user.package?.price || '';
+    showPayWalletModal.value = true;
+}
+
+function submitPayWallet() {
+    payWalletForm.post(route('users.renewals.pay-with-balance', { 
+        user: props.user.uuid, 
+        renewal: selectedRenewal.value.id 
+    }), {
         preserveScroll: true,
         onSuccess: () => {
-            // Toast will be shown from the flash messages if present, or we can just rely on the session flash
-            processingPayment.value = null;
+            showPayWalletModal.value = false;
+            toast.success('Successfully paid duration via wallet balance.');
         },
         onError: () => {
-            // the toast is handled via page props usually, or we can leave it
-            processingPayment.value = null;
-        },
-        onFinish: () => {
-            processingPayment.value = null;
+            toast.error('Failed to process payment. Please check balance and form errors.');
         }
     });
 }
@@ -719,11 +722,10 @@ function payWithBalance(renewal) {
                                             </span>
                                         </div>
                                         <button v-if="Number(renewal.amount) === 0" 
-                                                @click.prevent="payWithBalance(renewal)"
-                                                :disabled="processingPayment === renewal.id"
-                                                class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 rounded-lg text-xs font-bold transition-colors disabled:opacity-50 border border-indigo-100 dark:border-indigo-500/20 shadow-sm mt-1">
+                                                @click.prevent="openPayWalletModal(renewal)"
+                                                class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 rounded-lg text-xs font-bold transition-colors border border-indigo-100 dark:border-indigo-500/20 shadow-sm mt-1">
                                             <Wallet class="w-3.5 h-3.5" />
-                                            <span>{{ processingPayment === renewal.id ? 'Processing...' : 'Pay via Wallet' }}</span>
+                                            <span>Pay via Wallet</span>
                                         </button>
                                     </div>
                                 </td>
@@ -819,6 +821,40 @@ function payWithBalance(renewal) {
                     <div class="mt-6 flex justify-end gap-3">
                         <DangerButton type="button" @click="showModal = false">Cancel</DangerButton>
                         <PrimaryButton :disabled="form.processing">{{ editing ? 'Update User' : 'Create User' }}</PrimaryButton>
+                    </div>
+                </form>
+            </div>
+        </Modal>
+
+        <!-- Pay via Wallet Modal -->
+        <Modal :show="showPayWalletModal" @close="showPayWalletModal = false">
+            <div class="p-6 dark:bg-slate-800 dark:text-white">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                    Pay Renewal with Wallet Balance
+                </h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
+                    Enter the amount you wish to deduct from the user's wallet balance for this active duration. This will mark the duration as paid.
+                </p>
+                
+                <form @submit.prevent="submitPayWallet" class="space-y-4">
+                    <div>
+                        <InputLabel for="wallet_amount" value="Amount to Deduct (KES)" />
+                        <TextInput 
+                            v-model="payWalletForm.amount" 
+                            id="wallet_amount" 
+                            type="number" 
+                            step="0.01"
+                            class="mt-1 block w-full" 
+                            required 
+                        />
+                        <InputError :message="payWalletForm.errors.amount" />
+                    </div>
+
+                    <div class="mt-6 flex justify-end gap-3">
+                        <DangerButton type="button" @click="showPayWalletModal = false">Cancel</DangerButton>
+                        <PrimaryButton :disabled="payWalletForm.processing">
+                            Deduct & Pay
+                        </PrimaryButton>
                     </div>
                 </form>
             </div>
