@@ -80,6 +80,14 @@ const composeMode = ref('filter'); // 'filter' or 'manual'
 const recipientCount = ref(0);
 const isCalculating = ref(false);
 
+// Location autocomplete state
+const showLocationSuggestions = ref(false);
+const filteredLocationSuggestions = computed(() => {
+    const q = (form.filters.location || '').toLowerCase().trim();
+    if (!q) return props.locations || [];
+    return (props.locations || []).filter(loc => loc.toLowerCase().includes(q));
+});
+
 const availableVariables = [
     { label: 'Full Name', value: '{full_name}' },
     { label: 'Phone', value: '{phone}' },
@@ -482,14 +490,44 @@ const formatDate = (date) => {
                         <div v-show="composeMode === 'filter'" class="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
                             
                             <div class="grid grid-cols-2 gap-4">
-                                <div>
+                                <div class="relative">
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                         <MapPin class="w-3 h-3 inline mr-1" /> Location / Building
                                     </label>
-                                    <select v-model="form.filters.location" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 text-sm">
-                                        <option value="">All Locations</option>
-                                        <option v-for="loc in locations" :key="loc" :value="loc">{{ loc }}</option>
-                                    </select>
+                                    <input
+                                        v-model="form.filters.location"
+                                        type="text"
+                                        placeholder="Type location name..."
+                                        autocomplete="off"
+                                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 text-sm"
+                                        @focus="showLocationSuggestions = true"
+                                        @blur="setTimeout(() => showLocationSuggestions = false, 150)"
+                                    />
+                                    <!-- Autocomplete suggestions -->
+                                    <div
+                                        v-if="showLocationSuggestions && filteredLocationSuggestions.length > 0"
+                                        class="absolute z-50 left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl max-h-48 overflow-y-auto"
+                                    >
+                                        <button
+                                            v-for="loc in filteredLocationSuggestions"
+                                            :key="loc"
+                                            type="button"
+                                            @mousedown.prevent="form.filters.location = loc; showLocationSuggestions = false"
+                                            class="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-orange-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-2"
+                                        >
+                                            <MapPin class="w-3 h-3 text-orange-500 flex-shrink-0" />
+                                            {{ loc }}
+                                        </button>
+                                    </div>
+                                    <!-- Clear button -->
+                                    <button
+                                        v-if="form.filters.location"
+                                        type="button"
+                                        @click="form.filters.location = ''"
+                                        class="absolute right-2 top-8 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                    >
+                                        <X class="w-3.5 h-3.5" />
+                                    </button>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">

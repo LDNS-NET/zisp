@@ -93,7 +93,8 @@ class TenantSMSController extends Controller
             $filters = $validated['filters'];
 
             if (!empty($filters['location'])) {
-                $query->where('location', $filters['location']);
+                // Partial match — matches any location name containing the typed text
+                $query->where('location', 'like', '%' . $filters['location'] . '%');
             }
             if (!empty($filters['package_id'])) {
                 $query->where('package_id', $filters['package_id']);
@@ -235,7 +236,8 @@ class TenantSMSController extends Controller
         $query = NetworkUser::query();
         
         if ($request->location) {
-            $query->where('location', $request->location);
+            // Partial match — same as the store() filter
+            $query->where('location', 'like', '%' . $request->location . '%');
         }
         if ($request->package_id) {
             $query->where('package_id', $request->package_id);
