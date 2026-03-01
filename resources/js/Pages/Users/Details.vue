@@ -119,7 +119,7 @@ function payWithBalance(renewal) {
     
     processingPayment.value = renewal.id;
     
-    router.post(route('users.renewals.pay-with-balance', { user: props.user.id, renewal: renewal.id }), {}, {
+    router.post(route('users.renewals.pay-with-balance', { user: props.user.uuid, renewal: renewal.id }), {}, {
         preserveScroll: true,
         onSuccess: () => {
             // Toast will be shown from the flash messages if present, or we can just rely on the session flash
