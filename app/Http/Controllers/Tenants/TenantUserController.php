@@ -1119,6 +1119,7 @@ class TenantUserController extends Controller
 
             \App\Models\Tenants\TenantPayment::create([
                 'user_id' => $user->id,
+                'phone' => $user->phone ?? '0000000000',
                 'tenant_id' => $auth_tenant_id = auth()->user()->tenant_id ?? $user->tenant_id,
                 'amount' => $amountToPay,
                 'payment_method' => 'Wallet',
