@@ -112,6 +112,7 @@ class CompensationController extends Controller
             'duration_value' => 'required|integer|min:1',
             'duration_unit' => 'required|string|in:minutes,hours,days,weeks,months',
             'reason' => 'nullable|string|max:255',
+            'compensation_type' => 'required|string|in:system,payment',
             'notify_users' => 'nullable|boolean',
             'sms_template' => 'required_if:notify_users,true|nullable|string',
         ]);
@@ -140,7 +141,21 @@ class CompensationController extends Controller
             
             $users = $usersQuery->get();
         } else {
-            $users = NetworkUser::whereIn('id', $validated['user_ids'])->get();
+            $users = NetworkUser::whereIn('id', $validated['user_ids'])->with(['package', 'hotspotPackage'])->get();
+        }
+
+        // Pre-flight check for "payment" compensations
+        if ($validated['compensation_type'] === 'payment') {
+            $insufficientUsers = [];
+            foreach ($users as $user) {
+                $packageAmount = $user->package ? $user->package->price : ($user->hotspotPackage ? $user->hotspotPackage->price : 0);
+                if ($user->wallet_balance < $packageAmount) {
+                    $insufficientUsers[] = $user->username ?? $user->full_name;
+                }
+            }
+            if (!empty($insufficientUsers)) {
+                return back()->with('error', 'Insufficient balance for the following users: ' . implode(', ', $insufficientUsers));
+            }
         }
 
         $processedCount = 0;
@@ -162,10 +177,30 @@ class CompensationController extends Controller
                     case 'months': $newExpiry->addMonths($value); break;
                 }
 
+                // Handle payment and logic
+                $packageAmount = $user->package ? $user->package->price : ($user->hotspotPackage ? $user->hotspotPackage->price : 0);
+
+                if ($validated['compensation_type'] === 'payment' && $packageAmount > 0) {
+                    $user->wallet_balance -= $packageAmount;
+                    
+                    \App\Models\Tenants\TenantPayment::create([
+                        'tenant_id' => $user->tenant_id,
+                        'user_id' => $user->id,
+                        'amount' => $packageAmount,
+                        'payment_method' => 'wallet',
+                        'payment_mode' => 'manual',
+                        'status' => 'successful',
+                        'comment' => 'Paid from balance for duration extension/compensation',
+                        'created_by' => Auth::id(),
+                        'paid_at' => now(),
+                    ]);
+                }
+
                 // Record compensation
                 Compensation::create([
                     'tenant_id' => $user->tenant_id,
                     'user_id' => $user->id,
+                    'type' => $validated['compensation_type'],
                     'duration_value' => $value,
                     'duration_unit' => $validated['duration_unit'],
                     'old_expires_at' => $oldExpiry,
@@ -178,7 +213,7 @@ class CompensationController extends Controller
                 \App\Models\Tenants\PackageRenewal::create([
                     'user_id' => $user->id,
                     'package_id' => $user->package_id,
-                    'amount_paid' => 0,
+                    'amount_paid' => $validated['compensation_type'] === 'payment' ? $packageAmount : 0,
                     'started_at' => now(),
                     'expires_at' => $newExpiry,
                     'status' => 'active',
@@ -191,6 +226,8 @@ class CompensationController extends Controller
                 if ($user->status === 'suspended') {
                     $updateData['status'] = 'active';
                 }
+                
+                // Save any wallet balance updates alongside expiry
                 $user->update($updateData);
 
                 // Send SMS if requested

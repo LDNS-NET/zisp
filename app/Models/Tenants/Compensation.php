@@ -15,6 +15,7 @@ class Compensation extends Model
         'uuid',
         'tenant_id',
         'user_id',
+        'type',
         'duration_value',
         'duration_unit',
         'old_expires_at',
