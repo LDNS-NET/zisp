@@ -52,6 +52,16 @@ const showingNavigationDropdown = ref(false);
 const sidebarOpen = ref(false);
 const collapsed = ref(false);
 
+// Safe route helper — returns '#' if the named route doesn't exist yet,
+// preventing Ziggy from crashing the entire layout when a route is missing.
+const r = (name, params = {}) => {
+    try {
+        return route(name, params);
+    } catch (e) {
+        return '#';
+    }
+};
+
 // State for open groups in sidebar
 const openGroups = ref({});
 
@@ -98,13 +108,13 @@ const navigation = [
     // Dashboard link with permission check
     {
         name: 'Dashboard',
-        href: route('dashboard'),
+        href: r('dashboard'),
         icon: LayoutDashboard,
         active: 'dashboard',
     },
     {
         name: 'Online Users',
-        href: route('activeusers.index'),
+        href: r('activeusers.index'),
         icon: Activity,
         active: 'activeusers.*',
         countKey: 'online_users',
@@ -119,7 +129,7 @@ const navigation = [
         children: [
             {
                 name: 'Users',
-                href: route('users.index'),
+                href: r('users.index'),
                 active: 'users.*',
                 countKey: 'all_users',
                 roles: [
@@ -133,7 +143,7 @@ const navigation = [
             },
             {
                 name: 'My Leads',
-                href: route('leads.index'),
+                href: r('leads.index'),
                 active: 'leads.*',
                 countKey: 'leads',
                 roles: ['tenant_admin', 'admin', 'marketing'],
@@ -141,7 +151,7 @@ const navigation = [
             },
             {
                 name: 'Compensations',
-                href: route('compensations.index'),
+                href: r('compensations.index'),
                 active: 'compensations.*',
                 roles: ['tenant_admin', 'admin'],
                 permission: 'manage_compensations',
@@ -152,7 +162,7 @@ const navigation = [
     // Services group with detailed permissions
     {
         name: 'Packages',
-        href: route('packages.index'),
+        href: r('packages.index'),
         icon: Package,
         active: 'packages.*',
         countKey: 'packages',
@@ -161,7 +171,7 @@ const navigation = [
     },
     {
         name: 'Vouchers',
-        href: route('vouchers.index'),
+        href: r('vouchers.index'),
         icon: SubscriptIcon,
         active: 'vouchers.*',
         countKey: 'vouchers',
@@ -171,7 +181,7 @@ const navigation = [
     // Settings link
     {
         name: 'Team',
-        href: route('settings.staff.index'),
+        href: r('settings.staff.index'),
         icon: Users,
         active: 'settings.staff.*',
         roles: ['tenant_admin'],
@@ -184,14 +194,14 @@ const navigation = [
         children: [
             {
                 name: 'Payments',
-                href: route('payments.index'),
+                href: r('payments.index'),
                 active: 'payments.*',
                 roles: ['tenant_admin', 'Finance'],
                 permission: 'view_payments',
             },
             {
                 name: 'Invoices',
-                href: route('invoices.index'),
+                href: r('invoices.index'),
                 active: 'invoices.*',
                 countKey: 'invoices',
                 roles: ['tenant_admin', 'admin', 'customer_care', 'Finance'],
@@ -207,7 +217,7 @@ const navigation = [
         children: [
             {
                 name: 'Traffic Analytics',
-                href: route('analytics.traffic'),
+                href: r('analytics.traffic'),
                 active: 'analytics.traffic',
                 roles: [
                     'tenant_admin',
@@ -219,28 +229,28 @@ const navigation = [
             },
             {
                 name: 'Network Topology',
-                href: route('analytics.topology'),
+                href: r('analytics.topology'),
                 active: 'analytics.topology',
                 roles: ['tenant_admin', 'network_engineer', 'technical'],
                 permission: 'view_topology',
             },
             {
                 name: 'Predictive Insights',
-                href: route('analytics.predictions'),
+                href: r('analytics.predictions'),
                 active: 'analytics.predictions',
                 roles: ['tenant_admin', 'admin', 'network_engineer'],
                 permission: 'view_predictions',
             },
             {
                 name: 'Financial Intelligence',
-                href: route('analytics.finance'),
+                href: r('analytics.finance'),
                 active: 'analytics.finance',
                 roles: ['tenant_admin', 'Finance'],
                 permission: 'view_finance',
             },
             {
                 name: 'Report Builder',
-                href: route('analytics.reports.index'),
+                href: r('analytics.reports.index'),
                 active: 'analytics.reports.*',
                 roles: ['tenant_admin', 'Finance'],
                 permission: 'view_reports',
@@ -255,7 +265,7 @@ const navigation = [
         children: [
             {
                 name: 'Mikrotiks',
-                href: route('mikrotiks.index'),
+                href: r('mikrotiks.index'),
                 active: 'mikrotiks.*',
                 countKey: 'mikrotiks',
                 roles: [
@@ -269,7 +279,7 @@ const navigation = [
             //{ name: 'TR-069 Devices', href: route('devices.index'), active: 'devices.*', roles: ['tenant_admin', 'network_engineer', 'technical'], permission: 'view_equipment' },
             {
                 name: 'Equipment',
-                href: route('equipment.index'),
+                href: r('equipment.index'),
                 active: 'equipment.*',
                 roles: [
                     'tenant_admin',
@@ -281,7 +291,7 @@ const navigation = [
             },
             {
                 name: 'Inventory',
-                href: route('inventory.index'),
+                href: r('inventory.index'),
                 active: 'inventory.*',
                 roles: [
                     'tenant_admin',
@@ -301,14 +311,14 @@ const navigation = [
         children: [
             {
                 name: 'My Installations',
-                href: route('tenant.installations.my-installations'),
+                href: r('tenant.installations.my-installations'),
                 active: 'tenant.installations.my-installations',
                 roles: ['technical', 'technician'],
                 permission: 'view_installations',
             },
             {
                 name: 'Dispatch Board',
-                href: route('tenant.installations.index'),
+                href: r('tenant.installations.index'),
                 active: 'tenant.installations.index',
                 roles: [
                     'tenant_admin',
@@ -328,21 +338,21 @@ const navigation = [
         children: [
             {
                 name: 'SMS',
-                href: route('sms.index'),
+                href: r('sms.index'),
                 active: 'sms.*',
                 roles: ['tenant_admin', 'admin', 'marketing', 'customer_care'],
                 permission: 'view_sms',
             },
             {
                 name: 'Templates',
-                href: route('smstemplates.index'),
+                href: r('smstemplates.index'),
                 active: 'smstemplates.*',
                 roles: ['tenant_admin', 'admin', 'marketing', 'customer_care'],
                 permission: 'view_templates',
             },
             {
                 name: 'Tickets',
-                href: route('tickets.index'),
+                href: r('tickets.index'),
                 active: 'tickets.*',
                 countKey: 'tickets',
                 roles: [
@@ -364,7 +374,7 @@ const navigation = [
         children: [
             {
                 name: 'Content Filter',
-                href: route('settings.content-filter.index'),
+                href: r('settings.content-filter.index'),
                 active: 'settings.content-filter.*',
                 roles: ['tenant_admin', 'network_engineer', 'network_admin'],
                 permission: 'manage_filters',
