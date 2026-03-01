@@ -36,9 +36,10 @@ class TenantPaymentController extends Controller
                 $q->where(function($sub) use ($request) {
                     $sub->whereHas(
                         'user',
-                        fn($q2) =>
-                        $q2->where('username', 'like', "%{$request->search}%")
-                            ->orWhere('phone', 'like', "%{$request->search}%")
+                        function ($q2) use ($request) {
+                            $q2->where('username', 'like', "%{$request->search}%")
+                                ->orWhere('phone', 'like', "%{$request->search}%");
+                        }
                     )->orWhere('phone', 'like', "%{$request->search}%");
                 });
             })
@@ -114,9 +115,10 @@ class TenantPaymentController extends Controller
                 $q->where(function($sub) use ($request) {
                     $sub->whereHas(
                         'user',
-                        fn($q2) =>
-                        $q2->where('username', 'like', "%{$request->search}%")
-                            ->orWhere('phone', 'like', "%{$request->search}%")
+                        function ($q2) use ($request) {
+                            $q2->where('username', 'like', "%{$request->search}%")
+                                ->orWhere('phone', 'like', "%{$request->search}%");
+                        }
                     )->orWhere('phone', 'like', "%{$request->search}%");
                 });
             })
