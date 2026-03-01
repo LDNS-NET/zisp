@@ -212,15 +212,14 @@ class TenantPaymentController extends Controller
         // 🔥 Load tenant router config from DB, not strings
         $tenantMikrotik = \App\Models\Tenants\TenantMikrotik::where('created_by', auth()->id())->first();
 
-            if ($tenantMikrotik) {
-                $mikrotik = new \App\Services\MikrotikService($tenantMikrotik);
-    
-                // Suspend/unsuspend based on disbursement status
-                if (in_array($data['disbursement_status'], ['pending', 'failed'])) {
-                    $mikrotik->suspendUser($user->type, $user->mikrotik_id ?? '');
-                } elseif ($data['disbursement_status'] === 'completed') {
-                    $mikrotik->unsuspendUser($user->type, $user->mikrotik_id ?? '');
-                }
+        if ($tenantMikrotik) {
+            $mikrotik = new \App\Services\MikrotikService($tenantMikrotik);
+
+            // Suspend/unsuspend based on disbursement status
+            if (in_array($data['disbursement_status'], ['pending', 'failed'])) {
+                $mikrotik->suspendUser($user->type, $user->mikrotik_id ?? '');
+            } elseif ($data['disbursement_status'] === 'completed') {
+                $mikrotik->unsuspendUser($user->type, $user->mikrotik_id ?? '');
             }
         }
 
