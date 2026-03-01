@@ -1101,10 +1101,10 @@ function generatePaymentConfirmation(p = null) {
                         </div>
 
                         <div class="sm:col-span-2">
-                            <InputLabel for="comment" value="Comment / Note" class="dark:text-slate-300" />
+                            <InputLabel for="comment" value="Comment / Note (Required)" class="dark:text-slate-300" />
                             <textarea id="comment" v-model="form.comment" rows="2"
                                 class="mt-1 block w-full rounded-xl border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-white focus:ring-blue-500"
-                                placeholder="Any additional details..."></textarea>
+                                placeholder="Any additional details..." required></textarea>
                             <InputError :message="form.errors.comment" class="mt-1" />
                         </div>
                     </div>

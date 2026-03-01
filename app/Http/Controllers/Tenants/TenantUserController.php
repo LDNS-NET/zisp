@@ -164,7 +164,7 @@ class TenantUserController extends Controller
             'type' => 'required|in:hotspot,pppoe,static',
             'package_id' => 'nullable|exists:packages,id',
             'expires_at' => 'nullable|date',
-            'comment' => 'nullable|string',
+            'comment' => 'required|string',
         ];
 
         // Conditionally add password requirement
@@ -373,7 +373,7 @@ class TenantUserController extends Controller
             'type' => ['required', Rule::in(['hotspot', 'pppoe', 'static'])],
             'package_id' => 'nullable|exists:packages,id',
             'expires_at' => 'nullable|date',
-            'comment' => 'nullable|string',
+            'comment' => 'required|string',
         ];
 
         // Conditionally add password requirement

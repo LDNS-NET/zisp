@@ -181,7 +181,7 @@ class TenantPaymentController extends Controller
             'amount' => 'required|numeric|min:0',
             'paid_at' => 'required|date',
             'payment_mode' => 'required|string|in:cash,transfer',
-            'comment' => 'nullable|string',
+            'comment' => 'required|string',
         ]);
 
         if (empty($data['receipt_number'])) {
@@ -210,15 +210,21 @@ class TenantPaymentController extends Controller
         // 🔥 Load tenant router config from DB, not strings
         $tenantMikrotik = \App\Models\Tenants\TenantMikrotik::where('created_by', auth()->id())->first();
 
-        if ($tenantMikrotik) {
-            $mikrotik = new \App\Services\MikrotikService($tenantMikrotik);
-
-            // Suspend/unsuspend based on disbursement status
-            if (in_array($data['disbursement_status'], ['pending', 'failed'])) {
-                $mikrotik->suspendUser($user->type, $user->mikrotik_id ?? '');
-            } elseif ($data['disbursement_status'] === 'completed') {
-                $mikrotik->unsuspendUser($user->type, $user->mikrotik_id ?? '');
+            if ($tenantMikrotik) {
+                $mikrotik = new \App\Services\MikrotikService($tenantMikrotik);
+    
+                // Suspend/unsuspend based on disbursement status
+                if (in_array($data['disbursement_status'], ['pending', 'failed'])) {
+                    $mikrotik->suspendUser($user->type, $user->mikrotik_id ?? '');
+                } elseif ($data['disbursement_status'] === 'completed') {
+                    $mikrotik->unsuspendUser($user->type, $user->mikrotik_id ?? '');
+                }
             }
+        }
+
+        // Auto-activate user if payment is completed
+        if ($payment->disbursement_status === 'completed') {
+            app(\App\Services\Tenants\RenewalService::class)->processPayment($user, $payment->amount);
         }
 
         $this->sendPaymentSMS($payment);
@@ -246,7 +252,7 @@ class TenantPaymentController extends Controller
             'amount' => 'required|numeric|min:0',
             'paid_at' => 'required|date',
             'payment_mode' => 'sometimes|string|in:cash,transfer',
-            'comment' => 'nullable|string',
+            'comment' => 'required|string',
         ]);
 
         if (isset($data['user_id'])) {

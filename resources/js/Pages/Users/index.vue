@@ -901,13 +901,9 @@ const openActions = (user) => {
                             </select>
                             <InputError :message="form.errors.package_id" />
                         </div>
+
                         <div class="md:col-span-2">
-                            <InputLabel for="expires_at" value="Expiry Date" />
-                            <TextInput id="expires_at" type="datetime-local" v-model="form.expires_at" class="mt-1 block w-full" />
-                            <InputError :message="form.errors.expires_at" />
-                        </div>
-                        <div class="md:col-span-2">
-                            <InputLabel for="comment" value="Comments / Notes" />
+                            <InputLabel for="comment" value="Comments / Notes (Required)" />
                             <textarea
                                 id="comment"
                                 v-model="form.comment"

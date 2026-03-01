@@ -40,7 +40,7 @@ const form = useForm({
     location: '',
     package_id: '',
     type: 'hotspot',
-    expires_at: '',
+    comment: '',
 });
 
 
@@ -54,7 +54,7 @@ function openEdit(user) {
     form.location = user.location ?? '';
     form.package_id = user.package_id ?? '';
     form.type = user.type ?? 'PPPoE';
-    form.expires_at = user.expires_at ? user.expires_at.slice(0, 16) : '';
+    form.comment = user.comment ?? '';
     showModal.value = true;
 }
 function submitWithoutPassword() {
@@ -124,9 +124,9 @@ function confirmSubmit() {
                         >({{ props.user.username }})</span
                     >
                 </h2>
-                <!---<PrimaryButton @click="openEdit(props.user)">
+                <PrimaryButton @click="openEdit(props.user)">
                     Edit User
-                </PrimaryButton>-->
+                </PrimaryButton>
             </div>
         </template>
 
@@ -714,13 +714,12 @@ function confirmSubmit() {
             </div>
         </div>
 
-        <!-- Edit Modal 
         <Modal :show="showModal" @close="showModal = false">
             <div class="p-6 dark:bg-slate-800 dark:text-white">
                 <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
                     {{ editing ? 'Edit User' : 'Create New User' }}
                 </h3>
-                <form @submit.prevent="initiateSubmit" class="space-y-4">
+                <form @submit.prevent="submitWithoutPassword" class="space-y-4">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <InputLabel for="full_name" value="Full Name" />
@@ -741,11 +740,6 @@ function confirmSubmit() {
                             <InputLabel for="phone" value="Phone Number" />
                             <TextInput v-model="form.phone" id="phone" class="mt-1 block w-full" />
                             <InputError :message="form.errors.phone" />
-                        </div>
-                         <div>
-                            <InputLabel for="email" value="Email Address" />
-                            <TextInput v-model="form.email" id="email" type="email" class="mt-1 block w-full" />
-                            <InputError :message="form.errors.email" />
                         </div>
                         <div>
                             <InputLabel for="location" value="Location" />
@@ -771,10 +765,18 @@ function confirmSubmit() {
                             </select>
                             <InputError :message="form.errors.package_id" />
                         </div>
+
                         <div class="md:col-span-2">
-                            <InputLabel for="expires_at" value="Expiry Date" />
-                            <TextInput id="expires_at" type="datetime-local" v-model="form.expires_at" class="mt-1 block w-full" />
-                            <InputError :message="form.errors.expires_at" />
+                            <InputLabel for="comment" value="Comments / Notes (Required)" />
+                            <textarea
+                                id="comment"
+                                v-model="form.comment"
+                                class="mt-1 block w-full border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-md shadow-sm"
+                                rows="3"
+                                placeholder="Add any private notes about this user..."
+                                required
+                            ></textarea>
+                            <InputError :message="form.errors.comment" />
                         </div>
                     </div>
 
@@ -784,6 +786,6 @@ function confirmSubmit() {
                     </div>
                 </form>
             </div>
-        </Modal>-->
+        </Modal>
     </AuthenticatedLayout>
 </template>
