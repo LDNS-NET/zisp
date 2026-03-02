@@ -49,6 +49,17 @@ class PaymentGatewayService
             return $this->initiatePaystack($user, $amount, $phone, $currency, $type, $metadata);
         } elseif ($method === 'flutterwave') {
             return $this->initiateFlutterwave($user, $amount, $phone, $currency, $type, $metadata);
+        } elseif ($method === 'kopokopo') {
+            return $this->initiateKopokopo($user, $amount, $phone, $currency, $type, $metadata);
+        }
+
+        // Gateways with tenant config but collection not yet implemented – return clear message
+        $stubMethods = [
+            'airtel_money', 'orange_money', 'telebirr', 'cbe_birr', 'ecocash', 'vodafone_cash',
+            'fawry', 'wave', 'zaad', 'hormuud', 'tigo_pesa', 'halopesa', 'equitel',
+        ];
+        if (in_array($method, $stubMethods, true)) {
+            return $this->initiateStubGateway($user, $method);
         }
 
         return ['success' => false, 'message' => 'Unsupported payment method.'];
@@ -180,6 +191,85 @@ class PaymentGatewayService
             Log::error('M-Pesa STK Push failed: ' . $e->getMessage());
             return ['success' => false, 'message' => 'Failed to initiate M-Pesa payment.'];
         }
+    }
+
+    protected function initiateKopokopo($user, $amount, $phone, $currency, $type, $metadata)
+    {
+        $gateway = TenantPaymentGateway::where('tenant_id', $user->tenant_id)
+            ->where('provider', 'kopokopo')
+            ->where('is_active', true)
+            ->first();
+
+        if (!$gateway) {
+            return ['success' => false, 'message' => 'KopoKopo payment not configured.'];
+        }
+
+        /** @var \App\Services\KopokopoService $kopoKopo */
+        $kopoKopo = app(\App\Services\KopokopoService::class);
+
+        $reference = strtoupper(uniqid("{$type}|KOPOKOPO|"));
+        $description = ucfirst($type) . " - {$user->username}";
+
+        $response = $kopoKopo->initiateStkPush(
+            $phone,
+            $amount,
+            $currency,
+            $reference,
+            $description,
+            $metadata
+        );
+
+        if ($response['success']) {
+            $payment = TenantPayment::create([
+                'tenant_id' => $user->tenant_id,
+                'user_id' => $user->id,
+                'phone' => $phone,
+                'amount' => $amount,
+                'currency' => $currency,
+                'payment_method' => 'kopokopo',
+                'receipt_number' => $reference,
+                'status' => 'pending',
+                'transaction_id' => $response['request_id'] ?? null,
+                'package_id' => $metadata['package_id'] ?? ($metadata['new_package_id'] ?? null),
+                'hotspot_package_id' => $metadata['hotspot_package_id'] ?? null,
+                'mac_address' => $metadata['mac_address'] ?? null,
+                'response' => array_merge($response, ['metadata' => $metadata]),
+            ]);
+
+            return [
+                'success' => true,
+                'message' => 'Payment request sent. Please check your phone.',
+                'reference_id' => $reference,
+                'payment_id' => $payment->id,
+            ];
+        }
+
+        return [
+            'success' => false,
+            'message' => $response['message'] ?? 'KopoKopo payment initiation failed.',
+        ];
+    }
+
+    /**
+     * Gateways that have tenant config + UI but collection API not yet implemented.
+     * Allows tenants to save credentials; at payment time we ask them to use Paystack/Flutterwave.
+     */
+    protected function initiateStubGateway($user, string $method): array
+    {
+        $gateway = TenantPaymentGateway::where('tenant_id', $user->tenant_id)
+            ->where('provider', $method)
+            ->where('is_active', true)
+            ->first();
+
+        if (!$gateway) {
+            return ['success' => false, 'message' => ucfirst(str_replace('_', ' ', $method)) . ' is not configured. Configure it in Settings → Payment or use Paystack / Flutterwave.'];
+        }
+
+        $label = ucfirst(str_replace('_', ' ', $method));
+        return [
+            'success' => false,
+            'message' => $label . ' collection is not yet available. Please use Paystack or Flutterwave for now.',
+        ];
     }
 
     private function formatPhoneNumber(string $phone, string $dialCode): ?string

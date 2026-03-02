@@ -159,6 +159,9 @@ Route::middleware(['check.subscription', 'maintenance.mode'])->group(function ()
         // Tinypesa Webhook
         Route::post('/tinypesa/webhook', [App\Http\Controllers\Tenants\TinypesaController::class, 'callback'])->name('tinypesa.callback');
 
+        // KopoKopo Webhook (STK / incoming payment callback – automatic connection on success)
+        Route::post('/kopokopo/webhook', [App\Http\Controllers\Tenants\KopokopoController::class, 'webhook'])->name('kopokopo.webhook');
+
         Route::get('/hotspot/momo/status/{referenceId}', [MomoController::class, 'checkStatus'])->name('hotspot.momo.status');
     });
 });

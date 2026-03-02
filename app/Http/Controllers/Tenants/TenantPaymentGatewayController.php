@@ -64,7 +64,7 @@ class TenantPaymentGatewayController extends Controller
         $tenantId = $this->resolveTenantId($request);
 
         $validated = $request->validate([
-            'provider' => 'required|in:intasend,mpesa,tinypesa,paystack,flutterwave,momo,airtel_money,bank,custom',
+            'provider' => 'required|in:intasend,mpesa,tinypesa,kopokopo,paystack,flutterwave,momo,airtel_money,orange_money,telebirr,cbe_birr,ecocash,vodafone_cash,fawry,wave,zaad,hormuud,tigo_pesa,halopesa,equitel,bank,custom',
             'payout_method' => 'nullable|string|max:100',
             'bank_name' => 'nullable|string|max:100',
             'bank_account' => 'nullable|string|max:50',

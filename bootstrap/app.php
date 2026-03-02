@@ -21,13 +21,18 @@ return Application::configure(basePath: dirname(__DIR__))
             //
         ]);
 
-        // Exempt sync and WireGuard registration endpoints from CSRF (use token-based auth)
+        // Exempt sync, WireGuard, and payment provider callbacks from CSRF
         $middleware->validateCsrfTokens(except: [
             'mikrotiks/*/sync',
             'mikrotiks/*/register-wireguard',
             'hotspot/callback',
+            'hotspot/momo/callback',
             'mpesa/callback',
             'api/mpesa/c2b/*',
+            'paystack/webhook',
+            'flutterwave/webhook',
+            'tinypesa/webhook',
+            'kopokopo/webhook',
         ]);
 
         $middleware->alias([

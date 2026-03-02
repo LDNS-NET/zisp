@@ -6,21 +6,24 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Tenants\TenantPayment;
 use App\Services\FlutterwaveService;
+use App\Services\PaymentProcessingService;
 use App\Models\TenantPaymentGateway;
 use Illuminate\Support\Facades\Log;
 use App\Models\Tenants\TenantHotspot;
 use App\Models\Tenants\TenantPackage;
-use App\Models\NetworkUser;
+use App\Models\Tenants\NetworkUser;
 use Carbon\Carbon;
 use Inertia\Inertia;
 
 class FlutterwaveController extends Controller
 {
     protected $flutterwaveService;
+    protected $paymentProcessingService;
 
-    public function __construct(FlutterwaveService $flutterwaveService)
+    public function __construct(FlutterwaveService $flutterwaveService, PaymentProcessingService $paymentProcessingService)
     {
         $this->flutterwaveService = $flutterwaveService;
+        $this->paymentProcessingService = $paymentProcessingService;
     }
 
     /**
@@ -62,20 +65,21 @@ class FlutterwaveController extends Controller
             ($verification['status'] === 'successful' || $verification['status'] === 'completed') &&
             $verification['amount'] >= $payment->amount) {
             
-            // Update payment status
+            // Update payment status and trigger automatic connection
             if ($payment->status !== 'paid') {
                 $payment->update([
                     'status' => 'paid',
-                    'checkout_request_id' => $transactionId, // Store actual transaction ID
+                    'checkout_request_id' => $transactionId,
                     'response' => array_merge($payment->response ?? [], ['verification' => $verification]),
                     'paid_at' => now(),
                 ]);
 
-                // Process the service (Hotspot or Renewal)
-                return $this->handleRedirect($payment);
+                // Automatic connection: extend/activate user (same as M-Pesa/Paystack)
+                if ($payment->hotspot_package_id || $payment->package_id) {
+                    $this->paymentProcessingService->processSuccess($payment);
+                }
             }
             
-            // Already paid
             return $this->handleRedirect($payment);
         }
 
@@ -83,62 +87,33 @@ class FlutterwaveController extends Controller
     }
 
     /**
-     * Handle redirection after successful payment
+     * Handle redirection after successful payment.
+     * User activation is already done via paymentProcessingService->processSuccess in handleCallback/webhook.
      */
     protected function handleRedirect($payment)
     {
-        $metadata = $payment->response['metadata'] ?? [];
-        $type = $metadata['type'] ?? 'hotspot'; // Default to hotspot if not specified
+        $metadata = $payment->response['metadata'] ?? ($payment->response['verification']['meta'] ?? []);
+        $type = $metadata['type'] ?? 'hotspot';
 
-        // Hotspot Payment
         if ($type === 'hotspot' || $payment->hotspot_package_id) {
-            // Logic to create/update network user and redirect to success
-            $user = NetworkUser::find($payment->user_id);
-            
-            if ($user && $payment->hotspot_package_id) {
-                $package = TenantHotspot::find($payment->hotspot_package_id);
-                if ($package) {
-                    // Calculate expiry
-                    $duration = $package->duration_value; // e.g., 1
-                    $unit = $package->duration_unit; // e.g., 'hours'
-                    
-                    $expiry = match($unit) {
-                        'minutes' => now()->addMinutes($duration),
-                        'hours' => now()->addHours($duration),
-                        'days' => now()->addDays($duration),
-                        'weeks' => now()->addWeeks($duration),
-                        'months' => now()->addMonths($duration),
-                        default => now()->addHours(1),
-                    };
-
-                    // Update user
-                    $user->update([
-                        'status' => 'active',
-                        'plan_id' => $package->id,
-                        'plan_type' => 'hotspot',
-                        'expiration' => $expiry,
-                        'simultaneous_use' => $package->device_limit,
-                        'download_limit' => $package->download_speed . 'M',
-                        'upload_limit' => $package->upload_speed . 'M',
-                    ]);
-                }
+            $user = NetworkUser::withoutGlobalScopes()
+                ->where('tenant_id', $payment->tenant_id)
+                ->where('id', $payment->user_id)
+                ->first();
+            if ($user) {
+                return redirect()->route('hotspot.success', [
+                    'u' => $user->username,
+                    'p' => $user->password,
+                ]);
             }
-
-            return redirect()->route('hotspot.success', [
-                'u' => $user->username,
-                'p' => $user->password, // Be careful exposing password in URL, but standard for hotspot
-            ]);
+            return redirect()->route('hotspot.success');
         }
 
-        // Customer Renewal/Upgrade
         if ($type === 'renewal' || $type === 'upgrade') {
-            // Logic handled by SubscriptionController usually, but we can do basic update here
-            // Ideally we should call a service method to handle the business logic to avoid duplication
-            // For now, redirect to dashboard with success message
-             return redirect()->route('customer.dashboard')->with('success', 'Payment successful! Your plan has been updated.');
+            return redirect()->route('customer.dashboard')->with('success', 'Payment successful! Your plan has been updated.');
         }
 
-        return redirect()->route('customer.dashboard');
+        return redirect()->route('dashboard')->with('success', 'Payment successful');
     }
 
     /**
@@ -153,14 +128,14 @@ class FlutterwaveController extends Controller
         }
 
         if ($payment->status === 'paid') {
-            $user = NetworkUser::find($payment->user_id);
+            $user = NetworkUser::withoutGlobalScopes()->find($payment->user_id);
             return response()->json([
                 'success' => true,
                 'status' => 'paid',
                 'user' => $user ? [
                     'username' => $user->username,
                     'password' => $user->password,
-                    'duration' => $user->expiration ? Carbon::parse($user->expiration)->diffForHumans() : 'Active'
+                    'duration' => $user->expires_at ? $user->expires_at->diffForHumans() : 'Active'
                 ] : null
             ]);
         }
@@ -222,18 +197,20 @@ class FlutterwaveController extends Controller
         // Now we can get the gateway and verify signature
         // ... (Signature verification logic would go here)
 
-        // Process payment
+        // Process payment and trigger automatic connection
         if (($payload['status'] ?? '') === 'successful' || ($payload['data']['status'] ?? '') === 'successful') {
-             if ($payment->status !== 'paid') {
+            if ($payment->status !== 'paid') {
                 $payment->update([
                     'status' => 'paid',
                     'checkout_request_id' => $payload['data']['id'] ?? null,
                     'response' => array_merge($payment->response ?? [], ['webhook' => $payload]),
                     'paid_at' => now(),
                 ]);
-                
-                // Trigger service activation (similar to handleRedirect)
-                // ...
+
+                if ($payment->hotspot_package_id || $payment->package_id) {
+                    $this->paymentProcessingService->processSuccess($payment);
+                }
+                Log::info('Flutterwave: Payment processed via webhook', ['tx_ref' => $txRef]);
             }
         }
 

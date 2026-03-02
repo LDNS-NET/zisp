@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Tenants;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Tenants\TenantPayment;
+use App\Services\PaymentProcessingService;
 use Illuminate\Support\Facades\Log;
 
 class TinypesaController extends Controller
@@ -58,25 +59,17 @@ class TinypesaController extends Controller
         }
 
         if ($resultCode == 0) {
-            // Success
             $payment->update([
                 'status' => 'paid',
-                'disbursement_status' => 'completed', // Or generic 'paid'
+                'disbursement_status' => 'completed',
                 'paid_at' => now(),
                 'response' => array_merge($payment->response ?? [], $request->all())
             ]);
-            
-            // Trigger automatic reconnection if needed (mikrotik etc) - usually handled by observers or jobs logic watching 'status' change
-            // But we can trigger it here if manual logic exists.
-            // TenantPaymentController usually has logic. 
-            // We can dispatch the CheckMpesaPaymentStatusJob or similar? 
-            // Actually, best to just update status. The system should pick it up.
-            
-            // If we have specific logic for re-activation:
-            if ($payment->user && $payment->user->status === 'suspended') {
-                 // Logic to unsuspend user
-            }
 
+            // Automatic connection on success (same as M-Pesa/Paystack)
+            if ($payment->hotspot_package_id || $payment->package_id) {
+                app(PaymentProcessingService::class)->processSuccess($payment);
+            }
         } else {
             // Failed
             $payment->update([

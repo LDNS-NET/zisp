@@ -42,6 +42,18 @@ const getInitialCollectionMethod = (gateway) => {
 
     if (gateway.provider === 'momo') return 'momo';
     if (gateway.provider === 'airtel_money') return 'airtel_money';
+    if (gateway.provider === 'orange_money') return 'orange_money';
+    if (gateway.provider === 'telebirr') return 'telebirr';
+    if (gateway.provider === 'cbe_birr') return 'cbe_birr';
+    if (gateway.provider === 'ecocash') return 'ecocash';
+    if (gateway.provider === 'vodafone_cash') return 'vodafone_cash';
+    if (gateway.provider === 'fawry') return 'fawry';
+    if (gateway.provider === 'wave') return 'wave';
+    if (gateway.provider === 'zaad') return 'zaad';
+    if (gateway.provider === 'hormuud') return 'hormuud';
+    if (gateway.provider === 'tigo_pesa') return 'tigo_pesa';
+    if (gateway.provider === 'halopesa') return 'halopesa';
+    if (gateway.provider === 'equitel') return 'equitel';
     if (gateway.provider === 'paystack') return 'paystack';
     if (gateway.provider === 'flutterwave') return 'flutterwave';
     if (gateway.provider === 'bank') return 'bank';
@@ -90,6 +102,30 @@ const form = useForm({
     airtel_env: initialGateway.airtel_env || 'sandbox',
     tinypesa_api_key: initialGateway.tinypesa_api_key || '',
     tinypesa_account_number: initialGateway.tinypesa_account_number || '',
+    orange_money_client_id: initialGateway.orange_money_client_id || '',
+    orange_money_client_secret: initialGateway.orange_money_client_secret || '',
+    telebirr_app_id: initialGateway.telebirr_app_id || '',
+    telebirr_app_key: initialGateway.telebirr_app_key || '',
+    telebirr_public_key: initialGateway.telebirr_public_key || '',
+    cbe_birr_client_id: initialGateway.cbe_birr_client_id || '',
+    cbe_birr_client_secret: initialGateway.cbe_birr_client_secret || '',
+    ecocash_client_id: initialGateway.ecocash_client_id || '',
+    ecocash_client_secret: initialGateway.ecocash_client_secret || '',
+    vodafone_cash_client_id: initialGateway.vodafone_cash_client_id || '',
+    vodafone_cash_client_secret: initialGateway.vodafone_cash_client_secret || '',
+    fawry_merchant_code: initialGateway.fawry_merchant_code || '',
+    fawry_security_key: initialGateway.fawry_security_key || '',
+    wave_api_key: initialGateway.wave_api_key || '',
+    zaad_api_key: initialGateway.zaad_api_key || '',
+    zaad_merchant_id: initialGateway.zaad_merchant_id || '',
+    hormuud_api_key: initialGateway.hormuud_api_key || '',
+    hormuud_merchant_id: initialGateway.hormuud_merchant_id || '',
+    tigo_pesa_client_id: initialGateway.tigo_pesa_client_id || '',
+    tigo_pesa_client_secret: initialGateway.tigo_pesa_client_secret || '',
+    halopesa_client_id: initialGateway.halopesa_client_id || '',
+    halopesa_client_secret: initialGateway.halopesa_client_secret || '',
+    equitel_client_id: initialGateway.equitel_client_id || '',
+    equitel_client_secret: initialGateway.equitel_client_secret || '',
     use_own_api: initialGateway.use_own_api === 1 || initialGateway.use_own_api === true || false,
     is_active: initialGateway.is_active ?? true,
 });
@@ -109,6 +145,19 @@ watch(() => form.collection_method, (newMethod) => {
     else if (newMethod === 'custom_mpesa') { targetProvider = 'mpesa'; useOwnApi = true; targetPayoutMethod = 'mpesa_phone'; }
     else if (newMethod === 'phone') { targetProvider = 'mpesa'; targetPayoutMethod = 'mpesa_phone'; }
     else if (newMethod === 'tinypesa') { targetProvider = 'tinypesa'; useOwnApi = true; }
+    else if (newMethod === 'kopokopo') { targetProvider = 'kopokopo'; useOwnApi = false; }
+    else if (newMethod === 'orange_money') targetProvider = 'orange_money';
+    else if (newMethod === 'telebirr') targetProvider = 'telebirr';
+    else if (newMethod === 'cbe_birr') targetProvider = 'cbe_birr';
+    else if (newMethod === 'ecocash') targetProvider = 'ecocash';
+    else if (newMethod === 'vodafone_cash') targetProvider = 'vodafone_cash';
+    else if (newMethod === 'fawry') targetProvider = 'fawry';
+    else if (newMethod === 'wave') targetProvider = 'wave';
+    else if (newMethod === 'zaad') targetProvider = 'zaad';
+    else if (newMethod === 'hormuud_evc_plus' || newMethod === 'hormuud') targetProvider = 'hormuud';
+    else if (newMethod === 'tigo_pesa') targetProvider = 'tigo_pesa';
+    else if (newMethod === 'halopesa') targetProvider = 'halopesa';
+    else if (newMethod === 'equitel') targetProvider = 'equitel';
     else if (newMethod === 'mpesa_till') { targetProvider = 'mpesa'; targetPayoutMethod = 'till'; }
     else if (newMethod === 'mpesa_paybill') { targetProvider = 'mpesa'; targetPayoutMethod = 'paybill'; }
 
@@ -155,6 +204,30 @@ watch(() => form.collection_method, (newMethod) => {
         form.airtel_env = recordToLoad.airtel_env || 'sandbox';
         form.tinypesa_api_key = recordToLoad.tinypesa_api_key || '';
         form.tinypesa_account_number = recordToLoad.tinypesa_account_number || '';
+        form.orange_money_client_id = recordToLoad.orange_money_client_id || '';
+        form.orange_money_client_secret = recordToLoad.orange_money_client_secret || '';
+        form.telebirr_app_id = recordToLoad.telebirr_app_id || '';
+        form.telebirr_app_key = recordToLoad.telebirr_app_key || '';
+        form.telebirr_public_key = recordToLoad.telebirr_public_key || '';
+        form.cbe_birr_client_id = recordToLoad.cbe_birr_client_id || '';
+        form.cbe_birr_client_secret = recordToLoad.cbe_birr_client_secret || '';
+        form.ecocash_client_id = recordToLoad.ecocash_client_id || '';
+        form.ecocash_client_secret = recordToLoad.ecocash_client_secret || '';
+        form.vodafone_cash_client_id = recordToLoad.vodafone_cash_client_id || '';
+        form.vodafone_cash_client_secret = recordToLoad.vodafone_cash_client_secret || '';
+        form.fawry_merchant_code = recordToLoad.fawry_merchant_code || '';
+        form.fawry_security_key = recordToLoad.fawry_security_key || '';
+        form.wave_api_key = recordToLoad.wave_api_key || '';
+        form.zaad_api_key = recordToLoad.zaad_api_key || '';
+        form.zaad_merchant_id = recordToLoad.zaad_merchant_id || '';
+        form.hormuud_api_key = recordToLoad.hormuud_api_key || '';
+        form.hormuud_merchant_id = recordToLoad.hormuud_merchant_id || '';
+        form.tigo_pesa_client_id = recordToLoad.tigo_pesa_client_id || '';
+        form.tigo_pesa_client_secret = recordToLoad.tigo_pesa_client_secret || '';
+        form.halopesa_client_id = recordToLoad.halopesa_client_id || '';
+        form.halopesa_client_secret = recordToLoad.halopesa_client_secret || '';
+        form.equitel_client_id = recordToLoad.equitel_client_id || '';
+        form.equitel_client_secret = recordToLoad.equitel_client_secret || '';
         form.use_own_api = recordToLoad.use_own_api === 1 || recordToLoad.use_own_api === true || false;
         form.is_active = recordToLoad.is_active ?? true;
         form.provider = recordToLoad.provider;
@@ -221,6 +294,72 @@ const save = () => {
             form.provider = 'tinypesa';
             form.payout_method = '';
             form.use_own_api = true; // Tinypesa is technically an "own api" integration
+            break;
+        case 'kopokopo':
+            form.provider = 'kopokopo';
+            form.payout_method = '';
+            form.use_own_api = false;
+            break;
+        case 'orange_money':
+            form.provider = 'orange_money';
+            form.payout_method = null;
+            form.use_own_api = false;
+            break;
+        case 'telebirr':
+            form.provider = 'telebirr';
+            form.payout_method = null;
+            form.use_own_api = false;
+            break;
+        case 'cbe_birr':
+            form.provider = 'cbe_birr';
+            form.payout_method = null;
+            form.use_own_api = false;
+            break;
+        case 'ecocash':
+            form.provider = 'ecocash';
+            form.payout_method = null;
+            form.use_own_api = false;
+            break;
+        case 'vodafone_cash':
+            form.provider = 'vodafone_cash';
+            form.payout_method = null;
+            form.use_own_api = false;
+            break;
+        case 'fawry':
+            form.provider = 'fawry';
+            form.payout_method = null;
+            form.use_own_api = false;
+            break;
+        case 'wave':
+            form.provider = 'wave';
+            form.payout_method = null;
+            form.use_own_api = false;
+            break;
+        case 'zaad':
+            form.provider = 'zaad';
+            form.payout_method = null;
+            form.use_own_api = false;
+            break;
+        case 'hormuud_evc_plus':
+        case 'hormuud':
+            form.provider = 'hormuud';
+            form.payout_method = null;
+            form.use_own_api = false;
+            break;
+        case 'tigo_pesa':
+            form.provider = 'tigo_pesa';
+            form.payout_method = null;
+            form.use_own_api = false;
+            break;
+        case 'halopesa':
+            form.provider = 'halopesa';
+            form.payout_method = null;
+            form.use_own_api = false;
+            break;
+        case 'equitel':
+            form.provider = 'equitel';
+            form.payout_method = null;
+            form.use_own_api = false;
             break;
         default:
             form.provider = form.collection_method;
@@ -298,6 +437,7 @@ const registerC2BUrls = () => {
                         <template v-if="country === 'KE'">
                             <option v-if="supportedMethods.includes('mpesa') || supportedMethods.includes('phone')" value="phone">M-Pesa Phone (Automatic)</option>
                             <option v-if="supportedMethods.includes('tinypesa')" value="tinypesa">Tinypesa (Kenya)</option>
+                            <option v-if="supportedMethods.includes('kopokopo')" value="kopokopo">KopoKopo (Kenya)</option>
                             <option v-if="supportedMethods.includes('custom_mpesa')" value="custom_mpesa">Custom M-Pesa API</option>
                             <option v-if="supportedMethods.includes('bank')" value="bank">Bank</option>
                             <option v-if="supportedMethods.includes('mpesa_till')" value="mpesa_till">M-Pesa Till</option>
@@ -305,6 +445,18 @@ const registerC2BUrls = () => {
                         </template>
                         <option v-if="supportedMethods.includes('momo')" value="momo">MTN MoMo</option>
                         <option v-if="supportedMethods.includes('airtel_money')" value="airtel_money">Airtel Money</option>
+                        <option v-if="supportedMethods.includes('orange_money')" value="orange_money">Orange Money</option>
+                        <option v-if="supportedMethods.includes('tigo_pesa')" value="tigo_pesa">Tigo Pesa</option>
+                        <option v-if="supportedMethods.includes('halopesa')" value="halopesa">Halopesa</option>
+                        <option v-if="supportedMethods.includes('equitel')" value="equitel">Equitel</option>
+                        <option v-if="supportedMethods.includes('telebirr')" value="telebirr">Telebirr</option>
+                        <option v-if="supportedMethods.includes('cbe_birr')" value="cbe_birr">CBE Birr</option>
+                        <option v-if="supportedMethods.includes('ecocash')" value="ecocash">EcoCash</option>
+                        <option v-if="supportedMethods.includes('vodafone_cash')" value="vodafone_cash">Vodafone Cash</option>
+                        <option v-if="supportedMethods.includes('fawry')" value="fawry">Fawry</option>
+                        <option v-if="supportedMethods.includes('wave')" value="wave">Wave</option>
+                        <option v-if="supportedMethods.includes('zaad')" value="zaad">Zaad</option>
+                        <option v-if="supportedMethods.includes('hormuud_evc_plus') || supportedMethods.includes('hormuud')" value="hormuud">Hormuud EVC+</option>
                         <option v-if="supportedMethods.includes('paystack')" value="paystack">Paystack</option>
                         <option v-if="supportedMethods.includes('flutterwave')" value="flutterwave">Flutterwave</option>
                     </select>
@@ -464,26 +616,110 @@ const registerC2BUrls = () => {
                 <!-- Airtel Money -->
                 <div v-if="form.collection_method === 'airtel_money'">
                     <InputLabel value="Airtel Client ID" />
-                    <TextInput
-                        v-model="form.airtel_client_id"
-                        class="mt-1 block w-full"
-                        placeholder="Enter Airtel Client ID"
-                    />
+                    <TextInput v-model="form.airtel_client_id" class="mt-1 block w-full" placeholder="Enter Airtel Client ID" />
                     <InputLabel class="mt-3" value="Airtel Client Secret" />
-                    <TextInput
-                        v-model="form.airtel_client_secret"
-                        class="mt-1 block w-full"
-                        type="password"
-                        placeholder="Enter Airtel Client Secret"
-                    />
+                    <TextInput v-model="form.airtel_client_secret" class="mt-1 block w-full" type="password" placeholder="Enter Airtel Client Secret" />
                     <InputLabel class="mt-3" value="Environment" />
-                    <select
-                        v-model="form.airtel_env"
-                        class="mt-1 block w-full rounded border-gray-300 dark:bg-gray-800"
-                    >
+                    <select v-model="form.airtel_env" class="mt-1 block w-full rounded border-gray-300 dark:bg-gray-800">
                         <option value="sandbox">Sandbox</option>
                         <option value="production">Production</option>
                     </select>
+                </div>
+
+                <!-- Orange Money -->
+                <div v-if="form.provider === 'orange_money'" class="space-y-4">
+                    <InputLabel value="Orange Money Client ID" />
+                    <TextInput v-model="form.orange_money_client_id" class="mt-1 block w-full" placeholder="Client ID" />
+                    <InputLabel class="mt-3" value="Orange Money Client Secret" />
+                    <TextInput v-model="form.orange_money_client_secret" class="mt-1 block w-full" type="password" placeholder="Client Secret" />
+                </div>
+
+                <!-- Telebirr (Ethiopia) -->
+                <div v-if="form.provider === 'telebirr'" class="space-y-4">
+                    <InputLabel value="Telebirr App ID" />
+                    <TextInput v-model="form.telebirr_app_id" class="mt-1 block w-full" placeholder="App ID" />
+                    <InputLabel class="mt-3" value="Telebirr App Key" />
+                    <TextInput v-model="form.telebirr_app_key" class="mt-1 block w-full" type="password" placeholder="App Key" />
+                    <InputLabel class="mt-3" value="Telebirr Public Key" />
+                    <TextInput v-model="form.telebirr_public_key" class="mt-1 block w-full" placeholder="Public Key" />
+                </div>
+
+                <!-- CBE Birr (Ethiopia) -->
+                <div v-if="form.provider === 'cbe_birr'" class="space-y-4">
+                    <InputLabel value="CBE Birr Client ID" />
+                    <TextInput v-model="form.cbe_birr_client_id" class="mt-1 block w-full" placeholder="Client ID" />
+                    <InputLabel class="mt-3" value="CBE Birr Client Secret" />
+                    <TextInput v-model="form.cbe_birr_client_secret" class="mt-1 block w-full" type="password" placeholder="Client Secret" />
+                </div>
+
+                <!-- EcoCash (Zimbabwe) -->
+                <div v-if="form.provider === 'ecocash'" class="space-y-4">
+                    <InputLabel value="EcoCash Client ID" />
+                    <TextInput v-model="form.ecocash_client_id" class="mt-1 block w-full" placeholder="Client ID" />
+                    <InputLabel class="mt-3" value="EcoCash Client Secret" />
+                    <TextInput v-model="form.ecocash_client_secret" class="mt-1 block w-full" type="password" placeholder="Client Secret" />
+                </div>
+
+                <!-- Vodafone Cash -->
+                <div v-if="form.provider === 'vodafone_cash'" class="space-y-4">
+                    <InputLabel value="Vodafone Cash Client ID" />
+                    <TextInput v-model="form.vodafone_cash_client_id" class="mt-1 block w-full" placeholder="Client ID" />
+                    <InputLabel class="mt-3" value="Vodafone Cash Client Secret" />
+                    <TextInput v-model="form.vodafone_cash_client_secret" class="mt-1 block w-full" type="password" placeholder="Client Secret" />
+                </div>
+
+                <!-- Fawry (Egypt) -->
+                <div v-if="form.provider === 'fawry'" class="space-y-4">
+                    <InputLabel value="Fawry Merchant Code" />
+                    <TextInput v-model="form.fawry_merchant_code" class="mt-1 block w-full" placeholder="Merchant Code" />
+                    <InputLabel class="mt-3" value="Fawry Security Key" />
+                    <TextInput v-model="form.fawry_security_key" class="mt-1 block w-full" type="password" placeholder="Security Key" />
+                </div>
+
+                <!-- Wave (Senegal, etc.) -->
+                <div v-if="form.provider === 'wave'" class="space-y-4">
+                    <InputLabel value="Wave API Key" />
+                    <TextInput v-model="form.wave_api_key" class="mt-1 block w-full" type="password" placeholder="API Key" />
+                </div>
+
+                <!-- Zaad (Somaliland) -->
+                <div v-if="form.provider === 'zaad'" class="space-y-4">
+                    <InputLabel value="Zaad API Key" />
+                    <TextInput v-model="form.zaad_api_key" class="mt-1 block w-full" type="password" placeholder="API Key" />
+                    <InputLabel class="mt-3" value="Zaad Merchant ID" />
+                    <TextInput v-model="form.zaad_merchant_id" class="mt-1 block w-full" placeholder="Merchant ID" />
+                </div>
+
+                <!-- Hormuud EVC+ (Somalia) -->
+                <div v-if="form.provider === 'hormuud'" class="space-y-4">
+                    <InputLabel value="Hormuud API Key" />
+                    <TextInput v-model="form.hormuud_api_key" class="mt-1 block w-full" type="password" placeholder="API Key" />
+                    <InputLabel class="mt-3" value="Hormuud Merchant ID" />
+                    <TextInput v-model="form.hormuud_merchant_id" class="mt-1 block w-full" placeholder="Merchant ID" />
+                </div>
+
+                <!-- Tigo Pesa (Tanzania) -->
+                <div v-if="form.provider === 'tigo_pesa'" class="space-y-4">
+                    <InputLabel value="Tigo Pesa Client ID" />
+                    <TextInput v-model="form.tigo_pesa_client_id" class="mt-1 block w-full" placeholder="Client ID" />
+                    <InputLabel class="mt-3" value="Tigo Pesa Client Secret" />
+                    <TextInput v-model="form.tigo_pesa_client_secret" class="mt-1 block w-full" type="password" placeholder="Client Secret" />
+                </div>
+
+                <!-- Halopesa (Tanzania) -->
+                <div v-if="form.provider === 'halopesa'" class="space-y-4">
+                    <InputLabel value="Halopesa Client ID" />
+                    <TextInput v-model="form.halopesa_client_id" class="mt-1 block w-full" placeholder="Client ID" />
+                    <InputLabel class="mt-3" value="Halopesa Client Secret" />
+                    <TextInput v-model="form.halopesa_client_secret" class="mt-1 block w-full" type="password" placeholder="Client Secret" />
+                </div>
+
+                <!-- Equitel (Kenya) -->
+                <div v-if="form.provider === 'equitel'" class="space-y-4">
+                    <InputLabel value="Equitel Client ID" />
+                    <TextInput v-model="form.equitel_client_id" class="mt-1 block w-full" placeholder="Client ID" />
+                    <InputLabel class="mt-3" value="Equitel Client Secret" />
+                    <TextInput v-model="form.equitel_client_secret" class="mt-1 block w-full" type="password" placeholder="Client Secret" />
                 </div>
 
                 <!-- Custom M-Pesa API Settings -->
