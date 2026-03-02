@@ -49,23 +49,4 @@ return [
         'secret_key' => env('PAYSTACK_SECRET_KEY'),
     ],
 
-    'genieacs' => [
-        'nbi_url' => env('GENIEACS_NBI_URL', 'http://127.0.0.1:7557'),
-        'cwmp_url' => env('GENIEACS_CWMP_URL', 'http://127.0.0.1:7547'),
-        'username' => env('GENIEACS_USERNAME'),
-        'password' => env('GENIEACS_PASSWORD'),
-    ],
-
-    'quickbooks' => [
-        'client_id' => env('QUICKBOOKS_CLIENT_ID'),
-        'client_secret' => env('QUICKBOOKS_CLIENT_SECRET'),
-        'redirect_uri' => env('QUICKBOOKS_REDIRECT_URI'),
-        'environment' => env('QUICKBOOKS_ENVIRONMENT', 'sandbox'),
-    ],
-
-    'talksasa' => [
-        'api_key' => env('TALKSASA_API_KEY'),
-        'sender_id' => env('TALKSASA_SENDER_ID'),
-    ],
-
 ];
