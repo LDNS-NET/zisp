@@ -177,8 +177,9 @@ class TenantSMSController extends Controller
             $rawPhone = $renter->phone ?? $renter->phone_number ?? '';
             $phoneNumber = preg_replace('/^0/', '254', trim($rawPhone));
 
-            // Dispatch background job
-            SendSmsJob::dispatch($smsLog, $phoneNumber, $personalizedMessage);
+            // Dispatch background job on dedicated SMS queue
+            SendSmsJob::dispatch($smsLog, $phoneNumber, $personalizedMessage)
+                ->onQueue('sms');
         }
 
         return redirect()->route('sms.index')
@@ -208,8 +209,10 @@ class TenantSMSController extends Controller
         foreach ($pendingSms as $sms) {
             // Reset status for resending
             $sms->update(['status' => 'pending', 'error_message' => null]);
-            
-            SendSmsJob::dispatch($sms, $sms->phone_number, $sms->message);
+
+            // Re-dispatch on dedicated SMS queue
+            SendSmsJob::dispatch($sms, $sms->phone_number, $sms->message)
+                ->onQueue('sms');
         }
 
         return redirect()->route('sms.index')

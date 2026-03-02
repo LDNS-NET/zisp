@@ -15,14 +15,6 @@ class SendSmsJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    /**
-     * Process this job on a dedicated SMS queue.
-     *
-     * This keeps SMS sending separate from heavy default-queue jobs
-     * like Mikrotik syncs, so messages don't get stuck behind them.
-     */
-    public $queue = 'sms';
-
     protected $smsLog;
     protected $phoneNumber;
     protected $message;
@@ -46,27 +38,47 @@ class SendSmsJob implements ShouldQueue
      */
     public function handle(SmsGatewayService $smsGatewayService)
     {
-        Log::info("[Jobs\SendSmsJob] Dispatching SMS for log ID: {$this->smsLog->id}");
+        try {
+            Log::info("[Jobs\SendSmsJob] Dispatching SMS for log ID: {$this->smsLog->id}");
 
-        $result = $smsGatewayService->sendSMS(
-            $this->smsLog->tenant_id,
-            $this->phoneNumber,
-            $this->message
-        );
+            $result = $smsGatewayService->sendSMS(
+                $this->smsLog->tenant_id,
+                $this->phoneNumber,
+                $this->message
+            );
 
-        if ($result['success']) {
-            $this->smsLog->update([
-                'status' => 'sent',
-                'sent_at' => now(),
-                'provider_message_id' => $result['message_id'] ?? null,
-            ]);
-            Log::info("[Jobs\SendSmsJob] SMS sent successfully for log ID: {$this->smsLog->id}");
-        } else {
+            if ($result['success']) {
+                $this->smsLog->update([
+                    'status' => 'sent',
+                    'sent_at' => now(),
+                    'provider_message_id' => $result['message_id'] ?? null,
+                ]);
+                Log::info("[Jobs\SendSmsJob] SMS sent successfully for log ID: {$this->smsLog->id}");
+                return;
+            }
+
             $this->smsLog->update([
                 'status' => 'failed',
                 'error_message' => $result['message'] ?? 'Unknown gateway error',
             ]);
             Log::error("[Jobs\SendSmsJob] SMS failed for log ID: {$this->smsLog->id} - ERROR: " . ($result['message'] ?? 'Unknown'));
+        } catch (\Throwable $e) {
+            // Never leave an SMS log stuck in 'pending' due to an unhandled exception.
+            try {
+                $this->smsLog->update([
+                    'status' => 'failed',
+                    'error_message' => get_class($e) . ': ' . $e->getMessage(),
+                ]);
+            } catch (\Throwable $inner) {
+                // If we can't update the row, still rethrow to surface in failed_jobs.
+            }
+
+            Log::error("[Jobs\SendSmsJob] Unhandled exception for log ID: {$this->smsLog->id}", [
+                'exception' => get_class($e),
+                'error' => $e->getMessage(),
+            ]);
+
+            throw $e;
         }
     }
 }

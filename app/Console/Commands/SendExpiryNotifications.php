@@ -80,8 +80,9 @@ class SendExpiryNotifications extends Command
 
             $phoneNumbers = preg_replace('/^0/', '254', trim($user->phone ?? $user->phone_number ?? ''));
 
-            // Dispatch background job
-            \App\Jobs\SendSmsJob::dispatch($smsLog, $phoneNumbers, $message);
+            // Dispatch background job on dedicated SMS queue
+            \App\Jobs\SendSmsJob::dispatch($smsLog, $phoneNumbers, $message)
+                ->onQueue('sms');
 
             $user->expiry_notified_at = now();
             $user->save();

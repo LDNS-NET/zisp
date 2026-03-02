@@ -65,21 +65,38 @@ class SmsGatewayService
         
         $provider = $gateway->provider;
         Log::info("[SMS] Using configured provider '{$provider}' for tenant {$tenantId}");
-        
-        $result = match ($provider) {
-            'celcom' => $this->sendViaCelcom($gateway, $phoneNumber, $message),
-            'talksasa' => $this->sendViaTalksasa($gateway, $phoneNumber, $message),
-            'africastalking' => $this->sendViaAfricasTalking($gateway, $phoneNumber, $message),
-            'twilio' => $this->sendViaTwilio($gateway, $phoneNumber, $message),
-            'advanta' => $this->sendViaAdvanta($gateway, $phoneNumber, $message),
-            'bulksms' => $this->sendViaBulkSMS($gateway, $phoneNumber, $message),
-            'clicksend' => $this->sendViaClickSend($gateway, $phoneNumber, $message),
-            'infobip' => $this->sendViaInfobip($gateway, $phoneNumber, $message),
-            default => [
+
+        try {
+            $result = match ($provider) {
+                'celcom' => $this->sendViaCelcom($gateway, $phoneNumber, $message),
+                'talksasa' => $this->sendViaTalksasa($gateway, $phoneNumber, $message),
+                'africastalking' => $this->sendViaAfricasTalking($gateway, $phoneNumber, $message),
+                'twilio' => $this->sendViaTwilio($gateway, $phoneNumber, $message),
+                'advanta' => $this->sendViaAdvanta($gateway, $phoneNumber, $message),
+                'bulksms' => $this->sendViaBulkSMS($gateway, $phoneNumber, $message),
+                'clicksend' => $this->sendViaClickSend($gateway, $phoneNumber, $message),
+                'infobip' => $this->sendViaInfobip($gateway, $phoneNumber, $message),
+                default => [
+                    'success' => false,
+                    'message' => "Unsupported SMS provider: {$provider}"
+                ],
+            };
+        } catch (\Throwable $e) {
+            Log::error("[SMS] Provider '{$provider}' threw while sending", [
+                'tenant_id' => $tenantId,
+                'to' => $phoneNumber,
+                'exception' => get_class($e),
+                'error' => $e->getMessage(),
+            ]);
+
+            $result = [
                 'success' => false,
-                'message' => "Unsupported SMS provider: {$provider}"
-            ],
-        };
+                'message' => 'SMS gateway error: ' . $e->getMessage(),
+                'provider_response' => [
+                    'exception' => get_class($e),
+                ],
+            ];
+        }
 
         $this->logResult($tenantId, $provider, $result);
         return $result;

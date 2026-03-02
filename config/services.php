@@ -49,4 +49,10 @@ return [
         'secret_key' => env('PAYSTACK_SECRET_KEY'),
     ],
 
+    // System-level Talksasa SMS credentials (used as default gateway)
+    'talksasa' => [
+        'api_key' => env('TALKSASA_API_KEY'),
+        'sender_id' => env('TALKSASA_SENDER_ID'),
+    ],
+
 ];

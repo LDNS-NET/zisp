@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Log;
 
 class TenantSmsGateway extends Model
 {
@@ -59,6 +60,31 @@ class TenantSmsGateway extends Model
         'is_active' => 'boolean',
         'is_default' => 'boolean',
     ];
+
+    /**
+     * Safely decrypt an attribute value.
+     * If the ciphertext was encrypted with an old APP_KEY (or is otherwise invalid),
+     * we log the error and return null instead of throwing, so the UI can still load
+     * and the user can re-enter credentials.
+     */
+    protected function safeDecrypt(?string $value, string $attribute)
+    {
+        if (!$value) {
+            return null;
+        }
+
+        try {
+            return Crypt::decryptString($value);
+        } catch (\Throwable $e) {
+            Log::warning('TenantSmsGateway: failed to decrypt attribute', [
+                'attribute' => $attribute,
+                'exception' => get_class($e),
+                'message' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+    }
     
     // Talksasa Mutators/Accessors
     public function setTalksasaApiKeyAttribute($value) 
@@ -68,7 +94,7 @@ class TenantSmsGateway extends Model
     
     public function getTalksasaApiKeyAttribute($value) 
     { 
-        return $value ? Crypt::decryptString($value) : null; 
+        return $this->safeDecrypt($value, 'talksasa_api_key');
     }
     
     // Celcom Mutators/Accessors
@@ -79,7 +105,7 @@ class TenantSmsGateway extends Model
     
     public function getCelcomPartnerIdAttribute($value) 
     { 
-        return $value ? Crypt::decryptString($value) : null; 
+        return $this->safeDecrypt($value, 'celcom_partner_id');
     }
     
     public function setCelcomApiKeyAttribute($value) 
@@ -89,7 +115,7 @@ class TenantSmsGateway extends Model
     
     public function getCelcomApiKeyAttribute($value) 
     { 
-        return $value ? Crypt::decryptString($value) : null; 
+        return $this->safeDecrypt($value, 'celcom_api_key');
     }
     
     // Africa's Talking Mutators/Accessors
@@ -100,7 +126,7 @@ class TenantSmsGateway extends Model
     
     public function getAfricastalkingApiKeyAttribute($value) 
     { 
-        return $value ? Crypt::decryptString($value) : null; 
+        return $this->safeDecrypt($value, 'africastalking_api_key');
     }
     
     // Twilio Mutators/Accessors
@@ -111,7 +137,7 @@ class TenantSmsGateway extends Model
     
     public function getTwilioAccountSidAttribute($value) 
     { 
-        return $value ? Crypt::decryptString($value) : null; 
+        return $this->safeDecrypt($value, 'twilio_account_sid');
     }
     
     public function setTwilioAuthTokenAttribute($value) 
@@ -121,7 +147,7 @@ class TenantSmsGateway extends Model
     
     public function getTwilioAuthTokenAttribute($value) 
     { 
-        return $value ? Crypt::decryptString($value) : null; 
+        return $this->safeDecrypt($value, 'twilio_auth_token');
     }
     
     // Advanta SMS Mutators/Accessors
@@ -132,7 +158,7 @@ class TenantSmsGateway extends Model
     
     public function getAdvantaPartnerIdAttribute($value) 
     { 
-        return $value ? Crypt::decryptString($value) : null; 
+        return $this->safeDecrypt($value, 'advanta_partner_id');
     }
     
     public function setAdvantaApiKeyAttribute($value) 
@@ -142,7 +168,7 @@ class TenantSmsGateway extends Model
     
     public function getAdvantaApiKeyAttribute($value) 
     { 
-        return $value ? Crypt::decryptString($value) : null; 
+        return $this->safeDecrypt($value, 'advanta_api_key');
     }
     
     // BulkSMS Mutators/Accessors
@@ -153,7 +179,7 @@ class TenantSmsGateway extends Model
     
     public function getBulksmsUsernameAttribute($value) 
     { 
-        return $value ? Crypt::decryptString($value) : null; 
+        return $this->safeDecrypt($value, 'bulksms_username');
     }
     
     public function setBulksmsPasswordAttribute($value) 
@@ -163,7 +189,7 @@ class TenantSmsGateway extends Model
     
     public function getBulksmsPasswordAttribute($value) 
     { 
-        return $value ? Crypt::decryptString($value) : null; 
+        return $this->safeDecrypt($value, 'bulksms_password');
     }
     
     // ClickSend Mutators/Accessors
@@ -174,7 +200,7 @@ class TenantSmsGateway extends Model
     
     public function getClicksendUsernameAttribute($value) 
     { 
-        return $value ? Crypt::decryptString($value) : null; 
+        return $this->safeDecrypt($value, 'clicksend_username');
     }
     
     public function setClicksendApiKeyAttribute($value) 
@@ -184,7 +210,7 @@ class TenantSmsGateway extends Model
     
     public function getClicksendApiKeyAttribute($value) 
     { 
-        return $value ? Crypt::decryptString($value) : null; 
+        return $this->safeDecrypt($value, 'clicksend_api_key');
     }
     
     // Infobip Mutators/Accessors
@@ -195,7 +221,7 @@ class TenantSmsGateway extends Model
     
     public function getInfobipApiKeyAttribute($value) 
     { 
-        return $value ? Crypt::decryptString($value) : null; 
+        return $this->safeDecrypt($value, 'infobip_api_key');
     }
     
     

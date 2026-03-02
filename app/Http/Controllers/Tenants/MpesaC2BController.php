@@ -366,10 +366,11 @@ class MpesaC2BController extends Controller
                 'status' => 'pending',
             ]);
 
-            // Dispatch SMS Job
+            // Dispatch SMS Job on dedicated SMS queue
             if ($user->phone) {
                 $phoneNumbers = preg_replace('/^0/', '254', trim($user->phone));
-                \App\Jobs\SendSmsJob::dispatch($smsLog, $phoneNumbers, $message);
+                \App\Jobs\SendSmsJob::dispatch($smsLog, $phoneNumbers, $message)
+                    ->onQueue('sms');
                 Log::info('Payment notification SMS dispatched', ['user_id' => $user->id, 'receipt' => $payment->receipt_number]);
             }
 
