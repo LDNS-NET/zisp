@@ -4,12 +4,14 @@ namespace App\Http\Controllers\Tenants;
 
 use App\Http\Controllers\Controller;
 use App\Models\Tenants\NetworkUser;
+use App\Models\Tenants\Compensation;
 use App\Models\Package;
 use App\Models\Tenants\TenantPayment;
 use App\Models\TenantSetting;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use App\Models\Radius\Radacct;
 class TenantUserController extends Controller
 {
@@ -1128,6 +1130,57 @@ class TenantUserController extends Controller
             \DB::rollBack();
             \Log::error('Failed to pay renewal with balance: ' . $e->getMessage());
             return back()->withErrors(['error' => 'Failed to process payment: ' . $e->getMessage()]);
+        }
+    }
+
+    public function revertCompensation(\Illuminate\Http\Request $request, \App\Models\Tenants\NetworkUser $user, \App\Models\Tenants\PackageRenewal $renewal)
+    {
+        try {
+            // Ensure the renewal belongs to the user
+            if ($renewal->user_id !== $user->id) {
+                return back()->with('error', 'Invalid renewal record.');
+            }
+
+            // Only compensation entries can be reverted
+            if (($renewal->type ?? 'renewal') !== 'compensation') {
+                return back()->with('error', 'Only compensation entries can be reverted.');
+            }
+
+            // Find matching compensation record using the new expiry recorded on the renewal
+            $compensation = Compensation::where('user_id', $user->id)
+                ->where('new_expires_at', $renewal->expires_at)
+                ->latest()
+                ->first();
+
+            if (!$compensation) {
+                return back()->with('error', 'Matching compensation record not found for this renewal.');
+            }
+
+            DB::transaction(function () use ($user, $renewal, $compensation) {
+                // Revert user expiry to the previous value
+                $user->expires_at = $compensation->old_expires_at;
+                $user->save();
+
+                // If this compensation was paid from wallet, refund the wallet using the amount recorded on the renewal
+                if ($compensation->type === 'payment' && (float)$renewal->amount_paid > 0) {
+                    $user->wallet_balance = ($user->wallet_balance ?? 0) + (float)$renewal->amount_paid;
+                    $user->save();
+                }
+
+                // Mark this renewal entry as cancelled so history remains but is clearly reverted
+                $renewal->status = 'cancelled';
+                $renewal->save();
+            });
+
+            return back()->with('success', 'Compensation successfully reverted.');
+        } catch (\Exception $e) {
+            \Log::error('Failed to revert compensation', [
+                'error' => $e->getMessage(),
+                'user_id' => $user->id ?? null,
+                'renewal_id' => $renewal->id ?? null,
+            ]);
+
+            return back()->withErrors(['error' => 'Failed to revert compensation: ' . $e->getMessage()]);
         }
     }
 }

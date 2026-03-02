@@ -24,7 +24,7 @@ const props = defineProps({
     renewals: Object, // Paginated renewals
 });
 
-import { Wallet, History, CreditCard, User, FileText, Activity } from 'lucide-vue-next';
+import { Wallet, History, CreditCard, User, FileText, Activity, MoreVertical } from 'lucide-vue-next';
 import Pagination from '@/Components/Pagination.vue';
 
 const showModal = ref(false);
@@ -111,10 +111,43 @@ function confirmSubmit() {
 }
 
 const showPayWalletModal = ref(false);
+const showRevertModal = ref(false);
+const showRenewalActionsModal = ref(false);
 const selectedRenewal = ref(null);
+const selectedRenewalForActions = ref(null);
 const payWalletForm = useForm({
     amount: ''
 });
+
+function openRenewalActions(renewal) {
+    selectedRenewalForActions.value = renewal;
+    showRenewalActionsModal.value = true;
+}
+
+function openRevertModal(renewal) {
+    selectedRenewal.value = renewal;
+    showRevertModal.value = true;
+}
+
+function revertCompensation(renewal) {
+    router.post(
+        route('users.renewals.revert-compensation', {
+            user: props.user.uuid,
+            renewal: renewal.id,
+        }),
+        {},
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                showRevertModal.value = false;
+                toast.success('Compensation successfully reverted.');
+            },
+            onError: () => {
+                toast.error('Failed to revert compensation. Please try again.');
+            },
+        }
+    );
+}
 
 function openPayWalletModal(renewal) {
     selectedRenewal.value = renewal;
@@ -672,6 +705,7 @@ function submitPayWallet() {
                                 <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">Type</th>
                                 <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">Period</th>
                                 <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">Status</th>
+                                <th class="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 dark:divide-gray-800 bg-white dark:bg-transparent">
@@ -710,28 +744,29 @@ function submitPayWallet() {
                                     </div>
                                 </td>
                                 <td class="px-6 py-4 text-sm">
-                                    <div class="flex flex-col gap-2 items-start">
-                                        <div class="flex items-center gap-2">
-                                            <span v-if="renewal.expires_at && new Date(renewal.expires_at) < new Date()"
-                                                class="inline-flex rounded-full px-2.5 py-1 text-xs font-bold transition-colors duration-200 shadow-sm bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 ring-1 ring-red-200 dark:ring-red-900/50">
-                                                Expired
-                                            </span>
-                                            <span v-else class="inline-flex rounded-full px-2.5 py-1 text-xs font-bold transition-colors duration-200 shadow-sm" 
-                                                :class="renewal.status === 'active' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 ring-1 ring-green-200 dark:ring-green-900/50' : 'bg-gray-100 text-gray-800 dark:bg-gray-700/50 dark:text-gray-300 ring-1 ring-gray-200 dark:ring-gray-700'">
-                                                {{ renewal.status.charAt(0).toUpperCase() + renewal.status.slice(1) }}
-                                            </span>
-                                        </div>
-                                        <button v-if="Number(renewal.amount) === 0" 
-                                                @click.prevent="openPayWalletModal(renewal)"
-                                                class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 rounded-lg text-xs font-bold transition-colors border border-indigo-100 dark:border-indigo-500/20 shadow-sm mt-1">
-                                            <Wallet class="w-3.5 h-3.5" />
-                                            <span>Pay via Wallet</span>
-                                        </button>
+                                    <div class="flex items-center gap-2">
+                                        <span v-if="renewal.expires_at && new Date(renewal.expires_at) < new Date()"
+                                            class="inline-flex rounded-full px-2.5 py-1 text-xs font-bold transition-colors duration-200 shadow-sm bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 ring-1 ring-red-200 dark:ring-red-900/50">
+                                            Expired
+                                        </span>
+                                        <span v-else class="inline-flex rounded-full px-2.5 py-1 text-xs font-bold transition-colors duration-200 shadow-sm" 
+                                            :class="renewal.status === 'active' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 ring-1 ring-green-200 dark:ring-green-900/50' : 'bg-gray-100 text-gray-800 dark:bg-gray-700/50 dark:text-gray-300 ring-1 ring-gray-200 dark:ring-gray-700'">
+                                            {{ renewal.status.charAt(0).toUpperCase() + renewal.status.slice(1) }}
+                                        </span>
                                     </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <button
+                                        @click.prevent="openRenewalActions(renewal)"
+                                        class="p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                                        title="Actions"
+                                    >
+                                        <MoreVertical class="w-5 h-5" />
+                                    </button>
                                 </td>
                             </tr>
                             <tr v-if="!props.renewals.data || props.renewals.data.length === 0">
-                                <td colspan="5" class="px-6 py-12 text-center">
+                                <td colspan="6" class="px-6 py-12 text-center">
                                     <History class="w-12 h-12 text-gray-200 dark:text-gray-700 mx-auto mb-3" />
                                     <p class="text-sm font-medium text-gray-500 dark:text-gray-400">No renewal history found for this user.</p>
                                 </td>
@@ -857,6 +892,83 @@ function submitPayWallet() {
                         </PrimaryButton>
                     </div>
                 </form>
+            </div>
+        </Modal>
+
+        <!-- Renewal Actions Modal -->
+        <Modal :show="showRenewalActionsModal" @close="showRenewalActionsModal = false" maxWidth="sm">
+            <div class="p-6 dark:bg-slate-800" v-if="selectedRenewalForActions">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                    Actions
+                </h3>
+                <div class="space-y-3">
+                    <button
+                        v-if="selectedRenewalForActions.type === 'compensation'"
+                        @click.prevent="openRevertModal(selectedRenewalForActions); showRenewalActionsModal = false"
+                        class="w-full flex items-center px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                    >
+                        <span class="font-semibold">Revert Compensation</span>
+                    </button>
+
+                    <button
+                        v-if="Number(selectedRenewalForActions.amount) === 0"
+                        @click.prevent="openPayWalletModal(selectedRenewalForActions); showRenewalActionsModal = false"
+                        class="w-full flex items-center px-4 py-2 text-sm text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors"
+                    >
+                        <Wallet class="w-4 h-4 mr-3" />
+                        <span class="font-semibold">Pay via Wallet</span>
+                    </button>
+                </div>
+
+                <div class="mt-6 flex justify-end">
+                    <button
+                        @click="showRenewalActionsModal = false"
+                        class="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                    >
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </Modal>
+
+        <!-- Revert Compensation Modal -->
+        <Modal :show="showRevertModal" @close="showRevertModal = false">
+            <div class="p-6 dark:bg-slate-800 dark:text-white" v-if="selectedRenewal">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                    Revert Compensation
+                </h3>
+                <p class="text-sm text-gray-600 dark:text-gray-300 mb-4">
+                    This will revert the selected compensation and restore the user's expiry time to what it was before that compensation was applied.
+                </p>
+
+                <div class="mb-4 rounded-lg bg-gray-50 dark:bg-slate-900 p-3 text-sm">
+                    <p class="text-gray-700 dark:text-gray-200">
+                        <span class="font-semibold">Type:</span> {{ selectedRenewal.type }}
+                    </p>
+                    <p class="text-gray-700 dark:text-gray-200">
+                        <span class="font-semibold">New Expiry (after compensation):</span>
+                        {{ selectedRenewal.expires_at ? new Date(selectedRenewal.expires_at).toLocaleString('en-GB', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—' }}
+                    </p>
+                    <p v-if="Number(selectedRenewal.amount) === 0" class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        This compensation did not deduct from wallet directly.
+                    </p>
+                    <p v-else class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        Amount recorded on this entry: KES {{ Number(selectedRenewal.amount).toLocaleString() }}.
+                    </p>
+                </div>
+
+                <p class="text-sm text-red-600 dark:text-red-400 mb-4">
+                    This action cannot be undone. Are you sure you want to proceed?
+                </p>
+
+                <div class="mt-6 flex justify-end gap-3">
+                    <DangerButton type="button" @click="showRevertModal = false">
+                        Cancel
+                    </DangerButton>
+                    <PrimaryButton type="button" @click="revertCompensation(selectedRenewal)">
+                        Yes, Revert Compensation
+                    </PrimaryButton>
+                </div>
             </div>
         </Modal>
     </AuthenticatedLayout>

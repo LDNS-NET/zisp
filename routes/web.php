@@ -285,6 +285,8 @@ Route::middleware(['auth', 'verified', 'tenant.domain', 'maintenance.mode', 'sta
             Route::post('users/details', [TenantUserController::class, 'update'])->name('users.details.update');
             Route::post('users/{user}/renewals/{renewal}/pay-with-balance', [TenantUserController::class, 'payRenewalWithBalance'])
                 ->name('users.renewals.pay-with-balance');
+            Route::post('users/{user}/renewals/{renewal}/revert-compensation', [TenantUserController::class, 'revertCompensation'])
+                ->name('users.renewals.revert-compensation');
             
             Route::resource('users', TenantUserController::class)->middleware('throttle:user_crud');
         });
