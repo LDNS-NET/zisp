@@ -15,6 +15,14 @@ class SendSmsJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    /**
+     * Process this job on a dedicated SMS queue.
+     *
+     * This keeps SMS sending separate from heavy default-queue jobs
+     * like Mikrotik syncs, so messages don't get stuck behind them.
+     */
+    public $queue = 'sms';
+
     protected $smsLog;
     protected $phoneNumber;
     protected $message;
